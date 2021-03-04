@@ -1,0 +1,50 @@
+#字段类型String
+input idFilter {
+    eq: String
+    neq: String
+    like: String
+    ieq: String
+    in: [String]
+    nin: [String]
+    gt: String
+    lt: String
+    gte: String
+    lte: String
+}
+
+#字段类型String
+input stringFilter {
+    eq: String
+    neq: String
+    like: String
+    ieq: String
+    in: [String]
+    nin: [String]
+}
+
+#字段类型Int
+input integerFilter {
+    eq: Int
+    neq: Int
+    in: [Int]
+    nin: [Int]
+    gt: Int
+    lt: Int
+    gte: Int
+    lte: Int
+}
+
+input booleanFilter{
+    eq:Boolean
+}
+
+input timestampFilter {
+    eq: Timestamp
+    neq: Timestamp
+    in: [Timestamp]
+    nin: [Timestamp]
+    gt: Timestamp
+    lt: Timestamp
+    gte: Timestamp
+    lte: Timestamp
+}
