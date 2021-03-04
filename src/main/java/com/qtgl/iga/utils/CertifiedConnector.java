@@ -66,7 +66,7 @@ public  class CertifiedConnector {
      * @return
      * @throws Exception
      */
-    /*public DomainInfo introspect(HttpServletRequest request) throws Exception {
+    public DomainInfo introspect(HttpServletRequest request) throws Exception {
          // 如果url是相对路径
         String ssoUrl=getSSOUrl(request);
         DomainInfo domainInfo = certifiedConnector.domainInfoService.findAll().get(0);
@@ -75,7 +75,7 @@ public  class CertifiedConnector {
         DomainInfo byDomainName = certifiedConnector.domainInfoService.getByDomainName(domainName);
         if (null == byDomainName) throw new Exception("No domain info");
         return byDomainName;
-    }*/
+    }
 
     public static String introspect(HttpServletRequest request, String uri, String clientId, String clientSecret) throws Exception {
 

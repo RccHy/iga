@@ -34,4 +34,9 @@ public class DomainInfoServiceImpl implements DomainInfoService {
 
 
     }
+
+    @Override
+    public DomainInfo getByDomainName(String name) {
+        return null;
+    }
 }

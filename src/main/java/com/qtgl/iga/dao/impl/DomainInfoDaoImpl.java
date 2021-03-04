@@ -18,7 +18,7 @@ public class DomainInfoDaoImpl implements DomainInfoDao {
 
     @Override
     public void save(DomainInfo domainInfo) {
-        jdbcIGA.update("INSERT INTO `iga`.`domain_info`(`id`, `domainId`, `domainName`, `clientId`, `clientSecret`, `status`, `createTime`, `updateTime`) " +
+        jdbcIGA.update("INSERT INTO `t_mgr_domain_info`(`id`, `domainId`, `domainName`, `clientId`, `clientSecret`, `status`, `createTime`, `updateTime`) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
                 domainInfo.getId(),domainInfo.getDomainId(),domainInfo.getDomainName(),domainInfo.getClientId(),domainInfo.getClientSecret(),domainInfo.getStatus(),domainInfo.getCreateTime(),domainInfo.getUpdateTime()
                 );
@@ -26,7 +26,13 @@ public class DomainInfoDaoImpl implements DomainInfoDao {
 
     @Override
     public List<DomainInfo> findAll() {
-        List<DomainInfo> domainInfos = jdbcIGA.queryForList("select * from domain_info where status=0", DomainInfo.class);
+        List<DomainInfo> domainInfos = jdbcIGA.queryForList("select * from t_mgr_domain_info where status=0", DomainInfo.class);
         return domainInfos;
+    }
+
+    @Override
+    public DomainInfo getByDomainName(String name) {
+        DomainInfo domainInfo=jdbcIGA.queryForObject("select * from t_mgr_domain_info where status=0",DomainInfo.class);
+        return domainInfo;
     }
 }
