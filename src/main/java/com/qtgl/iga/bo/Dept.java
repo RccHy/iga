@@ -14,4 +14,5 @@ public class Dept {
     private String typeId;
     private Date createTime;
 
+
 }
