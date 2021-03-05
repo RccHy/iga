@@ -21,6 +21,5 @@ graphql:
 
 
 
-
-
-
+sso:
+  url: https://cloud.ketanyun.cn/sso
