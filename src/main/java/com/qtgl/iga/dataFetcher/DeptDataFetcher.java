@@ -17,6 +17,8 @@ public class DeptDataFetcher {
 
     public DataFetcher depts() {
         return dataFetchingEvn -> {
+
+
             return deptService.getAllDepts();
         };
     }

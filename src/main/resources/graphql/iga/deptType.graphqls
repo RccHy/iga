@@ -12,6 +12,15 @@ extend type Mutation {
 
 }
 
+##分页结构###
+type DeptTypeConnection{
+    edges: [DeptTypeEdge]
+    totalCount: Int
+}
+
+type DeptTypeEdge{
+    node: DeptType
+}
 
 
 type DeptType{
