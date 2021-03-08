@@ -11,15 +11,15 @@ extend type Mutation {
     updateDeptTreeType(entity:InputDeptTreeType!):DeptTreeType
 }
 
-##分页结构###
-type DeptTreeTypeConnection{
-    edges: [DeptTreeTypeEdge]
-    totalCount: Int
-}
-
-type DeptTreeTypeEdge{
-    node: DeptTreeType
-}
+###分页结构###
+#type DeptTreeTypeConnection{
+#    edges: [DeptTreeTypeEdge]
+#    totalCount: Int
+#}
+#
+#type DeptTreeTypeEdge{
+#    node: DeptTreeType
+#}
 
 # 组织机构树实体
 type DeptTreeType{
