@@ -18,18 +18,18 @@ public class UpStreamServiceImpl implements UpStreamService {
     UpStreamDao upStreamDao;
 
     @Override
-    public List<UpStream> findAll(Map<String, Object> arguments) {
-        return upStreamDao.findAll(arguments);
+    public List<UpStream> findAll(Map<String, Object> arguments,String domain) {
+        return upStreamDao.findAll(arguments,domain);
     }
 
     @Override
-    public UpStream deleteUpStream(Map<String, Object> arguments) throws Exception{
-        return upStreamDao.deleteUpStream(arguments);
+    public UpStream deleteUpStream(Map<String, Object> arguments,String domain) throws Exception{
+        return upStreamDao.deleteUpStream(arguments,domain);
     }
 
     @Override
-    public UpStream saveUpStream(UpStream upStream) {
-        return upStreamDao.saveUpStream(upStream);
+    public UpStream saveUpStream(UpStream upStream,String domain) {
+        return upStreamDao.saveUpStream(upStream,domain);
     }
 
     @Override

@@ -36,7 +36,7 @@ public class DomainInfoDaoImpl implements DomainInfoDao {
 
     @Override
     public DomainInfo getByDomainName(String name) {
-        DomainInfo domainInfo=jdbcIGA.queryForObject("select * from t_mgr_domain_info where status=0",DomainInfo.class);
+        DomainInfo domainInfo=jdbcIGA.queryForObject("select * from t_mgr_domain_info where status=0",new DomainInfoRowMapper());
         return domainInfo;
     }
 }

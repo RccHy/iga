@@ -1,6 +1,5 @@
 package com.qtgl.iga.service.impl;
 
-import com.qtgl.iga.bo.DeptType;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.dao.DomainInfoDao;
 import com.qtgl.iga.service.DomainInfoService;
@@ -37,6 +36,6 @@ public class DomainInfoServiceImpl implements DomainInfoService {
 
     @Override
     public DomainInfo getByDomainName(String name) {
-        return null;
+        return dao.getByDomainName(name);
     }
 }

@@ -15,29 +15,33 @@ public enum FilterCodeEnum {
 
     NEQ("neq", "!="),
 
-    LIKE("like", "%"),
+    LIKE("like", "like"),
 
-    IEQ("ieq", "悠方礼品卡"),
+    IEQ("ieq", "ieq"),
 
-    IN("in", "微信支付"),
+    IN("in", "in"),
 
-    NIN("nin", "支付宝"),
+    NIN("nin", "not in"),
 
-    GT("gt", "其他");
+    GT("gt", ">"),
 
+    LT("lt", "<"),
+
+    GTE("gte", ">="),
+
+    LTE("lte", "<=");
 
 
     private String code;
 
     private String desc;
 
-//    public static String getCodeByDesc(String desc){
-//        for(FilterCodeEnum codeEnum : FilterCodeEnum.values()){
-//            if(codeEnum.getDesc().equals(desc)){
-//                return codeEnum.getCode();
-//            }else {
-//                return null;
-//            }
-//        }
-//    }
+    public static String getDescByCode(String code){
+        for(FilterCodeEnum codeEnum : FilterCodeEnum.values()){
+            if(codeEnum.getCode().equals(code)){
+                return codeEnum.getDesc();
+            }
+        }
+        return null;
+    }
 }
