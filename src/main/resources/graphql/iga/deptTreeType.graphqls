@@ -1,0 +1,79 @@
+extend type Query {
+    #查询组织机构树列表
+    deptTreeTypes(id:ID,filter:DeptTreeTypeFilter):[DeptTreeType]
+}
+extend type Mutation {
+    #新增组织机构树
+    saveDeptTreeType(entity:InputDeptTreeType!):DeptTreeType
+    #根据id删除组织机构树
+    deleteDeptTreeType(id:ID!): DeptTreeType
+    #更新组织机构树
+    updateDeptTreeType(entity:InputDeptTreeType!):DeptTreeType
+}
+
+##分页结构###
+type DeptTreeTypeConnection{
+    edges: [DeptTreeTypeEdge]
+    totalCount: Int
+}
+
+type DeptTreeTypeEdge{
+    node: DeptTreeType
+}
+
+# 组织机构树实体
+type DeptTreeType{
+    # 主键
+    id:ID
+    # 机构类型代码
+    code:String
+    # 机构类型名称
+    name:String
+    # 描述
+    description:String
+    #是否允许多个根节点
+    multipleRootNode:Boolean
+    # 创建日期
+    createTime:Timestamp
+    # 修改日期
+    updateTime:Timestamp
+    # 创建人员工号
+    createUser:String
+    # 租户外键
+    domain:String
+}
+
+
+# 组织机构树入参
+input InputDeptTreeType{
+    # 主键
+    id:ID
+    # 机构类型代码
+    code:String
+    # 机构类型名称
+    name:String
+    # 描述
+    description:String
+    #是否允许多个根节点
+    multipleRootNode:Boolean
+    # 创建日期
+    createTime:Timestamp
+    # 修改日期
+    updateTime:Timestamp
+    # 创建人员工号
+    createUser:String
+    # 租户外键
+    domain:String
+}
+
+input DeptTreeTypeFilter{
+    code:stringFilter
+    name:stringFilter
+    createTime:timestampFilter
+    updateTime:timestampFilter
+}
+
+
+
+
+

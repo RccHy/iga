@@ -2,6 +2,7 @@ package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.dao.DomainInfoDao;
+import com.qtgl.iga.dao.mapper.DomainInfoRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -26,7 +27,10 @@ public class DomainInfoDaoImpl implements DomainInfoDao {
 
     @Override
     public List<DomainInfo> findAll() {
-        List<DomainInfo> domainInfos = jdbcIGA.queryForList("select * from t_mgr_domain_info where status=0", DomainInfo.class);
+        List<DomainInfo> domainInfos = jdbcIGA.query("select * from t_mgr_domain_info where status=0", new DomainInfoRowMapper());
+        for (DomainInfo domainInfo : domainInfos) {
+            System.out.println(domainInfo);
+        }
         return domainInfos;
     }
 

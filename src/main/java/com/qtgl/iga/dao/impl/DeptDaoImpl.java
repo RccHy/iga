@@ -2,6 +2,7 @@ package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bo.Dept;
 import com.qtgl.iga.dao.DeptDao;
+import com.qtgl.iga.dao.mapper.DeptRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -18,6 +19,6 @@ public class DeptDaoImpl implements DeptDao {
 
     @Override
     public List<Dept> getAllDepts() {
-        return jdbcIGA.queryForList("select  * from Dept ",Dept.class);
+        return jdbcIGA.query("select  * from Dept ",new DeptRowMapper());
     }
 }

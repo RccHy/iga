@@ -11,7 +11,6 @@ import javax.annotation.PostConstruct;
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
 
 @Component
-
 public class DeptProvider {
 
 

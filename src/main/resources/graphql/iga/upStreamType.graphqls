@@ -1,0 +1,94 @@
+extend type Query {
+
+    #查询上游源类型注册信息
+    upStreamTypes(id:ID,filter:upStreamFilter):[upStreamType]
+
+}
+extend type Mutation {
+
+
+    #新增上游源类型
+    saveUpStreamType(entity:InputupStreamType!):upStreamType
+    #根据id删除上游源类型
+    deleteUpStreamType(id:ID!): upStreamType
+    #更新上游源类型
+    updateUpStreamType(entity:InputupStreamType!):upStreamType
+}
+
+
+
+#上游源类型信息实体
+type upStreamType{
+    # 主键
+    id:ID
+    # 上有源id
+    upstreamId:String
+    # 描述
+    description:String
+    # 同步类型  部门/岗位/人员
+    synType:String
+    # 属组织机构类别外建
+    deptTypeId:String
+    # 是否启用
+    active:String
+    # 是否启用时间
+    activeTime:Timestamp
+    # 注册时间
+    createTime:Timestamp
+    # 修改时间
+    updateTime:Timestamp
+    # 网关数据服务code
+    serviceCode:String
+    # ://服务/类型/方法
+    graphqlUrl:String
+}
+
+##分页结构###
+type upStreamTypeConnection{
+    edges: [upStreamTypeEdge]
+    totalCount: Int
+}
+
+type upStreamTypeEdge{
+    node: upStreamType
+}
+
+
+
+# 上游源类型入参
+input InputupStreamType{
+    # 主键
+    id:ID
+    # 上有源id
+    upstreamId:String
+    # 描述
+    description:String
+    # 同步类型  部门/岗位/人员
+    synType:String
+    # 属组织机构类别外建
+    deptTypeId:String
+    # 是否启用
+    active:String
+    # 是否启用时间
+    activeTime:Timestamp
+    # 注册时间
+    createTime:Timestamp
+    # 修改时间
+    updateTime:Timestamp
+    # 网关数据服务code
+    serviceCode:String
+    # ://服务/类型/方法
+    graphqlUrl:String
+}
+
+input upStreamTypeFilter{
+    deptTypeId:stringFilter
+    serviceCode:stringFilter
+    synType:stringFilter
+    createTime:timestampFilter
+    updateTime:timestampFilter
+}
+
+
+
+

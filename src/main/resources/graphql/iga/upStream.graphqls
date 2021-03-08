@@ -1,0 +1,77 @@
+extend type Query {
+
+    #查询上游源注册信息
+    upStreams(id:ID,filter:upStreamFilter):[upStream]
+
+}
+extend type Mutation {
+
+
+    #新增上游源注册
+    saveUpStream(entity:InputUpStream!):upStream
+    #根据id删除上游源注册
+    deleteUpStream(id:ID!): upStream
+    #更新上游源注册
+    updateUpStream(entity:InputUpStream!):upStream
+}
+
+
+
+#上游源注册信息实体
+type upStream{
+    # 主键
+    id:ID
+    # 应用代码，如人事：HR_SYS
+    appCode:String
+    # 应用名称，如人事
+    appName:String
+    # 数据前缀代码 HR
+    dataCode:String
+    # 注册时间
+    createTime:Timestamp
+    # 注册人员
+    createUser:String
+    # 状态  启用/不启用
+    state:Int
+    # 代表色
+    color:String
+    # 租户信息外建
+    domain:String
+}
+
+
+
+# 上游源注册入参
+input InputUpStream{
+    # 主键
+    id:ID
+    # 应用代码，如人事：HR_SYS
+    appCode:String
+    # 应用名称，如人事
+    appName:String
+    # 数据前缀代码 HR
+    dataCode:String
+    # 注册时间
+    createTime:Timestamp
+    # 注册人员
+    createUser:String
+    # 状态  启用/不启用
+    state:Int
+    # 代表色
+    color:String
+    # 租户信息外建
+    domain:String
+}
+
+input upStreamFilter{
+    appCode:stringFilter
+    appName:stringFilter
+    dataCode:stringFilter
+    state:integerFilter
+    color:stringFilter
+    createTime:timestampFilter
+}
+
+
+
+

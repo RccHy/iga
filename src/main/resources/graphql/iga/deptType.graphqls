@@ -9,7 +9,6 @@ extend type Mutation {
     deleteSchemaField(id:ID!): DeptType
     #更新部门类型
     updateSchemaField(entity:InputDeptType!):DeptType
-
 }
 
 ##分页结构###
@@ -22,24 +21,28 @@ type DeptTypeEdge{
     node: DeptType
 }
 
-
+# 组织机构类别实体
 type DeptType{
     # 主键
     id:ID
-    # 类型代码
+    # 机构类型代码
     code:String
-    # 类型名称
+    # 机构类型名称
     name:String
-    # 是否允许多根节点
-    multipleRootNode:Boolean
+    # 描述
+    description:String
     # 创建日期
     createTime:Timestamp
     # 修改日期
     updateTime:Timestamp
-    # 创建人员
+    # 创建人员工号
     createUser:String
+    # 租户外键
+    domain:String
 }
 
+
+# 组织结构类别入参
 input InputDeptType{
     id:ID
     code:String
@@ -54,3 +57,8 @@ input DeptTypeFilter{
     code:stringFilter
     name:stringFilter
 }
+
+
+
+
+

@@ -1,0 +1,70 @@
+extend type Query {
+
+    #查询租户注册表
+    doMainInfos(id:ID,filter:DeptTypeFilter):[DomainInfo]
+}
+extend type Mutation {
+    #新增租户注册
+    saveDomainInfo(entity:InputDomainInfo!):DomainInfo
+    #根据id删除租户注册
+    deleteDomainInfo(id:ID!): DomainInfo
+    #更新租户注册
+    updateDomainInfo(entity:InputDomainInfo!):DomainInfo
+}
+
+##分页结构###
+type DomainInfoConnection{
+    edges: [DeptTypeEdge]
+    totalCount: Int
+}
+
+type DomainInfoEdge{
+    node: DomainInfo
+}
+
+# 租户注册实体
+type DomainInfo{
+    # 主键
+    id:ID
+    # 租户id
+    domainId:String
+    # 租户名称
+    domainName:String
+    # 授权id
+    clientId:String
+    # 授权秘钥
+    clientSecret:String
+    # 状态
+    status:Int
+    # 创建日期
+    createTime:Timestamp
+    # 修改日期
+    updateTime:Timestamp
+}
+# 租户注册入参
+input InputDomainInfo{
+    # 主键
+    id:ID
+    # 租户id
+    domainId:String
+    # 租户名称
+    domainName:String
+    # 授权id
+    clientId:String
+    # 授权秘钥
+    clientSecret:String
+    # 状态
+    status:Int
+    # 创建日期
+    createTime:Timestamp
+    # 修改日期
+    updateTime:Timestamp
+}
+
+input DomainInfoFilter{
+    domainId:stringFilter
+    domainName:stringFilter
+    createTime:timestampFilter
+}
+
+

@@ -3,7 +3,7 @@ package com.qtgl.iga.bo;
 import lombok.Data;
 import java.util.Date;
 
-
+//注册用户表
 @Data
 public class DomainInfo {
 
@@ -15,6 +15,7 @@ public class DomainInfo {
     private Integer status;
     private Date  createTime;
     private Date updateTime;
+    private String createUser;
 
 
 }
