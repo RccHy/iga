@@ -6,10 +6,14 @@ import com.qtgl.iga.dataFetcher.DeptDataFetcher;
 import com.qtgl.iga.dataFetcher.DeptTypeDataFetcher;
 import graphql.schema.idl.TypeRuntimeWiring;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
+
+
+@Component
 
 public class DeptTypeProvider {
 

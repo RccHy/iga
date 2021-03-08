@@ -4,10 +4,13 @@ import com.qtgl.iga.config.GraphQLConfig;
 import com.qtgl.iga.dataFetcher.DeptDataFetcher;
 import graphql.schema.idl.TypeRuntimeWiring;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
+
+@Component
 
 public class DeptProvider {
 
@@ -18,7 +21,7 @@ public class DeptProvider {
 
     public TypeRuntimeWiring.Builder buildQueryRuntimeWiring() {
         TypeRuntimeWiring.Builder builder = newTypeWiring("Query")
-                .dataFetcher("depts", dataFetcher.depts());
+                .dataFetcher("deptTypes", dataFetcher.depts());
         return builder;
     }
 
