@@ -1,7 +1,7 @@
 extend type Query {
 
     #查询上游源类型注册信息
-    upStreamTypes(id:ID,filter:upStreamFilter):[upStreamType]
+    upStreamTypes(id:ID,filter:upStreamTypeFilter):[upStreamType]
 
 }
 extend type Mutation {
@@ -29,10 +29,14 @@ type upStreamType{
     synType:String
     # 属组织机构类别外建
     deptTypeId:String
+    # 是否启用前缀 【规则】
+    enablePrefix:Boolean
     # 是否启用
     active:String
     # 是否启用时间
     activeTime:Timestamp
+    # 是否为根数据源【抽到新表】
+    root:Boolean
     # 注册时间
     createTime:Timestamp
     # 修改时间
@@ -41,17 +45,59 @@ type upStreamType{
     serviceCode:String
     # ://服务/类型/方法
     graphqlUrl:String
+    # 租户外键
+    domain:String
+    # 映射字段
+    upStreamTypeFields:[upStreamTypeField]
 }
 
-##分页结构###
-type upStreamTypeConnection{
-    edges: [upStreamTypeEdge]
-    totalCount: Int
+
+#上游源类型字段映射实体
+type upStreamTypeField{
+    # 主键
+    id:ID
+    # 上游源数据类型注册外键
+    upstreamTypeId:String
+    # 源字段名称
+    sourceField:String
+    # 转换后字段名称
+    targetField:String
+    # 创建时间
+    createTime:Timestamp
+    # 修改时间
+    updateTime:Timestamp
+    # 租户外键
+    domain:String
 }
 
-type upStreamTypeEdge{
-    node: upStreamType
+
+#上游源类型字段映射实体
+input InputUpStreamTypeField{
+    # 主键
+    id:ID
+    # 上游源数据类型注册外键
+    upstreamTypeId:String
+    # 源字段名称
+    sourceField:String
+    # 转换后字段名称
+    targetField:String
+    # 创建时间
+    createTime:Timestamp
+    # 修改时间
+    updateTime:Timestamp
+    # 租户外键
+    domain:String
 }
+
+###分页结构###
+#type upStreamTypeConnection{
+#    edges: [upStreamTypeEdge]
+#    totalCount: Int
+#}
+#
+#type upStreamTypeEdge{
+#    node: upStreamType
+#}
 
 
 
@@ -67,10 +113,14 @@ input InputupStreamType{
     synType:String
     # 属组织机构类别外建
     deptTypeId:String
+    # 是否启用前缀 【规则】
+    enablePrefix:Boolean
     # 是否启用
     active:String
     # 是否启用时间
     activeTime:Timestamp
+    # 是否为根数据源【抽到新表】
+    root:Boolean
     # 注册时间
     createTime:Timestamp
     # 修改时间
@@ -79,11 +129,17 @@ input InputupStreamType{
     serviceCode:String
     # ://服务/类型/方法
     graphqlUrl:String
+    # 租户外键
+    domain:String
+    # 映射字段
+    upStreamTypeFields:[InputUpStreamTypeField]
 }
 
 input upStreamTypeFilter{
     deptTypeId:stringFilter
     serviceCode:stringFilter
+    upstreamId:stringFilter
+    active:integerFilter
     synType:stringFilter
     createTime:timestampFilter
     updateTime:timestampFilter

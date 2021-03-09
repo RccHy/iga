@@ -7,6 +7,8 @@ import java.util.List;
 public interface DomainInfoDao {
 
     void save(DomainInfo domainInfo);
+
     List<DomainInfo> findAll();
+
     DomainInfo getByDomainName(String name);
 }

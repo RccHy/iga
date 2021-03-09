@@ -9,9 +9,13 @@ import java.util.Date;
 public class Dept {
 
     private String id;
+
     private String name;
+
     private String code;
+
     private String typeId;
+
     private Date createTime;
 
 

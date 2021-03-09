@@ -31,7 +31,6 @@ public class DomainInfoServiceImpl implements DomainInfoService {
         /** 初始化数据**/
 
 
-
     }
 
     @Override

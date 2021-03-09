@@ -1,6 +1,5 @@
 package com.qtgl.iga.dao.mapper;
 
-import com.qtgl.iga.bo.DeptType;
 import com.qtgl.iga.bo.DomainInfo;
 import org.springframework.jdbc.core.RowMapper;
 

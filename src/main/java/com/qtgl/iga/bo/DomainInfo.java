@@ -8,13 +8,21 @@ import java.util.Date;
 public class DomainInfo {
 
     private String id;
+
     private String domainId;
+
     private String domainName;
+
     private String clientId;
+
     private String clientSecret;
+
     private Integer status;
+
     private Date  createTime;
+
     private Date updateTime;
+
     private String createUser;
 
 

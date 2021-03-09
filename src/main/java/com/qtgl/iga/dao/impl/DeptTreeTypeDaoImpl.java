@@ -1,11 +1,14 @@
 package com.qtgl.iga.dao.impl;
 
+import com.qtgl.iga.bo.DeptTreeType;
 import com.qtgl.iga.bo.UpStream;
 import com.qtgl.iga.bo.UpStreamType;
+import com.qtgl.iga.dao.DeptTreeTypeDao;
 import com.qtgl.iga.dao.UpStreamDao;
 import com.qtgl.iga.dao.mapper.UpStreamRowMapper;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.stereotype.Repository;
@@ -18,7 +21,7 @@ import java.util.*;
 
 
 @Repository
-public class UpStreamDaoImpl implements UpStreamDao {
+public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
 
 
     @Resource(name = "jdbcIGA")
@@ -28,8 +31,8 @@ public class UpStreamDaoImpl implements UpStreamDao {
     UpStreamTypeDaoImpl upStreamTypeDao;
 
     @Override
-    public List<UpStream> findAll(Map<String, Object> arguments, String domain) {
-        String sql = "select  * from t_mgr_upstream where 1 = 1 ";
+    public List<DeptTreeType> findAll(Map<String, Object> arguments, String domain) {
+        String sql = "select  * from t_mgr_dept_tree_type where 1 = 1 ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
@@ -38,61 +41,76 @@ public class UpStreamDaoImpl implements UpStreamDao {
         dealData(arguments, stb, param);
 //        getChild(arguments,param,stb);
         System.out.println(stb.toString());
-        return jdbcIGA.query(stb.toString(), param.toArray(), new UpStreamRowMapper());
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
+        ArrayList<DeptTreeType> list = new ArrayList<>();
+        if (null != mapList && mapList.size() > 0) {
+
+            for (Map<String, Object> map : mapList) {
+                DeptTreeType deptTreeType = new DeptTreeType();
+                BeanMap beanMap = BeanMap.create(deptTreeType);
+                beanMap.putAll(map);
+                list.add(deptTreeType);
+            }
+            return list;
+        }
+
+        return null;
     }
 
 
     @Override
     @Transactional
-    public UpStream saveUpStream(UpStream upStream, String domain) {
-        String sql = "insert into t_mgr_upstream  values(?,?,?,?,?,?,?,?,?,?,?)";
+    public DeptTreeType saveDeptTreeType(DeptTreeType deptTreeType, String domain) {
+        String sql = "insert into t_mgr_dept_tree_type  values(?,?,?,?,?,?,?,?,?)";
         //生成主键和时间
         String id = UUID.randomUUID().toString().replace("-", "");
-        upStream.setId(id);
+        deptTreeType.setId(id);
         Date date = new Date();
-        upStream.setCreateTime(date);
+        deptTreeType.setCreateTime(date);
+        deptTreeType.setUpdateTime(date);
         int update = jdbcIGA.update(sql, new PreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement preparedStatement) throws SQLException {
                 preparedStatement.setObject(1, id);
-                preparedStatement.setObject(2, upStream.getAppCode());
-                preparedStatement.setObject(3, upStream.getAppName());
-                preparedStatement.setObject(4, upStream.getDataCode());
-                preparedStatement.setObject(5, date);
-                preparedStatement.setObject(6, upStream.getCreateUser());
-                preparedStatement.setObject(7, upStream.getActive());
-                preparedStatement.setObject(8, upStream.getColor());
+                preparedStatement.setObject(2, deptTreeType.getCode());
+                preparedStatement.setObject(3, deptTreeType.getName());
+                preparedStatement.setObject(4, deptTreeType.getDescription());
+                preparedStatement.setObject(5, deptTreeType.getMultipleRootNode());
+                preparedStatement.setObject(6, deptTreeType.getCreateTime());
+                preparedStatement.setObject(7, deptTreeType.getUpdateTime());
+                preparedStatement.setObject(8, deptTreeType.getCreateUser());
                 preparedStatement.setObject(9, domain);
-                preparedStatement.setObject(10, date);
-                preparedStatement.setObject(11, date);
 
             }
         });
-        return update > 0 ? upStream : null;
+        return update > 0 ? deptTreeType : null;
     }
 
     @Override
     @Transactional
-    public UpStream deleteUpStream(Map<String, Object> arguments, String domain) throws Exception {
+    public DeptTreeType deleteDeptTreeType(Map<String, Object> arguments, String domain) throws Exception {
         Object[] objects = new Object[2];
         objects[0] = arguments.get("id");
         objects[1] = domain;
-        List<UpStream> upStreamList = jdbcIGA.query("select  * from t_mgr_upstream  where id =? and domain=?", objects, new UpStreamRowMapper());
-        if (null == upStreamList || upStreamList.size() > 1 || upStreamList.size() == 0) {
-            throw new Exception("数据异常，删除失败");
-        }
-        UpStream upStream = upStreamList.get(0);
-        if (upStream.getActive()) {
-            throw new Exception("上游源已启用,不能进行删除操作");
-        }
-        //检查源下的类型是否都处于停用 或者删除。
-        List<UpStreamType> byUpStreamId = upStreamTypeDao.findByUpStreamId(upStream.getId());
-        if (null == byUpStreamId || byUpStreamId.size() != 0) {
-            throw new Exception("数据异常，删除失败");
-        }
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_dept_tree_type  where id =? and domain=?", objects);
+        ArrayList<DeptTreeType> list = new ArrayList<>();
+        if (null != mapList && mapList.size() > 0) {
 
-        //删除上游源数据
-        String sql = "delete from t_mgr_upstream  where id =?";
+            for (Map<String, Object> map : mapList) {
+                DeptTreeType deptTreeType = new DeptTreeType();
+                BeanMap beanMap = BeanMap.create(deptTreeType);
+                beanMap.putAll(map);
+                list.add(deptTreeType);
+            }
+        }
+        if (null == list || list.size() > 1 || list.size() == 0) {
+            throw new Exception("数据异常，删除失败");
+        }
+        DeptTreeType deptTreeType = list.get(0);
+
+
+        //删除组织类别数据
+        String sql = "delete from t_mgr_dept_tree_type  where id =?";
         int id = jdbcIGA.update(sql, new PreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement preparedStatement) throws SQLException {
@@ -100,35 +118,33 @@ public class UpStreamDaoImpl implements UpStreamDao {
 
             }
         });
-        //删除上游源数据类型
-        int i = upStreamTypeDao.deleteByUpStreamId(upStream.getId());
+        //删除组织类别树数据
 
-        return (id > 0 && i > 0) ? upStream : null;
 
+        return id > 0 ? deptTreeType : null;
 
     }
 
     @Override
     @Transactional
-    public UpStream updateUpStream(UpStream upStream) {
-        String sql = "update t_mgr_upstream  set app_code = ?,app_name = ?,data_code = ?,create_user = ?,active = ?," +
-                "color = ?,domain = ?,active_time = ?,update_time= ?  where id=?";
+    public DeptTreeType updateDeptTreeType(DeptTreeType deptTreeType) {
+        String sql = "update t_mgr_dept_tree_type  set code = ?,name = ?,description = ?,multiple_root_node = ?,create_time = ?," +
+                "update_time = ?,create_user = ?,domain= ?  where id=?";
         Date date = new Date();
         return jdbcIGA.update(sql, new PreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement preparedStatement) throws SQLException {
-                preparedStatement.setObject(1, upStream.getAppCode());
-                preparedStatement.setObject(2, upStream.getAppName());
-                preparedStatement.setObject(3, upStream.getDataCode());
-                preparedStatement.setObject(4, upStream.getCreateUser());
-                preparedStatement.setObject(5, upStream.getActive());
-                preparedStatement.setObject(6, upStream.getColor());
-                preparedStatement.setObject(7, upStream.getDomain());
-                preparedStatement.setObject(8, date);
-                preparedStatement.setObject(9, date);
-                preparedStatement.setObject(10, upStream.getId());
+                preparedStatement.setObject(1, deptTreeType.getCode());
+                preparedStatement.setObject(2, deptTreeType.getName());
+                preparedStatement.setObject(3, deptTreeType.getDescription());
+                preparedStatement.setObject(4, deptTreeType.getMultipleRootNode());
+                preparedStatement.setObject(5, deptTreeType.getCreateTime());
+                preparedStatement.setObject(6, date);
+                preparedStatement.setObject(7, deptTreeType.getCreateUser());
+                preparedStatement.setObject(8, deptTreeType.getDomain());
+                preparedStatement.setObject(9, deptTreeType.getId());
             }
-        }) > 0 ? upStream : null;
+        }) > 0 ? deptTreeType : null;
     }
 
 
@@ -160,24 +176,17 @@ public class UpStreamDaoImpl implements UpStreamDao {
             if (entry.getKey().equals("filter")) {
                 HashMap<String, Object> map = (HashMap<String, Object>) entry.getValue();
                 for (Map.Entry<String, Object> str : map.entrySet()) {
-                    if (str.getKey().equals("appCode")) {
+                    if (str.getKey().equals("code")) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            stb.append(" and app_code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                            stb.append(" and code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
                             param.add(soe.getValue());
                         }
                     }
-                    if (str.getKey().equals("appName")) {
+                    if (str.getKey().equals("name")) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            stb.append("and app_name " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
-                            param.add(soe.getValue());
-                        }
-                    }
-                    if (str.getKey().equals("active")) {
-                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
-                        for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            stb.append("and active " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                            stb.append("and name " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
                             param.add(soe.getValue());
                         }
                     }
@@ -206,25 +215,9 @@ public class UpStreamDaoImpl implements UpStreamDao {
                             }
                         }
                     }
-                    if (str.getKey().equals("dataCode")) {
-                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
-                        for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            stb.append("and data_code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
-                            param.add(soe.getValue());
-                        }
-                    }
-                    if (str.getKey().equals("color")) {
-                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
-                        for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            stb.append("and color " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
-                            param.add(soe.getValue());
-                        }
-                    }
 
                 }
-
             }
-            System.out.println("key = " + entry.getKey() + ", value = " + entry.getValue());
         }
     }
 }

@@ -19,6 +19,6 @@ public class DeptDaoImpl implements DeptDao {
 
     @Override
     public List<Dept> getAllDepts() {
-        return jdbcIGA.query("select  * from Dept ",new DeptRowMapper());
+        return jdbcIGA.query("select  * from Dept ", new DeptRowMapper());
     }
 }

@@ -23,7 +23,6 @@ public class DeptTypeDataFetcher {
     DeptTypeService deptTypeService;
 
 
-
     public DataFetcher deptTypes() {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户

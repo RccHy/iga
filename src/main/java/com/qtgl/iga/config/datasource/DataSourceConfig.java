@@ -1,7 +1,6 @@
 package com.qtgl.iga.config.datasource;
 
 
-
 import com.alibaba.druid.spring.boot.autoconfigure.DruidDataSourceBuilder;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -18,6 +17,7 @@ public class DataSourceConfig {
     DataSource dsIGA() {
         return DruidDataSourceBuilder.create().build();
     }
+
     @Bean
     @ConfigurationProperties(prefix = "spring.datasource.sso")
     DataSource dsSSO() {

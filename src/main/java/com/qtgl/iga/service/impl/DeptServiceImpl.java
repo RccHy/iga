@@ -15,6 +15,7 @@ public class DeptServiceImpl implements DeptService {
 
     @Autowired
     DeptDao deptDao;
+
     @Override
     public List<Dept> getAllDepts() {
         return deptDao.getAllDepts();

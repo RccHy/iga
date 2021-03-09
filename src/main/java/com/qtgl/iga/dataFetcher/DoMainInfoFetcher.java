@@ -1,6 +1,5 @@
 package com.qtgl.iga.dataFetcher;
 
-import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.service.DomainInfoService;
 import graphql.schema.DataFetcher;
 import org.slf4j.Logger;

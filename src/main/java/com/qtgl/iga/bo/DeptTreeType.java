@@ -4,20 +4,23 @@ import lombok.Data;
 
 import java.util.Date;
 
-//组织机构类别
+//组织机构树类别
 @Data
-public class DeptType {
+public class DeptTreeType {
     //主键
     private String id;
 
-    //机构类型名称
+    //机构树类型代码
     private String name;
 
-    //机构类型代码
+    //机构树类型代码
     private String code;
 
     //描述
     private String description;
+
+    //是否允许多个根节点
+    private Boolean multipleRootNode;
 
     //创建时间
     private Date createTime;

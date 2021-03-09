@@ -14,7 +14,6 @@ import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
 public class DeptProvider {
 
 
-
     @Autowired
     DeptDataFetcher dataFetcher;
 
@@ -33,11 +32,12 @@ public class DeptProvider {
 
     @Autowired
     private GraphQLConfig graphQLConfig;
+
     @PostConstruct
     private void init() {
-        String key=this.getClass().getName();
-        graphQLConfig.builderConcurrentMap.put(key+"-Query", buildQueryRuntimeWiring());
-        graphQLConfig.builderConcurrentMap.put(key+"-Mutation", buildMutationRuntimeWiring());
+        String key = this.getClass().getName();
+        graphQLConfig.builderConcurrentMap.put(key + "-Query", buildQueryRuntimeWiring());
+        graphQLConfig.builderConcurrentMap.put(key + "-Mutation", buildMutationRuntimeWiring());
     }
 }
 

@@ -29,10 +29,14 @@ type upStream{
     dataCode:String
     # 注册时间
     createTime:Timestamp
+    # 修改时间
+    updateTime:Timestamp
+    # 启用时间
+    activeTime:Timestamp
     # 注册人员
     createUser:String
     # 状态  启用/不启用
-    state:Int
+    active:Boolean
     # 代表色
     color:String
     # 租户信息外建
@@ -53,10 +57,14 @@ input InputUpStream{
     dataCode:String
     # 注册时间
     createTime:Timestamp
+    # 修改时间
+    updateTime:Timestamp
+    # 启用时间
+    activeTime:Timestamp
     # 注册人员
     createUser:String
     # 状态  启用/不启用
-    state:Int
+    active:Boolean
     # 代表色
     color:String
     # 租户信息外建
@@ -67,9 +75,10 @@ input upStreamFilter{
     appCode:stringFilter
     appName:stringFilter
     dataCode:stringFilter
-    state:integerFilter
+    active:Boolean
     color:stringFilter
     createTime:timestampFilter
+    updateTime:timestampFilter
 }
 
 

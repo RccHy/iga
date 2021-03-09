@@ -1,7 +1,7 @@
 spring:
   datasource:
     iga:
-      url: jdbc:mysql://localhost:3306/iga
+      url: jdbc:mysql://localhost:3306/iga?rewriteBatchedStatements=true&useUnicode=true&characterEncoding=UTF-8
       username: root
       password: root
       type: com.alibaba.druid.pool.DruidDataSource

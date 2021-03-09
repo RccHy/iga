@@ -20,10 +20,14 @@ public class UpStream {
     private String dataCode;
     //注册时间
     private Date createTime;
+    //修改时间
+    private Date updateTime;
+    //启用时间
+    private Date activeTime;
     //注册人员
     private String createUser;
     //状态  启用/不启用
-    private Integer state;
+    private Boolean active;
     //代表色
     private String color;
     //租户信息外建
