@@ -39,8 +39,7 @@ type upstream{
     active:Boolean
     # 代表色
     color:String
-    # 租户信息外建
-    domain:String
+
 }
 
 
@@ -67,8 +66,7 @@ input InputUpstream{
     active:Boolean
     # 代表色
     color:String
-    # 租户信息外建
-    domain:String
+
 }
 
 input upstreamFilter{

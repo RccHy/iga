@@ -29,6 +29,8 @@ type upstreamType{
     synType:String
     # 属组织机构类别外建
     deptTypeId:String
+    # 属组织机构类别树外建
+    deptTreeTypeId:String
     # 是否启用前缀 【规则】
     enablePrefix:Boolean
     # 是否启用
@@ -46,8 +48,6 @@ type upstreamType{
     # ://服务/类型/方法
     graphqlUrl:String
     # 租户外键
-    domain:String
-    # 映射字段
     upstreamTypeFields:[upstreamTypeField]
 }
 
@@ -66,8 +66,7 @@ type upstreamTypeField{
     createTime:Timestamp
     # 修改时间
     updateTime:Timestamp
-    # 租户外键
-    domain:String
+
 }
 
 
@@ -85,8 +84,7 @@ input InputUpstreamTypeField{
     createTime:Timestamp
     # 修改时间
     updateTime:Timestamp
-    # 租户外键
-    domain:String
+
 }
 
 # 上游源类型入参
@@ -101,6 +99,8 @@ input InputupstreamType{
     synType:String
     # 属组织机构类别外建
     deptTypeId:String
+    # 属组织机构类别树外建
+    deptTreeTypeId:String
     # 是否启用前缀 【规则】
     enablePrefix:Boolean
     # 是否启用
@@ -117,8 +117,6 @@ input InputupstreamType{
     serviceCode:String
     # ://服务/类型/方法
     graphqlUrl:String
-    # 租户外键
-    domain:String
     # 映射字段
     upstreamTypeFields:[InputUpstreamTypeField]
 }

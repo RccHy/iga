@@ -37,8 +37,6 @@ type DeptType{
     updateTime:Timestamp
     # 创建人员工号
     createUser:String
-    # 租户外键
-    domain:String
 }
 
 

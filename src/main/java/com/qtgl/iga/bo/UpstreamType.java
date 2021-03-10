@@ -26,6 +26,9 @@ public class UpstreamType {
     //属组织机构类别外建
     private String deptTypeId;
 
+    //属组织机构类别树外建
+    private String deptTreeTypeId;
+
     //是否启用前缀 【规则】
     private Boolean enablePrefix;
 

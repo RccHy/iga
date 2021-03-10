@@ -28,9 +28,9 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
 
     @Override
     public List<UpstreamType> findAll(Map<String, Object> arguments, String domain) {
-        String sql = "select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_typeId as deptTypeId," +
+        String sql = "select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_type_id as deptTypeId," +
                 "enable_prefix as enablePrefix,active,active_time as activeTime,root,create_time as createTime," +
-                "update_time as updateTime, graphql_url as graphqlUrl,service_code as serviceCode,domain from  t_mgr_upstream_types where 1 = 1 ";
+                "update_time as updateTime, graphql_url as graphqlUrl,service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId from  t_mgr_upstream_types where 1 = 1 ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
@@ -56,7 +56,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
     @Override
     @Transactional
     public UpstreamType saveUpstreamType(UpstreamType upStreamType, String domain) {
-        String sql = "insert into t_mgr_upstream_types  values(?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        String sql = "insert into t_mgr_upstream_types  values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         //生成主键和时间
         String id = UUID.randomUUID().toString().replace("-", "");
         upStreamType.setId(id);
@@ -80,7 +80,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
                 preparedStatement.setObject(12, upStreamType.getServiceCode());
                 preparedStatement.setObject(13, upStreamType.getGraphqlUrl());
                 preparedStatement.setObject(14, domain);
-
+                preparedStatement.setObject(15, upStreamType.getDeptTreeTypeId());
             }
         });
         if (null != upStreamType.getUpstreamTypeFields() && upStreamType.getUpstreamTypeFields().size() > 0) {
@@ -123,9 +123,9 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         objects[0] = arguments.get("id");
         objects[1] = domain;
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  id,upstream_id as upstreamId ,description,syn_type as synType," +
-                "dept_typeId as deptTypeId,enable_prefix as enablePrefix,active,active_time asactiveTime," +
+                "dept_type_id as deptTypeId,enable_prefix as enablePrefix,active,active_time asactiveTime," +
                 "root,create_time as createTime,update_time as updateTime, graphql_url as graphqlUrl," +
-                "service_code as serviceCode,domain from  t_mgr_upstream_types  where id =? and domain=?", objects);
+                "service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId from  t_mgr_upstream_types  where id =? and domain=?", objects);
         ArrayList<UpstreamType> streamTypes = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {
@@ -163,9 +163,9 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
     @Transactional
     public UpstreamType updateUpstreamType(UpstreamType upStreamType) {
         String sql = "update t_mgr_upstream_types  set upstream_id = ?,description = ?," +
-                "syn_type = ?,dept_typeId = ?,enable_prefix = ?,active = ?,active_time = ?," +
+                "syn_type = ?,dept_type_id = ?,enable_prefix = ?,active = ?,active_time = ?," +
                 "root = ?,create_time = ?,update_time = ?,service_code = ?," +
-                "graphql_url = ?, domain = ? where id= ? ";
+                "graphql_url = ?, domain = ? dept_tree_type_id = ? where id= ? ";
         Timestamp date = new Timestamp(new Date().getTime());
         upStreamType.setUpdateTime(date);
         int update = jdbcIGA.update(sql, new PreparedStatementSetter() {
@@ -184,7 +184,9 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
                 preparedStatement.setObject(11, upStreamType.getServiceCode());
                 preparedStatement.setObject(12, upStreamType.getGraphqlUrl());
                 preparedStatement.setObject(13, upStreamType.getDomain());
-                preparedStatement.setObject(14, upStreamType.getId());
+                preparedStatement.setObject(14, upStreamType.getDeptTreeTypeId());
+                preparedStatement.setObject(15, upStreamType.getId());
+
             }
         });
         //修改
@@ -299,7 +301,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         Object[] params = new Object[1];
         params[0] = upId;
         String sql = "select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_typeId as deptTypeId,enable_prefix as enablePrefix,active,active_time asactiveTime,root,create_time as createTime,update_time as updateTime," +
-                " graphql_url as graphqlUrl,service_code as serviceCode,domain from  t_mgr_upstream_types where active = 0 and upstream_id = ?";
+                " graphql_url as graphqlUrl,service_code as serviceCode,domain, from  t_mgr_upstream_types where active = 0 and upstream_id = ?";
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, params);
         ArrayList<UpstreamType> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
@@ -320,7 +322,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         //删除字段映射表数据
         //查询所有类型
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_typeId as deptTypeId,enable_prefix as enablePrefix,active,active_time asactiveTime,root,create_time as createTime,update_time as updateTime," +
-                " graphql_url as graphqlUrl,service_code as serviceCode,domain from  t_mgr_upstream_types where upstream_id = ?", id);
+                " graphql_url as graphqlUrl,service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId from  t_mgr_upstream_types where upstream_id = ?", id);
 
         ArrayList<UpstreamType> typeList = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {

@@ -21,7 +21,7 @@ public class DeptDaoImpl implements DeptDao {
 
     @Override
     public List<Dept> getAllDepts() {
-        String sql = "select id, code, name, typeId,create_time as createTime from dept";
+        String sql = "select id, code, name, type_id as typeId,create_time as createTime from dept";
 
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql);
         ArrayList<Dept> list = new ArrayList<>();
