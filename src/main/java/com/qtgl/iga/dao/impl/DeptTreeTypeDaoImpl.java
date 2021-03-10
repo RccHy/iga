@@ -1,11 +1,8 @@
 package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bo.DeptTreeType;
-import com.qtgl.iga.bo.UpStream;
-import com.qtgl.iga.bo.UpStreamType;
+
 import com.qtgl.iga.dao.DeptTreeTypeDao;
-import com.qtgl.iga.dao.UpStreamDao;
-import com.qtgl.iga.dao.mapper.UpStreamRowMapper;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cglib.beans.BeanMap;
@@ -17,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Resource;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.*;
 
 
@@ -28,11 +26,14 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
     JdbcTemplate jdbcIGA;
 
     @Autowired
-    UpStreamTypeDaoImpl upStreamTypeDao;
+    UpstreamTypeDaoImpl upStreamTypeDao;
 
     @Override
     public List<DeptTreeType> findAll(Map<String, Object> arguments, String domain) {
-        String sql = "select  * from t_mgr_dept_tree_type where 1 = 1 ";
+        String sql = "select id, code, name, description," +
+                "multiple_root_node as multipleRootNode, create_time as createTime," +
+                "update_time as updateTime, create_user as createUser, domain " +
+                "from t_mgr_dept_tree_type where 1 = 1 ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
@@ -44,11 +45,11 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
         ArrayList<DeptTreeType> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
-
             for (Map<String, Object> map : mapList) {
                 DeptTreeType deptTreeType = new DeptTreeType();
                 BeanMap beanMap = BeanMap.create(deptTreeType);
                 beanMap.putAll(map);
+                System.out.println(deptTreeType);
                 list.add(deptTreeType);
             }
             return list;
@@ -60,12 +61,18 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
 
     @Override
     @Transactional
-    public DeptTreeType saveDeptTreeType(DeptTreeType deptTreeType, String domain) {
+    public DeptTreeType saveDeptTreeType(DeptTreeType deptTreeType, String domain) throws Exception {
+        //判重
+        Object[] param = new Object[]{deptTreeType.getCode(), deptTreeType.getName()};
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_dept_tree_type where code =? or name = ?", param);
+        if (null != mapList && mapList.size() > 0) {
+            throw new Exception("code 或 name 不能重复,添加组织机构树类别失败");
+        }
         String sql = "insert into t_mgr_dept_tree_type  values(?,?,?,?,?,?,?,?,?)";
         //生成主键和时间
         String id = UUID.randomUUID().toString().replace("-", "");
         deptTreeType.setId(id);
-        Date date = new Date();
+        Timestamp date = new Timestamp(new Date().getTime());
         deptTreeType.setCreateTime(date);
         deptTreeType.setUpdateTime(date);
         int update = jdbcIGA.update(sql, new PreparedStatementSetter() {
@@ -109,7 +116,7 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
         DeptTreeType deptTreeType = list.get(0);
 
 
-        //删除组织类别数据
+        //删除组织类别树数据
         String sql = "delete from t_mgr_dept_tree_type  where id =?";
         int id = jdbcIGA.update(sql, new PreparedStatementSetter() {
             @Override
@@ -118,7 +125,6 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
 
             }
         });
-        //删除组织类别树数据
 
 
         return id > 0 ? deptTreeType : null;
@@ -127,7 +133,13 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
 
     @Override
     @Transactional
-    public DeptTreeType updateDeptTreeType(DeptTreeType deptTreeType) {
+    public DeptTreeType updateDeptTreeType(DeptTreeType deptTreeType) throws Exception {
+        //判重
+        Object[] param = new Object[]{deptTreeType.getCode(), deptTreeType.getName(), deptTreeType.getId()};
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_dept_tree_type where (code = ? or name = ?) and id != ?  ", param);
+        if (null != mapList && mapList.size() > 0) {
+            throw new Exception("code 或 name 不能重复,修改组织机构类别树失败");
+        }
         String sql = "update t_mgr_dept_tree_type  set code = ?,name = ?,description = ?,multiple_root_node = ?,create_time = ?," +
                 "update_time = ?,create_user = ?,domain= ?  where id=?";
         Date date = new Date();

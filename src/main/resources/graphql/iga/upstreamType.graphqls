@@ -1,24 +1,24 @@
 extend type Query {
 
     #查询上游源类型注册信息
-    upStreamTypes(id:ID,filter:upStreamTypeFilter):[upStreamType]
+    upstreamTypes(id:ID,filter:upstreamTypeFilter):[upstreamType]
 
 }
 extend type Mutation {
 
 
     #新增上游源类型
-    saveUpStreamType(entity:InputupStreamType!):upStreamType
+    saveUpstreamType(entity:InputupstreamType!):upstreamType
     #根据id删除上游源类型
-    deleteUpStreamType(id:ID!): upStreamType
+    deleteUpstreamType(id:ID!): upstreamType
     #更新上游源类型
-    updateUpStreamType(entity:InputupStreamType!):upStreamType
+    updateUpstreamType(entity:InputupstreamType!):upstreamType
 }
 
 
 
 #上游源类型信息实体
-type upStreamType{
+type upstreamType{
     # 主键
     id:ID
     # 上有源id
@@ -32,7 +32,7 @@ type upStreamType{
     # 是否启用前缀 【规则】
     enablePrefix:Boolean
     # 是否启用
-    active:String
+    active:Boolean
     # 是否启用时间
     activeTime:Timestamp
     # 是否为根数据源【抽到新表】
@@ -48,12 +48,12 @@ type upStreamType{
     # 租户外键
     domain:String
     # 映射字段
-    upStreamTypeFields:[upStreamTypeField]
+    upstreamTypeFields:[upstreamTypeField]
 }
 
 
 #上游源类型字段映射实体
-type upStreamTypeField{
+type upstreamTypeField{
     # 主键
     id:ID
     # 上游源数据类型注册外键
@@ -72,7 +72,7 @@ type upStreamTypeField{
 
 
 #上游源类型字段映射实体
-input InputUpStreamTypeField{
+input InputUpstreamTypeField{
     # 主键
     id:ID
     # 上游源数据类型注册外键
@@ -88,21 +88,9 @@ input InputUpStreamTypeField{
     # 租户外键
     domain:String
 }
-
-###分页结构###
-#type upStreamTypeConnection{
-#    edges: [upStreamTypeEdge]
-#    totalCount: Int
-#}
-#
-#type upStreamTypeEdge{
-#    node: upStreamType
-#}
-
-
 
 # 上游源类型入参
-input InputupStreamType{
+input InputupstreamType{
     # 主键
     id:ID
     # 上有源id
@@ -116,7 +104,7 @@ input InputupStreamType{
     # 是否启用前缀 【规则】
     enablePrefix:Boolean
     # 是否启用
-    active:String
+    active:Boolean
     # 是否启用时间
     activeTime:Timestamp
     # 是否为根数据源【抽到新表】
@@ -132,14 +120,14 @@ input InputupStreamType{
     # 租户外键
     domain:String
     # 映射字段
-    upStreamTypeFields:[InputUpStreamTypeField]
+    upstreamTypeFields:[InputUpstreamTypeField]
 }
 
-input upStreamTypeFilter{
+input upstreamTypeFilter{
     deptTypeId:stringFilter
     serviceCode:stringFilter
     upstreamId:stringFilter
-    active:integerFilter
+    active:booleanFilter
     synType:stringFilter
     createTime:timestampFilter
     updateTime:timestampFilter

@@ -2,14 +2,14 @@ package com.qtgl.iga.bo;
 
 import lombok.Data;
 
-import java.util.Date;
+import java.sql.Timestamp;
 
 /**
  * <FileName> UpStreamType
  * <Desc> 上游源类型字段映射表
  **/
 @Data
-public class UpStreamTypeField {
+public class UpstreamTypeField {
     //主键
     private String id;
 
@@ -23,10 +23,10 @@ public class UpStreamTypeField {
     private String targetField;
 
     //创建时间
-    private Date createTime;
+    private Timestamp createTime;
 
     //修改时间
-    private Date updateTime;
+    private Timestamp updateTime;
 
     //租户外键
     private String domain;

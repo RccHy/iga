@@ -2,7 +2,6 @@ package com.qtgl.iga.service;
 
 
 import com.qtgl.iga.bo.DeptTreeType;
-import com.qtgl.iga.bo.UpStream;
 
 import java.util.List;
 import java.util.Map;
@@ -14,7 +13,7 @@ public interface DeptTreeTypeService {
 
     DeptTreeType deleteDeptTreeType(Map<String, Object> arguments, String domain) throws Exception;
 
-    DeptTreeType saveDeptTreeType(DeptTreeType deptTreeType, String domain);
+    DeptTreeType saveDeptTreeType(DeptTreeType deptTreeType, String domain) throws Exception;
 
-    DeptTreeType updateDeptTreeType(DeptTreeType deptTreeType);
+    DeptTreeType updateDeptTreeType(DeptTreeType deptTreeType) throws Exception;
 }

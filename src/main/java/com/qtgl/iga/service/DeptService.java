@@ -7,5 +7,5 @@ import java.util.List;
 public interface DeptService {
 
 
-    public List<Dept> getAllDepts();
+    List<Dept> getAllDepts();
 }

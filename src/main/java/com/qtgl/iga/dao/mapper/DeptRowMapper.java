@@ -18,7 +18,7 @@ public class DeptRowMapper implements RowMapper<Dept> {
         dept.setName(rs.getString("name"));
         dept.setCode(rs.getString("code"));
         dept.setTypeId(rs.getString("typeId"));
-        dept.setCreateTime(rs.getDate("create_time"));
+        dept.setCreateTime(rs.getTimestamp("create_time"));
         return dept;
 
     }

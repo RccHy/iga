@@ -2,14 +2,14 @@ package com.qtgl.iga.bo;
 
 import lombok.Data;
 
-import java.util.Date;
+import java.sql.Timestamp;
 
 /**
  * <FileName> UpStream
  * <Desc> 上游源注册表
  **/
 @Data
-public class UpStream {
+public class Upstream {
     //主键
     private String id;
     //应用代码，如人事：HR_SYS
@@ -19,11 +19,11 @@ public class UpStream {
     //数据前缀代码 HR
     private String dataCode;
     //注册时间
-    private Date createTime;
+    private Timestamp createTime;
     //修改时间
-    private Date updateTime;
+    private Timestamp updateTime;
     //启用时间
-    private Date activeTime;
+    private Timestamp activeTime;
     //注册人员
     private String createUser;
     //状态  启用/不启用

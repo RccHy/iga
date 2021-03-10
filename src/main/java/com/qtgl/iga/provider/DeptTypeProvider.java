@@ -24,8 +24,11 @@ public class DeptTypeProvider {
     }
 
 
-    public TypeRuntimeWiring.Builder buildMutationRuntimeWiring() {
-        TypeRuntimeWiring.Builder builder = newTypeWiring("Mutation");
+    public TypeRuntimeWiring.Builder buildMutationRuntimeWiring() throws Exception {
+        TypeRuntimeWiring.Builder builder = newTypeWiring("Mutation")
+                .dataFetcher("saveSchemaField", dataFetcher.saveSchemaField())
+                .dataFetcher("deleteSchemaField", dataFetcher.deleteSchemaField())
+                .dataFetcher("updateSchemaField", dataFetcher.updateSchemaField());
         return builder;
 
     }
@@ -34,7 +37,7 @@ public class DeptTypeProvider {
     private GraphQLConfig graphQLConfig;
 
     @PostConstruct
-    private void init() {
+    private void init() throws Exception {
         String key = this.getClass().getName();
         graphQLConfig.builderConcurrentMap.put(key + "-Query", buildQueryRuntimeWiring());
         graphQLConfig.builderConcurrentMap.put(key + "-Mutation", buildMutationRuntimeWiring());

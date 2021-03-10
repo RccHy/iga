@@ -3,11 +3,8 @@ package com.qtgl.iga.dataFetcher;
 
 import com.alibaba.fastjson.JSON;
 import com.qtgl.iga.bo.DeptTreeType;
-import com.qtgl.iga.bo.DeptType;
 import com.qtgl.iga.bo.DomainInfo;
-import com.qtgl.iga.bo.UpStream;
 import com.qtgl.iga.service.DeptTreeTypeService;
-import com.qtgl.iga.service.DeptTypeService;
 import com.qtgl.iga.utils.CertifiedConnector;
 import graphql.schema.DataFetcher;
 import org.slf4j.Logger;
@@ -15,7 +12,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.Iterator;
 import java.util.Map;
 
 @Component

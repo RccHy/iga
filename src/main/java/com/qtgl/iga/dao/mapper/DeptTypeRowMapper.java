@@ -18,8 +18,8 @@ public class DeptTypeRowMapper implements RowMapper<DeptType> {
         deptType.setName(rs.getString("name"));
         deptType.setCode(rs.getString("code"));
         deptType.setDescription(rs.getString("description"));
-        deptType.setCreateTime(rs.getDate("create_time"));
-        deptType.setUpdateTime(rs.getDate("update_time"));
+        deptType.setCreateTime(rs.getTimestamp("create_time"));
+        deptType.setUpdateTime(rs.getTimestamp("update_time"));
         deptType.setCreateUser(rs.getString("create_user"));
         deptType.setDomain(rs.getString("domain"));
         return deptType;

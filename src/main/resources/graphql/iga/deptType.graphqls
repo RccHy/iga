@@ -1,13 +1,13 @@
 extend type Query {
-    #查询部门类型列表
+    #查询组织机构类型列表
     deptTypes(id:ID,filter:DeptTypeFilter):[DeptType]
 }
 extend type Mutation {
-    #新增部门类型
+    #新增组织机构类型类型
     saveSchemaField(entity:InputDeptType!):DeptType
-    #根据id删除部门类型
+    #根据id删除组织机构类型类型
     deleteSchemaField(id:ID!): DeptType
-    #更新部门类型
+    #更新组织机构类型类型
     updateSchemaField(entity:InputDeptType!):DeptType
 }
 
@@ -47,7 +47,7 @@ input InputDeptType{
     id:ID
     code:String
     name:String
-    multipleRootNode:Boolean
+    description:String
     createTime:Timestamp
     updateTime:Timestamp
     createUser:String
@@ -56,7 +56,8 @@ input InputDeptType{
 input DeptTypeFilter{
     code:stringFilter
     name:stringFilter
-
+    createTime:timestampFilter
+    updateTime:timestampFilter
 }
 
 

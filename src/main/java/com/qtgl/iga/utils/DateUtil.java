@@ -8,21 +8,21 @@ import java.util.Locale;
 
 public class DateUtil {
 
-    public final static String  DEFAULT_STANDARD_DATE_PATTERN = "yyyy-MM-dd HH:mm:ss";
-    public final static String  DEFAULT_SHORT_DATE_PATTERN = "yyyy-MM-dd";
-    public final static String  DEFAULT_STRING_DATE_PATTERN = "yyyyMMdd";
-    public final static String  DEFAULT_STRING_DATETIME_PATTERN = "yyyyMMddHHmmss";
-    public final static String  DEFAULT_TIME_PATTERN = "HH:mm:ss";
-    public final static String  DEFAULT_YEAR_PATTERN = "yyyy";
-    public final static String  DEFAULT_MONTH_PATTERN = "yyyy-MM";
+    public final static String DEFAULT_STANDARD_DATE_PATTERN = "yyyy-MM-dd HH:mm:ss";
+    public final static String DEFAULT_SHORT_DATE_PATTERN = "yyyy-MM-dd";
+    public final static String DEFAULT_STRING_DATE_PATTERN = "yyyyMMdd";
+    public final static String DEFAULT_STRING_DATETIME_PATTERN = "yyyyMMddHHmmss";
+    public final static String DEFAULT_TIME_PATTERN = "HH:mm:ss";
+    public final static String DEFAULT_YEAR_PATTERN = "yyyy";
+    public final static String DEFAULT_MONTH_PATTERN = "yyyy-MM";
 
-    public final static DateFormat  DEFAULT_STANDARD_DATE_FORMAT = new SimpleDateFormat(DEFAULT_STANDARD_DATE_PATTERN);
-    public final static DateFormat  DEFAULT_SHORT_DATE_FORMAT = new SimpleDateFormat(DEFAULT_SHORT_DATE_PATTERN);
-    public final static DateFormat  DEFAULT_STRING_DATE_FORMAT = new SimpleDateFormat(DEFAULT_STRING_DATE_PATTERN);
-    public final static DateFormat  DEFAULT_STRING_DATETIME_FORMAT = new SimpleDateFormat(DEFAULT_STRING_DATETIME_PATTERN);
-    public final static DateFormat  DEFAULT_TIME_FORMAT = new SimpleDateFormat(DEFAULT_TIME_PATTERN);
-    public final static DateFormat  DEFAULT_YEAR_FORMAT = new SimpleDateFormat(DEFAULT_MONTH_PATTERN);
-    public final static DateFormat  DEFAULT_MONTH_FORMAT = new SimpleDateFormat(DEFAULT_MONTH_PATTERN);
+    public final static DateFormat DEFAULT_STANDARD_DATE_FORMAT = new SimpleDateFormat(DEFAULT_STANDARD_DATE_PATTERN);
+    public final static DateFormat DEFAULT_SHORT_DATE_FORMAT = new SimpleDateFormat(DEFAULT_SHORT_DATE_PATTERN);
+    public final static DateFormat DEFAULT_STRING_DATE_FORMAT = new SimpleDateFormat(DEFAULT_STRING_DATE_PATTERN);
+    public final static DateFormat DEFAULT_STRING_DATETIME_FORMAT = new SimpleDateFormat(DEFAULT_STRING_DATETIME_PATTERN);
+    public final static DateFormat DEFAULT_TIME_FORMAT = new SimpleDateFormat(DEFAULT_TIME_PATTERN);
+    public final static DateFormat DEFAULT_YEAR_FORMAT = new SimpleDateFormat(DEFAULT_MONTH_PATTERN);
+    public final static DateFormat DEFAULT_MONTH_FORMAT = new SimpleDateFormat(DEFAULT_MONTH_PATTERN);
 
     public static Date getNow() {
         Calendar calendar = Calendar.getInstance();
@@ -42,14 +42,14 @@ public class DateUtil {
 
     public static String getDateFormat(String strDate, String inPattern, String outPattern) {
         Date date = parseDate(strDate, inPattern);
-        if(date != null) {
+        if (date != null) {
             return formatDate(date, outPattern);
         }
         return strDate;
     }
 
     public static Date getStartDate(Date date) {
-        if(date != null) {
+        if (date != null) {
             Calendar cal = Calendar.getInstance();
             cal.setTime(date);
             setStartDay(cal);
@@ -70,7 +70,7 @@ public class DateUtil {
     }
 
     public static Date getEndDate(Date date) {
-        if(date != null) {
+        if (date != null) {
             Calendar cal = Calendar.getInstance();
             cal.setTime(date);
             setEndDay(cal);
@@ -100,7 +100,7 @@ public class DateUtil {
     }
 
     private static String formatDate(Date date, DateFormat dateFormat) {
-        if(date != null) {
+        if (date != null) {
             try {
                 return dateFormat.format(date);
             } catch (Exception e) {
@@ -139,7 +139,7 @@ public class DateUtil {
         return parseDate(date, DEFAULT_SHORT_DATE_PATTERN);
     }
 
-    public static Calendar getCalendar(Calendar cal,int day) {
+    public static Calendar getCalendar(Calendar cal, int day) {
         cal = setStartDay(cal);
         cal.add(Calendar.DAY_OF_MONTH, day);
         return cal;
@@ -166,7 +166,7 @@ public class DateUtil {
     }
 
     public static Date add(Date date, int field, int amount) {
-        if(date != null) {
+        if (date != null) {
             Calendar cal = Calendar.getInstance();
             cal.setTime(date);
             return add(cal, field, amount);
@@ -237,16 +237,17 @@ public class DateUtil {
     public static int getMonth(Date date) {
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(date);
-        return calendar.get(Calendar.MONTH)+1;
+        return calendar.get(Calendar.MONTH) + 1;
     }
 
     /**
      * 获取今天是几月
-     * @return      1-12
+     *
+     * @return 1-12
      */
     public static int getCurrentMonth() {
         Calendar calendar = Calendar.getInstance();
-        return calendar.get(Calendar.MONTH)+1;
+        return calendar.get(Calendar.MONTH) + 1;
     }
 
     public static int getDay(Date date) {
@@ -257,7 +258,8 @@ public class DateUtil {
 
     /**
      * 获取今天是几号
-     * @return      1-31
+     *
+     * @return 1-31
      */
     public static int getCurrentDay() {
         Calendar calendar = Calendar.getInstance();
@@ -266,27 +268,27 @@ public class DateUtil {
 
     public static int intervalWeeks(Date date1, Date date2) {
         long interval = date1.getTime() - date2.getTime();
-        return Long.valueOf(interval/604800000l).intValue();
+        return Long.valueOf(interval / 604800000l).intValue();
     }
 
 
-    public static Date getMonday(Date date){
+    public static Date getMonday(Date date) {
         Calendar calendar = Calendar.getInstance(Locale.CHINA);
-        calendar.setTimeInMillis( date.getTime() );
-        calendar.set(Calendar.DAY_OF_WEEK , Calendar.MONDAY);
+        calendar.setTimeInMillis(date.getTime());
+        calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
         return calendar.getTime();
     }
 
 
-    public static String timeStamp2Date(String seconds,String format) {
-               if(seconds == null || seconds.isEmpty() || seconds.equals("null")){
-                       return "";
-                     }
-               if(format == null || format.isEmpty()){
-                         format = "yyyy-MM-dd HH:mm:ss";
-                     }
-               SimpleDateFormat sdf = new SimpleDateFormat(format);
-                 return sdf.format(new Date(Long.valueOf(seconds+"000")));
-             }
+    public static String timeStamp2Date(String seconds, String format) {
+        if (seconds == null || seconds.isEmpty() || seconds.equals("null")) {
+            return "";
+        }
+        if (format == null || format.isEmpty()) {
+            format = "yyyy-MM-dd HH:mm:ss";
+        }
+        SimpleDateFormat sdf = new SimpleDateFormat(format);
+        return sdf.format(new Date(Long.valueOf(seconds + "000")));
+    }
 
 }

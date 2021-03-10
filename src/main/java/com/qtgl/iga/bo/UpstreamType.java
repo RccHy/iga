@@ -2,7 +2,7 @@ package com.qtgl.iga.bo;
 
 import lombok.Data;
 
-import java.util.Date;
+import java.sql.Timestamp;
 import java.util.List;
 
 /**
@@ -10,7 +10,7 @@ import java.util.List;
  * <Desc> 上游源类型表
  **/
 @Data
-public class UpStreamType {
+public class UpstreamType {
     //主键
     private String id;
 
@@ -30,19 +30,19 @@ public class UpStreamType {
     private Boolean enablePrefix;
 
     //是否启用
-    private Integer active;
+    private Boolean active;
 
     //是否启用时间
-    private Date activeTime;
+    private Timestamp activeTime;
 
     //是否为根数据源【抽到新表】
     private Boolean root;
 
     //注册时间
-    private Date createTime;
+    private Timestamp createTime;
 
     //修改时间
-    private Date updateTime;
+    private Timestamp updateTime;
 
     //网关数据服务id
     private String serviceCode;
@@ -54,6 +54,6 @@ public class UpStreamType {
     private String domain;
 
     //映射字段
-    private List<UpStreamTypeField> upStreamTypeFields;
+    private List<UpstreamTypeField> upstreamTypeFields;
 
 }

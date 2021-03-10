@@ -2,7 +2,6 @@ package com.qtgl.iga.provider;
 
 import com.qtgl.iga.config.GraphQLConfig;
 import com.qtgl.iga.dataFetcher.DeptTreeTypeDataFetcher;
-import com.qtgl.iga.dataFetcher.DeptTypeDataFetcher;
 import graphql.schema.idl.TypeRuntimeWiring;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;

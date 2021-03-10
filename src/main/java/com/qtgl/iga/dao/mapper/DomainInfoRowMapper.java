@@ -19,7 +19,7 @@ public class DomainInfoRowMapper implements RowMapper<DomainInfo> {
         domainInfo.setDomainName(rs.getString("domain_name"));
         domainInfo.setClientId(rs.getString("client_id"));
         domainInfo.setClientSecret(rs.getString("client_secret"));
-        domainInfo.setCreateTime(rs.getDate("create_time"));
+        domainInfo.setCreateTime(rs.getTimestamp("create_time"));
         domainInfo.setCreateUser(rs.getString("create_user"));
         domainInfo.setStatus(rs.getInt("status"));
         return domainInfo;

@@ -2,12 +2,14 @@ package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.dao.DomainInfoDao;
-import com.qtgl.iga.dao.mapper.DomainInfoRowMapper;
+import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.Resource;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Repository
 public class DomainInfoDaoImpl implements DomainInfoDao {
@@ -27,16 +29,41 @@ public class DomainInfoDaoImpl implements DomainInfoDao {
 
     @Override
     public List<DomainInfo> findAll() {
-        List<DomainInfo> domainInfos = jdbcIGA.query("select * from t_mgr_domain_info where status=0", new DomainInfoRowMapper());
-        for (DomainInfo domainInfo : domainInfos) {
-            System.out.println(domainInfo);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select id,domain_id as domainId,domain_name as domainName,client_id as clientId,client_secret as clientSecret," +
+                "create_time as createTime,create_user as createUser,status from t_mgr_domain_info where status=0");
+        ArrayList<DomainInfo> list = new ArrayList<>();
+        if (null != mapList && mapList.size() > 0) {
+            for (Map<String, Object> map : mapList) {
+                DomainInfo domainInfo = new DomainInfo();
+                BeanMap beanMap = BeanMap.create(domainInfo);
+                beanMap.putAll(map);
+                list.add(domainInfo);
+            }
+            return list;
         }
-        return domainInfos;
+
+        return null;
     }
+
+//    @Override
+//    public DomainInfo getByDomainName(String name) {
+//        DomainInfo domainInfo = jdbcIGA.queryForObject("select * from t_mgr_domain_info where status=0", new DomainInfoRowMapper());
+//        return domainInfo;
+//    }
 
     @Override
     public DomainInfo getByDomainName(String name) {
-        DomainInfo domainInfo = jdbcIGA.queryForObject("select * from t_mgr_domain_info where status=0", new DomainInfoRowMapper());
-        return domainInfo;
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select id,domain_id as domainId,domain_name as domainName,client_id as clientId,client_secret as clientSecret,create_time as createTime,create_user as createUser,status from t_mgr_domain_info where status=0");
+        DomainInfo domainInfo = new DomainInfo();
+        if (null != mapList && mapList.size() > 0) {
+            for (Map<String, Object> map : mapList) {
+
+                BeanMap beanMap = BeanMap.create(domainInfo);
+                beanMap.putAll(map);
+
+            }
+            return domainInfo;
+        }
+        return null;
     }
 }

@@ -25,7 +25,7 @@ import java.util.Map;
 
 
 @Component
-public  class CertifiedConnector {
+public class CertifiedConnector {
 
 
     private static CertifiedConnector certifiedConnector;
@@ -36,19 +36,21 @@ public  class CertifiedConnector {
     @Value("${sso.url}")
     String url;
 
-     public void set(DomainInfoService domainInfoService,String url) {
+    public void set(DomainInfoService domainInfoService, String url) {
         this.domainInfoService = domainInfoService;
-        this.url=url;
+        this.url = url;
     }
+
     @PostConstruct
     public void init() {
         certifiedConnector = this;
         certifiedConnector.domainInfoService = this.domainInfoService;
-        certifiedConnector.url=this.url;
+        certifiedConnector.url = this.url;
     }
 
     /**
      * 根据当前会话校验 并获取租户信息
+     *
      * @return
      * @throws Exception
      */
@@ -62,13 +64,14 @@ public  class CertifiedConnector {
 
     /**
      * 校验当前domain信息
+     *
      * @param request
      * @return
      * @throws Exception
      */
     public DomainInfo introspect(HttpServletRequest request) throws Exception {
-         // 如果url是相对路径
-        String ssoUrl=getSSOUrl(request);
+        // 如果url是相对路径
+        String ssoUrl = getSSOUrl(request);
         DomainInfo domainInfo = certifiedConnector.domainInfoService.findAll().get(0);
         String domainName = CertifiedConnector.introspect(request, ssoUrl.replace("/oauth2/authorize", ""), domainInfo.getClientId(), domainInfo.getClientSecret());
         if (null == domainName) throw new Exception("No access authorization");
@@ -91,7 +94,7 @@ public  class CertifiedConnector {
 
         Assert.hasText(token, "Missing required args '[access_token]'");
 
-        String plainCreds = clientId+":"+clientSecret;
+        String plainCreds = clientId + ":" + clientSecret;
         byte[] plainCredsBytes = plainCreds.getBytes();
         byte[] base64CredsBytes = Base64.encodeBase64(plainCredsBytes);
         String base64Creds = new String(base64CredsBytes);
@@ -118,35 +121,35 @@ public  class CertifiedConnector {
 
     private String getSSOUrl(HttpServletRequest request) {
 
-		String personalUrl = certifiedConnector.url;
-		String port = ":" + request.getServerPort();
-		if (("http".equalsIgnoreCase(request.getScheme()) && request.getServerPort() == 80)
-				|| ("https".equalsIgnoreCase(request.getScheme()) && request.getServerPort() == 443)) {
-			port = "";
-		}
+        String personalUrl = certifiedConnector.url;
+        String port = ":" + request.getServerPort();
+        if (("http".equalsIgnoreCase(request.getScheme()) && request.getServerPort() == 80)
+                || ("https".equalsIgnoreCase(request.getScheme()) && request.getServerPort() == 443)) {
+            port = "";
+        }
 
-		String base = request.getScheme() + "://" + request.getServerName() + port;
-		if (!isUrl(personalUrl)) {
-			personalUrl = personalUrl.startsWith("/") ? personalUrl : ("/" + personalUrl);
-			personalUrl = base + personalUrl;
-		}
+        String base = request.getScheme() + "://" + request.getServerName() + port;
+        if (!isUrl(personalUrl)) {
+            personalUrl = personalUrl.startsWith("/") ? personalUrl : ("/" + personalUrl);
+            personalUrl = base + personalUrl;
+        }
 
-		if (StringUtils.isEmpty(certifiedConnector.url)) {
-			return "";
-		}
+        if (StringUtils.isEmpty(certifiedConnector.url)) {
+            return "";
+        }
 
-		return personalUrl;
-	}
+        return personalUrl;
+    }
 
-	private static boolean isUrl(String pInput) {
-		if (pInput == null) {
-			return false;
-		}
-		pInput = pInput.trim().toLowerCase();
-		if (pInput.startsWith("http://") || pInput.startsWith("https://")) {
-			return true;
-		}
-		return false;
-	}
+    private static boolean isUrl(String pInput) {
+        if (pInput == null) {
+            return false;
+        }
+        pInput = pInput.trim().toLowerCase();
+        if (pInput.startsWith("http://") || pInput.startsWith("https://")) {
+            return true;
+        }
+        return false;
+    }
 
 }

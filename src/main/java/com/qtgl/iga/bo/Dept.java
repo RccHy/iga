@@ -3,8 +3,8 @@ package com.qtgl.iga.bo;
 
 import lombok.Data;
 
-import java.util.Date;
-
+import java.sql.Timestamp;
+//组织机构
 @Data
 public class Dept {
 
@@ -16,7 +16,7 @@ public class Dept {
 
     private String typeId;
 
-    private Date createTime;
+    private Timestamp createTime;
 
 
 }

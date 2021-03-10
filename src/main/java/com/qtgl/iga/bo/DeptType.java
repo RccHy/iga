@@ -2,7 +2,7 @@ package com.qtgl.iga.bo;
 
 import lombok.Data;
 
-import java.util.Date;
+import java.sql.Timestamp;
 
 //组织机构类别
 @Data
@@ -20,10 +20,10 @@ public class DeptType {
     private String description;
 
     //创建时间
-    private Date createTime;
+    private Timestamp createTime;
 
     //修改时间
-    private Date updateTime;
+    private Timestamp updateTime;
 
     //创建人工号
     private String createUser;

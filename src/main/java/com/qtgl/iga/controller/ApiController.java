@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.sql.Timestamp;
 import java.util.Date;
 import java.util.UUID;
 
@@ -25,8 +26,6 @@ public class ApiController {
 
     @Autowired
     DomainInfoService domainInfoService;
-
-
 
 
     @PostMapping("/event")
@@ -43,7 +42,7 @@ public class ApiController {
             //租户启用
             case "create_tenant":
                 //通过 clientid authCode 换取密钥【接口暂无】
-                String clientSecret=authCode;
+                String clientSecret = authCode;
                 // 创建租户
                 DomainInfo domainInfo = new DomainInfo();
                 domainInfo.setId(UUID.randomUUID().toString());
@@ -51,14 +50,14 @@ public class ApiController {
                 domainInfo.setClientId(clientId);
                 domainInfo.setClientSecret(clientSecret);
                 domainInfo.setStatus(0);
-                domainInfo.setCreateTime(new Date());
+                domainInfo.setCreateTime(new Timestamp(new Date().getTime()));
                 try {
                     domainInfoService.install(domainInfo);
                     //GraphQLService.setDomainGraphQLMap(runner.buildGraphql());
                 } catch (Exception e) {
                     e.printStackTrace();
-                    logger.error("create tenant error{}",e);
-                    return JSONObject.parseObject("{\"success\":false,\"msg\":"+e+"}");
+                    logger.error("create tenant error{}", e);
+                    return JSONObject.parseObject("{\"success\":false,\"msg\":" + e + "}");
                 }
                 break;
             // 禁用租户
@@ -75,8 +74,6 @@ public class ApiController {
         }
         return JSONObject.parseObject("{\"success\":true}");
     }
-
-
 
 
 }

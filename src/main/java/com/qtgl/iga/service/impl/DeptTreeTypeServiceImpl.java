@@ -1,11 +1,8 @@
 package com.qtgl.iga.service.impl;
 
 import com.qtgl.iga.bo.DeptTreeType;
-import com.qtgl.iga.bo.UpStream;
 import com.qtgl.iga.dao.DeptTreeTypeDao;
-import com.qtgl.iga.dao.UpStreamDao;
 import com.qtgl.iga.service.DeptTreeTypeService;
-import com.qtgl.iga.service.UpStreamService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,12 +28,12 @@ public class DeptTreeTypeServiceImpl implements DeptTreeTypeService {
     }
 
     @Override
-    public DeptTreeType saveDeptTreeType(DeptTreeType deptTreeType, String domain) {
+    public DeptTreeType saveDeptTreeType(DeptTreeType deptTreeType, String domain) throws Exception {
         return deptTreeTypeDao.saveDeptTreeType(deptTreeType, domain);
     }
 
     @Override
-    public DeptTreeType updateDeptTreeType(DeptTreeType deptTreeType) {
+    public DeptTreeType updateDeptTreeType(DeptTreeType deptTreeType) throws Exception {
         return deptTreeTypeDao.updateDeptTreeType(deptTreeType);
     }
 

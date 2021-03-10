@@ -1,8 +1,7 @@
 package com.qtgl.iga.provider;
 
 import com.qtgl.iga.config.GraphQLConfig;
-import com.qtgl.iga.dataFetcher.UpStreamFetcher;
-import com.qtgl.iga.dataFetcher.UpStreamTypeFetcher;
+import com.qtgl.iga.dataFetcher.UpstreamFetcher;
 import graphql.schema.idl.TypeRuntimeWiring;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -12,29 +11,29 @@ import javax.annotation.PostConstruct;
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
 
 /**
- * <FileName> UpStreamTypeProvider
- * <Desc> 上游源类型
+ * <FileName> UpStreamProvider
+ * <Desc> 上游源注册信息
  **/
 
 @Component
-public class UpStreamTypeProvider {
+public class UpstreamProvider {
 
 
     @Autowired
-    UpStreamTypeFetcher upStreamTypeFetcher;
+    UpstreamFetcher upstreamFetcher;
 
     public TypeRuntimeWiring.Builder buildQueryRuntimeWiring() {
         TypeRuntimeWiring.Builder builder = newTypeWiring("Query")
-                .dataFetcher("upStreamTypes", upStreamTypeFetcher.upStreamTypes());
+                .dataFetcher("upstreams", upstreamFetcher.upstreams());
         return builder;
     }
 
 
     public TypeRuntimeWiring.Builder buildMutationRuntimeWiring() throws Exception {
         TypeRuntimeWiring.Builder builder = newTypeWiring("Mutation")
-                .dataFetcher("saveUpStreamType", upStreamTypeFetcher.saveUpStreamType())
-                .dataFetcher("deleteUpStreamType", upStreamTypeFetcher.deleteUpStreamType())
-                .dataFetcher("updateUpStreamType", upStreamTypeFetcher.updateUpStreamType());
+                .dataFetcher("saveUpstream", upstreamFetcher.saveUpstream())
+                .dataFetcher("deleteUpstream", upstreamFetcher.deleteUpstream())
+                .dataFetcher("updateUpstream", upstreamFetcher.updateUpstream());
         return builder;
 
     }

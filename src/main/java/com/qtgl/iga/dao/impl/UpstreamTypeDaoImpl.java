@@ -1,9 +1,9 @@
 package com.qtgl.iga.dao.impl;
 
-import com.qtgl.iga.bo.UpStreamType;
-import com.qtgl.iga.bo.UpStreamTypeField;
-import com.qtgl.iga.dao.UpStreamTypeDao;
-import com.qtgl.iga.dao.mapper.UpStreamTypeRowMapper;
+
+import com.qtgl.iga.bo.UpstreamType;
+import com.qtgl.iga.bo.UpstreamTypeField;
+import com.qtgl.iga.dao.UpstreamTypeDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
@@ -15,39 +15,52 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Resource;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.*;
 
 
 @Repository
-public class UpStreamTypeDaoImpl implements UpStreamTypeDao {
+public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
 
 
     @Resource(name = "jdbcIGA")
     JdbcTemplate jdbcIGA;
 
     @Override
-    public List<UpStreamType> findAll(Map<String, Object> arguments, String domain) {
-        String sql = "select  * from t_mgr_upstream_types where 1 = 1 ";
+    public List<UpstreamType> findAll(Map<String, Object> arguments, String domain) {
+        String sql = "select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_typeId as deptTypeId," +
+                "enable_prefix as enablePrefix,active,active_time as activeTime,root,create_time as createTime," +
+                "update_time as updateTime, graphql_url as graphqlUrl,service_code as serviceCode,domain from  t_mgr_upstream_types where 1 = 1 ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
         List<Object> param = new ArrayList<>();
 
         dealData(arguments, stb, param);
-//        getChild(arguments,param,stb);
-        System.out.println(stb.toString());
-        return jdbcIGA.query(stb.toString(), param.toArray(), new UpStreamTypeRowMapper());
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param);
+        ArrayList<UpstreamType> list = new ArrayList<>();
+        if (null != mapList && mapList.size() > 0) {
+            for (Map<String, Object> map : mapList) {
+                UpstreamType upstreamType = new UpstreamType();
+                BeanMap beanMap = BeanMap.create(upstreamType);
+                beanMap.putAll(map);
+                list.add(upstreamType);
+            }
+            return list;
+        }
+
+        return null;
     }
 
 
     @Override
     @Transactional
-    public UpStreamType saveUpStreamType(UpStreamType upStreamType, String domain) {
+    public UpstreamType saveUpstreamType(UpstreamType upStreamType, String domain) {
         String sql = "insert into t_mgr_upstream_types  values(?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         //生成主键和时间
         String id = UUID.randomUUID().toString().replace("-", "");
         upStreamType.setId(id);
-        Date date = new Date();
+        Timestamp date = new Timestamp(new Date().getTime());
         upStreamType.setCreateTime(date);
         //添加上游源类型
         int update = jdbcIGA.update(sql, new PreparedStatementSetter() {
@@ -70,18 +83,18 @@ public class UpStreamTypeDaoImpl implements UpStreamTypeDao {
 
             }
         });
-        if (null != upStreamType.getUpStreamTypeFields() && upStreamType.getUpStreamTypeFields().size() > 0) {
+        if (null != upStreamType.getUpstreamTypeFields() && upStreamType.getUpstreamTypeFields().size() > 0) {
             //添加类型映射
             String str = "insert into t_mgr_upstream_types_field values(?,?,?,?,?,?,?)";
-            for (UpStreamTypeField upStreamTypeField : upStreamType.getUpStreamTypeFields()) {
+            for (UpstreamTypeField upStreamTypeField : upStreamType.getUpstreamTypeFields()) {
                 upStreamTypeField.setId(UUID.randomUUID().toString().replace("-", ""));
                 upStreamTypeField.setUpstreamTypeId(id);
-                Date d = new Date();
+                Timestamp d = new Timestamp(new Date().getTime());
                 upStreamTypeField.setCreateTime(d);
                 upStreamTypeField.setUpdateTime(d);
                 upStreamTypeField.setDomain(upStreamType.getDomain());
             }
-            List<UpStreamTypeField> upStreamTypeFields = upStreamType.getUpStreamTypeFields();
+            List<UpstreamTypeField> upStreamTypeFields = upStreamType.getUpstreamTypeFields();
             jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
@@ -105,16 +118,28 @@ public class UpStreamTypeDaoImpl implements UpStreamTypeDao {
 
     @Override
     @Transactional
-    public UpStreamType deleteUpStreamType(Map<String, Object> arguments, String domain) throws Exception {
+    public UpstreamType deleteUpstreamType(Map<String, Object> arguments, String domain) throws Exception {
         Object[] objects = new Object[2];
         objects[0] = arguments.get("id");
         objects[1] = domain;
-        List<UpStreamType> streamTypes = jdbcIGA.query("select  * from t_mgr_upstream_types  where id =? and domain=?", objects, new UpStreamTypeRowMapper());
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  id,upstream_id as upstreamId ,description,syn_type as synType," +
+                "dept_typeId as deptTypeId,enable_prefix as enablePrefix,active,active_time asactiveTime," +
+                "root,create_time as createTime,update_time as updateTime, graphql_url as graphqlUrl," +
+                "service_code as serviceCode,domain from  t_mgr_upstream_types  where id =? and domain=?", objects);
+        ArrayList<UpstreamType> streamTypes = new ArrayList<>();
+        if (null != mapList && mapList.size() > 0) {
+            for (Map<String, Object> map : mapList) {
+                UpstreamType upstreamType = new UpstreamType();
+                BeanMap beanMap = BeanMap.create(upstreamType);
+                beanMap.putAll(map);
+                streamTypes.add(upstreamType);
+            }
+        }
         if (null == streamTypes || streamTypes.size() > 1) {
             throw new Exception("数据异常，删除失败");
         }
-        UpStreamType upStreamType = streamTypes.get(0);
-        if (upStreamType.getActive() == 0) {
+        UpstreamType upStreamType = streamTypes.get(0);
+        if (upStreamType.getActive()) {
             throw new Exception("上游源类型已启用,不能进行删除操作");
         }
 
@@ -136,12 +161,12 @@ public class UpStreamTypeDaoImpl implements UpStreamTypeDao {
 
     @Override
     @Transactional
-    public UpStreamType updateUpStreamType(UpStreamType upStreamType) {
+    public UpstreamType updateUpstreamType(UpstreamType upStreamType) {
         String sql = "update t_mgr_upstream_types  set upstream_id = ?,description = ?," +
                 "syn_type = ?,dept_typeId = ?,enable_prefix = ?,active = ?,active_time = ?," +
                 "root = ?,create_time = ?,update_time = ?,service_code = ?," +
                 "graphql_url = ?, domain = ? where id= ? ";
-        Date date = new Date();
+        Timestamp date = new Timestamp(new Date().getTime());
         upStreamType.setUpdateTime(date);
         int update = jdbcIGA.update(sql, new PreparedStatementSetter() {
             @Override
@@ -167,8 +192,8 @@ public class UpStreamTypeDaoImpl implements UpStreamTypeDao {
                 "target_field= ?,create_time= ?,update_time= ?,domain= ? " +
                 "where id =?";
 
-        List<UpStreamTypeField> upStreamTypeFields = upStreamType.getUpStreamTypeFields();
-        Date d = new Date();
+        List<UpstreamTypeField> upStreamTypeFields = upStreamType.getUpstreamTypeFields();
+        Timestamp d = new Timestamp(new Date().getTime());
         jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
@@ -266,24 +291,46 @@ public class UpStreamTypeDaoImpl implements UpStreamTypeDao {
                 }
 
             }
-            System.out.println("key = " + entry.getKey() + ", value = " + entry.getValue());
         }
     }
 
     //检查源下的类型是否都处于停用 或者删除。
-    public List<UpStreamType> findByUpStreamId(String upId) {
+    public List<UpstreamType> findByUpstreamId(String upId) {
         Object[] params = new Object[1];
         params[0] = upId;
-        String sql = "select  * from t_mgr_upstream_types where active = 0 and upstream_id = ?";
+        String sql = "select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_typeId as deptTypeId,enable_prefix as enablePrefix,active,active_time asactiveTime,root,create_time as createTime,update_time as updateTime," +
+                " graphql_url as graphqlUrl,service_code as serviceCode,domain from  t_mgr_upstream_types where active = 0 and upstream_id = ?";
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, params);
+        ArrayList<UpstreamType> list = new ArrayList<>();
+        if (null != mapList && mapList.size() > 0) {
+            for (Map<String, Object> map : mapList) {
+                UpstreamType upstreamType = new UpstreamType();
+                BeanMap beanMap = BeanMap.create(upstreamType);
+                beanMap.putAll(map);
+                list.add(upstreamType);
+            }
+            return list;
+        }
 
-        return jdbcIGA.query(sql, params, new UpStreamTypeRowMapper());
+        return null;
+
     }
 
-    public int deleteByUpStreamId(String id) {
+    public int deleteByUpstreamId(String id) {
         //删除字段映射表数据
         //查询所有类型
-        List<UpStreamType> typeList = jdbcIGA.query("select  * from t_mgr_upstream_types where upstream_id = ?", new UpStreamTypeRowMapper(), id);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_typeId as deptTypeId,enable_prefix as enablePrefix,active,active_time asactiveTime,root,create_time as createTime,update_time as updateTime," +
+                " graphql_url as graphqlUrl,service_code as serviceCode,domain from  t_mgr_upstream_types where upstream_id = ?", id);
 
+        ArrayList<UpstreamType> typeList = new ArrayList<>();
+        if (null != mapList && mapList.size() > 0) {
+            for (Map<String, Object> map : mapList) {
+                UpstreamType upstreamType = new UpstreamType();
+                BeanMap beanMap = BeanMap.create(upstreamType);
+                beanMap.putAll(map);
+                typeList.add(upstreamType);
+            }
+        }
         if (null != typeList && typeList.size() > 0) {
             jdbcIGA.batchUpdate("delete from t_mgr_upstream_types_field  where upstream_type_id =?", new BatchPreparedStatementSetter() {
                 @Override
@@ -305,21 +352,4 @@ public class UpStreamTypeDaoImpl implements UpStreamTypeDao {
 
         return jdbcIGA.update(sql, params);
     }
-
-
-//    private void getChild(Map<String,Object> map,List<Object> param,StringBuffer sql) {
-//        for (Map.Entry<String,Object> entry : map.entrySet()){
-//
-//
-//            if (entry.getKey().equals("filter")){
-//                Map<String,Object> value = (Map<String, Object>) entry.getValue();
-//                getChild(value,param,sql);
-//            }
-//
-//            sql.append("and "+entry.getKey()+" = ?" );
-//            param.add(entry.getValue());
-//
-//
-//        }
-//    }
 }

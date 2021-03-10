@@ -3,10 +3,9 @@ package com.qtgl.iga.dataFetcher;
 
 import com.alibaba.fastjson.JSON;
 import com.qtgl.iga.bo.DomainInfo;
-import com.qtgl.iga.bo.UpStream;
-import com.qtgl.iga.bo.UpStreamType;
-import com.qtgl.iga.service.UpStreamService;
-import com.qtgl.iga.service.UpStreamTypeService;
+
+import com.qtgl.iga.bo.UpstreamType;
+import com.qtgl.iga.service.UpstreamTypeService;
 import com.qtgl.iga.utils.CertifiedConnector;
 import graphql.schema.DataFetcher;
 import org.slf4j.Logger;
@@ -17,16 +16,16 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 
 @Component
-public class UpStreamTypeFetcher {
+public class UpstreamTypeFetcher {
 
-    public static Logger logger = LoggerFactory.getLogger(UpStreamTypeFetcher.class);
+    public static Logger logger = LoggerFactory.getLogger(UpstreamTypeFetcher.class);
 
 
     @Autowired
-    UpStreamTypeService upStreamTypeService;
+    UpstreamTypeService upStreamTypeService;
 
 
-    public DataFetcher upStreamTypes() {
+    public DataFetcher upstreamTypes() {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
@@ -37,26 +36,26 @@ public class UpStreamTypeFetcher {
         };
     }
 
-    public DataFetcher deleteUpStreamType() throws Exception {
+    public DataFetcher deleteUpstreamType() throws Exception {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
             // 获取传入参数
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
-            return upStreamTypeService.deleteUpStreamType(arguments, domain.getId());
+            return upStreamTypeService.deleteUpstreamType(arguments, domain.getId());
         };
     }
 
-    public DataFetcher saveUpStreamType() {
+    public DataFetcher saveUpstreamType() {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
             // 获取传入参数
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
 
-            UpStreamType upStreamType = JSON.parseObject(JSON.toJSONString(arguments.get("entity")), UpStreamType.class);
+            UpstreamType upstreamType = JSON.parseObject(JSON.toJSONString(arguments.get("entity")), UpstreamType.class);
 
-            UpStreamType data = upStreamTypeService.saveUpStreamType(upStreamType, domain.getId());
+            UpstreamType data = upStreamTypeService.saveUpstreamType(upstreamType, domain.getId());
             if (null != data) {
                 return data;
             }
@@ -64,15 +63,15 @@ public class UpStreamTypeFetcher {
         };
     }
 
-    public DataFetcher updateUpStreamType() {
+    public DataFetcher updateUpstreamType() {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
             // 获取传入参数
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
-            UpStreamType upStreamType = JSON.parseObject(JSON.toJSONString(arguments.get("entity")), UpStreamType.class);
-            upStreamType.setDomain(domain.getId());
-            UpStreamType data = upStreamTypeService.updateUpStreamType(upStreamType);
+            UpstreamType upstreamType = JSON.parseObject(JSON.toJSONString(arguments.get("entity")), UpstreamType.class);
+            upstreamType.setDomain(domain.getId());
+            UpstreamType data = upStreamTypeService.updateUpstreamType(upstreamType);
             if (null != data) {
                 return data;
             }

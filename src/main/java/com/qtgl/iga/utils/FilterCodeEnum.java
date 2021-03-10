@@ -36,9 +36,9 @@ public enum FilterCodeEnum {
 
     private String desc;
 
-    public static String getDescByCode(String code){
-        for(FilterCodeEnum codeEnum : FilterCodeEnum.values()){
-            if(codeEnum.getCode().equals(code)){
+    public static String getDescByCode(String code) {
+        for (FilterCodeEnum codeEnum : FilterCodeEnum.values()) {
+            if (codeEnum.getCode().equals(code)) {
                 return codeEnum.getDesc();
             }
         }
