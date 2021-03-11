@@ -37,7 +37,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         List<Object> param = new ArrayList<>();
 
         dealData(arguments, stb, param);
-        List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
         ArrayList<UpstreamType> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {
@@ -62,6 +62,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         upStreamType.setId(id);
         Timestamp date = new Timestamp(new Date().getTime());
         upStreamType.setCreateTime(date);
+        upStreamType.setActive(false);
         //添加上游源类型
         int update = jdbcIGA.update(sql, new PreparedStatementSetter() {
             @Override
@@ -123,7 +124,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         objects[0] = arguments.get("id");
         objects[1] = domain;
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  id,upstream_id as upstreamId ,description,syn_type as synType," +
-                "dept_type_id as deptTypeId,enable_prefix as enablePrefix,active,active_time asactiveTime," +
+                "dept_type_id as deptTypeId,enable_prefix as enablePrefix,active,active_time as activeTime," +
                 "root,create_time as createTime,update_time as updateTime, graphql_url as graphqlUrl," +
                 "service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId from  t_mgr_upstream_types  where id =? and domain=?", objects);
         ArrayList<UpstreamType> streamTypes = new ArrayList<>();
@@ -153,8 +154,8 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
             }
         });
         //删除类型字段映射
-        int result = jdbcIGA.update("delete from t_mgr_upstream_types_field  where upstream_type_id =?", arguments.get("id"));
-        return (id > 0) && (result > 0) ? upStreamType : null;
+        jdbcIGA.update("delete from t_mgr_upstream_types_field  where upstream_type_id =?", arguments.get("id"));
+        return id > 0 ? upStreamType : null;
 
 
     }
@@ -165,7 +166,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         String sql = "update t_mgr_upstream_types  set upstream_id = ?,description = ?," +
                 "syn_type = ?,dept_type_id = ?,enable_prefix = ?,active = ?,active_time = ?," +
                 "root = ?,create_time = ?,update_time = ?,service_code = ?," +
-                "graphql_url = ?, domain = ? dept_tree_type_id = ? where id= ? ";
+                "graphql_url = ?, domain = ? ,dept_tree_type_id = ? where id= ? ";
         Timestamp date = new Timestamp(new Date().getTime());
         upStreamType.setUpdateTime(date);
         int update = jdbcIGA.update(sql, new PreparedStatementSetter() {
@@ -232,23 +233,62 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
                     if (str.getKey().equals("deptTypeId")) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            stb.append(" and dept_typeId " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
-                            param.add(soe.getValue());
+                            if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
+                                stb.append("and dept_type_id " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and dept_type_id " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and dept_type_id " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                param.add(soe.getValue());
+                            }
                         }
                     }
 
                     if (str.getKey().equals("serviceCode")) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            stb.append("and service_code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
-                            param.add(soe.getValue());
+                            if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
+                                stb.append("and service_code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and service_code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and service_code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                param.add(soe.getValue());
+                            }
                         }
                     }
-                    if (str.getKey().equals("syn_type")) {
+                    if (str.getKey().equals("synType")) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            stb.append("and state " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
-                            param.add(soe.getValue());
+                            if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
+                                stb.append("and syn_type " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and syn_type " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and syn_type " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                param.add(soe.getValue());
+                            }
                         }
                     }
                     if (str.getKey().equals("upstreamId")) {
@@ -300,8 +340,8 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
     public List<UpstreamType> findByUpstreamId(String upId) {
         Object[] params = new Object[1];
         params[0] = upId;
-        String sql = "select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_typeId as deptTypeId,enable_prefix as enablePrefix,active,active_time asactiveTime,root,create_time as createTime,update_time as updateTime," +
-                " graphql_url as graphqlUrl,service_code as serviceCode,domain, from  t_mgr_upstream_types where active = 0 and upstream_id = ?";
+        String sql = "select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_type_id as deptTypeId,enable_prefix as enablePrefix,active,active_time asactiveTime,root,create_time as createTime,update_time as updateTime," +
+                " graphql_url as graphqlUrl,service_code as serviceCode,domain from  t_mgr_upstream_types where active = 0 and upstream_id = ?";
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, params);
         ArrayList<UpstreamType> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
@@ -318,10 +358,30 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
 
     }
 
+    @Override
+    public UpstreamType findById(String id) {
+        String sql = "select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_type_id as deptTypeId," +
+                "enable_prefix as enablePrefix,active,active_time as activeTime,root,create_time as createTime," +
+                "update_time as updateTime, graphql_url as graphqlUrl,service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId from  t_mgr_upstream_types where id= ? ";
+
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id);
+        UpstreamType upstreamType = new UpstreamType();
+        if (null != mapList && mapList.size() > 0) {
+            for (Map<String, Object> map : mapList) {
+
+                BeanMap beanMap = BeanMap.create(upstreamType);
+                beanMap.putAll(map);
+            }
+            return upstreamType;
+        }
+        return null;
+
+    }
+
     public int deleteByUpstreamId(String id) {
         //删除字段映射表数据
         //查询所有类型
-        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_typeId as deptTypeId,enable_prefix as enablePrefix,active,active_time asactiveTime,root,create_time as createTime,update_time as updateTime," +
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_type_id as deptTypeId,enable_prefix as enablePrefix,active,active_time asactiveTime,root,create_time as createTime,update_time as updateTime," +
                 " graphql_url as graphqlUrl,service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId from  t_mgr_upstream_types where upstream_id = ?", id);
 
         ArrayList<UpstreamType> typeList = new ArrayList<>();

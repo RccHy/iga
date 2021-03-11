@@ -15,4 +15,7 @@ public interface DeptTreeTypeDao {
     DeptTreeType deleteDeptTreeType(Map<String, Object> arguments, String domain) throws Exception;
 
     DeptTreeType updateDeptTreeType(DeptTreeType deptTreeType) throws Exception;
+
+    DeptTreeType findById(String id);
+
 }

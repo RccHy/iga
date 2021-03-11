@@ -9,4 +9,6 @@ public interface DeptDao {
 
     List<Dept> getAllDepts();
 
+    Dept findById(String id);
+
 }

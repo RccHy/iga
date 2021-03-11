@@ -15,4 +15,6 @@ public interface DeptTypeDao {
     DeptType saveSchemaField(DeptType deptType, String domain) throws Exception;
 
     DeptType updateSchemaField(DeptType deptType) throws Exception;
+
+    DeptType findById(String id);
 }

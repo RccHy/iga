@@ -11,4 +11,7 @@ public interface DomainInfoDao {
     List<DomainInfo> findAll();
 
     DomainInfo getByDomainName(String name);
+
+    DomainInfo findById(String id);
+
 }

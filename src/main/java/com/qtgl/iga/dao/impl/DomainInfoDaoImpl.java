@@ -1,6 +1,7 @@
 package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bo.DomainInfo;
+import com.qtgl.iga.bo.Upstream;
 import com.qtgl.iga.dao.DomainInfoDao;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -61,6 +62,24 @@ public class DomainInfoDaoImpl implements DomainInfoDao {
                 BeanMap beanMap = BeanMap.create(domainInfo);
                 beanMap.putAll(map);
 
+            }
+            return domainInfo;
+        }
+        return null;
+    }
+
+    @Override
+    public DomainInfo findById(String id) {
+        String sql = "select id,domain_id as domainId,domain_name as domainName,client_id as clientId,client_secret as clientSecret," +
+                "create_time as createTime,create_user as createUser,status from t_mgr_domain_info where id= ? ";
+
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id);
+        DomainInfo domainInfo = new DomainInfo();
+        if (null != mapList && mapList.size() > 0) {
+            for (Map<String, Object> map : mapList) {
+
+                BeanMap beanMap = BeanMap.create(domainInfo);
+                beanMap.putAll(map);
             }
             return domainInfo;
         }

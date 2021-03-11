@@ -67,6 +67,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
         upstream.setId(id);
         Timestamp date = new Timestamp(new Date().getTime());
         upstream.setCreateTime(date);
+        upstream.setActive(false);
         int update = jdbcIGA.update(sql, new PreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement preparedStatement) throws SQLException {
@@ -113,7 +114,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
         }
         //检查源下的类型是否都处于停用 或者删除。
         List<UpstreamType> byUpstreamId = upstreamTypeDao.findByUpstreamId(upstream.getId());
-        if (null == byUpstreamId || byUpstreamId.size() != 0) {
+        if (null != byUpstreamId && byUpstreamId.size() != 0) {
             throw new Exception("数据异常，删除失败");
         }
 
@@ -127,9 +128,9 @@ public class UpstreamDaoImpl implements UpstreamDao {
             }
         });
         //删除上游源数据类型
-        int i = upstreamTypeDao.deleteByUpstreamId(upstream.getId());
+        upstreamTypeDao.deleteByUpstreamId(upstream.getId());
 
-        return (id > 0 && i > 0) ? upstream : null;
+        return id > 0 ? upstream : null;
 
 
     }
@@ -157,6 +158,25 @@ public class UpstreamDaoImpl implements UpstreamDao {
         }) > 0 ? upstream : null;
     }
 
+    @Override
+    public Upstream findById(String id) {
+        String sql = "select id,app_code as appCode,app_name as appName,data_code as dataCode," +
+                "create_time as createTime,create_user as createUser,active,color,domain ," +
+                "active_time as activeTime,update_time as updateTime from t_mgr_upstream where id= ? ";
+
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id);
+        Upstream upstream = new Upstream();
+        if (null != mapList && mapList.size() > 0) {
+            for (Map<String, Object> map : mapList) {
+
+                BeanMap beanMap = BeanMap.create(upstream);
+                beanMap.putAll(map);
+            }
+            return upstream;
+        }
+        return null;
+    }
+
 
     private void dealData(Map<String, Object> arguments, StringBuffer stb, List<Object> param) {
         Iterator<Map.Entry<String, Object>> it = arguments.entrySet().iterator();
@@ -173,15 +193,41 @@ public class UpstreamDaoImpl implements UpstreamDao {
                     if (str.getKey().equals("appCode")) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            stb.append(" and app_code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
-                            param.add(soe.getValue());
+                            if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
+                                stb.append("and app_code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and app_code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and app_code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                param.add(soe.getValue());
+                            }
                         }
                     }
                     if (str.getKey().equals("appName")) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            stb.append("and app_name " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
-                            param.add(soe.getValue());
+                            if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
+                                stb.append("and app_name " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and app_name " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and app_name " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                param.add(soe.getValue());
+                            }
                         }
                     }
                     if (str.getKey().equals("active")) {
@@ -219,15 +265,41 @@ public class UpstreamDaoImpl implements UpstreamDao {
                     if (str.getKey().equals("dataCode")) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            stb.append("and data_code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
-                            param.add(soe.getValue());
+                            if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
+                                stb.append("and data_code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and data_code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and data_code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                param.add(soe.getValue());
+                            }
                         }
                     }
                     if (str.getKey().equals("color")) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            stb.append("and color " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
-                            param.add(soe.getValue());
+                            if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
+                                stb.append("and color " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and color " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and color " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                param.add(soe.getValue());
+                            }
                         }
                     }
 

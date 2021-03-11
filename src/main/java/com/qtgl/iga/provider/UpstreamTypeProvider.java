@@ -24,16 +24,16 @@ public class UpstreamTypeProvider {
 
     public TypeRuntimeWiring.Builder buildQueryRuntimeWiring() {
         TypeRuntimeWiring.Builder builder = newTypeWiring("Query")
-                .dataFetcher("upStreamTypes", upstreamTypeFetcher.upstreamTypes());
+                .dataFetcher("upstreamTypes", upstreamTypeFetcher.upstreamTypes());
         return builder;
     }
 
 
     public TypeRuntimeWiring.Builder buildMutationRuntimeWiring() throws Exception {
         TypeRuntimeWiring.Builder builder = newTypeWiring("Mutation")
-                .dataFetcher("saveUpStreamType", upstreamTypeFetcher.saveUpstreamType())
-                .dataFetcher("deleteUpStreamType", upstreamTypeFetcher.deleteUpstreamType())
-                .dataFetcher("updateUpStreamType", upstreamTypeFetcher.updateUpstreamType());
+                .dataFetcher("saveUpstreamType", upstreamTypeFetcher.saveUpstreamType())
+                .dataFetcher("deleteUpstreamType", upstreamTypeFetcher.deleteUpstreamType())
+                .dataFetcher("updateUpstreamType", upstreamTypeFetcher.updateUpstreamType());
         return builder;
 
     }

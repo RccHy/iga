@@ -73,7 +73,7 @@ input upstreamFilter{
     appCode:stringFilter
     appName:stringFilter
     dataCode:stringFilter
-    active:Boolean
+    active:booleanFilter
     color:stringFilter
     createTime:timestampFilter
     updateTime:timestampFilter

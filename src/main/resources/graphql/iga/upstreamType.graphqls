@@ -47,7 +47,7 @@ type upstreamType{
     serviceCode:String
     # ://服务/类型/方法
     graphqlUrl:String
-    # 租户外键
+    # 字段映射
     upstreamTypeFields:[upstreamTypeField]
 }
 

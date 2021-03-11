@@ -1,6 +1,7 @@
 package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bo.DeptType;
+import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.dao.DeptTypeDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import org.springframework.cglib.beans.BeanMap;
@@ -148,6 +149,25 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
         }) > 0 ? deptType : null;
     }
 
+    @Override
+    public DeptType findById(String id) {
+        String sql = "select id, code, name, description," +
+                "create_time as createTime, update_time as updateTime, " +
+                "create_user as createUser, domain from t_mgr_dept_type where id= ? ";
+
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id);
+        DeptType deptType = new DeptType();
+        if (null != mapList && mapList.size() > 0) {
+            for (Map<String, Object> map : mapList) {
+
+                BeanMap beanMap = BeanMap.create(deptType);
+                beanMap.putAll(map);
+            }
+            return deptType;
+        }
+        return null;
+    }
+
     private void dealData(Map<String, Object> arguments, StringBuffer stb, List<Object> param) {
         Iterator<Map.Entry<String, Object>> it = arguments.entrySet().iterator();
         while (it.hasNext()) {
@@ -163,15 +183,41 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
                     if (str.getKey().equals("code")) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            stb.append(" and code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
-                            param.add(soe.getValue());
+                            if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
+                                stb.append("and code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                param.add(soe.getValue());
+                            }
                         }
                     }
                     if (str.getKey().equals("name")) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            stb.append("and name " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
-                            param.add(soe.getValue());
+                            if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
+                                stb.append("and name " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and name " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and name " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                param.add(soe.getValue());
+                            }
                         }
                     }
                     if (str.getKey().equals("createTime")) {
