@@ -2,13 +2,14 @@ package com.qtgl.iga.dao;
 
 
 import com.qtgl.iga.bo.UpstreamType;
+import com.qtgl.iga.vo.UpstreamTypeVo;
 
 import java.util.List;
 import java.util.Map;
 
 public interface UpstreamTypeDao {
 
-    List<UpstreamType> findAll(Map<String, Object> arguments, String domain);
+    List<UpstreamTypeVo> findAll(Map<String, Object> arguments, String domain);
 
     UpstreamType saveUpstreamType(UpstreamType upstreamType, String domain);
 

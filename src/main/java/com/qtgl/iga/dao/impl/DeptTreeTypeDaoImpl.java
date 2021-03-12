@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import com.qtgl.iga.dao.DeptTreeTypeDao;
@@ -20,6 +21,7 @@ import java.util.*;
 
 
 @Repository
+@Component
 public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
 
 
@@ -76,20 +78,17 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
         Timestamp date = new Timestamp(new Date().getTime());
         deptTreeType.setCreateTime(date);
         deptTreeType.setUpdateTime(date);
-        int update = jdbcIGA.update(sql, new PreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement preparedStatement) throws SQLException {
-                preparedStatement.setObject(1, id);
-                preparedStatement.setObject(2, deptTreeType.getCode());
-                preparedStatement.setObject(3, deptTreeType.getName());
-                preparedStatement.setObject(4, deptTreeType.getDescription());
-                preparedStatement.setObject(5, deptTreeType.getMultipleRootNode());
-                preparedStatement.setObject(6, deptTreeType.getCreateTime());
-                preparedStatement.setObject(7, deptTreeType.getUpdateTime());
-                preparedStatement.setObject(8, deptTreeType.getCreateUser());
-                preparedStatement.setObject(9, domain);
+        int update = jdbcIGA.update(sql, preparedStatement -> {
+            preparedStatement.setObject(1, id);
+            preparedStatement.setObject(2, deptTreeType.getCode());
+            preparedStatement.setObject(3, deptTreeType.getName());
+            preparedStatement.setObject(4, deptTreeType.getDescription());
+            preparedStatement.setObject(5, deptTreeType.getMultipleRootNode());
+            preparedStatement.setObject(6, deptTreeType.getCreateTime());
+            preparedStatement.setObject(7, deptTreeType.getUpdateTime());
+            preparedStatement.setObject(8, deptTreeType.getCreateUser());
+            preparedStatement.setObject(9, domain);
 
-            }
         });
         return update > 0 ? deptTreeType : null;
     }
@@ -119,13 +118,7 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
 
         //删除组织类别树数据
         String sql = "delete from t_mgr_dept_tree_type  where id =?";
-        int id = jdbcIGA.update(sql, new PreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement preparedStatement) throws SQLException {
-                preparedStatement.setObject(1, arguments.get("id"));
-
-            }
-        });
+        int id = jdbcIGA.update(sql, preparedStatement -> preparedStatement.setObject(1, arguments.get("id")));
 
 
         return id > 0 ? deptTreeType : null;
@@ -144,19 +137,16 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
         String sql = "update t_mgr_dept_tree_type  set code = ?,name = ?,description = ?,multiple_root_node = ?,create_time = ?," +
                 "update_time = ?,create_user = ?,domain= ?  where id=?";
         Date date = new Date();
-        return jdbcIGA.update(sql, new PreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement preparedStatement) throws SQLException {
-                preparedStatement.setObject(1, deptTreeType.getCode());
-                preparedStatement.setObject(2, deptTreeType.getName());
-                preparedStatement.setObject(3, deptTreeType.getDescription());
-                preparedStatement.setObject(4, deptTreeType.getMultipleRootNode());
-                preparedStatement.setObject(5, deptTreeType.getCreateTime());
-                preparedStatement.setObject(6, date);
-                preparedStatement.setObject(7, deptTreeType.getCreateUser());
-                preparedStatement.setObject(8, deptTreeType.getDomain());
-                preparedStatement.setObject(9, deptTreeType.getId());
-            }
+        return jdbcIGA.update(sql, preparedStatement -> {
+            preparedStatement.setObject(1, deptTreeType.getCode());
+            preparedStatement.setObject(2, deptTreeType.getName());
+            preparedStatement.setObject(3, deptTreeType.getDescription());
+            preparedStatement.setObject(4, deptTreeType.getMultipleRootNode());
+            preparedStatement.setObject(5, deptTreeType.getCreateTime());
+            preparedStatement.setObject(6, date);
+            preparedStatement.setObject(7, deptTreeType.getCreateUser());
+            preparedStatement.setObject(8, deptTreeType.getDomain());
+            preparedStatement.setObject(9, deptTreeType.getId());
         }) > 0 ? deptTreeType : null;
     }
 
@@ -213,10 +203,10 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
                             if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
-                                stb.append("and code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                stb.append("and code ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                                 param.add("%" + soe.getValue() + "%");
                             } else if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
-                                stb.append("and code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ( ");
+                                stb.append("and code ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
                                 ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
                                 for (String s : value1) {
                                     stb.append(" ? ,");
@@ -224,7 +214,7 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
                                 }
                                 stb.replace(stb.length() - 1, stb.length(), ")");
                             } else {
-                                stb.append("and code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                stb.append("and code ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                                 param.add(soe.getValue());
                             }
                         }
@@ -233,10 +223,10 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
                             if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
-                                stb.append("and name " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                stb.append("and name ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                                 param.add("%" + soe.getValue() + "%");
                             } else if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
-                                stb.append("and name " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ( ");
+                                stb.append("and name ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
                                 ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
                                 for (String s : value1) {
                                     stb.append(" ? ,");
@@ -244,7 +234,7 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
                                 }
                                 stb.replace(stb.length() - 1, stb.length(), ")");
                             } else {
-                                stb.append("and name " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                stb.append("and name ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                                 param.add(soe.getValue());
                             }
                         }
@@ -255,7 +245,7 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
                             //判断是否是区间
                             if (soe.getKey().equals("gt") || soe.getKey().equals("lt")
                                     || soe.getKey().equals("gte") || soe.getKey().equals("lte")) {
-                                stb.append("and create_time " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                stb.append("and create_time ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                                 param.add(soe.getValue());
 
                             }
@@ -268,7 +258,7 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
                             //判断是否是区间
                             if (soe.getKey().equals("gt") || soe.getKey().equals("lt")
                                     || soe.getKey().equals("gte") || soe.getKey().equals("lte")) {
-                                stb.append("and update_time " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                stb.append("and update_time ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                                 param.add(soe.getValue());
 
                             }

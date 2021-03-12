@@ -8,18 +8,18 @@ import com.qtgl.iga.utils.FilterCodeEnum;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementSetter;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+
 import java.sql.Timestamp;
 import java.util.*;
 
 
 @Repository
+@Component
 public class UpstreamDaoImpl implements UpstreamDao {
 
 
@@ -68,22 +68,19 @@ public class UpstreamDaoImpl implements UpstreamDao {
         Timestamp date = new Timestamp(new Date().getTime());
         upstream.setCreateTime(date);
         upstream.setActive(false);
-        int update = jdbcIGA.update(sql, new PreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement preparedStatement) throws SQLException {
-                preparedStatement.setObject(1, id);
-                preparedStatement.setObject(2, upstream.getAppCode());
-                preparedStatement.setObject(3, upstream.getAppName());
-                preparedStatement.setObject(4, upstream.getDataCode());
-                preparedStatement.setObject(5, date);
-                preparedStatement.setObject(6, upstream.getCreateUser());
-                preparedStatement.setObject(7, upstream.getActive());
-                preparedStatement.setObject(8, upstream.getColor());
-                preparedStatement.setObject(9, domain);
-                preparedStatement.setObject(10, date);
-                preparedStatement.setObject(11, date);
+        int update = jdbcIGA.update(sql, preparedStatement -> {
+            preparedStatement.setObject(1, id);
+            preparedStatement.setObject(2, upstream.getAppCode());
+            preparedStatement.setObject(3, upstream.getAppName());
+            preparedStatement.setObject(4, upstream.getDataCode());
+            preparedStatement.setObject(5, date);
+            preparedStatement.setObject(6, upstream.getCreateUser());
+            preparedStatement.setObject(7, upstream.getActive());
+            preparedStatement.setObject(8, upstream.getColor());
+            preparedStatement.setObject(9, domain);
+            preparedStatement.setObject(10, date);
+            preparedStatement.setObject(11, date);
 
-            }
         });
         return update > 0 ? upstream : null;
     }
@@ -120,13 +117,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
 
         //删除上游源数据
         String sql = "delete from t_mgr_upstream  where id =?";
-        int id = jdbcIGA.update(sql, new PreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement preparedStatement) throws SQLException {
-                preparedStatement.setObject(1, arguments.get("id"));
-
-            }
-        });
+        int id = jdbcIGA.update(sql, preparedStatement -> preparedStatement.setObject(1, arguments.get("id")));
         //删除上游源数据类型
         upstreamTypeDao.deleteByUpstreamId(upstream.getId());
 
@@ -141,20 +132,17 @@ public class UpstreamDaoImpl implements UpstreamDao {
         String sql = "update t_mgr_upstream  set app_code = ?,app_name = ?,data_code = ?,create_user = ?,active = ?," +
                 "color = ?,domain = ?,active_time = ?,update_time= ?  where id=?";
         Timestamp date = new Timestamp(new Date().getTime());
-        return jdbcIGA.update(sql, new PreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement preparedStatement) throws SQLException {
-                preparedStatement.setObject(1, upstream.getAppCode());
-                preparedStatement.setObject(2, upstream.getAppName());
-                preparedStatement.setObject(3, upstream.getDataCode());
-                preparedStatement.setObject(4, upstream.getCreateUser());
-                preparedStatement.setObject(5, upstream.getActive());
-                preparedStatement.setObject(6, upstream.getColor());
-                preparedStatement.setObject(7, upstream.getDomain());
-                preparedStatement.setObject(8, date);
-                preparedStatement.setObject(9, date);
-                preparedStatement.setObject(10, upstream.getId());
-            }
+        return jdbcIGA.update(sql, preparedStatement -> {
+            preparedStatement.setObject(1, upstream.getAppCode());
+            preparedStatement.setObject(2, upstream.getAppName());
+            preparedStatement.setObject(3, upstream.getDataCode());
+            preparedStatement.setObject(4, upstream.getCreateUser());
+            preparedStatement.setObject(5, upstream.getActive());
+            preparedStatement.setObject(6, upstream.getColor());
+            preparedStatement.setObject(7, upstream.getDomain());
+            preparedStatement.setObject(8, date);
+            preparedStatement.setObject(9, date);
+            preparedStatement.setObject(10, upstream.getId());
         }) > 0 ? upstream : null;
     }
 

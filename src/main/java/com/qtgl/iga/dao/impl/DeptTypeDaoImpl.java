@@ -1,22 +1,20 @@
 package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bo.DeptType;
-import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.dao.DeptTypeDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementSetter;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.Resource;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
 
 
 @Repository
+@Component
 public class DeptTypeDaoImpl implements DeptTypeDao {
 
 
@@ -76,13 +74,7 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
 
         //删除组织类别数据
         String sql = "delete from t_mgr_dept_type  where id =?";
-        int id = jdbcIGA.update(sql, new PreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement preparedStatement) throws SQLException {
-                preparedStatement.setObject(1, arguments.get("id"));
-
-            }
-        });
+        int id = jdbcIGA.update(sql, preparedStatement -> preparedStatement.setObject(1, arguments.get("id")));
 
 
         return id > 0 ? deptType : null;
@@ -105,19 +97,16 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
         Timestamp date = new Timestamp(new Date().getTime());
         deptType.setCreateTime(date);
         deptType.setUpdateTime(date);
-        int update = jdbcIGA.update(sql, new PreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement preparedStatement) throws SQLException {
-                preparedStatement.setObject(1, id);
-                preparedStatement.setObject(2, deptType.getCode());
-                preparedStatement.setObject(3, deptType.getName());
-                preparedStatement.setObject(4, deptType.getDescription());
-                preparedStatement.setObject(5, deptType.getCreateTime());
-                preparedStatement.setObject(6, deptType.getUpdateTime());
-                preparedStatement.setObject(7, deptType.getCreateUser());
-                preparedStatement.setObject(8, domain);
+        int update = jdbcIGA.update(sql, preparedStatement -> {
+            preparedStatement.setObject(1, id);
+            preparedStatement.setObject(2, deptType.getCode());
+            preparedStatement.setObject(3, deptType.getName());
+            preparedStatement.setObject(4, deptType.getDescription());
+            preparedStatement.setObject(5, deptType.getCreateTime());
+            preparedStatement.setObject(6, deptType.getUpdateTime());
+            preparedStatement.setObject(7, deptType.getCreateUser());
+            preparedStatement.setObject(8, domain);
 
-            }
         });
         return update > 0 ? deptType : null;
     }
@@ -134,18 +123,15 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
         String sql = "update t_mgr_dept_type  set code = ?,name = ?,description = ?,create_time = ?," +
                 "update_time = ?,create_user = ?,domain= ?  where id=?";
         Timestamp date = new Timestamp(new Date().getTime());
-        return jdbcIGA.update(sql, new PreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement preparedStatement) throws SQLException {
-                preparedStatement.setObject(1, deptType.getCode());
-                preparedStatement.setObject(2, deptType.getName());
-                preparedStatement.setObject(3, deptType.getDescription());
-                preparedStatement.setObject(4, deptType.getCreateTime());
-                preparedStatement.setObject(5, date);
-                preparedStatement.setObject(6, deptType.getCreateUser());
-                preparedStatement.setObject(7, deptType.getDomain());
-                preparedStatement.setObject(8, deptType.getId());
-            }
+        return jdbcIGA.update(sql, preparedStatement -> {
+            preparedStatement.setObject(1, deptType.getCode());
+            preparedStatement.setObject(2, deptType.getName());
+            preparedStatement.setObject(3, deptType.getDescription());
+            preparedStatement.setObject(4, deptType.getCreateTime());
+            preparedStatement.setObject(5, date);
+            preparedStatement.setObject(6, deptType.getCreateUser());
+            preparedStatement.setObject(7, deptType.getDomain());
+            preparedStatement.setObject(8, deptType.getId());
         }) > 0 ? deptType : null;
     }
 

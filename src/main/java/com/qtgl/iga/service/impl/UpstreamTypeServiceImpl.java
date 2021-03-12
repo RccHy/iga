@@ -4,6 +4,7 @@ package com.qtgl.iga.service.impl;
 import com.qtgl.iga.bo.UpstreamType;
 import com.qtgl.iga.dao.UpstreamTypeDao;
 import com.qtgl.iga.service.UpstreamTypeService;
+import com.qtgl.iga.vo.UpstreamTypeVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,7 +20,7 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
     UpstreamTypeDao upstreamTypeDao;
 
     @Override
-    public List<UpstreamType> findAll(Map<String, Object> arguments, String domain) {
+    public List<UpstreamTypeVo> findAll(Map<String, Object> arguments, String domain) {
         return upstreamTypeDao.findAll(arguments, domain);
     }
 

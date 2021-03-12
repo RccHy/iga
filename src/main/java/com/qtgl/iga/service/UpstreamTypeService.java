@@ -2,6 +2,7 @@ package com.qtgl.iga.service;
 
 
 import com.qtgl.iga.bo.UpstreamType;
+import com.qtgl.iga.vo.UpstreamTypeVo;
 
 import java.util.List;
 import java.util.Map;
@@ -9,7 +10,7 @@ import java.util.Map;
 public interface UpstreamTypeService {
 
 
-    List<UpstreamType> findAll(Map<String, Object> arguments, String domain);
+    List<UpstreamTypeVo> findAll(Map<String, Object> arguments, String domain);
 
     UpstreamType deleteUpstreamType(Map<String, Object> arguments, String domain) throws Exception;
 

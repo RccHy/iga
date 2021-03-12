@@ -22,15 +22,15 @@ type upstreamType{
     # 主键
     id:ID
     # 上有源id
-    upstreamId:String
+    upstream:upstream
     # 描述
     description:String
     # 同步类型  部门/岗位/人员
     synType:String
     # 属组织机构类别外建
-    deptTypeId:String
+    deptType:DeptType
     # 属组织机构类别树外建
-    deptTreeTypeId:String
+    deptTreeType:DeptTreeType
     # 是否启用前缀 【规则】
     enablePrefix:Boolean
     # 是否启用

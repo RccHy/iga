@@ -1,10 +1,10 @@
 package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bo.Dept;
-import com.qtgl.iga.bo.DeptTreeType;
 import com.qtgl.iga.dao.DeptDao;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.Resource;
@@ -14,6 +14,7 @@ import java.util.Map;
 
 
 @Repository
+@Component
 public class DeptDaoImpl implements DeptDao {
 
 
