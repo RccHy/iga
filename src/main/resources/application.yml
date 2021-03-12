@@ -20,6 +20,16 @@ graphql:
   url: /graphql
 
 
-
+# sso地址
 sso:
   url: https://cloud.ketanyun.cn/sso
+
+
+# 数据网关地址
+bus:
+  url:
+
+server:
+  servlet:
+    context-path: /iga
+#

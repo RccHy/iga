@@ -8,4 +8,5 @@ public interface DeptService {
 
 
     List<Dept> getAllDepts();
+     void buildDept() throws Exception;
 }
