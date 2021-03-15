@@ -454,6 +454,17 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
 
     }
 
+    @Override
+    public List<UpstreamTypeField> findFields(String url) {
+        //查询类型id
+        String sql = "select  id from  t_mgr_upstream_types where active = 0 and graphql_url = ?";
+        Map<String, Object> map = jdbcIGA.queryForMap(sql, url);
+        //查询映射字段
+        List<Map<String, Object>> filedList = jdbcIGA.queryForList("select id,upstream_type_id as upstreamTypeId,source_field as sourceField , target_field as targetField,create_time as createTime,update_time as updateTime,domain from t_mgr_upstream_types_field where upstream_type_id = ? ", map.get("id"));
+        ArrayList<UpstreamTypeField> upstreamTypeFields = getUpstreamTypeFields(filedList);
+        return upstreamTypeFields;
+    }
+
     public int deleteByUpstreamId(String id) {
         //删除字段映射表数据
         //查询所有类型

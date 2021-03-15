@@ -34,9 +34,8 @@ app:
 
 # 数据网关地址
 bus:
-  url:
+  url: /bus
 
 server:
   servlet:
     context-path: /iga
-#

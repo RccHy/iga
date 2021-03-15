@@ -2,6 +2,7 @@ package com.qtgl.iga.service;
 
 
 import com.qtgl.iga.bo.UpstreamType;
+import com.qtgl.iga.bo.UpstreamTypeField;
 import com.qtgl.iga.vo.UpstreamTypeVo;
 
 import java.util.List;
@@ -17,4 +18,6 @@ public interface UpstreamTypeService {
     UpstreamType saveUpstreamType(UpstreamType upstreamType, String domain);
 
     UpstreamType updateUpstreamType(UpstreamType upstreamType);
+
+    List<UpstreamTypeField> findFields(String url);
 }

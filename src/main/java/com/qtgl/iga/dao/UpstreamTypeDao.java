@@ -2,6 +2,7 @@ package com.qtgl.iga.dao;
 
 
 import com.qtgl.iga.bo.UpstreamType;
+import com.qtgl.iga.bo.UpstreamTypeField;
 import com.qtgl.iga.vo.UpstreamTypeVo;
 
 import java.util.List;
@@ -20,4 +21,6 @@ public interface UpstreamTypeDao {
     List<UpstreamType> findByUpstreamId(String id);
 
     UpstreamType findById(String id);
+
+    List<UpstreamTypeField> findFields(String url);
 }

@@ -5,10 +5,7 @@ import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.utils.GetDataByBusUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 
 import java.util.List;
@@ -31,7 +28,7 @@ public class HelloController {
 
     @GetMapping("/url")
     @ResponseBody
-    public String getUrl() throws Exception {
-       return GetDataByBusUtil.getDataByBus("123");
+    public Object getUrl(@RequestParam String url) throws Exception {
+       return new GetDataByBusUtil().getDataByBus(url);
     }
 }

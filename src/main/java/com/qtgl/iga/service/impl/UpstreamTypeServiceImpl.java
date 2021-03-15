@@ -2,6 +2,7 @@ package com.qtgl.iga.service.impl;
 
 
 import com.qtgl.iga.bo.UpstreamType;
+import com.qtgl.iga.bo.UpstreamTypeField;
 import com.qtgl.iga.dao.UpstreamTypeDao;
 import com.qtgl.iga.service.UpstreamTypeService;
 import com.qtgl.iga.vo.UpstreamTypeVo;
@@ -37,6 +38,11 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
     @Override
     public UpstreamType updateUpstreamType(UpstreamType upstreamType) {
         return upstreamTypeDao.updateUpstreamType(upstreamType);
+    }
+
+    @Override
+    public List<UpstreamTypeField> findFields(String url) {
+        return upstreamTypeDao.findFields(url);
     }
 
 }
