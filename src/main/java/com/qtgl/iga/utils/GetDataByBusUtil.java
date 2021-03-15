@@ -44,25 +44,25 @@ public class GetDataByBusUtil {
     UpstreamTypeService upstreamTypeService;
 
     @Value("${app.scope}")
-    private String appScope = "data,introspect";
+    private String appScope;
     @Value("${sso.url}")
-    private String ssoUrl = "http://devel.ketanyun.cn/sso";
+    private String ssoUrl;
     @Value("${app.client}")
-    private String appKey = "2jlgzrK3qNKfHvCTNhNm";
+    private String appKey;
     @Value("${app.secret}")
-    private String appSecret = "1937EC3B79E34A37C1202FD6AD6D4ABF13B9196437EAB95B";
+    private String appSecret;
     @Value("${bus.url}")
-    private String busUrl = "/bus";
+    private String busUrl ;
     @Value("${graphql.url}")
-    private String graphqlUrl = "/graphql";
+    private String graphqlUrl;
 
     private static ConcurrentHashMap<String, Token> tokenMap = new ConcurrentHashMap<>();
 
 
     public Object getDataByBus(String url) throws Exception {
 //        //获取token
-//        String key = getToken();
-        String key = "8a5ebcef3ace2ec4b93b0bf34bcdd567";
+        String key = getToken();
+       // String key = "8a5ebcef3ace2ec4b93b0bf34bcdd567";
         String[] split = url.split("/");
         for (String s : split) {
             System.out.println(s);
@@ -76,8 +76,8 @@ public class GetDataByBusUtil {
 
 
         //调用获取资源url
-//        String dataUrl = invokeUrl(dealUrl);
-        String dataUrl="http://localhost:8080/iga/graphql?access_token="+key;
+        String dataUrl = invokeUrl(dealUrl);
+//        String dataUrl="http://localhost:8080/iga/graphql?access_token="+key;
         //请求获取资源
 
         return invokeForData(dataUrl, url);
@@ -105,7 +105,8 @@ public class GetDataByBusUtil {
         OAuthClient oAuthClient = new OAuthClient(new SSLConnectionClient());
         OAuthJSONAccessTokenResponse oAuthClientResponse = (OAuthJSONAccessTokenResponse) oAuthClient.accessToken(oAuthClientRequest, "POST", OAuthJSONAccessTokenResponse.class);
         String accessToken = oAuthClientResponse.getAccessToken();
-        tokenMap.put(tempContextUrl, new Token(oAuthClientResponse.getAccessToken(), System.currentTimeMillis() + 1000 * 60 * 2, System.currentTimeMillis()));
+        long exp =System.currentTimeMillis() +( oAuthClientResponse.getExpiresIn() - (10 * 60 * 1000));
+        tokenMap.put(tempContextUrl, new Token(oAuthClientResponse.getAccessToken(), exp, System.currentTimeMillis()));
         return accessToken;
     }
 
