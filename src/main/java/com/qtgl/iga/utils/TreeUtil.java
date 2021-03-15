@@ -3,21 +3,22 @@ package com.qtgl.iga.utils;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
-public class TreeUtil {
+public class TreeUtil<T> {
 
 
     /**
      * 获取树结构中哪些是根节点【】
      *
-     * @param jsonArray
+     * @param map
      * @return
      */
-    public static List<String> getTreeRootCode(JSONArray jsonArray) throws Exception {
-        List<JSONObject> treeList = jsonArray.toJavaList(JSONObject.class);
+    public static List<String> getTreeRootCode(Map<String, JSONObject> map) throws Exception {
+
+        Collection<JSONObject> valueCollection = map.values();
+        List<JSONObject> treeList = new ArrayList<JSONObject>(valueCollection);
 
         List<String> code = treeList.stream().
                 map(jsonObject -> jsonObject.getString(TreeEnum.CODE.getCode())).collect(Collectors.toList());
@@ -34,13 +35,27 @@ public class TreeUtil {
         return rootCode;
     }
 
-    public static Map<String, List<JSONObject>> groupChildren(JSONArray jsonArray)  {
+    public static Map<String, List<JSONObject>> groupChildren(JSONArray jsonArray) {
         List<JSONObject> treeList = jsonArray.toJavaList(JSONObject.class);
-
-        Map<String, List<JSONObject>> map = treeList.stream().
+        Map<String, List<JSONObject>> map =treeList.stream().
                 collect(Collectors.groupingBy(jsonObject -> jsonObject.getString(TreeEnum.PARENTCODE.getCode())));
         return map;
     }
+
+
+    public static   Map<String, JSONObject> toMap(JSONArray jsonArray) {
+        List<JSONObject> treeList = jsonArray.toJavaList(JSONObject.class);
+
+        Map<String, JSONObject> map = treeList.stream()
+                .collect(Collectors.toMap(
+                        (code -> code.getString(TreeEnum.CODE.getCode())),
+                        (value -> value)));
+
+
+        return map;
+    }
+
+
 
 
 }

@@ -17,6 +17,9 @@ public class NodeRulesRange {
     //规则类型 0 挂载 1 排除 2 重命名
     private Integer type;
 
+    //重命名规则
+    private  String rename;
+
     //作用节点
     private String node;
 

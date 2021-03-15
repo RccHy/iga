@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @Transactional
 
@@ -24,11 +26,11 @@ public class NodeServiceImpl implements NodeService {
 
     @Override
     public Node getRoot(String domain) {
-        return nodeDao.getByCode(domain,"");
+        return nodeDao.getByCode(domain,"").get(0);
     }
 
     @Override
-    public Node getByCode(String domain,String nodeCode) {
+    public List<Node> getByCode(String domain, String nodeCode) {
         return nodeDao.getByCode(domain,nodeCode );
     }
 

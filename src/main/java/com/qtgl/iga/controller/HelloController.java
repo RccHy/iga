@@ -18,6 +18,9 @@ public class HelloController {
     DeptService deptService;
 
 
+    @Autowired
+    GetDataByBusUtil busUtil;
+
     @GetMapping("/depts")
     public List<Dept> getAllDepts() throws Exception {
          deptService.buildDept();
@@ -28,7 +31,7 @@ public class HelloController {
 
     @GetMapping("/url")
     @ResponseBody
-    public Object getUrl(@RequestParam String url) throws Exception {
-       return new GetDataByBusUtil().getDataByBus(url);
+    public Object getUrl(@RequestParam(required=false) String url) throws Exception {
+       return  busUtil.getDataByBus(url);
     }
 }
