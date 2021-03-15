@@ -23,6 +23,13 @@ graphql:
 # sso地址
 sso:
   url: https://cloud.ketanyun.cn/sso
+  #http://devel.ketanyun.cn/sso/
+
+#app
+app:
+  client: 2jlgzrK3qNKfHvCTNhNm
+  secret: 1937EC3B79E34A37C1202FD6AD6D4ABF13B9196437EAB95B
+  scope: data,introspect
 
 
 # 数据网关地址
