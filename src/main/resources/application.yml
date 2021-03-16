@@ -1,20 +1,20 @@
 spring:
   datasource:
     iga:
-      url: jdbc:mysql://localhost:3306/iga?rewriteBatchedStatements=true&useUnicode=true&characterEncoding=UTF-8
-      username: root
-      password: root
+      url: ${IGA_DATASOURCE_URL}
+      username: ${IGA_DATASOURCE_USERNAME}
+      password: ${IGA_DATASOURCE_PASSWORD}
       type: com.alibaba.druid.pool.DruidDataSource
     sso:
-      url: jdbc:mysql://localhost:3306/sso
-      username: root
-      password: root
+      url: ${SSO_DATASOURCE_URL}
+      username: ${SSO_DATASOURCE_USERNAME}
+      password: ${SSO_DATASOURCE_PASSWORD}
       type: com.alibaba.druid.pool.DruidDataSource
     sso-api:
-      url:
-      username:
-      password:
-      type:
+      url: ${SSO_API_DATASOURCE_URL}
+      username: ${SSO_API_DATASOURCE_USERNAME}
+      password: ${SSO_API_DATASOURCE_PASSWORD}
+      type: com.alibaba.druid.pool.DruidDataSource
 
 graphql:
   url: /graphql
@@ -22,18 +22,18 @@ graphql:
 
 # sso地址
 sso:
-  url: https://cloud.ketanyun.cn/sso/
+  url: ${SSO_URL}
 
 #app
 app:
-  client: 82tlYJVsH5mwZBlLxJ6d
-  secret: 3843C72C757AEF89BA7979B954381610B6570BA113899832
+  client: ${APP_CLIENT}
+  secret: ${APP_SECRET}
   scope: data,introspect
 
 
 # 数据网关地址
 bus:
-  url: /bus
+  url: ${BUS_URL}
 
 server:
   servlet:

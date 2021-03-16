@@ -112,6 +112,52 @@
         </dependency>
     </dependencies>
 
+
+            <plugins>
+            <!--<plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.18.1</version>
+            </plugin>
+
+-->
+
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!-- make jar executable for system-v & systemd -->
+                    <executable>true</executable>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>com.google.cloud.tools</groupId>
+                <artifactId>jib-maven-plugin</artifactId>
+                <version>0.9.8</version>
+                <configuration>
+                    <allowInsecureRegistries>false</allowInsecureRegistries>
+                    <from>
+                        <image>docker.qtgl.com.cn/openjdk:8-jre-alpine</image>
+                    </from>
+                    <to>
+                        <image>docker.qtgl.com.cn/product/iga:${}</image>
+                    </to>
+                    <mainClass>cn.com.qtgl.GraphHubApplication</mainClass>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>build</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+
+
     <build>
         <plugins>
             <plugin>

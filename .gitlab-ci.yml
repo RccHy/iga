@@ -1,0 +1,52 @@
+image: docker:latest
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true"
+  MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version -DinstallAtEnd=true -DdeployAtEnd=true"
+  GIT_SSL_NO_VERIFY: "1"
+#services:
+#  - docker:dind
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - .m2/repository
+stages:
+  - build
+  - deploy
+build:
+  stage: build
+  script:
+    - "mvn package $MAVEN_CLI_OPTS  -Djib.to.auth.username=${K8S_SECRET_JIB_TO_USER} -Djib.to.auth.password=${K8S_SECRET_JIB_TO_PASSWORD} -Djib.from.auth.username=${K8S_SECRET_JIB_FROM_USER} -Djib.from.auth.password=${K8S_SECRET_JIB_FROM_PASSWORD}"
+  only:
+    - master
+  artifacts:
+    paths:
+      - target/*.jar
+  image: maven:3.3.9-jdk-8
+
+deploy:
+  image: lachlanevenson/k8s-kubectl:latest
+  stage: deploy
+  script:
+     - kubectl delete -f k8s-deploy.yaml --ignore-not-found=true
+     - kubectl apply -f k8s-deploy.yaml
+     - kubectl apply -f k8s-service.yaml
+  environment:
+    name: test
+    url: http://promotion.suda.edu.cn/iga
+  only:
+    - master
+
+
+deploy:devel:
+  image: lachlanevenson/k8s-kubectl:latest
+  stage: deploy
+  script:
+    - sed -i   "s/canvas-hub/canvas-hub-devel/g" k8s-service.yaml
+    - kubectl apply -f k8s-deploy.yaml
+    - sed -i   "s/canvas-hub/canvas-hub-devel/g" k8s-deploy.yaml
+    - kubectl apply -f k8s-deploy.yaml
+    - kubectl set image -f k8s-deploy.yaml canvas-hub-devel="docker.qtgl.com.cn/product/canvas-hub:20210224"
+    - kubectl -nketanyun rollout restart deploy canvas-hub-devel
+  only:
+    - master
+  when: manual

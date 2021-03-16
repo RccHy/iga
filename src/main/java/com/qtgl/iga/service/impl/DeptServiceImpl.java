@@ -110,7 +110,7 @@ public class DeptServiceImpl implements DeptService {
                 // 根据id 获取 UpstreamType
                 UpstreamType upstreamType = upstreamTypeDao.findById(nodeRule.getUpstreamTypesId());
                 // todo  请求graphql查询，获得部门树。目前写死变量
-                // String graphqlUrl = upstreamType.getGraphqlUrl();
+                String graphqlUrl = upstreamType.getGraphqlUrl();
 
 
                 //获得部门树

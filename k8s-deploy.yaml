@@ -1,0 +1,88 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: iga
+  namespace: ketanyun
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: iga
+    spec:
+      containers:
+      - name: iga
+        image: docker.qtgl.com.cn/product/iga:20210316
+        imagePullPolicy: Always
+        env:
+          - name: IGA_DATASOURCE_URL
+            valueFrom:
+              secretKeyRef:
+                name: iga-secret
+                key: iga_datasource_url
+          - name: IGA_DATASOURCE_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: iga-secret
+                key: iga_datasource_username
+          - name: IGA_DATASOURCE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: iga-secret
+                key: iga_datasource_password
+          - name: SSO_DATASOURCE_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: iga-secret
+                key: sso_datasource_username
+          - name: SSO_DATASOURCE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: iga-secret
+                key: sso_datasource_password
+          - name: SSO_API_DATASOURCE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: iga-secret
+                key: sso_api_datasource_password
+          - name: SSO_API_DATASOURCE_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: iga-secret
+                key: sso_api_datasource_username
+          - name: SSO_API_DATASOURCE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: iga-secret
+                key: sso_api_datasource_password
+          - name: SSO_API_DATASOURCE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: iga-secret
+                key: sso_api_datasource_password
+          - name: SSO_URL
+            valueFrom:
+              secretKeyRef:
+                name: iga-secret
+                key: sso_url
+          - name: APP_CLIENT
+            valueFrom:
+              secretKeyRef:
+                name: iga-secret
+                key: app_client
+          - name: APP_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: iga-secret
+                key: app_secret
+          - name: BUS_URL
+            valueFrom:
+              secretKeyRef:
+                name: iga-secret
+                key: bus_url
+        ports:
+        - containerPort: 8080
+      imagePullSecrets:
+        - name: gitlab-registry-qtgl
+
+
