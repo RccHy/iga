@@ -4,6 +4,7 @@ package com.qtgl.iga.bo;
 import lombok.Data;
 
 import java.sql.Timestamp;
+
 //组织机构
 @Data
 public class Dept {

@@ -2,7 +2,7 @@ package com.qtgl.iga.controller;
 
 import com.qtgl.iga.bo.Dept;
 import com.qtgl.iga.service.DeptService;
-import com.qtgl.iga.utils.GetDataByBusUtil;
+import com.qtgl.iga.utils.DataBusUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -19,11 +19,11 @@ public class HelloController {
 
 
     @Autowired
-    GetDataByBusUtil busUtil;
+    DataBusUtil busUtil;
 
     @GetMapping("/depts")
     public List<Dept> getAllDepts() throws Exception {
-         deptService.buildDept();
+        deptService.buildDept();
 
         return null;
     }
@@ -31,7 +31,7 @@ public class HelloController {
 
     @GetMapping("/url")
     @ResponseBody
-    public Object getUrl(@RequestParam(required=false) String url) throws Exception {
-       return  busUtil.getDataByBus(url);
+    public Object getUrl(@RequestParam(required = false) String url) throws Exception {
+        return busUtil.getDataByBus(url);
     }
 }

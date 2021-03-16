@@ -1,4 +1,4 @@
-package com.qtgl.iga.utils;
+package com.qtgl.iga.bo;
 
 import lombok.Data;
 

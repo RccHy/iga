@@ -15,7 +15,6 @@ import java.util.List;
 public class NodeServiceImpl implements NodeService {
 
 
-
     @Autowired
     NodeDao nodeDao;
 
@@ -26,14 +25,13 @@ public class NodeServiceImpl implements NodeService {
 
     @Override
     public Node getRoot(String domain) {
-        return nodeDao.getByCode(domain,"").get(0);
+        return nodeDao.getByCode(domain, "").get(0);
     }
 
     @Override
     public List<Node> getByCode(String domain, String nodeCode) {
-        return nodeDao.getByCode(domain,nodeCode );
+        return nodeDao.getByCode(domain, nodeCode);
     }
-
 
 
 }

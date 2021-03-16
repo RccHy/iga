@@ -37,13 +37,13 @@ public class TreeUtil<T> {
 
     public static Map<String, List<JSONObject>> groupChildren(JSONArray jsonArray) {
         List<JSONObject> treeList = jsonArray.toJavaList(JSONObject.class);
-        Map<String, List<JSONObject>> map =treeList.stream().
+        Map<String, List<JSONObject>> map = treeList.stream().
                 collect(Collectors.groupingBy(jsonObject -> jsonObject.getString(TreeEnum.PARENTCODE.getCode())));
         return map;
     }
 
 
-    public static   Map<String, JSONObject> toMap(JSONArray jsonArray) {
+    public static Map<String, JSONObject> toMap(JSONArray jsonArray) {
         List<JSONObject> treeList = jsonArray.toJavaList(JSONObject.class);
 
         Map<String, JSONObject> map = treeList.stream()
@@ -54,8 +54,6 @@ public class TreeUtil<T> {
 
         return map;
     }
-
-
 
 
 }

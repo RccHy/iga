@@ -18,13 +18,11 @@ public class UpstreamTypeVo extends UpstreamType {
     private Upstream upstream;
 
 
-
     //属组织机构类别
     private DeptType deptType;
 
     //属组织机构类别树
     private DeptTreeType deptTreeType;
-
 
 
 }

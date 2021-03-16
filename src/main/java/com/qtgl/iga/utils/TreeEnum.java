@@ -12,8 +12,6 @@ import lombok.Getter;
 public enum TreeEnum {
 
 
-
-
     CODE("code", "代码"),
 
     NAME("name", "名称"),

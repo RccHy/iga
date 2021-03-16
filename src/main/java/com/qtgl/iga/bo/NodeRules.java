@@ -40,5 +40,4 @@ public class NodeRules implements java.io.Serializable {
     private Integer sort;
 
 
-
 }

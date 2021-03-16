@@ -8,9 +8,7 @@ import java.util.List;
 public interface NodeRulesRangeDao {
 
 
-
     List<NodeRulesRange> getByRulesId(String rulesId);
-
 
 
 }

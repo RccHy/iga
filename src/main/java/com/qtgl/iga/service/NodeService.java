@@ -8,7 +8,9 @@ import java.util.List;
 public interface NodeService {
 
     Node save(Node node);
+
     Node getRoot(String domain);
+
     List<Node> getByCode(String domain, String nodeCode);
 
 }
