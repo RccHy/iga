@@ -148,7 +148,7 @@
                     <to>
                         <image>${JIB_TO_IMAGE}</image>
                     </to>
-                    <mainClass>cn.com.qtgl.iga.IgaApplication</mainClass>
+                    <mainClass>com.qtgl.iga.IgaApplication</mainClass>
                 </configuration>
                 <executions>
                     <execution>
