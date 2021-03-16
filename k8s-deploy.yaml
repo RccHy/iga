@@ -12,7 +12,7 @@ spec:
     spec:
       containers:
       - name: iga
-        image: docker.qtgl.com.cn/product/iga:20210316
+        image: docker.qtgl.com.cn/product/iga:latest
         imagePullPolicy: Always
         env:
           - name: IGA_DATASOURCE_URL
