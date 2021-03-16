@@ -65,4 +65,4 @@ deploy:devel:
     url: http://devel.ketanyun.cn/iga
   only:
     - dev
-  when: manual
+  #when: manual
