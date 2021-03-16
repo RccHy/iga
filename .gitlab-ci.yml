@@ -56,8 +56,8 @@ deploy:devel:
   stage: deploy
   script:
     - sed -i   "s/iga/iga-devel/g" k8s-service.yaml
-    - kubectl apply -f k8s-deploy.yaml
-    - sed -i   "s/name\: iga/name\: iga-devel/g" k8s-deploy.yaml
+    - kubectl apply -f k8s-service.yaml
+    - 'sed -i   "s/name\: iga/name\: iga-devel/g" k8s-deploy.yaml'
     - kubectl apply -f k8s-deploy.yaml
     - kubectl -nketanyun rollout restart deploy iga-devel
   environment:
