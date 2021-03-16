@@ -12,10 +12,13 @@ cache:
 stages:
   - build
   - deploy
-build:
+
+build:prod:
   stage: build
+  before_script:
+    - export COMMIT_TIME=$(date +%Y%m%d)
   script:
-    - "mvn package $MAVEN_CLI_OPTS  -Djib.to.auth.username=${K8S_SECRET_JIB_TO_USER} -Djib.to.auth.password=${K8S_SECRET_JIB_TO_PASSWORD} -Djib.from.auth.username=${K8S_SECRET_JIB_FROM_USER} -Djib.from.auth.password=${K8S_SECRET_JIB_FROM_PASSWORD}"
+    - "mvn package $MAVEN_CLI_OPTS -DJIB_TO_IMAGE=docker.qtgl.com.cn/product/iga:${COMMIT_TIME}   -Djib.to.auth.username=${K8S_SECRET_JIB_TO_USER} -Djib.to.auth.password=${K8S_SECRET_JIB_TO_PASSWORD} -DJIB_FROM_IMAGE='docker.qtgl.com.cn/openjdk:8-jre-alpine' -Djib.from.auth.username=${K8S_SECRET_JIB_FROM_USER} -Djib.from.auth.password=${K8S_SECRET_JIB_FROM_PASSWORD} "
   only:
     - master
   artifacts:
@@ -23,7 +26,18 @@ build:
       - target/*.jar
   image: maven:3.3.9-jdk-8
 
-deploy:
+build:dev:
+  stage: build
+  script:
+    - "mvn package $MAVEN_CLI_OPTS -DJIB_TO_IMAGE='docker.qtgl.com.cn/product/iga:latest'   -Djib.to.auth.username=${K8S_SECRET_JIB_TO_USER} -Djib.to.auth.password=${K8S_SECRET_JIB_TO_PASSWORD} -DJIB_FROM_IMAGE='docker.qtgl.com.cn/openjdk:8-jre-alpine' -Djib.from.auth.username=${K8S_SECRET_JIB_FROM_USER} -Djib.from.auth.password=${K8S_SECRET_JIB_FROM_PASSWORD} "
+  only:
+    - dev
+  artifacts:
+    paths:
+      - target/*.jar
+  image: maven:3.3.9-jdk-8
+
+deploy:dev:
   image: lachlanevenson/k8s-kubectl:latest
   stage: deploy
   script:
@@ -31,22 +45,24 @@ deploy:
      - kubectl apply -f k8s-deploy.yaml
      - kubectl apply -f k8s-service.yaml
   environment:
-    name: test
-    url: http://promotion.suda.edu.cn/iga
+    name: dev
+    url: https://cloud.ketanyun.cn/iga
   only:
-    - master
+    - dev
 
 
 deploy:devel:
   image: lachlanevenson/k8s-kubectl:latest
   stage: deploy
   script:
-    - sed -i   "s/canvas-hub/canvas-hub-devel/g" k8s-service.yaml
+    - sed -i   "s/iga/iga-devel/g" k8s-service.yaml
     - kubectl apply -f k8s-deploy.yaml
-    - sed -i   "s/canvas-hub/canvas-hub-devel/g" k8s-deploy.yaml
+    - sed -i   "s/name\: iga/name\: iga-devel/g" k8s-deploy.yaml
     - kubectl apply -f k8s-deploy.yaml
-    - kubectl set image -f k8s-deploy.yaml canvas-hub-devel="docker.qtgl.com.cn/product/canvas-hub:20210224"
-    - kubectl -nketanyun rollout restart deploy canvas-hub-devel
+    - kubectl -nketanyun rollout restart deploy iga-devel
+  environment:
+    name: dev
+    url: http://devel.ketanyun.cn/iga
   only:
-    - master
+    - dev
   when: manual

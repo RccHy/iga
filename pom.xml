@@ -138,10 +138,10 @@
                 <configuration>
                     <allowInsecureRegistries>false</allowInsecureRegistries>
                     <from>
-                        <image>docker.qtgl.com.cn/openjdk:8-jre-alpine</image>
+                        <image>${JIB_FROM_IMAGE}</image>
                     </from>
                     <to>
-                        <image>docker.qtgl.com.cn/product/iga:${}</image>
+                        <image>${JIB_TO_IMAGE}</image>
                     </to>
                     <mainClass>cn.com.qtgl.GraphHubApplication</mainClass>
                 </configuration>
