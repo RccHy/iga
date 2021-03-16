@@ -169,7 +169,11 @@ public class DataBusUtil {
                 "  }" +
                 "}";
         JSONObject variables = new JSONObject();
-        variables.put("filter","{name:{like:"+split[2]+"}}");
+        JSONObject name=new JSONObject();
+        JSONObject like=new JSONObject();
+        like.put("like",split[2]);
+        name.put("name",like);
+        variables.put("filter",name);
         params.put("query",graphql);
         params.put("variables",variables);
         url=UrlUtil.getUrl(url);
