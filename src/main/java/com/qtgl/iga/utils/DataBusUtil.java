@@ -1,5 +1,6 @@
 package com.qtgl.iga.utils;
 
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bo.Token;
 import com.qtgl.iga.bo.UpstreamTypeField;
@@ -16,7 +17,6 @@ import org.apache.oltu.oauth2.common.utils.OAuthUtils;
 import org.mountcloud.graphql.GraphqlClient;
 import org.mountcloud.graphql.request.query.DefaultGraphqlQuery;
 import org.mountcloud.graphql.request.query.GraphqlQuery;
-import org.mountcloud.graphql.request.result.ResultAttributtes;
 import org.mountcloud.graphql.response.GraphqlResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +29,6 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -113,9 +112,7 @@ public class DataBusUtil {
         //获取token
         String key = getToken();
         String[] split = url.split("/");
-        for (String s : split) {
-            System.out.println(s);
-        }
+
         //根据url 获取请求地址
         String substring = new StringBuffer(ssoUrl).replace(ssoUrl.length() - 4, ssoUrl.length(), busUrl).
                 append(graphqlUrl).append("/").append(split[2]).append("/").append("?access_token=").append(key).toString();
@@ -127,8 +124,9 @@ public class DataBusUtil {
         //调用获取资源url
         String dataUrl = invokeUrl(dealUrl, split);
         //请求获取资源
+        String u = new StringBuffer(dataUrl).append("/").append("?access_token=").append(key).toString();
 
-        return invokeForData(dataUrl, url);
+        return invokeForData(UrlUtil.getUrl(u), url);
     }
 
     private String getToken() throws Exception {
@@ -140,7 +138,7 @@ public class DataBusUtil {
         Token token = tokenMap.get(tempContextUrl);
         if (null != token) {
             int i = token.getExpireIn().compareTo(System.currentTimeMillis());
-            if (i == 1) {
+            if (i > 0) {
                 return token.getToken();
             }
         }
@@ -158,10 +156,10 @@ public class DataBusUtil {
         return accessToken;
     }
 
-    private String invokeUrl(String url, String[] split)  {
-        url = "https://cloud.ketanyun.cn/bus/graphql/builtin?access_token=66e5e59ffa0d9aac3e0d2de414938530";
+    private String invokeUrl(String url, String[] split) throws Exception {
+//        url = "https://cloud.ketanyun.cn/bus/graphql/builtin?access_token=a5021c7222995a42f54afca1f9c9f637";
         JSONObject params = new JSONObject();
-        String graphql ="query  services($filter :Filter){   " +
+        String graphql = "query  services($filter :Filter){   " +
                 "  services(filter:$filter){" +
                 "    endpoints{" +
                 "    endPoint" +
@@ -169,20 +167,42 @@ public class DataBusUtil {
                 "  }" +
                 "}";
         JSONObject variables = new JSONObject();
-        JSONObject name=new JSONObject();
-        JSONObject like=new JSONObject();
-        like.put("like",split[2]);
-        name.put("name",like);
-        variables.put("filter",name);
-        params.put("query",graphql);
-        params.put("variables",variables);
-        url=UrlUtil.getUrl(url);
+        JSONObject name = new JSONObject();
+        JSONObject like = new JSONObject();
+        like.put("like", split[2]);
+        name.put("name", like);
+        variables.put("filter", name);
+        params.put("query", graphql);
+        params.put("variables", variables);
+
+        url = UrlUtil.getUrl(url);
+
         String s = sendPostRequest(url, params);
-        return null;
+
+        assert s != null;
+        if (s.contains("errors")) {
+            throw new Exception("获取url失败" + s);
+        }
+        JSONObject jsonObject = JSONArray.parseObject(s);
+
+        JSONObject data = jsonObject.getJSONObject("data");
+
+        JSONArray services = data.getJSONArray("services");
+
+        JSONObject endpoints = services.getJSONObject(0);
+
+        JSONArray endPoint = endpoints.getJSONArray("endpoints");
+
+        JSONObject jo = endPoint.getJSONObject(0);
+
+        String endPoint1 = jo.getString("endPoint");
+
+        return endPoint1;
 
     }
 
     private Map invokeForData(String dataUrl, String url) throws IOException {
+        logger.info("source url " + dataUrl);
         //获取字段映射
         List<UpstreamTypeField> fields = upstreamTypeService.findFields(url);
         String[] type = url.split("/");
@@ -198,12 +218,13 @@ public class DataBusUtil {
 
 //            query.addResultAttributes("A:id");
 
-
+            logger.info("body " + query);
             GraphqlResponse response = graphqlClient.doQuery(query);
+
             //获取数据，数据为map类型
             result = response.getData();
             for (Map.Entry<String, Object> entry : result.entrySet()) {
-                System.out.println(entry.getKey() + "------" + entry.getValue());
+                logger.info("result  data --" + entry.getKey() + "------" + entry.getValue());
             }
         }
         if ("mutation".equals(methodName)) {
