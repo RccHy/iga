@@ -14,7 +14,7 @@ public interface UpstreamDao {
 
     Upstream deleteUpstream(Map<String, Object> arguments, String domain) throws Exception;
 
-    Upstream updateUpstream(Upstream upstream);
+    Upstream updateUpstream(Upstream upstream) throws Exception;
 
     Upstream findById(String id);
 

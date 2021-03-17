@@ -59,4 +59,6 @@ public class UpstreamType {
     //映射字段
     private List<UpstreamTypeField> upstreamTypeFields;
 
+    //是否分页
+    private Boolean isPage;
 }

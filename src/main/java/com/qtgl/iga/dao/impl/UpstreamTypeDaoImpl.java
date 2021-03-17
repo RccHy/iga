@@ -2,12 +2,12 @@ package com.qtgl.iga.dao.impl;
 
 
 import com.qtgl.iga.bo.*;
-import com.qtgl.iga.dao.DeptTreeTypeDao;
-import com.qtgl.iga.dao.DeptTypeDao;
+
 import com.qtgl.iga.dao.UpstreamDao;
 import com.qtgl.iga.dao.UpstreamTypeDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import com.qtgl.iga.vo.UpstreamTypeVo;
+import lombok.Setter;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -27,6 +27,9 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
 
     @Resource(name = "jdbcIGA")
     JdbcTemplate jdbcIGA;
+
+    @Setter
+    UpstreamDao upstreamDao;
 
     @Override
     public List<UpstreamTypeVo> findAll(Map<String, Object> arguments, String domain) {
@@ -241,7 +244,16 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
 
     @Override
     @Transactional
-    public UpstreamType updateUpstreamType(UpstreamType upStreamType) {
+    public UpstreamType updateUpstreamType(UpstreamType upStreamType) throws Exception {
+        //修改前判断上游源启用状态
+        if (!upStreamType.getActive()) {
+            //判断类型是否都未启用
+            Upstream byId = upstreamDao.findById(upStreamType.getUpstreamId());
+            if (null != byId && !byId.getActive()) {
+                throw new Exception("上游源类型启用失败,请检查相关上游源启用状态");
+            }
+        }
+
         String sql = "update t_mgr_upstream_types  set upstream_id = ?,description = ?," +
                 "syn_type = ?,dept_type_id = ?,enable_prefix = ?,active = ?,active_time = ?," +
                 "root = ?,create_time = ?,update_time = ?,service_code = ?," +
@@ -273,23 +285,25 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
 
         List<UpstreamTypeField> upStreamTypeFields = upStreamType.getUpstreamTypeFields();
         Timestamp d = new Timestamp(new Date().getTime());
-        jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                preparedStatement.setObject(1, upStreamTypeFields.get(i).getUpstreamTypeId());
-                preparedStatement.setObject(2, upStreamTypeFields.get(i).getSourceField());
-                preparedStatement.setObject(3, upStreamTypeFields.get(i).getTargetField());
-                preparedStatement.setObject(4, upStreamTypeFields.get(i).getCreateTime());
-                preparedStatement.setObject(5, d);
-                preparedStatement.setObject(6, upStreamTypeFields.get(i).getDomain());
-                preparedStatement.setObject(7, upStreamTypeFields.get(i).getId());
-            }
+        if (null != upStreamTypeFields && upStreamTypeFields.size() > 0) {
+            jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
+                @Override
+                public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                    preparedStatement.setObject(1, upStreamTypeFields.get(i).getUpstreamTypeId());
+                    preparedStatement.setObject(2, upStreamTypeFields.get(i).getSourceField());
+                    preparedStatement.setObject(3, upStreamTypeFields.get(i).getTargetField());
+                    preparedStatement.setObject(4, upStreamTypeFields.get(i).getCreateTime());
+                    preparedStatement.setObject(5, d);
+                    preparedStatement.setObject(6, upStreamTypeFields.get(i).getDomain());
+                    preparedStatement.setObject(7, upStreamTypeFields.get(i).getId());
+                }
 
-            @Override
-            public int getBatchSize() {
-                return upStreamTypeFields.size();
-            }
-        });
+                @Override
+                public int getBatchSize() {
+                    return upStreamTypeFields.size();
+                }
+            });
+        }
         return update > 0 ? upStreamType : null;
     }
 
@@ -457,7 +471,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
     @Override
     public List<UpstreamTypeField> findFields(String url) {
         //查询类型id
-        String sql = "select  id from  t_mgr_upstream_types where active = 0 and graphql_url = ?";
+        String sql = "select  id from  t_mgr_upstream_types where active = 1 and graphql_url = ?";
         Map<String, Object> map = jdbcIGA.queryForMap(sql, url);
         //查询映射字段
         List<Map<String, Object>> filedList = jdbcIGA.queryForList("select id,upstream_type_id as upstreamTypeId,source_field as sourceField , target_field as targetField,create_time as createTime,update_time as updateTime,domain from t_mgr_upstream_types_field where upstream_type_id = ? ", map.get("id"));
@@ -465,7 +479,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         return upstreamTypeFields;
     }
 
-    public int deleteByUpstreamId(String id) {
+    public Integer deleteByUpstreamId(String id) {
         //删除字段映射表数据
         //查询所有类型
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_type_id as deptTypeId,enable_prefix as enablePrefix,active,active_time asactiveTime,root,create_time as createTime,update_time as updateTime," +

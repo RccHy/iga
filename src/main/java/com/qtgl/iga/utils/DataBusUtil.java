@@ -12,11 +12,14 @@ import org.apache.http.entity.ContentType;
 import org.apache.oltu.oauth2.client.OAuthClient;
 import org.apache.oltu.oauth2.client.request.OAuthClientRequest;
 import org.apache.oltu.oauth2.client.response.OAuthJSONAccessTokenResponse;
+import org.apache.oltu.oauth2.common.exception.OAuthProblemException;
+import org.apache.oltu.oauth2.common.exception.OAuthSystemException;
 import org.apache.oltu.oauth2.common.message.types.GrantType;
 import org.apache.oltu.oauth2.common.utils.OAuthUtils;
 import org.mountcloud.graphql.GraphqlClient;
 import org.mountcloud.graphql.request.query.DefaultGraphqlQuery;
 import org.mountcloud.graphql.request.query.GraphqlQuery;
+import org.mountcloud.graphql.request.result.ResultAttributtes;
 import org.mountcloud.graphql.response.GraphqlResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -108,14 +111,14 @@ public class DataBusUtil {
     }
 
 
-    public Object getDataByBus(String url) throws Exception {
+    public Object getDataByBus(String url) {
         //获取token
         String key = getToken();
         String[] split = url.split("/");
 
         //根据url 获取请求地址
         String substring = new StringBuffer(ssoUrl).replace(ssoUrl.length() - 5, ssoUrl.length(), busUrl).
-                append(graphqlUrl).append("/").append(split[2]).append("?access_token=").append(key).toString();
+                append(graphqlUrl).append("/").append("builtin").append("?access_token=").append(key).toString();
 
         //工具类过滤处理url
         String dealUrl = UrlUtil.getUrl(substring);
@@ -129,7 +132,7 @@ public class DataBusUtil {
         return invokeForData(UrlUtil.getUrl(u), url);
     }
 
-    private String getToken() throws Exception {
+    private String getToken() {
         //判断是否已有未过期token
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
         StringBuffer url = request.getRequestURL();
@@ -144,20 +147,31 @@ public class DataBusUtil {
         }
         Object[] objects = Arrays.stream(appScope.replace("+", " ").split(" ")).filter(s -> s.contains("sys_")).toArray();
         String scope = ArrayUtils.toString(objects, ",").replace("{", "").replace("}", "");
-        OAuthClientRequest oAuthClientRequest = OAuthClientRequest
-                .tokenLocation(ssoUrl + "/oauth2/token").setGrantType(GrantType.CLIENT_CREDENTIALS)
-                .setClientId(appKey).setClientSecret(appSecret)
-                .setScope(scope.replace(",", " ")).buildBodyMessage();
+        OAuthClientRequest oAuthClientRequest = null;
+        try {
+            oAuthClientRequest = OAuthClientRequest
+                    .tokenLocation(ssoUrl + "/oauth2/token").setGrantType(GrantType.CLIENT_CREDENTIALS)
+                    .setClientId(appKey).setClientSecret(appSecret)
+                    .setScope(scope.replace(",", " ")).buildBodyMessage();
+        } catch (OAuthSystemException e) {
+            logger.error("token 获取 : ->" + e.getMessage());
+            e.printStackTrace();
+        }
         OAuthClient oAuthClient = new OAuthClient(new SSLConnectionClient());
-        OAuthJSONAccessTokenResponse oAuthClientResponse = oAuthClient.accessToken(oAuthClientRequest, "POST", OAuthJSONAccessTokenResponse.class);
+        OAuthJSONAccessTokenResponse oAuthClientResponse = null;
+        try {
+            oAuthClientResponse = oAuthClient.accessToken(oAuthClientRequest, "POST", OAuthJSONAccessTokenResponse.class);
+        } catch (OAuthSystemException | OAuthProblemException e) {
+            logger.error("token 获取" + e.getMessage());
+            e.printStackTrace();
+        }
         String accessToken = oAuthClientResponse.getAccessToken();
-        long exp = System.currentTimeMillis() + (oAuthClientResponse.getExpiresIn()*1000 - (10 * 60 * 1000));
+        long exp = System.currentTimeMillis() + (oAuthClientResponse.getExpiresIn() * 1000 - (10 * 60 * 1000));
         tokenMap.put(tempContextUrl, new Token(oAuthClientResponse.getAccessToken(), exp, System.currentTimeMillis()));
         return accessToken;
     }
 
-    private String invokeUrl(String url, String[] split) throws Exception {
-//        url = "https://cloud.ketanyun.cn/bus/graphql/builtin?access_token=a5021c7222995a42f54afca1f9c9f637";
+    private String invokeUrl(String url, String[] split) {
         JSONObject params = new JSONObject();
         String graphql = "query  services($filter :Filter){   " +
                 "  services(filter:$filter){" +
@@ -181,7 +195,12 @@ public class DataBusUtil {
 
         assert s != null;
         if (s.contains("errors")) {
-            throw new Exception("获取url失败" + s);
+            try {
+                throw new Exception("获取url失败" + s);
+            } catch (Exception e) {
+                logger.error("获取url 失败" + e.getMessage());
+                e.printStackTrace();
+            }
         }
         JSONObject jsonObject = JSONArray.parseObject(s);
 
@@ -201,7 +220,7 @@ public class DataBusUtil {
 
     }
 
-    private Map invokeForData(String dataUrl, String url) throws IOException {
+    private Map invokeForData(String dataUrl, String url) {
         logger.info("source url " + dataUrl);
         //获取字段映射
         List<UpstreamTypeField> fields = upstreamTypeService.findFields(url);
@@ -211,15 +230,24 @@ public class DataBusUtil {
         Map<String, Object> result = null;
         if ("query".equals(type[4])) {
             GraphqlQuery query = new DefaultGraphqlQuery(methodName);
-
+            ResultAttributtes edges = new ResultAttributtes("edges");
+            ResultAttributtes node = new ResultAttributtes("node");
             for (UpstreamTypeField field : fields) {
-                query.addResultAttributes(field.getTargetField() + ":" + field.getSourceField());
+                node.addResultAttributes(field.getSourceField() + ":" + field.getTargetField());
             }
+            edges.addResultAttributes(node);
+            query.addResultAttributes(edges);
 
 //            query.addResultAttributes("A:id");
 
             logger.info("body " + query);
-            GraphqlResponse response = graphqlClient.doQuery(query);
+            GraphqlResponse response = null;
+            try {
+                response = graphqlClient.doQuery(query);
+            } catch (IOException e) {
+                logger.info("response :  ->" + e.getMessage());
+                e.printStackTrace();
+            }
 
             //获取数据，数据为map类型
             result = response.getData();

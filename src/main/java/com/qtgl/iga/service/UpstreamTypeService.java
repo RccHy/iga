@@ -17,7 +17,7 @@ public interface UpstreamTypeService {
 
     UpstreamType saveUpstreamType(UpstreamType upstreamType, String domain);
 
-    UpstreamType updateUpstreamType(UpstreamType upstreamType);
+    UpstreamType updateUpstreamType(UpstreamType upstreamType) throws Exception;
 
     List<UpstreamTypeField> findFields(String url);
 }

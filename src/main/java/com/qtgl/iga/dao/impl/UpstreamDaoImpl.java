@@ -4,6 +4,7 @@ package com.qtgl.iga.dao.impl;
 import com.qtgl.iga.bo.Upstream;
 import com.qtgl.iga.bo.UpstreamType;
 import com.qtgl.iga.dao.UpstreamDao;
+import com.qtgl.iga.dao.UpstreamTypeDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cglib.beans.BeanMap;
@@ -27,7 +28,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
     JdbcTemplate jdbcIGA;
 
     @Autowired
-    UpstreamTypeDaoImpl upstreamTypeDao;
+    UpstreamTypeDao upstreamTypeDao;
 
     @Override
     public List<Upstream> findAll(Map<String, Object> arguments, String domain) {
@@ -67,7 +68,6 @@ public class UpstreamDaoImpl implements UpstreamDao {
         upstream.setId(id);
         Timestamp date = new Timestamp(new Date().getTime());
         upstream.setCreateTime(date);
-        upstream.setActive(false);
         int update = jdbcIGA.update(sql, preparedStatement -> {
             preparedStatement.setObject(1, id);
             preparedStatement.setObject(2, upstream.getAppCode());
@@ -128,11 +128,20 @@ public class UpstreamDaoImpl implements UpstreamDao {
 
     @Override
     @Transactional
-    public Upstream updateUpstream(Upstream upstream) {
+    public Upstream updateUpstream(Upstream upstream) throws Exception {
+        if (!upstream.getActive()) {
+            //判断类型是否都未启用
+            List<UpstreamType> byUpstreamId = upstreamTypeDao.findByUpstreamId(upstream.getId());
+            if (null != byUpstreamId && byUpstreamId.size() != 0) {
+                throw new Exception("上游源禁用失败,请检查相关上游源类型状态");
+            }
+        }
+
+
         String sql = "update t_mgr_upstream  set app_code = ?,app_name = ?,data_code = ?,create_user = ?,active = ?," +
                 "color = ?,domain = ?,active_time = ?,update_time= ?  where id=?";
         Timestamp date = new Timestamp(new Date().getTime());
-        return jdbcIGA.update(sql, preparedStatement -> {
+        int update = jdbcIGA.update(sql, preparedStatement -> {
             preparedStatement.setObject(1, upstream.getAppCode());
             preparedStatement.setObject(2, upstream.getAppName());
             preparedStatement.setObject(3, upstream.getDataCode());
@@ -143,7 +152,8 @@ public class UpstreamDaoImpl implements UpstreamDao {
             preparedStatement.setObject(8, date);
             preparedStatement.setObject(9, date);
             preparedStatement.setObject(10, upstream.getId());
-        }) > 0 ? upstream : null;
+        });
+        return update > 0 ? upstream : null;
     }
 
     @Override

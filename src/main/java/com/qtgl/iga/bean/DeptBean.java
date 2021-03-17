@@ -9,7 +9,9 @@ import lombok.Setter;
 public class DeptBean {
 
     private String code;
+
     private String name;
+
     private String parentCode;
     private String source;
 }

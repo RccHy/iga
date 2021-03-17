@@ -15,5 +15,5 @@ public interface UpstreamService {
 
     Upstream saveUpstream(Upstream upstream, String domain);
 
-    Upstream updateUpstream(Upstream upstream);
+    Upstream updateUpstream(Upstream upstream) throws Exception;
 }

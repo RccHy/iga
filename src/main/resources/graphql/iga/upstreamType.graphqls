@@ -49,6 +49,8 @@ type upstreamType{
     graphqlUrl:String
     # 字段映射
     upstreamTypeFields:[upstreamTypeField]
+    #是否分页
+    isPage:Boolean
 }
 
 
@@ -119,6 +121,8 @@ input InputupstreamType{
     graphqlUrl:String
     # 映射字段
     upstreamTypeFields:[InputUpstreamTypeField]
+    #是否分页
+    isPage:Boolean
 }
 
 input upstreamTypeFilter{

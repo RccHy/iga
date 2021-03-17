@@ -31,7 +31,7 @@ public class HelloController {
 
     @GetMapping("/url")
     @ResponseBody
-    public Object getUrl(@RequestParam(required = false) String url) throws Exception {
+    public Object getUrl(@RequestParam(required = false) String url) {
         return busUtil.getDataByBus(url);
     }
 }

@@ -36,7 +36,7 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
     }
 
     @Override
-    public UpstreamType updateUpstreamType(UpstreamType upstreamType) {
+    public UpstreamType updateUpstreamType(UpstreamType upstreamType) throws Exception {
         return upstreamTypeDao.updateUpstreamType(upstreamType);
     }
 

@@ -16,11 +16,13 @@ public interface UpstreamTypeDao {
 
     UpstreamType deleteUpstreamType(Map<String, Object> arguments, String domain) throws Exception;
 
-    UpstreamType updateUpstreamType(UpstreamType upstreamType);
+    UpstreamType updateUpstreamType(UpstreamType upstreamType) throws Exception;
 
     List<UpstreamType> findByUpstreamId(String id);
 
     UpstreamType findById(String id);
 
     List<UpstreamTypeField> findFields(String url);
+
+    Integer deleteByUpstreamId(String id);
 }
