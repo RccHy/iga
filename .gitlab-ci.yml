@@ -38,12 +38,14 @@ build:dev:
   image: maven:3.3.9-jdk-8
 
 deploy:dev:
-  image: lachlanevenson/k8s-kubectl:latest
+  image: bitnami/kubectl:1.17.4
   stage: deploy
   script:
      - kubectl delete -f k8s-deploy.yaml --ignore-not-found=true
      - kubectl apply -f k8s-deploy.yaml
      - kubectl apply -f k8s-service.yaml
+  # disable artifacts downloading from previous steps
+  dependencies: [ ]
   environment:
     name: dev
     url: https://cloud.ketanyun.cn/iga
@@ -52,7 +54,7 @@ deploy:dev:
 
 
 deploy:devel:
-  image: lachlanevenson/k8s-kubectl:latest
+  image: bitnami/kubectl:1.17.4
   stage: deploy
   script:
     - sed -i   "s/iga/iga-devel/g" k8s-service.yaml
@@ -61,6 +63,8 @@ deploy:devel:
     - 'sed -i   "s/app\: iga/app\: iga-devel/g" k8s-deploy.yaml'
     - kubectl apply -f k8s-deploy.yaml
     - kubectl -nketanyun rollout restart deploy iga-devel
+  # disable artifacts downloading from previous steps
+  dependencies: [ ]    
   environment:
     name: dev
     url: http://devel.ketanyun.cn/iga
