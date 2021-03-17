@@ -1,7 +1,6 @@
 package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bo.DomainInfo;
-import com.qtgl.iga.bo.Upstream;
 import com.qtgl.iga.dao.DomainInfoDao;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -24,9 +23,9 @@ public class DomainInfoDaoImpl implements DomainInfoDao {
 
     @Override
     public void save(DomainInfo domainInfo) {
-        jdbcIGA.update("INSERT INTO `t_mgr_domain_info`(`id`, `domain_id` as `domainId`," +
-                        " `domain_name`  as `domainName`, `client_id` as `clientId`, `clientSecret` as `clientSecret`, " +
-                        "`status`, `createTime` as  `create_time`, `update_time` as `updateTime`) " +
+        jdbcIGA.update("INSERT INTO `t_mgr_domain_info`(`id`, `domain_id`," +
+                        " `domain_name` ,`client_id` , `clientSecret` , " +
+                        "`status`, `createTime` , `update_time` ) " +
                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
                 domainInfo.getId(), domainInfo.getDomainId(), domainInfo.getDomainName(), domainInfo.getClientId(), domainInfo.getClientSecret(), domainInfo.getStatus(), domainInfo.getCreateTime(), domainInfo.getUpdateTime()
         );
