@@ -101,7 +101,12 @@ public class DeptServiceImpl implements DeptService {
             }
             //获取节点的[拉取] 规则，来获取部门树
             List<NodeRules> nodeRules = rulesDao.getByNodeAndType(node.getId(), 1, true);
+            Map<String, DeptBean> mergeDeptMap = new ConcurrentHashMap<>();
             for (NodeRules nodeRule : nodeRules) {
+                //是否继承自 父级,是则直接跳过
+                if (nodeRule.getInherit()) {
+                    continue;
+                }
                 //
                 if (null == nodeRule.getUpstreamTypesId()) {
                     throw new Exception("build dept tree error:node upstream type is null,id:" + nodeRule.getNodeId());
@@ -127,36 +132,29 @@ public class DeptServiceImpl implements DeptService {
                     logger.info("数据源获取部门数据为空{}", upstreamType.toString());
                     return mainTree;
                 }
-
                 //对树 json 转为 map
                 Map<String, JSONObject> upstreamMap = TreeUtil.toMap(upstreamTree);
                 //对树进行 parent 分组
                 Map<String, List<JSONObject>> childrenMap = TreeUtil.groupChildren(upstreamTree);
-
                 //查询 树 运行  规则,
                 List<NodeRulesRange> nodeRulesRanges = rangeDao.getByRulesId(nodeRule.getId());
-
-                Map<String, DeptBean> mergeDeptMap = new ConcurrentHashMap<>();
-
-
                 //获取并检测 需要挂载的树， add 进入 待合并的树集合 mergeDept
                 mountRules(nodeCode, mainTree, upstreamMap, childrenMap, nodeRulesRanges, mergeDeptMap);
                 //在挂载基础上进行排除
                 excludeRules(mergeDeptMap, childrenMap, nodeRulesRanges);
                 // 对最终要挂载的树进行重命名
                 renameRules(mergeDeptMap, nodeRulesRanges, childrenMap);
-
-                // 和主树进行合并
-                mainTree.putAll(mergeDeptMap);
-
-
-                // 将本次 add 进的 节点 进行 规则运算
-                for (Map.Entry<String, DeptBean> entry : mergeDeptMap.entrySet()) {
-                    nodeRules(domain, entry.getKey(), mainTree);
-                }
+                logger.info("部门节点:{}的规则运算完成",nodeCode);
                 /*========================规则运算完成=============================*/
+            }
+            // 和主树进行合并
+            // todo 校验是否有重复，并确认权威数据来源
+            mainTree.putAll(mergeDeptMap);
 
 
+            // 将本次 add 进的 节点 进行 规则运算
+            for (Map.Entry<String, DeptBean> entry : mergeDeptMap.entrySet()) {
+                nodeRules(domain, entry.getKey(), mainTree);
             }
         }
         return mainTree;
@@ -277,8 +275,6 @@ public class DeptServiceImpl implements DeptService {
                     //对该节点下所有子树同时进行挂载
                     mergeDeptTree(nodeRulesRange.getNode(), nodeCode, childrenMap, mainTree, mergeDeptMap);
                 }
-
-
             }
         }
     }

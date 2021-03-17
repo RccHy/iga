@@ -29,7 +29,7 @@ public class NodeDaoImpl implements NodeDao {
     public List<Node> getByCode(String domain, String nodeCode) {
         List<Node> nodes = new ArrayList<>();
 
-        String sql = "select id,inherit,manual," +
+        String sql = "select id,manual," +
                 "node_code as nodeCode," +
                 "create_time as createTime,update_time as updateTime,domain" +
                 " from t_mgr_node where domain=? and node_code=?";

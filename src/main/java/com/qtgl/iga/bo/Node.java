@@ -12,8 +12,6 @@ public class Node {
 
     private String id;
 
-    //是否继承父级规则
-    private Boolean inherit;
 
     //是否允许手工
     private Boolean manual;

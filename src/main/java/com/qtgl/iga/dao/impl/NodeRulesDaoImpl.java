@@ -22,25 +22,25 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
 
 
     @Override
-    public List<NodeRules> getByNodeAndType(String nodeId, Integer type, Boolean active) {
-        List<NodeRules> nodeRules = new ArrayList<>();
-        List<Object> para = new ArrayList<>();
+    public List<NodeRules> getByNodeAndType(String nodeId, Integer type,Boolean active) {
+        List<NodeRules> nodeRules=new ArrayList<>();
+        List<Object> para=new ArrayList<>();
         para.add(nodeId);
         para.add(active);
-        StringBuffer sql = new StringBuffer("select id, node_id as nodeId,type,active," +
+        StringBuffer sql=new StringBuffer("select id, node_id as nodeId,type,active,inherit," +
                 " active_time as activeTime, create_time as createTime,  update_time as updateTime," +
                 "service_key as serviceKey,upstream_types_id as upstreamTypesId,sort " +
                 " from t_mgr_node_rules where node_id=? and active=? ");
-        if (null != type) {
+        if(null!=type){
             sql.append(" and type=? ");
             para.add(type);
         }
         sql.append(" order by sort asc");
-        List<Map<String, Object>> maps = jdbcIGA.queryForList(sql.toString(), para.toArray());
+        List<Map<String, Object>> maps = jdbcIGA.queryForList(sql.toString(),para.toArray());
         for (Map<String, Object> map : maps) {
-            NodeRules nodeRule = new NodeRules();
+            NodeRules nodeRule=new NodeRules();
             try {
-                BeanUtils.populate(nodeRule, map);
+                BeanUtils.populate(nodeRule,map);
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
             } catch (InvocationTargetException e) {
