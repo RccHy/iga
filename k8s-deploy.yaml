@@ -7,6 +7,9 @@ metadata:
   namespace: ketanyun
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      app: iga
   template:
     metadata:
       labels:
