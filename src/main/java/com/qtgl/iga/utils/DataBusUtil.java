@@ -114,8 +114,8 @@ public class DataBusUtil {
         String[] split = url.split("/");
 
         //根据url 获取请求地址
-        String substring = new StringBuffer(ssoUrl).replace(ssoUrl.length() - 4, ssoUrl.length(), busUrl).
-                append(graphqlUrl).append("/").append(split[2]).append("/").append("?access_token=").append(key).toString();
+        String substring = new StringBuffer(ssoUrl).replace(ssoUrl.length() - 5, ssoUrl.length(), busUrl).
+                append(graphqlUrl).append("/").append(split[2]).append("?access_token=").append(key).toString();
 
         //工具类过滤处理url
         String dealUrl = UrlUtil.getUrl(substring);
@@ -151,7 +151,7 @@ public class DataBusUtil {
         OAuthClient oAuthClient = new OAuthClient(new SSLConnectionClient());
         OAuthJSONAccessTokenResponse oAuthClientResponse = oAuthClient.accessToken(oAuthClientRequest, "POST", OAuthJSONAccessTokenResponse.class);
         String accessToken = oAuthClientResponse.getAccessToken();
-        long exp = System.currentTimeMillis() + (oAuthClientResponse.getExpiresIn() - (10 * 60 * 1000));
+        long exp = System.currentTimeMillis() + (oAuthClientResponse.getExpiresIn()*1000 - (10 * 60 * 1000));
         tokenMap.put(tempContextUrl, new Token(oAuthClientResponse.getAccessToken(), exp, System.currentTimeMillis()));
         return accessToken;
     }
