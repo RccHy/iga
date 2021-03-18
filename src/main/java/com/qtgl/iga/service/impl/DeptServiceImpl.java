@@ -5,7 +5,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.DeptBean;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
-import com.qtgl.iga.dao.impl.UpstreamTypeDaoImpl;
 import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.utils.TreeEnum;
 import com.qtgl.iga.utils.TreeUtil;

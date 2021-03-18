@@ -5,7 +5,7 @@ import lombok.Data;
 import java.sql.Timestamp;
 
 /**
- * <FileName> UpStreamType
+ * <FileName> UpstreamTypeField
  * <Desc> 上游源类型字段映射表
  **/
 @Data

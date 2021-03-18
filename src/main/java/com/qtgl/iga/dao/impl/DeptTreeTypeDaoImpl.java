@@ -2,21 +2,16 @@ package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bo.DeptTreeType;
 
-import com.qtgl.iga.bo.DeptType;
 import com.qtgl.iga.dao.DeptTreeTypeDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import com.qtgl.iga.dao.DeptTreeTypeDao;
 
 import javax.annotation.Resource;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
 

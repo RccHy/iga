@@ -1,5 +1,6 @@
 package com.qtgl.iga.dao.impl;
 
+import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.Node;
 import com.qtgl.iga.dao.NodeDao;
 import org.apache.commons.beanutils.BeanUtils;
@@ -7,10 +8,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.Resource;
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.sql.Timestamp;
+import java.util.*;
 
 
 @Repository
@@ -21,8 +20,23 @@ public class NodeDaoImpl implements NodeDao {
 
 
     @Override
-    public Node save(Node node) {
-        return null;
+    public NodeDto save(NodeDto node) {
+
+        String sql = "insert into t_mgr_node  values(?,?,?,?,?,?)";
+        //生成主键和时间
+        String id = UUID.randomUUID().toString().replace("-", "");
+        node.setId(id);
+        node.setCreateTime(new Date().getTime());
+        int update = jdbcIGA.update(sql, preparedStatement -> {
+            preparedStatement.setObject(1, id);
+            preparedStatement.setObject(2, node.getManual());
+            preparedStatement.setObject(3, node.getNodeCode());
+            preparedStatement.setObject(4, node.getCreateTime());
+            preparedStatement.setObject(5, null);
+            preparedStatement.setObject(6, node.getDomain());
+
+        });
+        return update > 0 ? node : null;
     }
 
     @Override

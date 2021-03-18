@@ -27,7 +27,7 @@ public class DomainInfoDaoImpl implements DomainInfoDao {
                         " `domain_name` ,`client_id` , `client_secret` , " +
                         "`status`, `create_time`,`create_user` ,`update_time` ) " +
                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
-                domainInfo.getId(), domainInfo.getDomainId(), domainInfo.getDomainName(), domainInfo.getClientId(), domainInfo.getClientSecret(), domainInfo.getStatus(), domainInfo.getCreateTime(), domainInfo.getCreateUser(),domainInfo.getUpdateTime()
+                domainInfo.getId(), domainInfo.getDomainId(), domainInfo.getDomainName(), domainInfo.getClientId(), domainInfo.getClientSecret(), domainInfo.getStatus(), domainInfo.getCreateTime(), domainInfo.getCreateUser(), domainInfo.getUpdateTime()
         );
     }
 

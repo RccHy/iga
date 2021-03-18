@@ -1,0 +1,76 @@
+extend type Query {
+    #查询节点规则明细列表
+    findNodeRules(id:ID,filter:NodeRulesFilter):[NodeRules]
+}
+extend type Mutation {
+    #新增节点规则明细
+    saveRules(entity:InputNodeRules!):NodeRules
+    #根据id删除节点规则明细
+    deleteRules(id:ID!): NodeRules
+    #更新节点规则明细
+    updateRules(entity:InputNodeRules!):NodeRules
+}
+
+# 节点规则明细实体
+type NodeRules{
+    #主键
+    id:ID
+    #node外键
+    nodeId:String
+    #是否继承父类
+    inherit:Boolean
+    # 规则类型 0推送 1拉取 3手动
+    type:Int
+    #是否启用
+    active:Boolean
+    # 生效/失效 操作时间
+    activeTime:Timestamp
+    #创建时间
+    createTime:Timestamp
+    #修改时间
+    updateTime:Timestamp
+    #【推送】的服务标识
+    serviceKey:String
+    #UpStreamType外键
+    upstreamTypesId:String
+    #排序
+    sort:Int
+}
+
+
+# 节点规则明细入参
+input InputNodeRules{
+    #主键
+    id:ID
+    #node外键
+    nodeId:String
+    #是否继承父类
+    inherit:Boolean
+    # 规则类型 0推送 1拉取 3手动
+    type:Int
+    #是否启用
+    active:Boolean
+    # 生效/失效 操作时间
+    activeTime:Timestamp
+    #创建时间
+    createTime:Timestamp
+    #修改时间
+    updateTime:Timestamp
+    #【推送】的服务标识
+    serviceKey:String
+    #UpStreamType外键
+    upstreamTypesId:String
+    #排序
+    sort:Int
+    #规则明细作用域
+    nodeRulesRange:[InputNodeRulesRange]
+}
+
+input NodeRulesFilter{
+    type:integerFilter
+}
+
+
+
+
+

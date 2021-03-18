@@ -1,0 +1,78 @@
+extend type Query {
+    #查询节点规则列表
+    findNodes(id:ID,filter:NodeFilter):[Node]
+}
+extend type Mutation {
+    #新增节点规则
+    saveNode(entity:InputNode!):Node
+    #根据id删除节点规则
+    deleteNode(id:ID!): Node
+    #更新节点规则
+    updateNode(entity:InputNode!):Node
+}
+
+# 节点规则实体
+type Node{
+
+    #主键
+    id:ID
+
+    #是否允许手工
+    manual: Boolean
+
+    #节点代码
+    nodeCode:String
+
+    #创建时间
+    createTime:Timestamp
+
+    #修改时间
+    updateTime:Timestamp
+
+    #租户
+    domain:String
+
+    #规则明细
+    nodeRules:[NodeRules]
+
+    #规则明细作用域
+    nodeRulesRange:[NodeRulesRange]
+
+}
+
+
+# 节点规则入参
+input InputNode{
+    #主键
+    id:ID
+
+    #是否允许手工
+    manual: Boolean
+
+    #节点代码
+    nodeCode:String
+
+    #创建时间
+    createTime:Timestamp
+
+    #修改时间
+    updateTime:Timestamp
+
+    #租户
+    domain:String
+
+    #规则明细
+    nodeRules:[InputNodeRules]
+
+
+
+}
+
+input NodeFilter{
+    id:stringFilter
+}
+
+
+
+
+

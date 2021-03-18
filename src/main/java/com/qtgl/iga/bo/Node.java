@@ -12,7 +12,6 @@ public class Node {
 
     private String id;
 
-
     //是否允许手工
     private Boolean manual;
 
@@ -25,7 +24,7 @@ public class Node {
     //修改时间
     private Long updateTime;
 
-    //
+    //租户
     private String domain;
 
 }

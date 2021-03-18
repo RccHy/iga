@@ -3,6 +3,8 @@ package com.qtgl.iga.bo;
 
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * 节点规则明细
  */
@@ -40,6 +42,9 @@ public class NodeRules implements java.io.Serializable {
 
     //排序
     private Integer sort;
+
+    //节点规则明细作用域
+    private List<NodeRulesRange> nodeRulesRanges;
 
 
 }

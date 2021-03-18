@@ -7,8 +7,9 @@ import com.qtgl.iga.dao.UpstreamDao;
 import com.qtgl.iga.dao.UpstreamTypeDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import com.qtgl.iga.vo.UpstreamTypeVo;
-import lombok.Setter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cglib.beans.BeanMap;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -28,8 +29,13 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
     @Resource(name = "jdbcIGA")
     JdbcTemplate jdbcIGA;
 
-    @Setter
-    UpstreamDao upstreamDao;
+    private UpstreamDao upstreamDao;
+
+    @Autowired
+    public UpstreamTypeDaoImpl(@Lazy UpstreamDao upstreamDao) {
+        this.upstreamDao = upstreamDao;
+
+    }
 
     @Override
     public List<UpstreamTypeVo> findAll(Map<String, Object> arguments, String domain) {
@@ -171,7 +177,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
             preparedStatement.setObject(13, upStreamType.getServiceCode());
             preparedStatement.setObject(14, domain);
             preparedStatement.setObject(15, upStreamType.getDeptTreeTypeId());
-            preparedStatement.setObject(16,upStreamType.getIsPage());
+            preparedStatement.setObject(16, upStreamType.getIsPage());
         });
         if (null != upStreamType.getUpstreamTypeFields() && upStreamType.getUpstreamTypeFields().size() > 0) {
             //添加类型映射
@@ -276,7 +282,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
             preparedStatement.setObject(12, upStreamType.getGraphqlUrl());
             preparedStatement.setObject(13, upStreamType.getDomain());
             preparedStatement.setObject(14, upStreamType.getDeptTreeTypeId());
-            preparedStatement.setObject(15,upStreamType.getIsPage());
+            preparedStatement.setObject(15, upStreamType.getIsPage());
             preparedStatement.setObject(16, upStreamType.getId());
 
         });
@@ -514,5 +520,23 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
 
 
         return jdbcIGA.update(sql, params);
+    }
+
+    public Upstream findUpstreamById(String id) {
+        String sql = "select id,app_code as appCode,app_name as appName,data_code as dataCode," +
+                "create_time as createTime,create_user as createUser,active,color,domain ," +
+                "active_time as activeTime,update_time as updateTime from t_mgr_upstream where id= ? ";
+
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id);
+        Upstream upstream = new Upstream();
+        if (null != mapList && mapList.size() > 0) {
+            for (Map<String, Object> map : mapList) {
+
+                BeanMap beanMap = BeanMap.create(upstream);
+                beanMap.putAll(map);
+            }
+            return upstream;
+        }
+        return null;
     }
 }

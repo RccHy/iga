@@ -3,9 +3,6 @@ package com.qtgl.iga.vo;
 import com.qtgl.iga.bo.*;
 import lombok.Data;
 
-import java.sql.Timestamp;
-import java.util.List;
-
 /**
  * <FileName> UpstreamTypeVo
  * <Desc> 上游源类型表
