@@ -3,6 +3,7 @@ package com.qtgl.iga.utils;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bo.Token;
+import com.qtgl.iga.bo.UpstreamType;
 import com.qtgl.iga.bo.UpstreamTypeField;
 import com.qtgl.iga.service.UpstreamTypeService;
 import org.apache.commons.lang3.ArrayUtils;
@@ -111,10 +112,10 @@ public class DataBusUtil {
     }
 
 
-    public Object getDataByBus(String url) {
+    public Object getDataByBus(UpstreamType upstreamType) {
         //获取token
         String key = getToken();
-        String[] split = url.split("/");
+        String[] split = upstreamType.getGraphqlUrl().split("/");
 
         //根据url 获取请求地址
         String substring = new StringBuffer(ssoUrl).replace(ssoUrl.length() - 5, ssoUrl.length(), busUrl).
@@ -129,7 +130,7 @@ public class DataBusUtil {
         //请求获取资源
         String u = new StringBuffer(dataUrl).append("/").append("?access_token=").append(key).toString();
 
-        return invokeForData(UrlUtil.getUrl(u), url);
+        return invokeForData(UrlUtil.getUrl(u), upstreamType);
     }
 
     private String getToken() {
@@ -220,23 +221,50 @@ public class DataBusUtil {
 
     }
 
-    private Map invokeForData(String dataUrl, String url) {
+    private Map invokeForData(String dataUrl, UpstreamType upstreamType) {
         logger.info("source url " + dataUrl);
         //获取字段映射
-        List<UpstreamTypeField> fields = upstreamTypeService.findFields(url);
-        String[] type = url.split("/");
+        List<UpstreamTypeField> fields = upstreamTypeService.findFields(upstreamType.getId());
+        String[] type = upstreamType.getGraphqlUrl().split("/");
         GraphqlClient graphqlClient = GraphqlClient.buildGraphqlClient(dataUrl);
         String methodName = type[5];
         Map<String, Object> result = null;
+
+        if (upstreamType.getIsPage()) {
+            if ("query".equals(type[4])) {
+                GraphqlQuery query = new DefaultGraphqlQuery(methodName);
+                ResultAttributtes edges = new ResultAttributtes("edges");
+                ResultAttributtes node = new ResultAttributtes("node");
+                for (UpstreamTypeField field : fields) {
+                    node.addResultAttributes(field.getSourceField() + ":" + field.getTargetField());
+                }
+                edges.addResultAttributes(node);
+                query.addResultAttributes(edges);
+
+//            query.addResultAttributes("A:id");
+
+                logger.info("body " + query);
+                GraphqlResponse response = null;
+                try {
+                    response = graphqlClient.doQuery(query);
+                } catch (IOException e) {
+                    logger.info("response :  ->" + e.getMessage());
+                    e.printStackTrace();
+                }
+
+                //获取数据，数据为map类型
+                result = response.getData();
+                for (Map.Entry<String, Object> entry : result.entrySet()) {
+                    logger.info("result  data --" + entry.getKey() + "------" + entry.getValue());
+                }
+                return result;
+            }
+        }
         if ("query".equals(type[4])) {
             GraphqlQuery query = new DefaultGraphqlQuery(methodName);
-            ResultAttributtes edges = new ResultAttributtes("edges");
-            ResultAttributtes node = new ResultAttributtes("node");
             for (UpstreamTypeField field : fields) {
-                node.addResultAttributes(field.getSourceField() + ":" + field.getTargetField());
+                query.addResultAttributes(field.getSourceField() + ":" + field.getTargetField());
             }
-            edges.addResultAttributes(node);
-            query.addResultAttributes(edges);
 
 //            query.addResultAttributes("A:id");
 
@@ -255,9 +283,7 @@ public class DataBusUtil {
                 logger.info("result  data --" + entry.getKey() + "------" + entry.getValue());
             }
         }
-        if ("mutation".equals(methodName)) {
 
-        }
 
         return result;
     }

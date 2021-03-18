@@ -35,7 +35,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
     public List<UpstreamTypeVo> findAll(Map<String, Object> arguments, String domain) {
         String sql = "select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_type_id as deptTypeId," +
                 "enable_prefix as enablePrefix,active,active_time as activeTime,root,create_time as createTime," +
-                "update_time as updateTime, graphql_url as graphqlUrl,service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId from  t_mgr_upstream_types where 1 = 1 ";
+                "update_time as updateTime, graphql_url as graphqlUrl,service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId , is_page as isPage from  t_mgr_upstream_types where 1 = 1 ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
@@ -148,7 +148,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
     @Override
     @Transactional
     public UpstreamType saveUpstreamType(UpstreamType upStreamType, String domain) {
-        String sql = "insert into t_mgr_upstream_types  values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        String sql = "insert into t_mgr_upstream_types  values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         //生成主键和时间
         String id = UUID.randomUUID().toString().replace("-", "");
         upStreamType.setId(id);
@@ -171,6 +171,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
             preparedStatement.setObject(13, upStreamType.getServiceCode());
             preparedStatement.setObject(14, domain);
             preparedStatement.setObject(15, upStreamType.getDeptTreeTypeId());
+            preparedStatement.setObject(16,upStreamType.getIsPage());
         });
         if (null != upStreamType.getUpstreamTypeFields() && upStreamType.getUpstreamTypeFields().size() > 0) {
             //添加类型映射
@@ -257,7 +258,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         String sql = "update t_mgr_upstream_types  set upstream_id = ?,description = ?," +
                 "syn_type = ?,dept_type_id = ?,enable_prefix = ?,active = ?,active_time = ?," +
                 "root = ?,create_time = ?,update_time = ?,service_code = ?," +
-                "graphql_url = ?, domain = ? ,dept_tree_type_id = ? where id= ? ";
+                "graphql_url = ?, domain = ? ,dept_tree_type_id = ? ,is_page = ? where id= ? ";
         Timestamp date = new Timestamp(new Date().getTime());
         upStreamType.setUpdateTime(date);
         int update = jdbcIGA.update(sql, preparedStatement -> {
@@ -275,7 +276,8 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
             preparedStatement.setObject(12, upStreamType.getGraphqlUrl());
             preparedStatement.setObject(13, upStreamType.getDomain());
             preparedStatement.setObject(14, upStreamType.getDeptTreeTypeId());
-            preparedStatement.setObject(15, upStreamType.getId());
+            preparedStatement.setObject(15,upStreamType.getIsPage());
+            preparedStatement.setObject(16, upStreamType.getId());
 
         });
         //修改
@@ -452,7 +454,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
     public UpstreamType findById(String id) {
         String sql = "select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_type_id as deptTypeId," +
                 "enable_prefix as enablePrefix,active,active_time as activeTime,root,create_time as createTime," +
-                "update_time as updateTime, graphql_url as graphqlUrl,service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId from  t_mgr_upstream_types where id= ? ";
+                "update_time as updateTime, graphql_url as graphqlUrl,service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId , is_page as isPage from  t_mgr_upstream_types where id= ? ";
 
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id);
         UpstreamType upstreamType = new UpstreamType();
@@ -469,12 +471,10 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
     }
 
     @Override
-    public List<UpstreamTypeField> findFields(String url) {
-        //查询类型id
-        String sql = "select  id from  t_mgr_upstream_types where active = 1 and graphql_url = ?";
-        Map<String, Object> map = jdbcIGA.queryForMap(sql, url);
+    public List<UpstreamTypeField> findFields(String id) {
+
         //查询映射字段
-        List<Map<String, Object>> filedList = jdbcIGA.queryForList("select id,upstream_type_id as upstreamTypeId,source_field as sourceField , target_field as targetField,create_time as createTime,update_time as updateTime,domain from t_mgr_upstream_types_field where upstream_type_id = ? ", map.get("id"));
+        List<Map<String, Object>> filedList = jdbcIGA.queryForList("select id,upstream_type_id as upstreamTypeId,source_field as sourceField , target_field as targetField,create_time as createTime,update_time as updateTime,domain from t_mgr_upstream_types_field where upstream_type_id = ? ", id);
         ArrayList<UpstreamTypeField> upstreamTypeFields = getUpstreamTypeFields(filedList);
         return upstreamTypeFields;
     }

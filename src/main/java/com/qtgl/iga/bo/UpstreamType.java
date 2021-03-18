@@ -2,6 +2,7 @@ package com.qtgl.iga.bo;
 
 import lombok.Data;
 
+import java.io.Serializable;
 import java.sql.Timestamp;
 import java.util.List;
 
@@ -10,7 +11,7 @@ import java.util.List;
  * <Desc> 上游源类型表
  **/
 @Data
-public class UpstreamType {
+public class UpstreamType implements Serializable {
     //主键
     private String id;
 

@@ -1,6 +1,7 @@
 package com.qtgl.iga.controller;
 
 import com.qtgl.iga.bo.Dept;
+import com.qtgl.iga.bo.UpstreamType;
 import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.utils.DataBusUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,9 +30,9 @@ public class HelloController {
     }
 
 
-    @GetMapping("/url")
+    @RequestMapping("/url")
     @ResponseBody
-    public Object getUrl(@RequestParam(required = false) String url) {
-        return busUtil.getDataByBus(url);
+    public Object getUrl(@RequestBody UpstreamType upstreamType) {
+        return busUtil.getDataByBus(upstreamType);
     }
 }
