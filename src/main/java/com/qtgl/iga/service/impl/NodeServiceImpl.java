@@ -50,13 +50,13 @@ public class NodeServiceImpl implements NodeService {
     }
 
     @Override
-    public Node getRoot(String domain) {
-        return nodeDao.getByCode(domain, "").get(0);
+    public Node getRoot(String domain,String deptTreeType) {
+        return nodeDao.getByCode(domain, deptTreeType,"").get(0);
     }
 
     @Override
-    public List<Node> getByCode(String domain, String nodeCode) {
-        return nodeDao.getByCode(domain, nodeCode);
+    public List<Node> getByCode(String domain,String deptTreeType, String nodeCode) {
+        return nodeDao.getByCode(domain,deptTreeType, nodeCode);
     }
 
     @Override

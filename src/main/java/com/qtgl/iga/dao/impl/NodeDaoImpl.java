@@ -40,19 +40,19 @@ public class NodeDaoImpl implements NodeDao {
     }
 
     @Override
-    public List<Node> getByCode(String domain, String nodeCode) {
+    public List<Node> getByCode(String domain,String deptTreeType, String nodeCode) {
         List<Node> nodes = new ArrayList<>();
 
         String sql = "select id,manual," +
                 "node_code as nodeCode," +
-                "create_time as createTime,update_time as updateTime,domain" +
-                " from t_mgr_node where domain=? and node_code=?";
+                "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType" +
+                " from t_mgr_node where domain=? and dept_tree_type=? and node_code=?";
         List<Map<String, Object>> mapList = new ArrayList<>();
         if (null == nodeCode) {
             sql = sql.replace("node_code=?", "node_code is null or node_code=\"\"");
-            mapList = jdbcIGA.queryForList(sql, domain);
+            mapList = jdbcIGA.queryForList(sql, domain,deptTreeType);
         } else {
-            mapList = jdbcIGA.queryForList(sql, domain, nodeCode);
+            mapList = jdbcIGA.queryForList(sql, domain, deptTreeType,nodeCode);
         }
         for (Map<String, Object> map : mapList) {
             Node node = new Node();

@@ -17,7 +17,7 @@ public class NodeRules implements java.io.Serializable {
     //node 外键
     private String nodeId;
 
-    private Boolean inherit;
+    private String inheritId;
 
     // 规则类型 0推送 1拉取 3手动
     private Integer type;

@@ -2,6 +2,7 @@ package com.qtgl.iga.utils;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.qtgl.iga.bean.DeptBean;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -42,6 +43,11 @@ public class TreeUtil<T> {
         return map;
     }
 
+    public static  Map<String, List<DeptBean>> groupChildren(List<DeptBean> deptBeans) {
+        Map<String, List<DeptBean>> map = deptBeans.stream().
+                collect(Collectors.groupingBy(DeptBean::getParentCode));
+        return map;
+    }
 
     public static Map<String, JSONObject> toMap(JSONArray jsonArray) {
         List<JSONObject> treeList = jsonArray.toJavaList(JSONObject.class);

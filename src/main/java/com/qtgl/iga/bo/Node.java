@@ -27,4 +27,7 @@ public class Node {
     //租户
     private String domain;
 
+    //部门树类型
+    private String deptTreeType;
+
 }

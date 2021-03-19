@@ -10,6 +10,6 @@ public interface NodeDao {
 
     NodeDto save(NodeDto node);
 
-    List<Node> getByCode(String domain, String nodeCode);
+    List<Node> getByCode(String domain,String deptTreeType, String nodeCode);
 
 }

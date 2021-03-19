@@ -232,7 +232,7 @@ public class DataBusUtil {
 
         if (upstreamType.getIsPage()) {
             if ("query".equals(type[4])) {
-                GraphqlQuery query = new DefaultGraphqlQuery(methodName);
+                GraphqlQuery query = new DefaultGraphqlQuery(upstreamType.getSynType()+":"+methodName);
                 ResultAttributtes edges = new ResultAttributtes("edges");
                 ResultAttributtes node = new ResultAttributtes("node");
                 for (UpstreamTypeField field : fields) {
