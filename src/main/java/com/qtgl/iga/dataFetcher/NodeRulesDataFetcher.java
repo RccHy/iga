@@ -53,7 +53,7 @@ public class NodeRulesDataFetcher {
             // 获取传入参数
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
             NodeRules nodeRules = JSON.parseObject(JSON.toJSONString(arguments.get("entity")), NodeRules.class);
-            NodeRules data = nodeRulesService.saveRules(nodeRules, domain.getId());
+            NodeRules data = nodeRulesService.saveRules(nodeRules);
             if (null != data) {
                 return data;
             }

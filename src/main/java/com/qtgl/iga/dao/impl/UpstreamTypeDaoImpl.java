@@ -522,21 +522,4 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         return jdbcIGA.update(sql, params);
     }
 
-    public Upstream findUpstreamById(String id) {
-        String sql = "select id,app_code as appCode,app_name as appName,data_code as dataCode," +
-                "create_time as createTime,create_user as createUser,active,color,domain ," +
-                "active_time as activeTime,update_time as updateTime from t_mgr_upstream where id= ? ";
-
-        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id);
-        Upstream upstream = new Upstream();
-        if (null != mapList && mapList.size() > 0) {
-            for (Map<String, Object> map : mapList) {
-
-                BeanMap beanMap = BeanMap.create(upstream);
-                beanMap.putAll(map);
-            }
-            return upstream;
-        }
-        return null;
-    }
 }

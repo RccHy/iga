@@ -3,6 +3,8 @@ package com.qtgl.iga.bo;
 
 import lombok.Data;
 
+import java.sql.Timestamp;
+
 
 /**
  * 节点规则
@@ -26,5 +28,7 @@ public class Node {
 
     //租户
     private String domain;
+
+    private String deptTreeType;
 
 }

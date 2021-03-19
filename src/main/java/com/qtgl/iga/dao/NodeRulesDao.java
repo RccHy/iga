@@ -3,8 +3,10 @@ package com.qtgl.iga.dao;
 
 import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.NodeRules;
+import com.qtgl.iga.vo.NodeRulesVo;
 
 import java.util.List;
+import java.util.Map;
 
 public interface NodeRulesDao {
 
@@ -13,4 +15,12 @@ public interface NodeRulesDao {
 
 
     NodeDto saveNodeRules(NodeDto nodeRules);
+
+    List<NodeRules> findNodeRules(Map<String, Object> arguments);
+
+    NodeRules updateRules(NodeRules nodeRules);
+
+    Integer deleteNodeRules(String id);
+
+    List<NodeRulesVo> findNodeRulesByNodeId(String id);
 }

@@ -104,9 +104,9 @@ public class DeptServiceImpl implements DeptService {
             Map<String, DeptBean> mergeDeptMap = new ConcurrentHashMap<>();
             for (NodeRules nodeRule : nodeRules) {
                 //是否继承自 父级,是则直接跳过
-                if (nodeRule.getInherit()) {
-                    continue;
-                }
+//                if (nodeRule.getInherit()) {
+//                    continue;
+//                }
                 //
                 if (null == nodeRule.getUpstreamTypesId()) {
                     throw new Exception("build dept tree error:node upstream type is null,id:" + nodeRule.getNodeId());

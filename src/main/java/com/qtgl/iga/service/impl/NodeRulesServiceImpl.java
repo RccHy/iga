@@ -23,7 +23,7 @@ public class NodeRulesServiceImpl implements NodeRulesService {
 
     @Override
     public List<NodeRules> findNodeRules(Map<String, Object> arguments, String id) {
-        return null;
+        return nodeRulesDao.findNodeRules(arguments);
     }
 
     @Override
@@ -32,12 +32,12 @@ public class NodeRulesServiceImpl implements NodeRulesService {
     }
 
     @Override
-    public NodeRules saveRules(NodeRules nodeRules, String id) {
+    public NodeRules saveRules(NodeRules nodeRules) {
         return null;
     }
 
     @Override
     public NodeRules updateRules(NodeRules nodeRules) {
-        return null;
+        return nodeRulesDao.updateRules(nodeRules);
     }
 }
