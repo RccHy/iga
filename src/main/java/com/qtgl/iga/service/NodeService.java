@@ -9,11 +9,11 @@ import java.util.Map;
 
 public interface NodeService {
 
-    NodeDto saveNode(NodeDto node,String domain) throws Exception;
+    NodeDto saveNode(NodeDto node, String domain) throws Exception;
 
-    Node getRoot(String domain,String deptTreeType);
+    Node getRoot(String domain, String deptTreeType);
 
-    List<Node> getByCode(String domain, String deptTreeType,String nodeCode);
+    List<Node> getByCode(String domain, String deptTreeType, String nodeCode);
 
     NodeDto deleteNode(Map<String, Object> arguments, String id) throws Exception;
 

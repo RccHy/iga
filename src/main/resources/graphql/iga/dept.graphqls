@@ -1,0 +1,28 @@
+extend type Query {
+    #查询组织机构
+    findDept(treeType:String):[Dept]
+}
+
+
+
+# 组织机构实体
+type Dept{
+
+    # 机构类型代码
+    code:String
+    # 机构类型名称
+    name:String
+    #父级code
+    parentCode:String
+    # 来源
+    source:String
+
+}
+
+
+
+
+
+
+
+

@@ -19,16 +19,10 @@ public class DeptProvider {
 
     public TypeRuntimeWiring.Builder buildQueryRuntimeWiring() {
         TypeRuntimeWiring.Builder builder = newTypeWiring("Query")
-                .dataFetcher("deptTypes", dataFetcher.depts());
+                .dataFetcher("findDept", dataFetcher.findDept());
         return builder;
     }
 
-
-    public TypeRuntimeWiring.Builder buildMutationRuntimeWiring() {
-        TypeRuntimeWiring.Builder builder = newTypeWiring("Mutation");
-        return builder;
-
-    }
 
     @Autowired
     private GraphQLConfig graphQLConfig;
@@ -37,7 +31,6 @@ public class DeptProvider {
     private void init() {
         String key = this.getClass().getName();
         graphQLConfig.builderConcurrentMap.put(key + "-Query", buildQueryRuntimeWiring());
-        graphQLConfig.builderConcurrentMap.put(key + "-Mutation", buildMutationRuntimeWiring());
     }
 }
 

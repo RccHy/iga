@@ -35,6 +35,8 @@ type NodeRules{
     upstreamTypesId:String
     #排序
     sort:Int
+    #规则明细作用域
+    nodeRulesRanges:[NodeRulesRange]
 }
 
 

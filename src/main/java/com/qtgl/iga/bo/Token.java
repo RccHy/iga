@@ -2,7 +2,6 @@ package com.qtgl.iga.bo;
 
 import lombok.Data;
 
-import java.sql.Timestamp;
 
 /**
  * <FileName> Token

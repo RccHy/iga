@@ -43,7 +43,7 @@ public class NodeDaoImpl implements NodeDao {
     }
 
     @Override
-    public List<Node> getByCode(String domain,String deptTreeType, String nodeCode) {
+    public List<Node> getByCode(String domain, String deptTreeType, String nodeCode) {
         List<Node> nodes = new ArrayList<>();
 
         String sql = "select id,manual," +
@@ -53,9 +53,9 @@ public class NodeDaoImpl implements NodeDao {
         List<Map<String, Object>> mapList = new ArrayList<>();
         if (null == nodeCode) {
             sql = sql.replace("node_code=?", "node_code is null or node_code=\"\"");
-            mapList = jdbcIGA.queryForList(sql, domain,deptTreeType);
+            mapList = jdbcIGA.queryForList(sql, domain, deptTreeType);
         } else {
-            mapList = jdbcIGA.queryForList(sql, domain, deptTreeType,nodeCode);
+            mapList = jdbcIGA.queryForList(sql, domain, deptTreeType, nodeCode);
         }
         for (Map<String, Object> map : mapList) {
             Node node = new Node();

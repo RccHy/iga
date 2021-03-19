@@ -51,8 +51,14 @@ public class DeptServiceImpl implements DeptService {
 
 
     @Override
-    public List<Dept> getAllDepts() {
-        return deptDao.getAllDepts();
+    public List<DeptBean> findDept(Map<String, Object> arguments, DomainInfo domain) throws Exception {
+
+        Map<String, DeptBean> mainTreeMap = new ConcurrentHashMap<>();
+
+        nodeRules(domain, (String) arguments.get("treeType"), "", mainTreeMap);
+        Collection<DeptBean> mainDept = mainTreeMap.values();
+
+        return new ArrayList<>(mainDept);
     }
 
 
@@ -68,13 +74,10 @@ public class DeptServiceImpl implements DeptService {
             List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
             for (DeptTreeType deptType : deptTreeTypes) {
                 Map<String, DeptBean> mainTreeMap = new ConcurrentHashMap<>();
-                JSONObject root = new JSONObject();
-                root.put("code", "root");
-                root.put("name", "root");
-                root.put("parentCode", "");
+
                 nodeRules(domain, deptType.getId(), "", mainTreeMap);
                 Collection<DeptBean> mainDept = mainTreeMap.values();
-                mainTreeMapGroupType.put(deptType.getCode(),new ArrayList<>(mainDept));
+                mainTreeMapGroupType.put(deptType.getCode(), new ArrayList<>(mainDept));
             }
         }
         System.out.println("1");
@@ -208,7 +211,7 @@ public class DeptServiceImpl implements DeptService {
                     // 完全没有继承
                     if (nodeRule.getSort() == 1) {
                         // 完全不继承 第一个数据源， 需处理掉 主树当前节点下所有的子集
-                        removeMainTree(nodeCode, mainTreeChildren,mainTree);
+                        removeMainTree(nodeCode, mainTreeChildren, mainTree);
                     } else {
                         //完全不继承 非一个数据源， 直接去重 向主树合并
                         Map<String, DeptBean> mergeDeptMap2 = new ConcurrentHashMap<>();
@@ -232,7 +235,7 @@ public class DeptServiceImpl implements DeptService {
                 mainTree.putAll(mergeDeptMap);
                 // 将本次 add 进的 节点 进行 规则运算
                 for (Map.Entry<String, DeptBean> entry : mergeDeptMap.entrySet()) {
-                    nodeRules(domain,  deptTreeType,entry.getKey(),mainTree);
+                    nodeRules(domain, deptTreeType, entry.getKey(), mainTree);
                 }
 
                 /*========================规则运算完成=============================*/
@@ -441,12 +444,12 @@ public class DeptServiceImpl implements DeptService {
     }
 
 
-    public void removeMainTree(String code, Map<String, List<DeptBean>> childrenMap,Map<String, DeptBean> mainTree) {
+    public void removeMainTree(String code, Map<String, List<DeptBean>> childrenMap, Map<String, DeptBean> mainTree) {
         List<DeptBean> children = childrenMap.get(code);
         if (null != children) {
             for (DeptBean dept : children) {
                 mainTree.remove(dept.getCode());
-                removeMainTree(dept.getCode(), childrenMap,mainTree);
+                removeMainTree(dept.getCode(), childrenMap, mainTree);
             }
         }
     }

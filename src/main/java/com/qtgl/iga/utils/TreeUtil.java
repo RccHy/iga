@@ -43,7 +43,7 @@ public class TreeUtil<T> {
         return map;
     }
 
-    public static  Map<String, List<DeptBean>> groupChildren(List<DeptBean> deptBeans) {
+    public static Map<String, List<DeptBean>> groupChildren(List<DeptBean> deptBeans) {
         Map<String, List<DeptBean>> map = deptBeans.stream().
                 collect(Collectors.groupingBy(DeptBean::getParentCode));
         return map;

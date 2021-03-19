@@ -38,7 +38,7 @@ public class NodeRulesRangeProvider {
     private GraphQLConfig graphQLConfig;
 
     @PostConstruct
-    private void init()  {
+    private void init() {
         String key = this.getClass().getName();
         graphQLConfig.builderConcurrentMap.put(key + "-Query", buildQueryRuntimeWiring());
         graphQLConfig.builderConcurrentMap.put(key + "-Mutation", buildMutationRuntimeWiring());
