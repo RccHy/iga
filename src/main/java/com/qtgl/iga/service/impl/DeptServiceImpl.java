@@ -1,6 +1,5 @@
 package com.qtgl.iga.service.impl;
 
-
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.DeptBean;
@@ -407,25 +406,24 @@ public class DeptServiceImpl implements DeptService {
      * @param code        节点code
      * @param parentNode  在 去除根节点挂载情况下， parentNode要特殊指向定义规则的节点。t_mgr_node
      * @param childrenMap
+     * @param mainTree
      * @throws Exception
      */
-    public void mergeDeptTree(String code, String parentNode, Map<String, List<JSONObject>> childrenMap,
-                              Map<String, DeptBean> mergeDeptMap, String source) throws Exception {
+    public void mergeDeptTree(String code, String parentNode, Map<String, List<JSONObject>> childrenMap, Map<String, DeptBean> mainTree,
+                              Map<String, DeptBean> mergeDept) throws Exception {
         List<JSONObject> children = childrenMap.get(code);
         if (null != children) {
             for (JSONObject treeJson : children) {
                 String treeCode = treeJson.getString(TreeEnum.CODE.getCode());
                 String treeParentCode = treeJson.getString(TreeEnum.CODE.getCode());
-               /* if (mainTree.containsKey(treeCode) &&
+                if (mainTree.containsKey(treeCode) &&
                         (!mainTree.get(treeCode).getParentCode()
                                 .equals(treeParentCode))) {
                     throw new Exception("挂载异常，节点中已有同code不同parentCode节点：" + treeCode);
-                }*/
-                DeptBean deptBean = JSONObject.toJavaObject(treeJson, DeptBean.class);
-                deptBean.setParentCode(parentNode);
-                deptBean.setSource(source);
-                mergeDeptMap.put(treeCode, deptBean);
-                mergeDeptTree(treeCode, treeCode, childrenMap, mergeDeptMap, source);
+                }
+                treeJson.put(TreeEnum.PARENTCODE.getCode(), parentNode);
+                mergeDept.put(treeCode, JSONObject.toJavaObject(treeJson, DeptBean.class));
+                mergeDeptTree(treeCode, treeCode, childrenMap, mainTree, mergeDept);
             }
         }
     }
@@ -437,17 +435,6 @@ public class DeptServiceImpl implements DeptService {
             for (JSONObject deptJson : children) {
                 mergeDept.remove(deptJson.getString(TreeEnum.CODE.getCode()));
                 removeTree(deptJson.getString(TreeEnum.CODE.getCode()), childrenMap, mergeDept);
-            }
-        }
-    }
-
-
-    public void removeMainTree(String code, Map<String, List<DeptBean>> childrenMap,Map<String, DeptBean> mainTree) {
-        List<DeptBean> children = childrenMap.get(code);
-        if (null != children) {
-            for (DeptBean dept : children) {
-                mainTree.remove(dept.getCode());
-                removeMainTree(dept.getCode(), childrenMap,mainTree);
             }
         }
     }

@@ -1,9 +1,9 @@
 package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bean.NodeDto;
-import com.qtgl.iga.bo.NodeRules;
 import com.qtgl.iga.bo.NodeRulesRange;
 import com.qtgl.iga.dao.NodeRulesRangeDao;
+import com.qtgl.iga.vo.NodeRulesVo;
 import org.apache.commons.beanutils.BeanUtils;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 import javax.annotation.Resource;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.*;
 
 
@@ -47,38 +48,46 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
 
     @Override
     public NodeDto saveNodeRuleRange(NodeDto nodeDto) {
-//        String str = "insert into t_mgr_node_rules_range values(?,?,?,?,?,?,?)";
-//        for (NodeRulesRange nodeRulesRange : nodeDto.getNodeRulesRanges()) {
-//            nodeRulesRange.setId(UUID.randomUUID().toString().replace("-", ""));
-//            nodeRulesRange.setNodeRulesId(nodeDto.getNodeRules().get(0).get);
-//            nodeRulesRange.setActiveTime(new Date().getTime());
-//            nodeRulesRange.setCreateTime(new Date().getTime());
-//            nodeRulesRange.setUpdateTime(null);
-//        }
-//        List<NodeRules> nodeRules = nodeDto.getNodeRules();
-//        int[] ints = jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
-//            @Override
-//            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-//                preparedStatement.setObject(1, nodeRules.get(i).getId());
-//                preparedStatement.setObject(2, nodeRules.get(i).getNodeId());
-//                preparedStatement.setObject(3, nodeRules.get(i).getType());
-//                preparedStatement.setObject(4, nodeRules.get(i).isActive());
-//                preparedStatement.setObject(5, nodeRules.get(i).getActiveTime());
-//                preparedStatement.setObject(6, nodeRules.get(i).getCreateTime());
-//                preparedStatement.setObject(7, null);
-//                preparedStatement.setObject(8, nodeRules.get(i).getServiceKey());
-//                preparedStatement.setObject(9, nodeRules.get(i).getUpstreamTypesId());
-//                preparedStatement.setObject(10, nodeRules.get(i).getInherit());
-//                preparedStatement.setObject(11, nodeRules.get(i).getSort());
-//            }
-//
-//            @Override
-//            public int getBatchSize() {
-//                return nodeRules.size();
-//            }
-//        });
-//        Boolean contains = ints.toString().contains("-1");
-//        return contains? null : nodeDto;
-        return null;
+        String str = "insert into t_mgr_node_rules_range values(?,?,?,?,?,?,?)";
+        boolean contains = false;
+        for (NodeRulesVo nodeRule : nodeDto.getNodeRules()) {
+            List<NodeRulesRange> nodeRulesRanges = nodeRule.getNodeRulesRanges();
+            for (NodeRulesRange nodeRulesRange : nodeRulesRanges) {
+                nodeRulesRange.setId(UUID.randomUUID().toString().replace("-", ""));
+                nodeRulesRange.setNodeRulesId(nodeRule.getId());
+                nodeRulesRange.setCreateTime(new Date().getTime());
+            }
+            int[] ints = jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
+                @Override
+                public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                    preparedStatement.setObject(1, nodeRulesRanges.get(i).getId());
+                    preparedStatement.setObject(2, nodeRulesRanges.get(i).getNodeRulesId());
+                    preparedStatement.setObject(3, nodeRulesRanges.get(i).getType());
+                    preparedStatement.setObject(4, nodeRulesRanges.get(i).getNode());
+                    preparedStatement.setObject(5, nodeRulesRanges.get(i).getRange());
+                    preparedStatement.setObject(6, new Timestamp(nodeRulesRanges.get(i).getCreateTime()));
+                    preparedStatement.setObject(7, nodeRulesRanges.get(i).getRename());
+                }
+
+                @Override
+                public int getBatchSize() {
+                    return nodeRulesRanges.size();
+                }
+            });
+            contains = contains || Arrays.toString(ints).contains("-1");
+        }
+
+
+        return contains ? null : nodeDto;
+    }
+
+    @Override
+    public Integer deleteNodeRulesRange(String id) {
+        Object[] params = new Object[1];
+        params[0] = id;
+
+        String sql = "delete from t_mgr_node_rules_range where  node_rules_id = ? ";
+
+        return jdbcIGA.update(sql, params);
     }
 }

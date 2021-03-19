@@ -13,7 +13,7 @@ public interface NodeRulesService {
 
     NodeRules deleteRules(Map<String, Object> arguments, String id);
 
-    NodeRules saveRules(NodeRules nodeRules, String id);
+    NodeRules saveRules(NodeRules nodeRules);
 
     NodeRules updateRules(NodeRules nodeRules);
 }

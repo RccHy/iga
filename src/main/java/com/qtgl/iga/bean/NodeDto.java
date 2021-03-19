@@ -1,7 +1,7 @@
 package com.qtgl.iga.bean;
 
 import com.qtgl.iga.bo.Node;
-import com.qtgl.iga.bo.NodeRules;
+import com.qtgl.iga.vo.NodeRulesVo;
 import lombok.Data;
 
 import java.util.List;
@@ -14,7 +14,18 @@ import java.util.List;
 public class NodeDto extends Node {
 
     //节点规则明细
-    private List<NodeRules> nodeRules;
+    private List<NodeRulesVo> nodeRules;
 
+    public NodeDto() {
+    }
 
+    public NodeDto(Node node) {
+        this.setId(node.getId());
+        this.setCreateTime(node.getCreateTime());
+        this.setDomain(node.getDomain());
+        this.setManual(node.getManual());
+        this.setNodeCode(node.getNodeCode());
+        this.setUpdateTime(node.getUpdateTime());
+        this.setDeptTreeType(node.getDeptTreeType());
+    }
 }

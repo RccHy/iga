@@ -52,8 +52,8 @@ public class NodeDataFetcher {
             DomainInfo domain = CertifiedConnector.getDomain();
             // 获取传入参数
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
-            NodeDto deptType = JSON.parseObject(JSON.toJSONString(arguments.get("entity")), NodeDto.class);
-            NodeDto data = nodeService.saveNode(deptType, domain.getId());
+            NodeDto nodeDto = JSON.parseObject(JSON.toJSONString(arguments.get("entity")), NodeDto.class);
+            NodeDto data = nodeService.saveNode(nodeDto, domain.getId());
             if (null != data) {
                 return data;
             }

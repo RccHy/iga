@@ -13,4 +13,6 @@ public interface NodeRulesRangeDao {
 
 
     NodeDto saveNodeRuleRange(NodeDto nodeRulesRanges);
+
+    Integer deleteNodeRulesRange(String id);
 }

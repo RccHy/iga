@@ -18,7 +18,7 @@ type NodeRules{
     #node外键
     nodeId:String
     #是否继承父类
-    inherit:Boolean
+    inheritId:String
     # 规则类型 0推送 1拉取 3手动
     type:Int
     #是否启用
@@ -45,7 +45,7 @@ input InputNodeRules{
     #node外键
     nodeId:String
     #是否继承父类
-    inherit:Boolean
+    inheritId:String
     # 规则类型 0推送 1拉取 3手动
     type:Int
     #是否启用
@@ -63,7 +63,7 @@ input InputNodeRules{
     #排序
     sort:Int
     #规则明细作用域
-    nodeRulesRange:[InputNodeRulesRange]
+    nodeRulesRanges:[InputNodeRulesRange]
 }
 
 input NodeRulesFilter{

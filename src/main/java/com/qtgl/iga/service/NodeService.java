@@ -15,9 +15,9 @@ public interface NodeService {
 
     List<Node> getByCode(String domain, String deptTreeType,String nodeCode);
 
-    NodeDto deleteNode(Map<String, Object> arguments, String id);
+    NodeDto deleteNode(Map<String, Object> arguments, String id) throws Exception;
 
-    NodeDto findNodes(Map<String, Object> arguments, String id);
+    Node findNodes(Map<String, Object> arguments, String id);
 
     NodeDto updateNode(NodeDto nodeDto);
 }
