@@ -65,34 +65,42 @@ public class NodeServiceImpl implements NodeService {
     @Override
     public NodeDto deleteNode(Map<String, Object> arguments, String id) throws Exception {
         //根据id查询规则是否为禁用状态
+        Integer i = 0;
+        Integer flag = 0;
         List<NodeRules> nodeRules = nodeRulesDao.getByNodeAndType((String) arguments.get("id"), null, true);
         if (nodeRules.size() > 0) {
             throw new Exception("有节点包含启用规则,请关闭后删除");
         }
-        //删除node
+
         Node node = nodeDao.findNodes(arguments, id);
         NodeDto nodeDto = new NodeDto(node);
-        Integer integer = nodeDao.deleteNode(arguments, id);
-        if (integer > 0) {
-            //删除rule
-            List<NodeRulesVo> rules = nodeRulesDao.findNodeRulesByNodeId((String) arguments.get("id"));
-            Integer i = nodeRulesDao.deleteNodeRules((String) arguments.get("id"));
 
-            //删除range
-            if (i > 0) {
+        List<NodeRulesVo> rules = nodeRulesDao.findNodeRulesByNodeId((String) arguments.get("id"));
 
-                for (NodeRulesVo rule : rules) {
-                    List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(rule.getId());
-                    Integer flag = nodeRulesRangeDao.deleteNodeRulesRange(rule.getId());
-                    if (flag > 0) {
-                        rule.setNodeRulesRanges(byRulesId);
-                    } else {
-                        throw new Exception("删除节点规则作用域失败");
-                    }
-                }
+        //删除range
+        for (NodeRulesVo rule : rules) {
+            List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(rule.getId());
+            flag = nodeRulesRangeDao.deleteNodeRulesRange(rule.getId());
+            if (flag > 0) {
+                rule.setNodeRulesRanges(byRulesId);
+            } else {
+                throw new Exception("删除节点规则作用域失败");
             }
+        }
+        if (flag > 0) {
+            //删除rule
+            i = nodeRulesDao.deleteNodeRules((String) arguments.get("id"));
             nodeDto.setNodeRules(rules);
-            return nodeDto;
+        } else {
+            throw new Exception("删除节点规则失败");
+        }
+        if (i > 0) {
+            //删除node
+            Integer integer = nodeDao.deleteNode(arguments, id);
+            if (integer > 0) {
+
+                return nodeDto;
+            }
         }
 
 

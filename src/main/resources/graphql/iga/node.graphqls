@@ -55,8 +55,10 @@ input InputNode{
     #修改时间
     updateTime:Timestamp
 
-    #租户
-    domain:String
+#    #租户
+#    domain:String
+    #部门树类型
+    deptTreeType:String
 
     #规则明细
     nodeRules:[InputNodeRules]
