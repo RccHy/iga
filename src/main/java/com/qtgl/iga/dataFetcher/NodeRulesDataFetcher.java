@@ -6,6 +6,7 @@ import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.NodeRules;
 import com.qtgl.iga.service.NodeRulesService;
 import com.qtgl.iga.utils.CertifiedConnector;
+import com.qtgl.iga.vo.NodeRulesVo;
 import graphql.schema.DataFetcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,8 +53,8 @@ public class NodeRulesDataFetcher {
             DomainInfo domain = CertifiedConnector.getDomain();
             // 获取传入参数
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
-            NodeRules nodeRules = JSON.parseObject(JSON.toJSONString(arguments.get("entity")), NodeRules.class);
-            NodeRules data = nodeRulesService.saveRules(nodeRules);
+            NodeRulesVo nodeRules = JSON.parseObject(JSON.toJSONString(arguments.get("entity")), NodeRulesVo.class);
+            NodeRulesVo data = nodeRulesService.saveRules(nodeRules);
             if (null != data) {
                 return data;
             }
@@ -67,8 +68,8 @@ public class NodeRulesDataFetcher {
             DomainInfo domain = CertifiedConnector.getDomain();
             // 获取传入参数
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
-            NodeRules nodeRules = JSON.parseObject(JSON.toJSONString(arguments.get("entity")), NodeRules.class);
-            NodeRules data = nodeRulesService.updateRules(nodeRules);
+            NodeRulesVo nodeRules = JSON.parseObject(JSON.toJSONString(arguments.get("entity")), NodeRulesVo.class);
+            NodeRulesVo data = nodeRulesService.updateRules(nodeRules);
             if (null != data) {
                 return data;
             }

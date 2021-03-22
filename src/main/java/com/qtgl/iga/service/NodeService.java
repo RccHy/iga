@@ -17,7 +17,7 @@ public interface NodeService {
 
     NodeDto deleteNode(Map<String, Object> arguments, String id) throws Exception;
 
-    List<Node> findNodes(Map<String, Object> arguments, String id);
+    List<NodeDto> findNodes(Map<String, Object> arguments, String id);
 
     NodeDto updateNode(NodeDto nodeDto);
 }

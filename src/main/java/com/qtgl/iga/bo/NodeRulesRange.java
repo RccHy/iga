@@ -29,4 +29,7 @@ public class NodeRulesRange {
 
     //创建时间
     private Long createTime;
+
+    //创建时间
+    private Long updateTime;
 }

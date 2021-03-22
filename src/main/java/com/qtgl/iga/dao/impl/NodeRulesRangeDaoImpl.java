@@ -7,6 +7,7 @@ import com.qtgl.iga.vo.NodeRulesVo;
 import org.apache.commons.beanutils.BeanUtils;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.Resource;
@@ -67,6 +68,8 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
                     preparedStatement.setObject(5, nodeRulesRanges.get(i).getRange());
                     preparedStatement.setObject(6, new Timestamp(nodeRulesRanges.get(i).getCreateTime()));
                     preparedStatement.setObject(7, nodeRulesRanges.get(i).getRename());
+                    preparedStatement.setObject(8, null);
+
                 }
 
                 @Override
@@ -82,7 +85,7 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
     }
 
     @Override
-    public Integer deleteNodeRulesRange(String id) {
+    public Integer deleteNodeRulesRangeByRuleId(String id) {
         Object[] params = new Object[1];
         params[0] = id;
 
@@ -90,4 +93,44 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
 
         return jdbcIGA.update(sql, params);
     }
+
+    @Override
+    public NodeRulesRange updateRulesRange(NodeRulesRange rulesRange) {
+        String sql = "update t_mgr_node_rules_range  set node_rules_id = ?,type = ?,node = ?,range = ?,create_time = ?," +
+                "rename = ?,update_time = ?  where id=?";
+        Timestamp date = new Timestamp(new Date().getTime());
+        int update = jdbcIGA.update(sql, preparedStatement -> {
+            preparedStatement.setObject(1, rulesRange.getNodeRulesId());
+            preparedStatement.setObject(2, rulesRange.getType());
+            preparedStatement.setObject(3, rulesRange.getNode());
+            preparedStatement.setObject(4, rulesRange.getRange());
+            preparedStatement.setObject(5, rulesRange.getCreateTime());
+            preparedStatement.setObject(6, rulesRange.getRename());
+            preparedStatement.setObject(7, date);
+            preparedStatement.setObject(8, rulesRange.getId());
+        });
+        return update > 0 ? rulesRange : null;
+    }
+
+    @Override
+    public NodeRulesRange saveNodeRuleRange(NodeRulesRange rulesRange) {
+        if (null == rulesRange.getId()) {
+            rulesRange.setId(UUID.randomUUID().toString().replace("-", ""));
+        }
+        String str = "insert into t_mgr_node_rules_range values(?,?,?,?,?,?,?,?)";
+        rulesRange.setCreateTime(new Date().getTime());
+        return jdbcIGA.update(str, preparedStatement -> {
+            preparedStatement.setObject(1, rulesRange.getId());
+            preparedStatement.setObject(2, rulesRange.getNodeRulesId());
+            preparedStatement.setObject(3, rulesRange.getType());
+            preparedStatement.setObject(4, rulesRange.getNode());
+            preparedStatement.setObject(5, rulesRange.getRange());
+            preparedStatement.setObject(6, new Timestamp(rulesRange.getCreateTime()));
+            preparedStatement.setObject(7, rulesRange.getRename());
+            preparedStatement.setObject(8, null);
+        }) > 0 ? rulesRange : null;
+
+    }
+
+
 }

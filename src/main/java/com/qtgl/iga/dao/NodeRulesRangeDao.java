@@ -14,5 +14,11 @@ public interface NodeRulesRangeDao {
 
     NodeDto saveNodeRuleRange(NodeDto nodeRulesRanges);
 
-    Integer deleteNodeRulesRange(String id);
+    Integer deleteNodeRulesRangeByRuleId(String id);
+
+
+    NodeRulesRange updateRulesRange(NodeRulesRange rulesRange);
+
+    NodeRulesRange saveNodeRuleRange(NodeRulesRange rulesRange);
+
 }

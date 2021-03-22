@@ -70,7 +70,8 @@ input InputNode{
 }
 
 input NodeFilter{
-    id:stringFilter
+    deptTreeType:stringFilter
+    nodeCode:stringFilter
 }
 
 

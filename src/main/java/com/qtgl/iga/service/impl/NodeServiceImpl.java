@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -80,7 +81,7 @@ public class NodeServiceImpl implements NodeService {
         //删除range
         for (NodeRulesVo rule : rules) {
             List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(rule.getId());
-            flag = nodeRulesRangeDao.deleteNodeRulesRange(rule.getId());
+            flag = nodeRulesRangeDao.deleteNodeRulesRangeByRuleId(rule.getId());
             if (flag > 0) {
                 rule.setNodeRulesRanges(byRulesId);
             } else {
@@ -108,9 +109,23 @@ public class NodeServiceImpl implements NodeService {
     }
 
     @Override
-    public List<Node> findNodes(Map<String, Object> arguments, String id) {
+    public List<NodeDto> findNodes(Map<String, Object> arguments, String id) {
+        ArrayList<NodeDto> nodeDtos = new ArrayList<>();
+        //获取node
         List<Node> nodeList = nodeDao.findNodes(arguments, id);
-        return nodeList;
+        //根据node查询对应规则
+        for (Node node : nodeList) {
+            NodeDto nodeDto = new NodeDto(node);
+            List<NodeRulesVo> nodeRulesByNodeId = nodeRulesDao.findNodeRulesByNodeId(node.getId());
+            //根据rules查询对应的range
+            for (NodeRulesVo nodeRulesVo : nodeRulesByNodeId) {
+                List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(nodeRulesVo.getId());
+                nodeRulesVo.setNodeRulesRanges(byRulesId);
+            }
+            nodeDto.setNodeRules(nodeRulesByNodeId);
+            nodeDtos.add(nodeDto);
+        }
+        return nodeDtos;
     }
 
     @Override

@@ -121,6 +121,36 @@ public class NodeDaoImpl implements NodeDao {
                 stb.append("and id= ? ");
                 param.add(entry.getValue());
             }
+            if (entry.getKey().equals("filter")) {
+                HashMap<String, Object> map = (HashMap<String, Object>) entry.getValue();
+                for (Map.Entry<String, Object> str : map.entrySet()) {
+                    if (str.getKey().equals("deptTreeType")) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "=")) {
+                                stb.append("and dept_tree_type " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+
+
+                    }
+                    if (str.getKey().equals("nodeCode")) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "=")) {
+                                stb.append("and node_code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+
+
+                    }
+
+
+                }
+
+            }
 
 //            System.out.println("key = " + entry.getKey() + ", value = " + entry.getValue());
         }

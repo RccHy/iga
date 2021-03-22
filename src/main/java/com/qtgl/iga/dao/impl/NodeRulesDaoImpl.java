@@ -7,6 +7,7 @@ import com.qtgl.iga.vo.NodeRulesVo;
 import org.apache.commons.beanutils.BeanUtils;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.stereotype.Repository;
 
 
@@ -171,6 +172,58 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
             return list;
         }
         return null;
+    }
+
+    @Override
+    public NodeRulesVo saveNodeRules(NodeRulesVo nodeRules) {
+        String str = "insert into t_mgr_node_rules values(?,?,?,?,?,?,?,?,?,?,?)";
+        nodeRules.setId(UUID.randomUUID().toString().replace("-", ""));
+        nodeRules.setCreateTime(new Date().getTime());
+        nodeRules.setUpdateTime(null);
+        return jdbcIGA.update(str, preparedStatement -> {
+            preparedStatement.setObject(1, nodeRules.getId());
+            preparedStatement.setObject(2, nodeRules.getNodeId());
+            preparedStatement.setObject(3, nodeRules.getType());
+            preparedStatement.setObject(4, nodeRules.getActive());
+            preparedStatement.setObject(5, null);
+            preparedStatement.setObject(6, new Timestamp(nodeRules.getCreateTime()));
+            preparedStatement.setObject(7, null);
+            preparedStatement.setObject(8, nodeRules.getServiceKey());
+            preparedStatement.setObject(9, nodeRules.getUpstreamTypesId());
+            preparedStatement.setObject(10, nodeRules.getInheritId());
+            preparedStatement.setObject(11, nodeRules.getSort());
+        }) > 0 ? nodeRules : null;
+
+
+    }
+
+    @Override
+    public NodeRules findNodeRulesById(String id) {
+        String sql = "select id,node_id as nodeId,type as type,active as active," +
+                "create_time as createTime,service_key as serviceKey,upstream_types_id as upstreamTypesId,inherit_id as inheritId," +
+                "active_time as activeTime,update_time as updateTime from t_mgr_node_rules where 1 = 1 and id= ? ";
+        Map<String, Object> mapList = jdbcIGA.queryForMap(sql, id);
+        NodeRules nodeRules = new NodeRules();
+
+        if (null != mapList) {
+            try {
+                BeanUtils.populate(nodeRules, mapList);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                e.printStackTrace();
+            }
+
+            return nodeRules;
+        }
+        return null;
+    }
+
+    @Override
+    public Integer deleteNodeRulesById(String id) {
+        Object[] params = new Object[1];
+        params[0] = id;
+        String sql = "delete from t_mgr_node_rules where  id = ? ";
+
+        return jdbcIGA.update(sql, params);
     }
 
 

@@ -1,13 +1,12 @@
 package com.qtgl.iga.bean;
 
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
+
 
 import java.sql.Timestamp;
 
-@Getter
-@Setter
+@Data
 public class DeptBean {
 
     private String code;

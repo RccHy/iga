@@ -47,6 +47,8 @@ public class DeptServiceImpl implements DeptService {
     DataBusUtil dataBusUtil;
     @Autowired
     DeptTreeTypeDao deptTreeTypeDao;
+    @Autowired
+    UpstreamDeptDao upstreamDeptDao;
 
 
     @Override
@@ -143,9 +145,7 @@ public class DeptServiceImpl implements DeptService {
                     return mainTree;
                 }
 
-                // todo 添加数据到iga数据库
-                System.out.println("-----------------------"+upstreamTree);
-                saveDataToDb(upstreamTree);
+
                 // todo  upstreamTree 不能有重复 code
 
 
@@ -156,8 +156,14 @@ public class DeptServiceImpl implements DeptService {
                         dept.put(TreeEnum.PARENTCODE.getCode(), "");
 
                 }
+
+                Integer flag = saveDataToDb(upstreamTree, upstreamType.getId());
+                if (!(flag > 0)) {
+                    throw new Exception("数据插入 iga 失败");
+                }
                 //对树 json 转为 map
                 Map<String, JSONObject> upstreamMap = TreeUtil.toMap(upstreamTree);
+
                 //对树进行 parent 分组
                 Map<String, List<JSONObject>> childrenMap = TreeUtil.groupChildren(upstreamTree);
                 //查询 树 运行  规则,
@@ -247,8 +253,24 @@ public class DeptServiceImpl implements DeptService {
         return mainTree;
     }
 
-    private void saveDataToDb(JSONArray upstreamTree) {
-
+    /**
+     * @param upstreamTree
+     * @param id
+     * @Description: 将上游部门数据存入iga数据库
+     * @return: java.lang.Integer
+     */
+    private Integer saveDataToDb(JSONArray upstreamTree, String id) {
+        //上游数据已有时间戳的情况
+        UpstreamDept upstreamDept = new UpstreamDept();
+        upstreamDept.setDept(upstreamTree.toJSONString());
+        upstreamDept.setUpstreamTypeId(id);
+        UpstreamDept upstreamDepts = upstreamDeptDao.saveUpstreamDepts(upstreamDept);
+        return null == upstreamDepts ? 0 : 1;
+        // todo 上游数据没有时间戳
+//        List<DeptBean> deptBeans = upstreamTree.toJavaList(DeptBean.class);
+//        for (DeptBean deptBean : deptBeans) {
+//            System.out.println(deptBean);
+//        }
     }
 
 
