@@ -15,5 +15,5 @@ public interface NodeDao {
 
     Integer deleteNode(Map<String, Object> arguments, String id);
 
-    Node findNodes(Map<String, Object> arguments, String domain);
+    List<Node> findNodes(Map<String, Object> arguments, String domain);
 }

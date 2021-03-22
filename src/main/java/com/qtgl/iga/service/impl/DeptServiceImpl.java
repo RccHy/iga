@@ -137,13 +137,15 @@ public class DeptServiceImpl implements DeptService {
                 } else {
                     upstreamTree = JSONObject.parseObject(dataByBus.get("data").toString()).getJSONArray("dept");
                 }
-
-
                 //验证树的合法性
                 if (upstreamTree.size() <= 0) {
                     logger.info("数据源获取部门数据为空{}", upstreamType.toString());
                     return mainTree;
                 }
+
+                // todo 添加数据到iga数据库
+                System.out.println("-----------------------"+upstreamTree);
+                saveDataToDb(upstreamTree);
                 // todo  upstreamTree 不能有重复 code
 
 
@@ -243,6 +245,10 @@ public class DeptServiceImpl implements DeptService {
 
         }
         return mainTree;
+    }
+
+    private void saveDataToDb(JSONArray upstreamTree) {
+
     }
 
 

@@ -72,7 +72,7 @@ public class NodeServiceImpl implements NodeService {
             throw new Exception("有节点包含启用规则,请关闭后删除");
         }
 
-        Node node = nodeDao.findNodes(arguments, id);
+        Node node = nodeDao.findNodes(arguments, id).get(0);
         NodeDto nodeDto = new NodeDto(node);
 
         List<NodeRulesVo> rules = nodeRulesDao.findNodeRulesByNodeId((String) arguments.get("id"));
@@ -108,9 +108,9 @@ public class NodeServiceImpl implements NodeService {
     }
 
     @Override
-    public Node findNodes(Map<String, Object> arguments, String id) {
-        Node node = nodeDao.findNodes(arguments, id);
-        return node;
+    public List<Node> findNodes(Map<String, Object> arguments, String id) {
+        List<Node> nodeList = nodeDao.findNodes(arguments, id);
+        return nodeList;
     }
 
     @Override

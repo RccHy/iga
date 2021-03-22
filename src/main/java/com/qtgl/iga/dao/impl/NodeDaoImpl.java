@@ -4,6 +4,7 @@ import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.Node;
 import com.qtgl.iga.bo.UpstreamType;
 import com.qtgl.iga.dao.NodeDao;
+import com.qtgl.iga.utils.FilterCodeEnum;
 import org.apache.commons.beanutils.BeanUtils;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -81,26 +82,48 @@ public class NodeDaoImpl implements NodeDao {
     }
 
     @Override
-    public Node findNodes(Map<String, Object> arguments, String domain) {
-        Node node = new Node();
+    public List<Node> findNodes(Map<String, Object> arguments, String domain) {
+        ArrayList<Node> nodes = new ArrayList<>();
 
         String sql = "select id,manual," +
                 "node_code as nodeCode," +
-                "create_time as createTime,update_time as updateTime,domain" +
-                " from t_mgr_node where domain=? and id=?";
-        List<Map<String, Object>> mapList = new ArrayList<>();
-
-        mapList = jdbcIGA.queryForList(sql, domain, arguments.get("id"));
+                "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType" +
+                " from t_mgr_node where domain= ? ";
+        //拼接sql
+        StringBuffer stb = new StringBuffer(sql);
+        //存入参数
+        List<Object> param = new ArrayList<>();
+        param.add(domain);
+        dealData(arguments, stb, param);
+//        getChild(arguments,param,stb);
+        System.out.println(stb.toString());
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
 
         for (Map<String, Object> map : mapList) {
             try {
+                Node node = new Node();
                 BeanUtils.populate(node, map);
+                nodes.add(node);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
 
-        return node;
+        return nodes;
+    }
+
+
+    private void dealData(Map<String, Object> arguments, StringBuffer stb, List<Object> param) {
+        Iterator<Map.Entry<String, Object>> it = arguments.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<String, Object> entry = it.next();
+            if (entry.getKey().equals("id")) {
+                stb.append("and id= ? ");
+                param.add(entry.getValue());
+            }
+
+//            System.out.println("key = " + entry.getKey() + ", value = " + entry.getValue());
+        }
     }
 
 

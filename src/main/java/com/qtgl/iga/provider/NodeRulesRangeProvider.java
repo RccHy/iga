@@ -20,7 +20,7 @@ public class NodeRulesRangeProvider {
 
     public TypeRuntimeWiring.Builder buildQueryRuntimeWiring() {
         TypeRuntimeWiring.Builder builder = newTypeWiring("Query")
-                .dataFetcher("findNodeRulesRange", dataFetcher.findNodeRulesRange());
+                .dataFetcher("nodeRulesRanges", dataFetcher.findNodeRulesRange());
         return builder;
     }
 

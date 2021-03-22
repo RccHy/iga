@@ -19,7 +19,7 @@ public class NodeRulesProvider {
 
     public TypeRuntimeWiring.Builder buildQueryRuntimeWiring() {
         TypeRuntimeWiring.Builder builder = newTypeWiring("Query")
-                .dataFetcher("findNodeRules", dataFetcher.findNodeRules());
+                .dataFetcher("nodeRules", dataFetcher.findNodeRules());
         return builder;
     }
 

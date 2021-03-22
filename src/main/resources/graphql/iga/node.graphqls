@@ -1,6 +1,6 @@
 extend type Query {
     #查询节点规则列表
-    findNodes(id:ID,filter:NodeFilter):[Node]
+    nodes(id:ID,filter:NodeFilter):[Node]
 }
 extend type Mutation {
     #新增节点规则
@@ -34,6 +34,8 @@ type Node{
 
     #规则明细
     nodeRules:[NodeRules]
+    #部门树类型
+    deptTreeType:String
 
 }
 

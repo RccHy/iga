@@ -1,6 +1,6 @@
 extend type Query {
     #查询组织机构
-    findDept(treeType:String):[Dept]
+    depts(treeType:String):[Dept]
 }
 
 
