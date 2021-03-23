@@ -38,4 +38,24 @@ public class UpstreamDeptDaoImpl implements UpstreamDeptDao {
         });
         return update > 0 ? upstreamDept : null;
     }
+
+    @Override
+    public UpstreamDept findUpstreamDeptByUpstreamId(String id) {
+        String sql = "select id,upstream_type_id as upstreamTypeId ,dept,create_time as createTime from t_mgr_upstream_dept  where upstream_type_id = ? ";
+        UpstreamDept upstreamDept = jdbcIGA.queryForObject(sql, UpstreamDept.class, id);
+
+        return upstreamDept;
+    }
+
+    @Override
+    public UpstreamDept updateUpstreamDepts(UpstreamDept upstreamDept) {
+        String sql = "update t_mgr_upstream_dept  set dept=?,create_time =? where upstream_type_id=? ";
+
+        int update = jdbcIGA.update(sql, preparedStatement -> {
+            preparedStatement.setObject(1, upstreamDept.getDept());
+            preparedStatement.setObject(2, upstreamDept.getCreateTime());
+            preparedStatement.setObject(3, upstreamDept.getUpstreamTypeId());
+        });
+        return update > 0 ? upstreamDept : null;
+    }
 }

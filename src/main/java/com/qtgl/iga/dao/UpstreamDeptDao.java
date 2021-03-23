@@ -9,4 +9,8 @@ import com.qtgl.iga.bo.UpstreamDept;
  **/
 public interface UpstreamDeptDao {
     UpstreamDept saveUpstreamDepts(UpstreamDept upstreamDept);
+
+    UpstreamDept findUpstreamDeptByUpstreamId(String id);
+
+    UpstreamDept updateUpstreamDepts(UpstreamDept upstreamDept);
 }
