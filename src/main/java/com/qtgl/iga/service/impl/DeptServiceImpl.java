@@ -19,7 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -261,10 +260,22 @@ public class DeptServiceImpl implements DeptService {
 
                 /*========================规则运算完成=============================*/
             }
-
-
         }
+        // todo 数据合法性
+//        同步到sso
+        saveToSso(mainTree);
         return mainTree;
+    }
+
+    /**
+     * @Description: 处理数据并插入sso
+     * @param mainTree
+     * @return: void
+     */
+    private void saveToSso(Map<String, DeptBean> mainTree) {
+        Collection<DeptBean> mainDept = mainTree.values();
+        ArrayList<DeptBean> deptBeans = new ArrayList<>(mainDept);
+
     }
 
     /**
@@ -278,13 +289,18 @@ public class DeptServiceImpl implements DeptService {
         UpstreamDept upstreamDept = new UpstreamDept();
         upstreamDept.setDept(upstreamTree.toJSONString());
         upstreamDept.setUpstreamTypeId(id);
-        UpstreamDept upstreamDepts = upstreamDeptDao.saveUpstreamDepts(upstreamDept);
+        UpstreamDept upstreamDepts = null;
+        //查询数据库是否有数据
+        UpstreamDept upstreamDeptDb = upstreamDeptDao.findUpstreamDeptByUpstreamId(id);
+        if (null == upstreamDeptDb) {
+            upstreamDepts = upstreamDeptDao.saveUpstreamDepts(upstreamDept);
+        } else {
+            upstreamDepts = upstreamDeptDao.updateUpstreamDepts(upstreamDept);
+            upstreamDepts.setId(upstreamDeptDb.getId());
+        }
+
         return null == upstreamDepts ? 0 : 1;
-        // todo 上游数据没有时间戳
-//        List<DeptBean> deptBeans = upstreamTree.toJavaList(DeptBean.class);
-//        for (DeptBean deptBean : deptBeans) {
-//            System.out.println(deptBean);
-//        }
+
     }
 
 

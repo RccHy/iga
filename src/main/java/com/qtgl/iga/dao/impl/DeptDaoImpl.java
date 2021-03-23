@@ -18,14 +18,14 @@ import java.util.Map;
 public class DeptDaoImpl implements DeptDao {
 
 
-    @Resource(name = "jdbcSSOAPI")
-    JdbcTemplate jdbcSSOAPI;
+    @Resource(name = "jdbcIGA")
+    JdbcTemplate jdbcIGA;
 
     @Override
     public List<Dept> getAllDepts() {
         String sql = "select id, code, name, type_id as typeId,create_time as createTime from dept";
 
-        List<Map<String, Object>> mapList = jdbcSSOAPI.queryForList(sql);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql);
         ArrayList<Dept> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {
@@ -44,7 +44,7 @@ public class DeptDaoImpl implements DeptDao {
     public Dept findById(String id) {
         String sql = "select id, code, name, type_id as typeId,create_time as createTime from dept where id= ? ";
 
-        List<Map<String, Object>> mapList = jdbcSSOAPI.queryForList(sql, id);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id);
         Dept dept = new Dept();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {
