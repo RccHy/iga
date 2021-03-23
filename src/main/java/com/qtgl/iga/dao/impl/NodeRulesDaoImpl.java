@@ -59,10 +59,18 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
 
         String str = "insert into t_mgr_node_rules values(?,?,?,?,?,?,?,?,?,?,?)";
         for (NodeRules nodeRules : nodeDto.getNodeRules()) {
-            nodeRules.setId(UUID.randomUUID().toString().replace("-", ""));
+            if (null != nodeRules.getId()) {
+                nodeRules.setCreateTime(nodeDto.getCreateTime());
+                nodeRules.setUpdateTime(nodeDto.getUpdateTime());
+
+            } else {
+                nodeRules.setId(UUID.randomUUID().toString().replace("-", ""));
+                nodeRules.setCreateTime(new Date().getTime());
+                nodeRules.setUpdateTime(null);
+            }
             nodeRules.setNodeId(nodeDto.getId());
-            nodeRules.setCreateTime(new Date().getTime());
-            nodeRules.setUpdateTime(null);
+
+
         }
         List<NodeRulesVo> nodeRules = nodeDto.getNodeRules();
         int[] ints = jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
@@ -72,9 +80,9 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
                 preparedStatement.setObject(2, nodeRules.get(i).getNodeId());
                 preparedStatement.setObject(3, nodeRules.get(i).getType());
                 preparedStatement.setObject(4, nodeRules.get(i).getActive());
-                preparedStatement.setObject(5, null);
+                preparedStatement.setObject(5, null == nodeRules.get(i).getActiveTime() ? null : new Timestamp(nodeRules.get(i).getActiveTime()));
                 preparedStatement.setObject(6, new Timestamp(nodeRules.get(i).getCreateTime()));
-                preparedStatement.setObject(7, null);
+                preparedStatement.setObject(7, null == nodeRules.get(i).getUpdateTime() ? null : new Timestamp(nodeRules.get(i).getUpdateTime()));
                 preparedStatement.setObject(8, nodeRules.get(i).getServiceKey());
                 preparedStatement.setObject(9, nodeRules.get(i).getUpstreamTypesId());
                 preparedStatement.setObject(10, nodeRules.get(i).getInheritId());
