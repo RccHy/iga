@@ -23,4 +23,10 @@ public class DataSourceConfig {
     DataSource dsSSO() {
         return DruidDataSourceBuilder.create().build();
     }
+
+    @Bean
+    @ConfigurationProperties(prefix = "spring.datasource.sso.api")
+    DataSource dsSSOAPI() {
+        return DruidDataSourceBuilder.create().build();
+    }
 }

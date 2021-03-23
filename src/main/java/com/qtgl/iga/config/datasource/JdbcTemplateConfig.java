@@ -19,4 +19,9 @@ public class JdbcTemplateConfig {
     JdbcTemplate jdbcSSO(@Qualifier("dsSSO") DataSource dsSSO) {
         return new JdbcTemplate(dsSSO);
     }
+
+    @Bean
+    JdbcTemplate jdbcSSOAPI(@Qualifier("dsSSOAPI") DataSource dsIGA) {
+        return new JdbcTemplate(dsIGA);
+    }
 }

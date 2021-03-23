@@ -6,6 +6,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.DeptBean;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
+
 import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.utils.DataBusUtil;
 import com.qtgl.iga.utils.TreeEnum;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -62,6 +64,8 @@ public class DeptServiceImpl implements DeptService {
         return new ArrayList<>(mainDept);
     }
 
+    public void saveDepts(){};
+
 
     @Override
     public void buildDept() throws Exception {
@@ -82,6 +86,16 @@ public class DeptServiceImpl implements DeptService {
             }
         }
         System.out.println("1");
+
+        // 将数据进行缓存
+
+
+        // todo 异步处理  将 部门数据增量更新至sso-api库，并将数据
+       // CompletableFuture<Void> future = CompletableFuture.runAsync(() -> saveDepts());
+
+
+
+
     }
 
     /**
@@ -177,7 +191,7 @@ public class DeptServiceImpl implements DeptService {
                 renameRules(mergeDeptMap, nodeRulesRanges, childrenMap);
                 logger.info("部门节点:{}的规则运算完成", nodeCode);
             /*
-                todo 和主树进行合并校验
+                 和主树进行合并校验
                 1: 确认权威源， 根据源的排序，在合并时候，判断是否要修改同级别，同code 的节点来源。
                 2： 如果子节点不继承父级规则，则由父级规则之前合并进来的子树先进行删除
              */
