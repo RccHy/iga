@@ -27,15 +27,17 @@ public class NodeDaoImpl implements NodeDao {
 
         String sql = "insert into t_mgr_node  values(?,?,?,?,?,?,?)";
         //生成主键和时间
-        String id = UUID.randomUUID().toString().replace("-", "");
-        node.setId(id);
-        node.setCreateTime(new Date().getTime());
+        if (null == node.getId()) {
+            String id = UUID.randomUUID().toString().replace("-", "");
+            node.setId(id);
+        }
+        node.setCreateTime(null == node.getCreateTime() ? new Date().getTime() : node.getCreateTime());
         int update = jdbcIGA.update(sql, preparedStatement -> {
-            preparedStatement.setObject(1, id);
+            preparedStatement.setObject(1, node.getId());
             preparedStatement.setObject(2, node.getManual());
             preparedStatement.setObject(3, node.getNodeCode());
             preparedStatement.setObject(4, new Timestamp(node.getCreateTime()));
-            preparedStatement.setObject(5, null);
+            preparedStatement.setObject(5, null == node.getUpdateTime() ? null : new Timestamp(node.getUpdateTime()));
             preparedStatement.setObject(6, node.getDomain());
             preparedStatement.setObject(7, node.getDeptTreeType());
 

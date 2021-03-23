@@ -14,10 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @Transactional
@@ -37,7 +34,11 @@ public class NodeServiceImpl implements NodeService {
         //删除原有数据
         HashMap<String, Object> hashMap = new HashMap<>();
         hashMap.put("id", node.getId());
-        deleteNode(hashMap, domain);
+        NodeDto nodeDto = deleteNode(hashMap, domain);
+        if (null != nodeDto) {
+            node.setCreateTime(nodeDto.getCreateTime());
+            node.setUpdateTime(new Date().getTime());
+        }
 
         //添加节点规则
         node.setDomain(domain);
@@ -80,7 +81,7 @@ public class NodeServiceImpl implements NodeService {
 //        }
 
         List<Node> nodes = nodeDao.findNodes(arguments, id);
-        if(null==nodes || nodes.size()<=0){
+        if (null == nodes || nodes.size() <= 0) {
             return null;
         }
 

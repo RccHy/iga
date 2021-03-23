@@ -54,9 +54,15 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
         for (NodeRulesVo nodeRule : nodeDto.getNodeRules()) {
             List<NodeRulesRange> nodeRulesRanges = nodeRule.getNodeRulesRanges();
             for (NodeRulesRange nodeRulesRange : nodeRulesRanges) {
-                nodeRulesRange.setId(UUID.randomUUID().toString().replace("-", ""));
+                if (null != nodeRulesRange.getId()) {
+                    nodeRulesRange.setUpdateTime(nodeDto.getUpdateTime());
+                } else {
+                    nodeRulesRange.setId(UUID.randomUUID().toString().replace("-", ""));
+                    nodeRulesRange.setCreateTime(nodeDto.getCreateTime());
+                    nodeRulesRange.setUpdateTime(null);
+                }
                 nodeRulesRange.setNodeRulesId(nodeRule.getId());
-                nodeRulesRange.setCreateTime(new Date().getTime());
+
             }
             int[] ints = jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
                 @Override
@@ -66,9 +72,9 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
                     preparedStatement.setObject(3, nodeRulesRanges.get(i).getType());
                     preparedStatement.setObject(4, nodeRulesRanges.get(i).getNode());
                     preparedStatement.setObject(5, nodeRulesRanges.get(i).getRange());
-                    preparedStatement.setObject(6, new Timestamp(nodeRulesRanges.get(i).getCreateTime()));
+                    preparedStatement.setObject(6, null == nodeRulesRanges.get(i).getCreateTime() ? null : new Timestamp(nodeRulesRanges.get(i).getCreateTime()));
                     preparedStatement.setObject(7, nodeRulesRanges.get(i).getRename());
-                    preparedStatement.setObject(8, null);
+                    preparedStatement.setObject(8, null == nodeRulesRanges.get(i).getUpdateTime() ? null : new Timestamp(nodeRulesRanges.get(i).getUpdateTime()));
 
                 }
 
