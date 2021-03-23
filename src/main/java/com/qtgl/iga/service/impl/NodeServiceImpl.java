@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -33,6 +34,11 @@ public class NodeServiceImpl implements NodeService {
 
     @Override
     public NodeDto saveNode(NodeDto node, String domain) throws Exception {
+        //删除原有数据
+        HashMap<String, Object> hashMap = new HashMap<>();
+        hashMap.put("id", node.getId());
+        deleteNode(hashMap, domain);
+
         //添加节点规则
         node.setDomain(domain);
         NodeDto save = nodeDao.save(node);
@@ -68,13 +74,17 @@ public class NodeServiceImpl implements NodeService {
         //根据id查询规则是否为禁用状态
         Integer i = 0;
         Integer flag = 0;
-        List<NodeRules> nodeRules = nodeRulesDao.getByNodeAndType((String) arguments.get("id"), null, true);
-        if (nodeRules.size() > 0) {
-            throw new Exception("有节点包含启用规则,请关闭后删除");
+//        List<NodeRules> nodeRules = nodeRulesDao.getByNodeAndType((String) arguments.get("id"), null, true);
+//        if (nodeRules.size() > 0) {
+//            throw new Exception("有节点包含启用规则,请关闭后删除");
+//        }
+
+        List<Node> nodes = nodeDao.findNodes(arguments, id);
+        if(null==nodes || nodes.size()<=0){
+            return null;
         }
 
-        Node node = nodeDao.findNodes(arguments, id).get(0);
-        NodeDto nodeDto = new NodeDto(node);
+        NodeDto nodeDto = new NodeDto(nodes.get(0));
 
         List<NodeRulesVo> rules = nodeRulesDao.findNodeRulesByNodeId((String) arguments.get("id"));
 

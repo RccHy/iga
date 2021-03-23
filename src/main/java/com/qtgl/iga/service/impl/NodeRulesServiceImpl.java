@@ -60,24 +60,24 @@ public class NodeRulesServiceImpl implements NodeRulesService {
 
     @Override
     public NodeRulesVo saveRules(NodeRulesVo nodeRules) throws Exception {
-        ArrayList<NodeRulesRange> nodeRulesRanges = new ArrayList<>();
+//        ArrayList<NodeRulesRange> nodeRulesRanges = new ArrayList<>();
         //添加rules
         NodeRulesVo nodeRulesVo = nodeRulesDao.saveNodeRules(nodeRules);
-        //添加range
-        if (null == nodeRulesVo) {
-            throw new Exception("添加节点规则失败");
-        }
-        if (null != nodeRulesVo.getNodeRulesRanges()) {
-            for (NodeRulesRange nodeRulesRange : nodeRulesVo.getNodeRulesRanges()) {
-                NodeRulesRange range = nodeRulesRangeDao.saveNodeRuleRange(nodeRulesRange);
-                if (null == range) {
-                    throw new Exception("添加节点规则作用域失败");
-                }
-                nodeRulesRanges.add(range);
-
-            }
-        }
-        nodeRulesVo.setNodeRulesRanges(nodeRulesRanges);
+//        //添加range
+//        if (null == nodeRulesVo) {
+//            throw new Exception("添加节点规则失败");
+//        }
+//        if (null != nodeRulesVo.getNodeRulesRanges()) {
+//            for (NodeRulesRange nodeRulesRange : nodeRulesVo.getNodeRulesRanges()) {
+//                NodeRulesRange range = nodeRulesRangeDao.saveNodeRuleRange(nodeRulesRange);
+//                if (null == range) {
+//                    throw new Exception("添加节点规则作用域失败");
+//                }
+//                nodeRulesRanges.add(range);
+//
+//            }
+//        }
+//        nodeRulesVo.setNodeRulesRanges(nodeRulesRanges);
         return nodeRulesVo;
     }
 

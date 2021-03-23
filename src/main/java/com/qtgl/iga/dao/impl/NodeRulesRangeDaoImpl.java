@@ -49,7 +49,7 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
 
     @Override
     public NodeDto saveNodeRuleRange(NodeDto nodeDto) {
-        String str = "insert into t_mgr_node_rules_range values(?,?,?,?,?,?,?)";
+        String str = "insert into t_mgr_node_rules_range values(?,?,?,?,?,?,?,?)";
         boolean contains = false;
         for (NodeRulesVo nodeRule : nodeDto.getNodeRules()) {
             List<NodeRulesRange> nodeRulesRanges = nodeRule.getNodeRulesRanges();
