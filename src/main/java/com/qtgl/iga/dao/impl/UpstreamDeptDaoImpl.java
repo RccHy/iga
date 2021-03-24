@@ -2,13 +2,13 @@ package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bo.UpstreamDept;
 import com.qtgl.iga.dao.UpstreamDeptDao;
+import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.Resource;
 import java.sql.Timestamp;
-import java.util.Date;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * <FileName> UpstreamDeptDaoImpl
@@ -42,9 +42,20 @@ public class UpstreamDeptDaoImpl implements UpstreamDeptDao {
     @Override
     public UpstreamDept findUpstreamDeptByUpstreamId(String id) {
         String sql = "select id,upstream_type_id as upstreamTypeId ,dept,create_time as createTime from t_mgr_upstream_dept  where upstream_type_id = ? ";
-        UpstreamDept upstreamDept = jdbcIGA.queryForObject(sql, UpstreamDept.class, id);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id);
 
-        return upstreamDept;
+        ArrayList<UpstreamDept> list = new ArrayList<>();
+        if (null != mapList && mapList.size() > 0) {
+
+            for (Map<String, Object> map : mapList) {
+                UpstreamDept upstreamDept = new UpstreamDept();
+                BeanMap beanMap = BeanMap.create(upstreamDept);
+                beanMap.putAll(map);
+                list.add(upstreamDept);
+            }
+            return list.get(0);
+        }
+        return null;
     }
 
     @Override

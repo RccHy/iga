@@ -194,7 +194,14 @@ public class DataBusUtil {
 
         String s = sendPostRequest(url, params);
 
-        assert s != null;
+        if (null == s) {
+            try {
+                throw new Exception("请求数据失败");
+            } catch (Exception e) {
+                logger.error("请求url 失败" + e.getMessage());
+                e.printStackTrace();
+            }
+        }
         if (s.contains("errors")) {
             try {
                 throw new Exception("获取url失败" + s);

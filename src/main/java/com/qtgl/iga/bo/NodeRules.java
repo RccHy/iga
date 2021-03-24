@@ -19,7 +19,7 @@ public class NodeRules implements java.io.Serializable {
 
     private String inheritId;
 
-    // 规则类型 0推送 1拉取 3手动
+    // 规则类型 0推送 1拉取 2手动
     private Integer type;
 
     //

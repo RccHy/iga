@@ -1,7 +1,6 @@
 package com.qtgl.iga.service;
 
 import com.qtgl.iga.bean.DeptBean;
-import com.qtgl.iga.bo.Dept;
 import com.qtgl.iga.bo.DomainInfo;
 
 import java.util.List;

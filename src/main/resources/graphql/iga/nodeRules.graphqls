@@ -19,7 +19,7 @@ type NodeRules{
     nodeId:String
     #是否继承父类
     inheritId:String
-    # 规则类型 0推送 1拉取 3手动
+    # 规则类型 0推送 1拉取 2手动
     type:Int
     #是否启用
     active:Boolean

@@ -1,7 +1,6 @@
 package com.qtgl.iga.service.impl;
 
 
-import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.NodeRules;
 import com.qtgl.iga.bo.NodeRulesRange;
 import com.qtgl.iga.dao.NodeRulesDao;
@@ -12,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 

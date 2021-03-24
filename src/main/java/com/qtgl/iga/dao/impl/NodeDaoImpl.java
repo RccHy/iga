@@ -2,11 +2,9 @@ package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.Node;
-import com.qtgl.iga.bo.UpstreamType;
 import com.qtgl.iga.dao.NodeDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import org.apache.commons.beanutils.BeanUtils;
-import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 

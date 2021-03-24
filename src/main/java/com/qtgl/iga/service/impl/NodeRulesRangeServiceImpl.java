@@ -1,11 +1,9 @@
 package com.qtgl.iga.service.impl;
 
 
-import com.qtgl.iga.bo.NodeRules;
 import com.qtgl.iga.bo.NodeRulesRange;
 import com.qtgl.iga.dao.NodeRulesDao;
 import com.qtgl.iga.service.NodeRulesRangeService;
-import com.qtgl.iga.service.NodeRulesService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

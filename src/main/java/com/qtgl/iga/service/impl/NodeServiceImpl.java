@@ -2,7 +2,6 @@ package com.qtgl.iga.service.impl;
 
 import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.Node;
-import com.qtgl.iga.bo.NodeRules;
 import com.qtgl.iga.bo.NodeRulesRange;
 import com.qtgl.iga.dao.NodeDao;
 import com.qtgl.iga.dao.NodeRulesDao;
@@ -38,6 +37,8 @@ public class NodeServiceImpl implements NodeService {
         if (null != nodeDto) {
             node.setCreateTime(nodeDto.getCreateTime());
             node.setUpdateTime(new Date().getTime());
+        } else {
+            node.setId(null);
         }
 
         //添加节点规则
