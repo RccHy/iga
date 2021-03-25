@@ -140,6 +140,9 @@ public class DeptServiceImpl implements DeptService {
                 JSONArray upstreamTree = new JSONArray();
                 //   请求graphql查询，获得部门树
                 Map dataByBus = (Map) dataBusUtil.getDataByBus(upstreamType);
+                if(null==dataByBus){
+                    throw new Exception("数据获取失败");
+                }
                 if (upstreamType.getIsPage()) {
                     //JSONArray dpetArray = JSONObject.parseObject(dataByBus.get("data").toString()).getJSONObject("dept").getJSONArray("edges");
                     Map dataMap = (Map) dataByBus.get("data");
