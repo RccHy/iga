@@ -139,8 +139,9 @@ public class DeptServiceImpl implements DeptService {
                 //获得部门树
                 JSONArray upstreamTree = new JSONArray();
                 //   请求graphql查询，获得部门树
+                Timestamp timestamp = new Timestamp(new Date().getTime());
                 Map dataByBus = (Map) dataBusUtil.getDataByBus(upstreamType);
-                if(null==dataByBus){
+                if (null == dataByBus) {
                     throw new Exception("数据获取失败");
                 }
                 if (upstreamType.getIsPage()) {
@@ -160,8 +161,11 @@ public class DeptServiceImpl implements DeptService {
                     logger.info("数据源获取部门数据为空{}", upstreamType.toString());
                     return mainTree;
                 }
+                //循环引用判断
+                this.circularData(upstreamTree);
 
-
+                //判断上游是否给出时间戳
+                upstreamTree = this.judgeTime(upstreamTree, timestamp);
                 // todo  upstreamTree 不能有重复 code
 
 
@@ -186,7 +190,6 @@ public class DeptServiceImpl implements DeptService {
                 List<NodeRulesRange> nodeRulesRanges = rangeDao.getByRulesId(nodeRule.getId());
                 Map<String, DeptBean> mergeDeptMap = new ConcurrentHashMap<>();
                 //获取并检测 需要挂载的树， add 进入 待合并的树集合 mergeDept
-
                 mountRules(nodeCode, mainTree, upstreamMap, childrenMap, nodeRulesRanges, mergeDeptMap, upstream.getAppCode());
                 //在挂载基础上进行排除
                 excludeRules(mergeDeptMap, childrenMap, nodeRulesRanges);
@@ -196,8 +199,10 @@ public class DeptServiceImpl implements DeptService {
 
                 //判空
                 this.judgeData(mergeDeptMap);
-                //判断循环依赖
+
+                //循环引用判断
                 this.circularData(mergeDeptMap);
+
 
             /*
                  和主树进行合并校验
@@ -283,13 +288,40 @@ public class DeptServiceImpl implements DeptService {
         return mainTree;
     }
 
+    private JSONArray judgeTime(JSONArray upstreamTree, Timestamp timestamp) {
+        String str = upstreamTree.toString();
+        boolean flag = str.contains("createTime");
+        if (!flag) {
+            List<DeptBean> mainList = JSON.parseArray(str, DeptBean.class);
+            for (DeptBean deptBean : mainList) {
+                deptBean.setCreateTime(timestamp);
+            }
+            return JSONArray.parseArray(JSON.toJSONString(mainList));
+        } else {
+            return upstreamTree;
+        }
+    }
+
     private void circularData(Map<String, DeptBean> mergeDeptMap) throws Exception {
         Collection<DeptBean> values = mergeDeptMap.values();
         ArrayList<DeptBean> mainList = new ArrayList<>(values);
         for (DeptBean deptBean : mainList) {
             for (DeptBean bean : mainList) {
-                if (deptBean.getCode()==bean.getParentCode() && deptBean.getParentCode()==bean.getCode()) {
-                    logger.error("节点循环依赖,请检查{}",deptBean,bean);
+                if (deptBean.getCode() == bean.getParentCode() && deptBean.getParentCode() == bean.getCode()) {
+                    logger.error("节点循环依赖,请检查{}", deptBean, bean);
+                    throw new Exception("节点循环依赖,请检查");
+                }
+            }
+        }
+
+    }
+
+    private void circularData(JSONArray mergeDeptMap) throws Exception {
+        List<DeptBean> mainList = JSON.parseArray(mergeDeptMap.toString(), DeptBean.class);
+        for (DeptBean deptBean : mainList) {
+            for (DeptBean bean : mainList) {
+                if (deptBean.getCode() == bean.getParentCode() && deptBean.getParentCode() == bean.getCode()) {
+                    logger.error("节点循环依赖,请检查{}", deptBean, bean);
                     throw new Exception("节点循环依赖,请检查");
                 }
             }
@@ -356,37 +388,47 @@ public class DeptServiceImpl implements DeptService {
             //标记新增还是修改
             boolean flag = true;
 
-            //遍历数据库数据
-            for (Dept bean : beans) {
-                if (deptBean.getCode().equals(bean.getDeptCode())) {
-                    //修改
-                    if (bean.getUpdateTime() != null && deptBean.getCreateTime().after(Timestamp.valueOf(bean.getUpdateTime()))) {
-                        //新来的数据更实时
-                        result.put(deptBean, "update");
-                    } else {
-                        result.put(deptBean, "obsolete");
+            if (null != beans) {
+                //遍历数据库数据
+                for (Dept bean : beans) {
+                    if (deptBean.getCode().equals(bean.getDeptCode())) {
+                        if (null != deptBean.getCreateTime()) {
+                            //修改
+                            if (null == bean.getUpdateTime() || deptBean.getCreateTime().after(Timestamp.valueOf(bean.getUpdateTime()))) {
+                                //新来的数据更实时
+                                result.put(deptBean, "update");
+                            } else {
+                                result.put(deptBean, "obsolete");
+                            }
+                        } else {
+                            result.put(deptBean, "obsolete");
+                        }
+                        flag = false;
                     }
-                    flag = false;
                 }
-            }
-            //没有相等的应该是新增
-            if (flag) {
-                //新增
+                //没有相等的应该是新增
+                if (flag) {
+                    //新增
+                    result.put(deptBean, "insert");
+                }
+            } else {
                 result.put(deptBean, "insert");
             }
         }
-        //查询数据库需要删除的数据
-        for (Dept bean : beans) {
-            boolean flag = true;
-            for (DeptBean deptBean : result.keySet()) {
-                if (bean.getDeptCode().equals(deptBean.getCode())) {
-                    flag = false;
+        if (null != beans) {
+            //查询数据库需要删除的数据
+            for (Dept bean : beans) {
+                boolean flag = true;
+                for (DeptBean deptBean : result.keySet()) {
+                    if (bean.getDeptCode().equals(deptBean.getCode())) {
+                        flag = false;
+                    }
                 }
-            }
-            if (flag) {
-                DeptBean deptBean = new DeptBean();
-                deptBean.setCode(bean.getDeptCode());
-                result.put(deptBean, "delete");
+                if (flag) {
+                    DeptBean deptBean = new DeptBean();
+                    deptBean.setCode(bean.getDeptCode());
+                    result.put(deptBean, "delete");
+                }
             }
         }
 
@@ -464,8 +506,10 @@ public class DeptServiceImpl implements DeptService {
         if (null == upstreamDeptDb) {
             upstreamDepts = upstreamDeptDao.saveUpstreamDepts(upstreamDept);
         } else {
+            upstreamDept.setId(upstreamDeptDb.getId());
+            upstreamDept.setCreateTime(new Timestamp(new Date().getTime()));
             upstreamDepts = upstreamDeptDao.updateUpstreamDepts(upstreamDept);
-            upstreamDepts.setId(upstreamDeptDb.getId());
+
         }
 
         return null == upstreamDepts ? 0 : 1;

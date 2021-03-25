@@ -84,26 +84,26 @@ public class DeptDaoImpl implements DeptDao {
 
     @Override
     public ArrayList<DeptBean> updateDept(ArrayList<DeptBean> list, String tenantId) {
-        String str = "insert into dept (id,dept_code, dept_name, parent_code, del_mark ,tenant_id ,source, data_source, description, meta,update_time,tags,independent) values" +
-                "(?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        String str = "update dept set  dept_name=?, parent_code=?, del_mark=? ,tenant_id =?" +
+                ",source =?, data_source=?, description=?, meta=?,update_time=?,tags=?,independent=? " +
+                "where dept_code =?";
         boolean contains = false;
 
         int[] ints = jdbcSSOAPI.batchUpdate(str, new BatchPreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                preparedStatement.setObject(1, UUID.randomUUID().toString().replace("-", ""));
-                preparedStatement.setObject(2, list.get(i).getCode());
-                preparedStatement.setObject(3, list.get(i).getName());
-                preparedStatement.setObject(4, list.get(i).getParentCode());
-                preparedStatement.setObject(5, 0);
-                preparedStatement.setObject(6, tenantId);
-                preparedStatement.setObject(7, list.get(i).getSource());
-                preparedStatement.setObject(8, list.get(i).getDataSource());
-                preparedStatement.setObject(9, list.get(i).getDescription());
-                preparedStatement.setObject(10, list.get(i).getMeta());
-                preparedStatement.setObject(11, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
-                preparedStatement.setObject(12, list.get(i).getTags());
-                preparedStatement.setObject(13, list.get(i).getIndependent());
+                preparedStatement.setObject(1, list.get(i).getName());
+                preparedStatement.setObject(2, list.get(i).getParentCode());
+                preparedStatement.setObject(3, 0);
+                preparedStatement.setObject(4, tenantId);
+                preparedStatement.setObject(5, list.get(i).getSource());
+                preparedStatement.setObject(6, list.get(i).getDataSource());
+                preparedStatement.setObject(7, list.get(i).getDescription());
+                preparedStatement.setObject(8, list.get(i).getMeta());
+                preparedStatement.setObject(9, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
+                preparedStatement.setObject(10, list.get(i).getTags());
+                preparedStatement.setObject(11, list.get(i).getIndependent());
+                preparedStatement.setObject(12, list.get(i).getCode());
 
             }
 
@@ -163,7 +163,7 @@ public class DeptDaoImpl implements DeptDao {
 
         dealData(list, stb, param);
         String str = stb.toString();
-        String substring = str.substring(0, str.length()-1)+")";
+        String substring = str.substring(0, str.length() - 1) + ")";
         int update = jdbcSSOAPI.update(substring, param.toArray());
         return update > 0 ? list : null;
     }
