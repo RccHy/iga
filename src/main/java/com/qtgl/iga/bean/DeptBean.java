@@ -15,7 +15,7 @@ public class DeptBean {
 
     private String parentCode;
 
-    private Boolean independent;
+    private Integer independent;
 
     private String tags;
 
@@ -29,6 +29,9 @@ public class DeptBean {
     private String dataSource;
 
     private Timestamp createTime;
+
+    //  todo 部门排序 暂不考虑
+    private Integer deptIndex;
 
 
 }

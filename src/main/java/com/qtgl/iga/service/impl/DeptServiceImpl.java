@@ -67,6 +67,8 @@ public class DeptServiceImpl implements DeptService {
         return new ArrayList<>(mainDept);
     }
 
+    public void saveDepts(){};
+
 
     @Override
     public void buildDept() throws Exception {
@@ -92,7 +94,9 @@ public class DeptServiceImpl implements DeptService {
 
 
         // todo 异步处理  将 部门数据增量更新至sso-api库，并将数据
-        // CompletableFuture<Void> future = CompletableFuture.runAsync(() -> saveDepts());
+       // CompletableFuture<Void> future = CompletableFuture.runAsync(() -> saveDepts());
+
+
 
 
     }
@@ -109,6 +113,8 @@ public class DeptServiceImpl implements DeptService {
             if (null == node) {
                 return mainTree;
             }
+            String code=node.getNodeCode();
+            logger.info("开始'{}'节点规则运算", code);
             //获取节点的[拉取] 规则，来获取部门树
             List<NodeRules> nodeRules = rulesDao.getByNodeAndType(node.getId(), 1, true);
 
@@ -122,20 +128,21 @@ public class DeptServiceImpl implements DeptService {
                     .collect(Collectors.toMap(k -> k.getId(), v -> v));
             // 遍历结束后 要对数据确权
             for (NodeRules nodeRule : nodeRules) {
+                logger.info("开始'{}'节点拉取规则，上游:{}", code, nodeRule.getUpstreamTypesId());
                 // 每次循环都能拿到一个部门树，并计算出需要挂载的内容
                 //
                 if (null == nodeRule.getUpstreamTypesId()) {
-                    throw new Exception("build dept tree error:node upstream type is null,id:" + nodeRule.getNodeId());
+                    logger.error("对应拉取节点'{}'无上有源类型数据", code);
+                    throw new Exception("对应拉取节点'" + code + "'无上有源类型数据");
                 }
-
+                if (StringUtils.isNotEmpty(nodeRule.getInheritId())) {
+                    logger.info("对应拉取节点'{}'继承自父级{}，跳过计算", code,nodeRule.getInheritId());
+                    continue;
+                }
                 // 根据id 获取 UpstreamType
                 UpstreamType upstreamType = upstreamTypeDao.findById(nodeRule.getUpstreamTypesId());
                 //获取来源
                 Upstream upstream = upstreamDao.findById(upstreamType.getUpstreamId());
-
-                if (StringUtils.isNotEmpty(nodeRule.getInheritId())) {
-                    continue;
-                }
                 //获得部门树
                 JSONArray upstreamTree = new JSONArray();
                 //   请求graphql查询，获得部门树
@@ -158,9 +165,10 @@ public class DeptServiceImpl implements DeptService {
                 }
                 //验证树的合法性
                 if (upstreamTree.size() <= 0) {
-                    logger.info("数据源获取部门数据为空{}", upstreamType.toString());
+                    logger.info("节点'{}'数据源{}获取部门数据为空{}", code,upstreamType.getGraphqlUrl());
                     return mainTree;
                 }
+                logger.error("节点'{}'数据获取完成", code);
                 //循环引用判断
                 this.circularData(upstreamTree);
 
@@ -181,6 +189,7 @@ public class DeptServiceImpl implements DeptService {
                 if (!(flag > 0)) {
                     throw new Exception("数据插入 iga 失败");
                 }
+                logger.error("节点'{}'数据入库完成", code);
                 //对树 json 转为 map
                 Map<String, JSONObject> upstreamMap = TreeUtil.toMap(upstreamTree);
 
@@ -189,12 +198,18 @@ public class DeptServiceImpl implements DeptService {
                 //查询 树 运行  规则,
                 List<NodeRulesRange> nodeRulesRanges = rangeDao.getByRulesId(nodeRule.getId());
                 Map<String, DeptBean> mergeDeptMap = new ConcurrentHashMap<>();
+                logger.error("节点'{}'开始运行挂载", code);
                 //获取并检测 需要挂载的树， add 进入 待合并的树集合 mergeDept
                 mountRules(nodeCode, mainTree, upstreamMap, childrenMap, nodeRulesRanges, mergeDeptMap, upstream.getAppCode());
                 //在挂载基础上进行排除
                 excludeRules(mergeDeptMap, childrenMap, nodeRulesRanges);
+                logger.error("节点'{}'开始运行排除", code);
                 // 对最终要挂载的树进行重命名
                 renameRules(mergeDeptMap, nodeRulesRanges, childrenMap);
+                logger.error("节点'{}'开始运行重命名", code);
+                logger.info("节点'{}'的规则运算完成：{}", nodeCode,mergeDeptMap);
+
+
                 logger.info("部门节点:{}的规则运算完成", nodeCode);
 
                 //判空
@@ -292,6 +307,7 @@ public class DeptServiceImpl implements DeptService {
         String str = upstreamTree.toString();
         boolean flag = str.contains("createTime");
         if (!flag) {
+
             List<DeptBean> mainList = JSON.parseArray(str, DeptBean.class);
             for (DeptBean deptBean : mainList) {
                 deptBean.setCreateTime(timestamp);

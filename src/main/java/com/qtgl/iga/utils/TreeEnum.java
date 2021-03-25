@@ -16,7 +16,7 @@ public enum TreeEnum {
 
     NAME("name", "名称"),
 
-    PARENTCODE("parentId", "父级"),
+    PARENTCODE("parentCode", "父级"),
     SOURCE("source", "来源");
 
 
