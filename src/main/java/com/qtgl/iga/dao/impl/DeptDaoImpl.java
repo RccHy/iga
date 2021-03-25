@@ -156,20 +156,21 @@ public class DeptDaoImpl implements DeptDao {
 
     @Override
     public ArrayList<DeptBean> deleteDept(ArrayList<DeptBean> list) {
-        String sql = "delete from dept where dept_code in(";
+        String sql = "delete from dept where dept_code in (";
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
         List<Object> param = new ArrayList<>();
 
         dealData(list, stb, param);
-        String str = stb.deleteCharAt(stb.length()).append(")").toString();
-        int update = jdbcSSOAPI.update(str, param.toArray());
+        String str = stb.toString();
+        String substring = str.substring(0, str.length()-1)+")";
+        int update = jdbcSSOAPI.update(substring, param.toArray());
         return update > 0 ? list : null;
     }
 
     private void dealData(ArrayList<DeptBean> list, StringBuffer stb, List<Object> param) {
         for (DeptBean deptBean : list) {
-            stb.append(deptBean.getCode()).append(",");
+            stb.append(" ? ,");
             param.add(deptBean.getCode());
         }
 

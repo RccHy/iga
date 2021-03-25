@@ -183,14 +183,19 @@ public class DeptServiceImpl implements DeptService {
                 List<NodeRulesRange> nodeRulesRanges = rangeDao.getByRulesId(nodeRule.getId());
                 Map<String, DeptBean> mergeDeptMap = new ConcurrentHashMap<>();
                 //获取并检测 需要挂载的树， add 进入 待合并的树集合 mergeDept
-                //判空
-                this.judgeData(upstreamTree);
+
                 mountRules(nodeCode, mainTree, upstreamMap, childrenMap, nodeRulesRanges, mergeDeptMap, upstream.getAppCode());
                 //在挂载基础上进行排除
                 excludeRules(mergeDeptMap, childrenMap, nodeRulesRanges);
                 // 对最终要挂载的树进行重命名
                 renameRules(mergeDeptMap, nodeRulesRanges, childrenMap);
                 logger.info("部门节点:{}的规则运算完成", nodeCode);
+
+                //判空
+                this.judgeData(mergeDeptMap);
+                //判断循环依赖
+                this.circularData(mergeDeptMap);
+
             /*
                  和主树进行合并校验
                 1: 确认权威源， 根据源的排序，在合并时候，判断是否要修改同级别，同code 的节点来源。
@@ -266,14 +271,27 @@ public class DeptServiceImpl implements DeptService {
         //  数据合法性
         Collection<DeptBean> mainDept = mainTree.values();
         ArrayList<DeptBean> mainList = new ArrayList<>(mainDept);
-        //1.判空(name,code)
-        judgeData(mainList);
-        // 2.判断重复(code)
+
+        // 判断重复(code)
         groupByCode(mainList);
 
         //同步到sso
         saveToSso(mainTree, domain);
         return mainTree;
+    }
+
+    private void circularData(Map<String, DeptBean> mergeDeptMap) throws Exception {
+        Collection<DeptBean> values = mergeDeptMap.values();
+        ArrayList<DeptBean> mainList = new ArrayList<>(values);
+        for (DeptBean deptBean : mainList) {
+            for (DeptBean bean : mainList) {
+                if (deptBean.getCode()==bean.getParentCode() && deptBean.getParentCode()==bean.getCode()) {
+                    logger.error("节点循环依赖,请检查{}",deptBean,bean);
+                    throw new Exception("节点循环依赖,请检查");
+                }
+            }
+        }
+
     }
 
     private void judgeData(ArrayList<DeptBean> mainList) throws Exception {
@@ -284,8 +302,9 @@ public class DeptServiceImpl implements DeptService {
         }
     }
 
-    private void judgeData(JSONArray upstreamTree) throws Exception {
-        List<DeptBean> mainList = JSON.parseArray(upstreamTree.toString(), DeptBean.class);
+    private void judgeData(Map<String, DeptBean> map) throws Exception {
+        Collection<DeptBean> values = map.values();
+        ArrayList<DeptBean> mainList = new ArrayList<>(values);
         for (DeptBean deptBean : mainList) {
             if (StringUtils.isBlank(deptBean.getName()) || StringUtils.isBlank(deptBean.getCode())) {
                 throw new Exception("含非法数据,请检查");
