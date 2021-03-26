@@ -134,7 +134,7 @@ public class DataBusUtil {
     }
 
     private String getToken() {
-        String sso=UrlUtil.getUrl(ssoUrl);
+        String sso = UrlUtil.getUrl(ssoUrl);
         //判断是否已有未过期token
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
         StringBuffer url = request.getRequestURL();

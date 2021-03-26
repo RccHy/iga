@@ -85,7 +85,7 @@ public class DeptDaoImpl implements DeptDao {
     @Override
     public ArrayList<DeptBean> updateDept(ArrayList<DeptBean> list, String tenantId) {
         String str = "update dept set  dept_name=?, parent_code=?, del_mark=? ,tenant_id =?" +
-                ",source =?, data_source=?, description=?, meta=?,update_time=?,tags=?,independent=? " +
+                ",source =?, data_source=?, description=?, meta=?,update_time=?,tags=?,independent=?,tree_type= ? " +
                 "where dept_code =?";
         boolean contains = false;
 
@@ -97,13 +97,14 @@ public class DeptDaoImpl implements DeptDao {
                 preparedStatement.setObject(3, 0);
                 preparedStatement.setObject(4, tenantId);
                 preparedStatement.setObject(5, list.get(i).getSource());
-                preparedStatement.setObject(6, list.get(i).getDataSource());
+                preparedStatement.setObject(6, "pull");
                 preparedStatement.setObject(7, list.get(i).getDescription());
                 preparedStatement.setObject(8, list.get(i).getMeta());
                 preparedStatement.setObject(9, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
                 preparedStatement.setObject(10, list.get(i).getTags());
                 preparedStatement.setObject(11, list.get(i).getIndependent());
-                preparedStatement.setObject(12, list.get(i).getCode());
+                preparedStatement.setObject(12, list.get(i).getTreeType());
+                preparedStatement.setObject(13, list.get(i).getCode());
 
             }
 
@@ -112,6 +113,7 @@ public class DeptDaoImpl implements DeptDao {
                 return list.size();
             }
         });
+
         contains = contains || Arrays.toString(ints).contains("-1");
 
 
@@ -120,8 +122,8 @@ public class DeptDaoImpl implements DeptDao {
 
     @Override
     public ArrayList<DeptBean> saveDept(ArrayList<DeptBean> list, String tenantId) {
-        String str = "insert into dept (id,dept_code, dept_name, parent_code, del_mark ,tenant_id ,source, data_source, description, meta,create_time,tags,independent) values" +
-                "(?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        String str = "insert into dept (id,dept_code, dept_name, parent_code, del_mark ,tenant_id ,source, data_source, description, meta,create_time,tags,independent,active,active_time,tree_type) values" +
+                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         boolean contains = false;
 
         int[] ints = jdbcSSOAPI.batchUpdate(str, new BatchPreparedStatementSetter() {
@@ -134,13 +136,15 @@ public class DeptDaoImpl implements DeptDao {
                 preparedStatement.setObject(5, 0);
                 preparedStatement.setObject(6, tenantId);
                 preparedStatement.setObject(7, list.get(i).getSource());
-                preparedStatement.setObject(8, list.get(i).getDataSource());
+                preparedStatement.setObject(8, "pull");
                 preparedStatement.setObject(9, list.get(i).getDescription());
                 preparedStatement.setObject(10, list.get(i).getMeta());
                 preparedStatement.setObject(11, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
                 preparedStatement.setObject(12, list.get(i).getTags());
                 preparedStatement.setObject(13, list.get(i).getIndependent());
-
+                preparedStatement.setObject(14, 0);
+                preparedStatement.setObject(15, LocalDateTime.now());
+                preparedStatement.setObject(16, list.get(i).getTreeType());
             }
 
             @Override
@@ -156,23 +160,27 @@ public class DeptDaoImpl implements DeptDao {
 
     @Override
     public ArrayList<DeptBean> deleteDept(ArrayList<DeptBean> list) {
-        String sql = "delete from dept where dept_code in (";
-        StringBuffer stb = new StringBuffer(sql);
-        //存入参数
-        List<Object> param = new ArrayList<>();
+        String str = "update dept set   del_mark= ? , active = ?,active_time= ?  " +
+                "where dept_code =?";
+        boolean contains = false;
 
-        dealData(list, stb, param);
-        String str = stb.toString();
-        String substring = str.substring(0, str.length() - 1) + ")";
-        int update = jdbcSSOAPI.update(substring, param.toArray());
-        return update > 0 ? list : null;
-    }
+        int[] ints = jdbcSSOAPI.batchUpdate(str, new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                preparedStatement.setObject(1, 1);
+                preparedStatement.setObject(2, 1);
+                preparedStatement.setObject(3, LocalDateTime.now());
+                preparedStatement.setObject(4, list.get(i).getCode());
+            }
 
-    private void dealData(ArrayList<DeptBean> list, StringBuffer stb, List<Object> param) {
-        for (DeptBean deptBean : list) {
-            stb.append(" ? ,");
-            param.add(deptBean.getCode());
-        }
+            @Override
+            public int getBatchSize() {
+                return list.size();
+            }
+        });
+        contains = contains || Arrays.toString(ints).contains("-1");
 
+
+        return contains ? null : list;
     }
 }
