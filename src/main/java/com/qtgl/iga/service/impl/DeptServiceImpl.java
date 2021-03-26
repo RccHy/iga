@@ -384,7 +384,7 @@ public class DeptServiceImpl implements DeptService {
      * @Description: 处理数据并插入sso
      * @return: void
      */
-    private void saveToSso(Map<String, DeptBean> mainTree, DomainInfo domainInfo) throws Exception {
+    private void saveToSso(Map<String, DeptBean> mainTree, DomainInfo domainInfo, String treeTypeId) throws Exception {
         //拉取的数据
         Collection<DeptBean> mainDept = mainTree.values();
         ArrayList<DeptBean> deptBeans = new ArrayList<>(mainDept);
@@ -402,7 +402,8 @@ public class DeptServiceImpl implements DeptService {
         for (DeptBean deptBean : deptBeans) {
             //标记新增还是修改
             boolean flag = true;
-
+            //赋值treeTypeId
+            deptBean.setTreeType(treeTypeId);
             if (null != beans) {
                 //遍历数据库数据
                 for (Dept bean : beans) {

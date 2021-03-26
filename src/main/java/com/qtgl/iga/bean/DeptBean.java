@@ -33,5 +33,7 @@ public class DeptBean {
     //  todo 部门排序 暂不考虑
     private Integer deptIndex;
 
+    private String treeType;
+
 
 }
