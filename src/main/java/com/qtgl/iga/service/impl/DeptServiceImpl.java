@@ -7,7 +7,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.DeptBean;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
-
 import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.utils.DataBusUtil;
 import com.qtgl.iga.utils.TreeEnum;
@@ -16,6 +15,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,6 +55,9 @@ public class DeptServiceImpl implements DeptService {
     @Autowired
     TenantDao tenantDao;
 
+    @Value("${iga.hostname}")
+    String hostname;
+
 
     @Override
     public List<DeptBean> findDept(Map<String, Object> arguments, DomainInfo domain) throws Exception {
@@ -67,12 +70,10 @@ public class DeptServiceImpl implements DeptService {
         return new ArrayList<>(mainDept);
     }
 
-    public void saveDepts(){};
-
 
     @Override
     public void buildDept() throws Exception {
-
+        logger.info("hostname{}",hostname);
         //
         Map<String, List<DeptBean>> mainTreeMapGroupType = new ConcurrentHashMap<>();
         List<DomainInfo> domainInfos = domainInfoDao.findAll();
@@ -84,7 +85,15 @@ public class DeptServiceImpl implements DeptService {
                 Map<String, DeptBean> mainTreeMap = new ConcurrentHashMap<>();
 
                 nodeRules(domain, deptType.getId(), "", mainTreeMap);
+                //  数据合法性
                 Collection<DeptBean> mainDept = mainTreeMap.values();
+                ArrayList<DeptBean> mainList = new ArrayList<>(mainDept);
+
+                // 判断重复(code)
+                groupByCode(mainList);
+
+                //同步到sso
+                saveToSso(mainTreeMap, domain);
                 mainTreeMapGroupType.put(deptType.getCode(), new ArrayList<>(mainDept));
             }
         }
@@ -94,9 +103,7 @@ public class DeptServiceImpl implements DeptService {
 
 
         // todo 异步处理  将 部门数据增量更新至sso-api库，并将数据
-       // CompletableFuture<Void> future = CompletableFuture.runAsync(() -> saveDepts());
-
-
+        // CompletableFuture<Void> future = CompletableFuture.runAsync(() -> saveDepts());
 
 
     }
@@ -113,7 +120,7 @@ public class DeptServiceImpl implements DeptService {
             if (null == node) {
                 return mainTree;
             }
-            String code=node.getNodeCode();
+            String code = node.getNodeCode();
             logger.info("开始'{}'节点规则运算", code);
             //获取节点的[拉取] 规则，来获取部门树
             List<NodeRules> nodeRules = rulesDao.getByNodeAndType(node.getId(), 1, true);
@@ -136,7 +143,7 @@ public class DeptServiceImpl implements DeptService {
                     throw new Exception("对应拉取节点'" + code + "'无上有源类型数据");
                 }
                 if (StringUtils.isNotEmpty(nodeRule.getInheritId())) {
-                    logger.info("对应拉取节点'{}'继承自父级{}，跳过计算", code,nodeRule.getInheritId());
+                    logger.info("对应拉取节点'{}'继承自父级{}，跳过计算", code, nodeRule.getInheritId());
                     continue;
                 }
                 // 根据id 获取 UpstreamType
@@ -165,7 +172,7 @@ public class DeptServiceImpl implements DeptService {
                 }
                 //验证树的合法性
                 if (upstreamTree.size() <= 0) {
-                    logger.info("节点'{}'数据源{}获取部门数据为空{}", code,upstreamType.getGraphqlUrl());
+                    logger.info("节点'{}'数据源{}获取部门数据为空{}", code, upstreamType.getGraphqlUrl());
                     return mainTree;
                 }
                 logger.error("节点'{}'数据获取完成", code);
@@ -207,7 +214,7 @@ public class DeptServiceImpl implements DeptService {
                 // 对最终要挂载的树进行重命名
                 renameRules(mergeDeptMap, nodeRulesRanges, childrenMap);
                 logger.error("节点'{}'开始运行重命名", code);
-                logger.info("节点'{}'的规则运算完成：{}", nodeCode,mergeDeptMap);
+                logger.info("节点'{}'的规则运算完成：{}", nodeCode, mergeDeptMap);
 
 
                 logger.info("部门节点:{}的规则运算完成", nodeCode);
@@ -291,15 +298,7 @@ public class DeptServiceImpl implements DeptService {
                 /*========================规则运算完成=============================*/
             }
         }
-        //  数据合法性
-        Collection<DeptBean> mainDept = mainTree.values();
-        ArrayList<DeptBean> mainList = new ArrayList<>(mainDept);
 
-        // 判断重复(code)
-        groupByCode(mainList);
-
-        //同步到sso
-        saveToSso(mainTree, domain);
         return mainTree;
     }
 

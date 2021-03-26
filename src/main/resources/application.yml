@@ -38,3 +38,7 @@ bus:
 server:
   servlet:
     context-path: /iga
+
+
+iga:
+  hostname: ${HOSTNAME}
