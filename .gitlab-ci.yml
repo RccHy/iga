@@ -62,7 +62,7 @@ deploy:devel:
     - 'sed -i   "s/name\: iga/name\: iga-devel/g" k8s-deploy.yaml'
     - 'sed -i   "s/app\: iga/app\: iga-devel/g" k8s-deploy.yaml'
     - kubectl apply -f k8s-deploy.yaml
-    - kubectl -nketanyun rollout restart deploy iga-devel
+    - kubectl -nketanyun rollout restart sts iga-devel
   # disable artifacts downloading from previous steps
   dependencies: [ ]    
   environment:
