@@ -66,14 +66,20 @@ public class DeptServiceImpl implements DeptService {
 
         nodeRules(domain, (String) arguments.get("treeType"), "", mainTreeMap);
         Collection<DeptBean> mainDept = mainTreeMap.values();
+        ArrayList<DeptBean> mainList = new ArrayList<>(mainDept);
 
+        // 判断重复(code)
+        groupByCode(mainList);
+
+        //同步到sso
+        saveToSso(mainTreeMap, domain, (String) arguments.get("treeType"));
         return new ArrayList<>(mainDept);
     }
 
 
     @Override
     public void buildDept() throws Exception {
-        logger.info("hostname{}",hostname);
+        logger.info("hostname{}", hostname);
         //
         Map<String, List<DeptBean>> mainTreeMapGroupType = new ConcurrentHashMap<>();
         List<DomainInfo> domainInfos = domainInfoDao.findAll();
@@ -93,7 +99,7 @@ public class DeptServiceImpl implements DeptService {
                 groupByCode(mainList);
 
                 //同步到sso
-                saveToSso(mainTreeMap, domain);
+                saveToSso(mainTreeMap, domain, deptType.getId());
                 mainTreeMapGroupType.put(deptType.getCode(), new ArrayList<>(mainDept));
             }
         }
@@ -132,7 +138,7 @@ public class DeptServiceImpl implements DeptService {
 
             // 过滤出继承下来的NodeRules
             Map<String, NodeRules> inheritNodeRules = nodeRules.stream().filter(rules -> StringUtils.isNotEmpty(rules.getInheritId()))
-                    .collect(Collectors.toMap(k -> k.getId(), v -> v));
+                    .collect(Collectors.toMap(NodeRules::getId, v -> v));
             // 遍历结束后 要对数据确权
             for (NodeRules nodeRule : nodeRules) {
                 logger.info("开始'{}'节点拉取规则，上游:{}", code, nodeRule.getUpstreamTypesId());
@@ -153,7 +159,7 @@ public class DeptServiceImpl implements DeptService {
                 //获得部门树
                 JSONArray upstreamTree = new JSONArray();
                 //   请求graphql查询，获得部门树
-                Timestamp timestamp = new Timestamp(new Date().getTime());
+                Timestamp timestamp = new Timestamp(System.currentTimeMillis());
                 Map dataByBus = (Map) dataBusUtil.getDataByBus(upstreamType);
                 if (null == dataByBus) {
                     throw new Exception("数据获取失败");
@@ -162,8 +168,8 @@ public class DeptServiceImpl implements DeptService {
                     //JSONArray dpetArray = JSONObject.parseObject(dataByBus.get("data").toString()).getJSONObject("dept").getJSONArray("edges");
                     Map dataMap = (Map) dataByBus.get("data");
                     Map deptMap = (Map) dataMap.get("dept");
-                    JSONArray dpetArray = (JSONArray) JSONArray.toJSON(deptMap.get("edges"));
-                    for (Object deptOb : dpetArray) {
+                    JSONArray deptArray = (JSONArray) JSONArray.toJSON(deptMap.get("edges"));
+                    for (Object deptOb : deptArray) {
                         JSONObject nodeJson = (JSONObject) deptOb;
                         upstreamTree.add(nodeJson.getJSONObject("node"));
                     }
@@ -172,7 +178,7 @@ public class DeptServiceImpl implements DeptService {
                 }
                 //验证树的合法性
                 if (upstreamTree.size() <= 0) {
-                    logger.info("节点'{}'数据源{}获取部门数据为空{}", code, upstreamType.getGraphqlUrl());
+                    logger.info("节点'{}'数据源{}获取部门数据为空", code, upstreamType.getGraphqlUrl());
                     return mainTree;
                 }
                 logger.error("节点'{}'数据获取完成", code);
@@ -187,8 +193,9 @@ public class DeptServiceImpl implements DeptService {
                 //
                 for (Object o : upstreamTree) {
                     JSONObject dept = (JSONObject) o;
-                    if (null == dept.getString(TreeEnum.PARENTCODE.getCode()))
+                    if (null == dept.getString(TreeEnum.PARENTCODE.getCode())) {
                         dept.put(TreeEnum.PARENTCODE.getCode(), "");
+                    }
 
                 }
 
@@ -322,8 +329,8 @@ public class DeptServiceImpl implements DeptService {
         ArrayList<DeptBean> mainList = new ArrayList<>(values);
         for (DeptBean deptBean : mainList) {
             for (DeptBean bean : mainList) {
-                if (deptBean.getCode() == bean.getParentCode() && deptBean.getParentCode() == bean.getCode()) {
-                    logger.error("节点循环依赖,请检查{}", deptBean, bean);
+                if (deptBean.getCode().equals(bean.getParentCode()) && deptBean.getParentCode().equals(bean.getCode())) {
+                    logger.error("节点循环依赖,请检查{}{}", deptBean, bean);
                     throw new Exception("节点循环依赖,请检查");
                 }
             }
@@ -335,8 +342,8 @@ public class DeptServiceImpl implements DeptService {
         List<DeptBean> mainList = JSON.parseArray(mergeDeptMap.toString(), DeptBean.class);
         for (DeptBean deptBean : mainList) {
             for (DeptBean bean : mainList) {
-                if (deptBean.getCode() == bean.getParentCode() && deptBean.getParentCode() == bean.getCode()) {
-                    logger.error("节点循环依赖,请检查{}", deptBean, bean);
+                if (deptBean.getCode().equals(bean.getParentCode()) && deptBean.getParentCode().equals(bean.getCode())) {
+                    logger.error("节点循环依赖,请检查{},{}", deptBean, bean);
                     throw new Exception("节点循环依赖,请检查");
                 }
             }
@@ -438,6 +445,7 @@ public class DeptServiceImpl implements DeptService {
                 for (DeptBean deptBean : result.keySet()) {
                     if (bean.getDeptCode().equals(deptBean.getCode())) {
                         flag = false;
+                        break;
                     }
                 }
                 if (flag) {
@@ -661,7 +669,7 @@ public class DeptServiceImpl implements DeptService {
     public JSONObject checkTree(JSONArray treeArray, String nodeCode) {
         JSONObject error = new JSONObject();
         String msg = "";
-        Boolean key = true;
+        boolean key = true;
         Boolean root = true;
         for (int i = 0; i < treeArray.size(); i++) {
             JSONObject tree = treeArray.getJSONObject(i);

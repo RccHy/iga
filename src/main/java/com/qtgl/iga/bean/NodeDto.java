@@ -13,7 +13,7 @@ import java.util.List;
 @Data
 public class NodeDto extends Node {
 
-    //节点规则明细
+    /**节点规则明细 */
     private List<NodeRulesVo> nodeRules;
 
     public NodeDto() {

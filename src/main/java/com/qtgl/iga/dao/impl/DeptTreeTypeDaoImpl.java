@@ -71,7 +71,7 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
         //生成主键和时间
         String id = UUID.randomUUID().toString().replace("-", "");
         deptTreeType.setId(id);
-        Timestamp date = new Timestamp(new Date().getTime());
+        Timestamp date = new Timestamp(System.currentTimeMillis());
         deptTreeType.setCreateTime(date);
         deptTreeType.setUpdateTime(date);
         int update = jdbcIGA.update(sql, preparedStatement -> {

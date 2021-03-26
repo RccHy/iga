@@ -4,10 +4,10 @@ import lombok.Data;
 
 import java.sql.Timestamp;
 
-//组织机构树类别
+/**组织机构树类别*/
 @Data
 public class DeptTreeType {
-    //主键
+    /** 主键*/
     private String id;
 
     //机构树类型代码

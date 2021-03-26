@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
@@ -62,10 +63,11 @@ public class DataBusUtil {
 
 
     public static String getService(String busUrl, String name) {
-        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+        HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
         String token = OAuthUtils.getAuthHeaderField(request.getHeader("Authorization"));
-        if (StringUtils.isBlank(token))
+        if (StringUtils.isBlank(token)) {
             token = request.getParameter("access_token");
+        }
 
         if (StringUtils.isBlank(token)) {
             logger.error("getService[error]:Missing required args '[access_token]'");
@@ -85,6 +87,7 @@ public class DataBusUtil {
         logger.info("busUrl=>" + busUrl);
         String result = sendPostRequest(busUrl + "?access_token=" + token, params);
 
+        assert result != null;
         if (result.contains("data")) {
             logger.info("services:{}", result);
             return JSONObject.parseObject(result).getJSONObject("data").getJSONArray("services").getJSONObject(0).getString("id");
@@ -95,7 +98,7 @@ public class DataBusUtil {
         return null;
     }
 
-    public static String sendPostRequest(String url, JSONObject params) {
+    private static String sendPostRequest(String url, JSONObject params) {
         url = UrlUtil.getUrl(url);
         logger.info("pub post url:" + url);
         try {
@@ -128,7 +131,7 @@ public class DataBusUtil {
         //调用获取资源url
         String dataUrl = invokeUrl(dealUrl, split);
         //请求获取资源
-        String u = new StringBuffer(dataUrl).append("/").append("?access_token=").append(key).toString();
+        String u = dataUrl + "/" + "?access_token=" + key;
 
         return invokeForData(UrlUtil.getUrl(u), upstreamType);
     }
@@ -136,7 +139,7 @@ public class DataBusUtil {
     private String getToken() {
         String sso = UrlUtil.getUrl(ssoUrl);
         //判断是否已有未过期token
-        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+        HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
         StringBuffer url = request.getRequestURL();
         String tempContextUrl = url.delete(url.length() - request.getRequestURI().length(), url.length()).append("/").toString();
 
@@ -167,6 +170,7 @@ public class DataBusUtil {
             logger.error("token 获取" + e.getMessage());
             e.printStackTrace();
         }
+        assert oAuthClientResponse != null;
         String accessToken = oAuthClientResponse.getAccessToken();
         long exp = System.currentTimeMillis() + (oAuthClientResponse.getExpiresIn() * 1000 - (10 * 60 * 1000));
         tokenMap.put(tempContextUrl, new Token(oAuthClientResponse.getAccessToken(), exp, System.currentTimeMillis()));
@@ -203,6 +207,7 @@ public class DataBusUtil {
                 e.printStackTrace();
             }
         }
+        assert s != null;
         if (s.contains("errors")) {
             try {
                 throw new Exception("获取url失败" + s);
@@ -223,9 +228,7 @@ public class DataBusUtil {
 
         JSONObject jo = endPoint.getJSONObject(0);
 
-        String endPoint1 = jo.getString("endPoint");
-
-        return endPoint1;
+        return jo.getString("endPoint");
 
     }
 
@@ -249,7 +252,6 @@ public class DataBusUtil {
                 edges.addResultAttributes(node);
                 query.addResultAttributes(edges);
 
-//            query.addResultAttributes("A:id");
 
                 logger.info("body " + query);
                 GraphqlResponse response = null;
@@ -261,6 +263,7 @@ public class DataBusUtil {
                 }
 
                 //获取数据，数据为map类型
+                assert response != null;
                 result = response.getData();
                 for (Map.Entry<String, Object> entry : result.entrySet()) {
                     logger.info("result  data --" + entry.getKey() + "------" + entry.getValue());
@@ -274,7 +277,6 @@ public class DataBusUtil {
                 query.addResultAttributes(field.getSourceField() + ":" + field.getTargetField());
             }
 
-//            query.addResultAttributes("A:id");
 
             logger.info("body " + query);
             GraphqlResponse response = null;

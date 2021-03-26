@@ -29,18 +29,7 @@ public class DeptDaoImpl implements DeptDao {
         String sql = "select id, code, name, type_id as typeId,create_time as createTime from dept";
 
         List<Map<String, Object>> mapList = jdbcSSOAPI.queryForList(sql);
-        ArrayList<Dept> list = new ArrayList<>();
-        if (null != mapList && mapList.size() > 0) {
-            for (Map<String, Object> map : mapList) {
-                Dept dept = new Dept();
-                BeanMap beanMap = BeanMap.create(dept);
-                beanMap.putAll(map);
-                list.add(dept);
-            }
-            return list;
-        }
-
-        return null;
+        return getDepts(mapList);
     }
 
     @Override
@@ -68,6 +57,10 @@ public class DeptDaoImpl implements DeptDao {
                 " active from dept where tenant_id = ? ";
 
         List<Map<String, Object>> mapList = jdbcSSOAPI.queryForList(sql, id);
+        return getDepts(mapList);
+    }
+
+    private List<Dept> getDepts(List<Map<String, Object>> mapList) {
         ArrayList<Dept> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {
@@ -114,7 +107,7 @@ public class DeptDaoImpl implements DeptDao {
             }
         });
 
-        contains = contains || Arrays.toString(ints).contains("-1");
+        contains = Arrays.toString(ints).contains("-1");
 
 
         return contains ? null : list;
@@ -152,7 +145,7 @@ public class DeptDaoImpl implements DeptDao {
                 return list.size();
             }
         });
-        contains = contains || Arrays.toString(ints).contains("-1");
+        contains = Arrays.toString(ints).contains("-1");
 
 
         return contains ? null : list;
@@ -178,7 +171,7 @@ public class DeptDaoImpl implements DeptDao {
                 return list.size();
             }
         });
-        contains = contains || Arrays.toString(ints).contains("-1");
+        contains = Arrays.toString(ints).contains("-1");
 
 
         return contains ? null : list;

@@ -36,7 +36,7 @@ public class NodeServiceImpl implements NodeService {
         NodeDto nodeDto = deleteNode(hashMap, domain);
         if (null != nodeDto) {
             node.setCreateTime(nodeDto.getCreateTime());
-            node.setUpdateTime(new Date().getTime());
+            node.setUpdateTime(System.currentTimeMillis());
         } else {
             node.setId(null);
         }
@@ -76,10 +76,7 @@ public class NodeServiceImpl implements NodeService {
         //根据id查询规则是否为禁用状态
         Integer i = 0;
         Integer flag = 0;
-//        List<NodeRules> nodeRules = nodeRulesDao.getByNodeAndType((String) arguments.get("id"), null, true);
-//        if (nodeRules.size() > 0) {
-//            throw new Exception("有节点包含启用规则,请关闭后删除");
-//        }
+
 
         List<Node> nodes = nodeDao.findNodes(arguments, id);
         if (null == nodes || nodes.size() <= 0) {
@@ -122,7 +119,7 @@ public class NodeServiceImpl implements NodeService {
 
     @Override
     public List<NodeDto> findNodes(Map<String, Object> arguments, String id) {
-        ArrayList<NodeDto> nodeDtos = new ArrayList<>();
+        ArrayList<NodeDto> nodeDos = new ArrayList<>();
         //获取node
         List<Node> nodeList = nodeDao.findNodes(arguments, id);
         //根据node查询对应规则
@@ -135,9 +132,9 @@ public class NodeServiceImpl implements NodeService {
                 nodeRulesVo.setNodeRulesRanges(byRulesId);
             }
             nodeDto.setNodeRules(nodeRulesByNodeId);
-            nodeDtos.add(nodeDto);
+            nodeDos.add(nodeDto);
         }
-        return nodeDtos;
+        return nodeDos;
     }
 
     @Override
