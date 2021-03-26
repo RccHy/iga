@@ -6,6 +6,7 @@ metadata:
   name: iga
   namespace: ketanyun
 spec:
+  serviceName: iga
   replicas: 1
   selector:
     matchLabels:
