@@ -134,6 +134,7 @@ public class DataBusUtil {
     }
 
     private String getToken() {
+        String sso=UrlUtil.getUrl(ssoUrl);
         //判断是否已有未过期token
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
         StringBuffer url = request.getRequestURL();
@@ -151,7 +152,7 @@ public class DataBusUtil {
         OAuthClientRequest oAuthClientRequest = null;
         try {
             oAuthClientRequest = OAuthClientRequest
-                    .tokenLocation(ssoUrl + "/oauth2/token").setGrantType(GrantType.CLIENT_CREDENTIALS)
+                    .tokenLocation(sso + "/oauth2/token").setGrantType(GrantType.CLIENT_CREDENTIALS)
                     .setClientId(appKey).setClientSecret(appSecret)
                     .setScope(scope.replace(",", " ")).buildBodyMessage();
         } catch (OAuthSystemException e) {
