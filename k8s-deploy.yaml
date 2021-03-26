@@ -56,6 +56,11 @@ spec:
               secretKeyRef:
                 name: iga-secret
                 key: sso_api_datasource_password
+          - name: SSO_API_DATASOURCE_URL
+            valueFrom:
+              secretKeyRef:
+                name: iga-secret
+                key: sso_api_datasource_url
           - name: SSO_API_DATASOURCE_USERNAME
             valueFrom:
               secretKeyRef:
