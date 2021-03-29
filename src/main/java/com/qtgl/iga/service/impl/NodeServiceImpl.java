@@ -126,13 +126,16 @@ public class NodeServiceImpl implements NodeService {
         for (Node node : nodeList) {
             NodeDto nodeDto = new NodeDto(node);
             List<NodeRulesVo> nodeRulesByNodeId = nodeRulesDao.findNodeRulesByNodeId(node.getId());
-            //根据rules查询对应的range
-            for (NodeRulesVo nodeRulesVo : nodeRulesByNodeId) {
-                List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(nodeRulesVo.getId());
-                nodeRulesVo.setNodeRulesRanges(byRulesId);
+
+            if(null!= nodeRulesByNodeId){
+                //根据rules查询对应的range
+                for (NodeRulesVo nodeRulesVo : nodeRulesByNodeId) {
+                    List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(nodeRulesVo.getId());
+                    nodeRulesVo.setNodeRulesRanges(byRulesId);
+                }
+                nodeDto.setNodeRules(nodeRulesByNodeId);
+                nodeDos.add(nodeDto);
             }
-            nodeDto.setNodeRules(nodeRulesByNodeId);
-            nodeDos.add(nodeDto);
         }
         return nodeDos;
     }

@@ -104,40 +104,50 @@ public class UserTypeServiceImpl implements UserTypeService {
         }
         //通过tenantId查询ssoApis库中的数据
         List<UserType> beans = userTypeDao.findByTenantId(tenant.getId());
+        //将null赋为""
+        if(null!=beans && beans.size()>0){
+            for (UserType bean : beans) {
+                if (StringUtils.isBlank(bean.getParentCode())) {
+                    bean.setParentCode("");
+                }
+            }
+        }
         //轮训比对标记(是否有主键id)
         Map<DeptBean, String> result = new HashMap<>();
 
         //遍历拉取数据
         for (DeptBean deptBean : deptBeans) {
-            //标记新增还是修改
-            boolean flag = true;
-            //赋值treeTypeId
-            deptBean.setTreeType(treeTypeId);
-            if (null != beans) {
-                //遍历数据库数据
-                for (UserType bean : beans) {
-                    if (deptBean.getCode().equals(bean.getUserType())) {
-                        if (null != deptBean.getCreateTime()) {
-                            //修改
-                            if (null == bean.getUpdateTime() || deptBean.getCreateTime().after(Timestamp.valueOf(bean.getUpdateTime()))) {
-                                //新来的数据更实时
-                                result.put(deptBean, "update");
+            if(!"builtin".equals(deptBean.getDataSource())){
+                //标记新增还是修改
+                boolean flag = true;
+                //赋值treeTypeId
+                deptBean.setTreeType(treeTypeId);
+                if (null != beans) {
+                    //遍历数据库数据
+                    for (UserType bean : beans) {
+                        if (deptBean.getCode().equals(bean.getUserType())) {
+                            if (null != deptBean.getCreateTime()) {
+                                //修改
+                                if (null == bean.getUpdateTime() || deptBean.getCreateTime().after(Timestamp.valueOf(bean.getUpdateTime()))) {
+                                    //新来的数据更实时
+                                    result.put(deptBean, "update");
+                                } else {
+                                    result.put(deptBean, "obsolete");
+                                }
                             } else {
                                 result.put(deptBean, "obsolete");
                             }
-                        } else {
-                            result.put(deptBean, "obsolete");
+                            flag = false;
                         }
-                        flag = false;
                     }
-                }
-                //没有相等的应该是新增
-                if (flag) {
-                    //新增
+                    //没有相等的应该是新增
+                    if (flag) {
+                        //新增
+                        result.put(deptBean, "insert");
+                    }
+                } else {
                     result.put(deptBean, "insert");
                 }
-            } else {
-                result.put(deptBean, "insert");
             }
         }
         if (null != beans) {

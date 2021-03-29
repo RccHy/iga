@@ -61,7 +61,7 @@ public class DeptServiceImpl implements DeptService {
 
 
     @Override
-    public List<DeptBean> findDept(Map<String, Object> arguments, DomainInfo domain) throws Exception {
+    public List<DeptBean> findDept(Map<String, Object> arguments, DomainInfo domain)throws Exception  {
 
         Map<String, DeptBean> mainTreeMap = new ConcurrentHashMap<>();
 
@@ -75,6 +75,18 @@ public class DeptServiceImpl implements DeptService {
         //同步到sso
         saveToSso(mainTreeMap, domain, (String) arguments.get("treeType"));
         return new ArrayList<>(mainDept);
+    }
+
+    @Override
+    public List<DeptBean> findDeptByDomainName(String domainName) {
+        Tenant byDomainName = tenantDao.findByDomainName(domainName);
+        List<Dept> byTenantId = deptDao.findByTenantId(byDomainName.getId());
+        ArrayList<DeptBean> list = new ArrayList<>();
+        for (Dept dept : byTenantId) {
+            DeptBean deptBean = new DeptBean(dept);
+            list.add(deptBean);
+        }
+        return list;
     }
 
 
@@ -340,20 +352,14 @@ public class DeptServiceImpl implements DeptService {
             for (DeptBean bean : mainList) {
                 if (deptBean.getCode().equals(bean.getParentCode()) && deptBean.getParentCode().equals(bean.getCode())) {
                     logger.error("节点循环依赖,请检查{},{}", deptBean, bean);
-                    throw new Exception("节点循环依赖,请检查");
+                    throw new Exception(deptBean.toString()+"与"+bean.toString()+"节点循环依赖,请检查处理");
                 }
             }
         }
 
     }
 
-    private void judgeData(ArrayList<DeptBean> mainList) throws Exception {
-        for (DeptBean deptBean : mainList) {
-            if (StringUtils.isBlank(deptBean.getName()) || StringUtils.isBlank(deptBean.getCode())) {
-                throw new Exception("含非法数据,请检查");
-            }
-        }
-    }
+
 
     private void judgeData(Map<String, DeptBean> map) throws Exception {
         Collection<DeptBean> values = map.values();
@@ -398,6 +404,14 @@ public class DeptServiceImpl implements DeptService {
         }
         //通过tenantId查询ssoApis库中的数据
         List<Dept> beans = deptDao.findByTenantId(tenant.getId());
+        if(null!=beans && beans.size()>0){
+            //将null赋为""
+            for (Dept bean : beans) {
+                if (null == bean.getParentCode()) {
+                    bean.setParentCode("");
+                }
+            }
+        }
         //轮训比对标记(是否有主键id)
         Map<DeptBean, String> result = new HashMap<>();
 

@@ -1,6 +1,7 @@
 package com.qtgl.iga.bean;
 
 
+import com.qtgl.iga.bo.Dept;
 import lombok.Data;
 
 
@@ -36,4 +37,13 @@ public class DeptBean {
     private String treeType;
 
 
+    public DeptBean(Dept dept) {
+        this.setCode(dept.getDeptCode());
+        this.setParentCode(dept.getParentCode());
+        this.setName(dept.getDeptName());
+        this.setSource(dept.getSource());
+    }
+
+    public DeptBean() {
+    }
 }

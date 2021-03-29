@@ -6,6 +6,7 @@ import com.qtgl.iga.bo.UserType;
 import com.qtgl.iga.dao.DeptDao;
 import com.qtgl.iga.dao.UserTypeDao;
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -25,14 +26,8 @@ import java.util.*;
 public class UserTypeDaoImpl implements UserTypeDao {
 
 
-    @Resource(name = "jdbcSSOAPI")
-    JdbcTemplate jdbcSSOAPI;
-
     @Resource(name = "jdbcSSO")
     JdbcTemplate jdbcSSO;
-
-
-
 
 
     @Override
@@ -41,9 +36,9 @@ public class UserTypeDaoImpl implements UserTypeDao {
         String sql = "select id, user_type as userType , name, parent_code as parentCode , " +
                 "can_login as canLogin , delay_time as delayTime , tenant_id as tenantId , formal , tags , description ," +
                 "meta , del_mark as delMark , create_time as createTime, update_time as updateTime ,data_source as dataSource , orphan , active ," +
-                " active_time as activeTime from user_type where tenant_id = ? and data_source != ?";
+                " active_time as activeTime, type,source from user_type where tenant_id = ? and data_source != ?";
 
-        List<Map<String, Object>> mapList = jdbcSSOAPI.queryForList(sql, id,"builtin");
+        List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, id, "builtin");
         return getUserTypes(mapList);
     }
 
@@ -64,27 +59,25 @@ public class UserTypeDaoImpl implements UserTypeDao {
 
     @Override
     public ArrayList<DeptBean> updateDept(ArrayList<DeptBean> list, String tenantId) {
-        String str = "update dept set  dept_name=?, parent_code=?, del_mark=? ,tenant_id =?" +
-                ",source =?, data_source=?, description=?, meta=?,update_time=?,tags=?,independent=?,tree_type= ? " +
-                "where dept_code =?";
+
+        String str = "update user_type set  name=?, parent_code=?, del_mark=? ,tenant_id =?" +
+                ", data_source=?, description=?, meta=?,update_time=?,tags=?" +
+                "where user_type =?";
         boolean contains = false;
 
-        int[] ints = jdbcSSOAPI.batchUpdate(str, new BatchPreparedStatementSetter() {
+        int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
                 preparedStatement.setObject(1, list.get(i).getName());
                 preparedStatement.setObject(2, list.get(i).getParentCode());
                 preparedStatement.setObject(3, 0);
                 preparedStatement.setObject(4, tenantId);
-                preparedStatement.setObject(5, list.get(i).getSource());
-                preparedStatement.setObject(6, "pull");
-                preparedStatement.setObject(7, list.get(i).getDescription());
-                preparedStatement.setObject(8, list.get(i).getMeta());
-                preparedStatement.setObject(9, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
-                preparedStatement.setObject(10, list.get(i).getTags());
-                preparedStatement.setObject(11, list.get(i).getIndependent());
-                preparedStatement.setObject(12, list.get(i).getTreeType());
-                preparedStatement.setObject(13, list.get(i).getCode());
+                preparedStatement.setObject(5, "pull");
+                preparedStatement.setObject(6, list.get(i).getDescription());
+                preparedStatement.setObject(7, list.get(i).getMeta());
+                preparedStatement.setObject(8, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
+                preparedStatement.setObject(9, list.get(i).getTags());
+                preparedStatement.setObject(10, list.get(i).getCode());
 
             }
 
@@ -102,11 +95,11 @@ public class UserTypeDaoImpl implements UserTypeDao {
 
     @Override
     public ArrayList<DeptBean> saveDept(ArrayList<DeptBean> list, String tenantId) {
-        String str = "insert into user_type (id,user_type, name, parent_code, del_mark ,tenant_id ,source, data_source, description, meta,create_time,tags,independent,active,active_time,tree_type) values" +
-                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        String str = "insert into user_type (id,user_type, name, parent_code, can_login ,tenant_id ,tags, data_source, description, meta,create_time,del_mark,active,active_time,update_time,source) values" +
+                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         boolean contains = false;
 
-        int[] ints = jdbcSSOAPI.batchUpdate(str, new BatchPreparedStatementSetter() {
+        int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
                 preparedStatement.setObject(1, UUID.randomUUID().toString().replace("-", ""));
@@ -115,16 +108,16 @@ public class UserTypeDaoImpl implements UserTypeDao {
                 preparedStatement.setObject(4, list.get(i).getParentCode());
                 preparedStatement.setObject(5, 0);
                 preparedStatement.setObject(6, tenantId);
-                preparedStatement.setObject(7, list.get(i).getSource());
+                preparedStatement.setObject(7, list.get(i).getTags());
                 preparedStatement.setObject(8, "pull");
                 preparedStatement.setObject(9, list.get(i).getDescription());
                 preparedStatement.setObject(10, list.get(i).getMeta());
                 preparedStatement.setObject(11, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
-                preparedStatement.setObject(12, list.get(i).getTags());
-                preparedStatement.setObject(13, list.get(i).getIndependent());
-                preparedStatement.setObject(14, 0);
+                preparedStatement.setObject(12, 0);
+                preparedStatement.setObject(13, 0);
+                preparedStatement.setObject(14, LocalDateTime.now());
                 preparedStatement.setObject(15, LocalDateTime.now());
-                preparedStatement.setObject(16, list.get(i).getTreeType());
+                preparedStatement.setObject(16, list.get(i).getDataSource());
             }
 
             @Override
@@ -141,10 +134,10 @@ public class UserTypeDaoImpl implements UserTypeDao {
     @Override
     public ArrayList<DeptBean> deleteDept(ArrayList<DeptBean> list) {
         String str = "update user_type set   del_mark= ? , active = ?,active_time= ?  " +
-                "where dept_code =?";
+                "where user_type =?";
         boolean contains = false;
 
-        int[] ints = jdbcSSOAPI.batchUpdate(str, new BatchPreparedStatementSetter() {
+        int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
                 preparedStatement.setObject(1, 1);
@@ -170,15 +163,19 @@ public class UserTypeDaoImpl implements UserTypeDao {
                 " tags ,data_source as dataSource , description , meta  " +
                 " from user_type where tenant_id=? and del_mark=0";
 
-        List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql,tenantId);
+        List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId);
         ArrayList<DeptBean> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {
                 DeptBean deptBean = new DeptBean();
                 try {
-                    BeanUtils.populate(deptBean,map);
+                    BeanUtils.populate(deptBean, map);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
+                }
+                deptBean.setSource(deptBean.getDataSource());
+                if (StringUtils.isBlank(deptBean.getParentCode())) {
+                    deptBean.setParentCode("");
                 }
                 list.add(deptBean);
             }
