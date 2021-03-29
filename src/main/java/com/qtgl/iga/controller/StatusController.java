@@ -7,6 +7,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,10 +25,40 @@ public class StatusController {
 
     @GetMapping("/status")
     @ResponseBody
-    public Map event() {
+    public Map status() {
         Map map=new HashMap();
         map.putAll(getSystemRuntime());
         return map;
+    }
+
+    @GetMapping("/version")
+    @ResponseBody
+    public String version() {
+
+        return getClassVersion("yyyy-MM-dd");
+    }
+
+    public static String getClassVersion(String pattern) {
+        Date created = new Date();
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        try {
+            String path = cl.getResource("application.yml").getPath();
+            if ("\\".equalsIgnoreCase(File.separator)) {
+                path = path.replaceAll("/", "\\\\");
+                if (path.substring(0, 1).equals("\\"))
+                    path = path.substring(1);
+            } else if ("/".equalsIgnoreCase(File.separator)) {
+                path = path.replaceAll("\\\\", "/");
+            }
+            if (null != path) {
+                long time = Files.readAttributes(Paths.get(path), BasicFileAttributes.class).creationTime().toMillis();
+                created = new Date(time);
+            }
+        } catch (Exception e) {
+            logger.error("Failed to obtain class attributes.", e);
+        }
+        SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+        return sdf.format(created);
     }
 
 

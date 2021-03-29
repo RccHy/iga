@@ -40,5 +40,11 @@ server:
     context-path: /iga
 
 
+dept:
+  task:
+    cron: 0 0/1 * * * *
+
+
+
 iga:
   hostname: ${HOSTNAME}

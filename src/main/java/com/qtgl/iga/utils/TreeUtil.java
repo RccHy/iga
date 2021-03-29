@@ -56,8 +56,17 @@ public class TreeUtil<T> {
                 .collect(Collectors.toMap(
                         (code -> code.getString(TreeEnum.CODE.getCode())),
                         (value -> value)));
+        return map;
+    }
 
 
+
+    public static Map<String, DeptBean> toMap(List<DeptBean> deptBeans) {
+
+        Map<String, DeptBean> map = deptBeans.stream()
+                .collect(Collectors.toMap(
+                        (dept -> dept.getCode()),
+                        (dept -> dept)));
         return map;
     }
 

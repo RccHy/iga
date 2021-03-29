@@ -11,6 +11,7 @@ import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.utils.DataBusUtil;
 import com.qtgl.iga.utils.TreeEnum;
 import com.qtgl.iga.utils.TreeUtil;
+import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,40 +78,33 @@ public class DeptServiceImpl implements DeptService {
     }
 
 
+    @SneakyThrows
     @Override
-    public void buildDept() throws Exception {
-        logger.info("hostname{}", hostname);
+    public void buildDeptByDomain(DomainInfo domain) {
+      /*  logger.info("hostname{}", hostname);
         //
         Map<String, List<DeptBean>> mainTreeMapGroupType = new ConcurrentHashMap<>();
         List<DomainInfo> domainInfos = domainInfoDao.findAll();
 
-        for (DomainInfo domain : domainInfos) {
-            // 获取租户下开启的部门类型
-            List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
-            for (DeptTreeType deptType : deptTreeTypes) {
-                Map<String, DeptBean> mainTreeMap = new ConcurrentHashMap<>();
+        for (DomainInfo domain : domainInfos) {*/
+        // 获取租户下开启的部门类型
+        List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
+        for (DeptTreeType deptType : deptTreeTypes) {
+            Map<String, DeptBean> mainTreeMap = new ConcurrentHashMap<>();
 
-                nodeRules(domain, deptType.getId(), "", mainTreeMap);
-                //  数据合法性
-                Collection<DeptBean> mainDept = mainTreeMap.values();
-                ArrayList<DeptBean> mainList = new ArrayList<>(mainDept);
+            nodeRules(domain, deptType.getId(), "", mainTreeMap);
+            //  数据合法性
+            Collection<DeptBean> mainDept = mainTreeMap.values();
+            ArrayList<DeptBean> mainList = new ArrayList<>(mainDept);
 
-                // 判断重复(code)
-                groupByCode(mainList);
+            // 判断重复(code)
+            groupByCode(mainList);
 
-                //同步到sso
-                saveToSso(mainTreeMap, domain, deptType.getId());
-                mainTreeMapGroupType.put(deptType.getCode(), new ArrayList<>(mainDept));
-            }
+            //同步到sso
+            saveToSso(mainTreeMap, domain, deptType.getId());
+            //      mainTreeMapGroupType.put(deptType.getCode(), new ArrayList<>(mainDept));
         }
-        System.out.println("1");
-
-        // 将数据进行缓存
-
-
-        // todo 异步处理  将 部门数据增量更新至sso-api库，并将数据
-        // CompletableFuture<Void> future = CompletableFuture.runAsync(() -> saveDepts());
-
+        //}
 
     }
 
@@ -187,15 +181,17 @@ public class DeptServiceImpl implements DeptService {
 
                 //判断上游是否给出时间戳
                 upstreamTree = this.judgeTime(upstreamTree, timestamp);
-                // todo  upstreamTree 不能有重复 code
 
 
+                /////////////////
+                List<DeptBean> upstreamDept = new ArrayList<>();
                 //
                 for (Object o : upstreamTree) {
                     JSONObject dept = (JSONObject) o;
                     if (null == dept.getString(TreeEnum.PARENTCODE.getCode())) {
                         dept.put(TreeEnum.PARENTCODE.getCode(), "");
                     }
+                    upstreamDept.add(dept.toJavaObject(DeptBean.class));
 
                 }
 
@@ -205,10 +201,10 @@ public class DeptServiceImpl implements DeptService {
                 }
                 logger.error("节点'{}'数据入库完成", code);
                 //对树 json 转为 map
-                Map<String, JSONObject> upstreamMap = TreeUtil.toMap(upstreamTree);
+                Map<String, DeptBean> upstreamMap = TreeUtil.toMap(upstreamDept);
 
                 //对树进行 parent 分组
-                Map<String, List<JSONObject>> childrenMap = TreeUtil.groupChildren(upstreamTree);
+                Map<String, List<DeptBean>> childrenMap = TreeUtil.groupChildren(upstreamDept);
                 //查询 树 运行  规则,
                 List<NodeRulesRange> nodeRulesRanges = rangeDao.getByRulesId(nodeRule.getId());
                 Map<String, DeptBean> mergeDeptMap = new ConcurrentHashMap<>();
@@ -548,11 +544,11 @@ public class DeptServiceImpl implements DeptService {
      * @param nodeRulesRanges
      * @param childrenMap
      */
-    private void renameRules(Map<String, DeptBean> mergeDeptMap, List<NodeRulesRange> nodeRulesRanges, Map<String, List<JSONObject>> childrenMap) {
+    private void renameRules(Map<String, DeptBean> mergeDeptMap, List<NodeRulesRange> nodeRulesRanges, Map<String, List<DeptBean>> childrenMap) {
         for (NodeRulesRange nodeRulesRange : nodeRulesRanges) {
             // 重命名
             if (2 == nodeRulesRange.getType()) {
-                String rename = nodeRulesRange.getRename();
+                String rename=nodeRulesRange.getRename();
                 for (DeptBean deptBean : mergeDeptMap.values()) {
                     if (rename.contains("${code}")) {
                         String newCode = rename.replace("${code}", deptBean.getCode());
@@ -560,9 +556,10 @@ public class DeptServiceImpl implements DeptService {
                         // 如果当前节点有子集，则同时修改子集的parentCode指向
                         if (childrenMap.containsKey(deptBean.getParentCode())) {
                             String newParentCode = rename.replace("${code}", deptBean.getParentCode());
-                            deptBean.setParentCode(newParentCode);
+                            childrenMap.get(deptBean.getParentCode()).forEach(deptBean1 -> {
+                                deptBean1.setParentCode(newParentCode);
+                            });
                         }
-
                     }
                     if (rename.contains("${name}")) {
                         String newName = rename.replace("${name}", deptBean.getName());
@@ -582,7 +579,7 @@ public class DeptServiceImpl implements DeptService {
      * @param nodeRulesRanges
      * @throws Exception
      */
-    private void excludeRules(Map<String, DeptBean> mergeDept, Map<String, List<JSONObject>> childrenMap, List<NodeRulesRange> nodeRulesRanges) throws Exception {
+    private void excludeRules(Map<String, DeptBean> mergeDept, Map<String, List<DeptBean>> childrenMap, List<NodeRulesRange> nodeRulesRanges) throws Exception {
         for (NodeRulesRange nodeRulesRange : nodeRulesRanges) {
             //配置的节点
             String rangeNodeCode = nodeRulesRange.getNode();
@@ -623,8 +620,8 @@ public class DeptServiceImpl implements DeptService {
      * @param mergeDeptMap
      * @throws Exception
      */
-    private void mountRules(String nodeCode, Map<String, DeptBean> mainTree, Map<String, JSONObject> upstreamMap,
-                            Map<String, List<JSONObject>> childrenMap, List<NodeRulesRange> nodeRulesRanges,
+    private void mountRules(String nodeCode, Map<String, DeptBean> mainTree, Map<String, DeptBean> upstreamMap,
+                            Map<String, List<DeptBean>> childrenMap, List<NodeRulesRange> nodeRulesRanges,
                             Map<String, DeptBean> mergeDeptMap, String source) throws Exception {
         for (NodeRulesRange nodeRulesRange : nodeRulesRanges) {
             //配置的节点
@@ -636,7 +633,7 @@ public class DeptServiceImpl implements DeptService {
                     if (!upstreamMap.containsKey(rangeNodeCode)) {
                         throw new Exception("无法在树中找到挂载节点：" + rangeNodeCode);
                     }
-                    DeptBean deptBean = JSONObject.toJavaObject(upstreamMap.get(rangeNodeCode), DeptBean.class);
+                    DeptBean deptBean = upstreamMap.get(rangeNodeCode);
                     deptBean.setParentCode(nodeCode);
                     /*if (mainTree.containsKey(deptBean.getCode()) &&
                             (!mainTree.get(deptBean.getCode()).getParentCode().equals(deptBean.getParentCode()))) {
@@ -705,34 +702,33 @@ public class DeptServiceImpl implements DeptService {
      * @param childrenMap
      * @throws Exception
      */
-    public void mergeDeptTree(String code, String parentNode, Map<String, List<JSONObject>> childrenMap,
+    public void mergeDeptTree(String code, String parentNode, Map<String, List<DeptBean>> childrenMap,
                               Map<String, DeptBean> mergeDeptMap, String source) throws Exception {
-        List<JSONObject> children = childrenMap.get(code);
+        List<DeptBean> children = childrenMap.get(code);
         if (null != children) {
-            for (JSONObject treeJson : children) {
-                String treeCode = treeJson.getString(TreeEnum.CODE.getCode());
-                String treeParentCode = treeJson.getString(TreeEnum.CODE.getCode());
+            for (DeptBean treeJson : children) {
+                String treeCode = treeJson.getCode();
+                String treeParentCode = treeJson.getParentCode();
                /* if (mainTree.containsKey(treeCode) &&
                         (!mainTree.get(treeCode).getParentCode()
                                 .equals(treeParentCode))) {
                     throw new Exception("挂载异常，节点中已有同code不同parentCode节点：" + treeCode);
                 }*/
-                DeptBean deptBean = JSONObject.toJavaObject(treeJson, DeptBean.class);
-                deptBean.setParentCode(parentNode);
-                deptBean.setSource(source);
-                mergeDeptMap.put(treeCode, deptBean);
+                treeJson.setParentCode(parentNode);
+                treeJson.setSource(source);
+                mergeDeptMap.put(treeCode, treeJson);
                 mergeDeptTree(treeCode, treeCode, childrenMap, mergeDeptMap, source);
             }
         }
     }
 
 
-    public void removeTree(String code, Map<String, List<JSONObject>> childrenMap, Map<String, DeptBean> mergeDept) {
-        List<JSONObject> children = childrenMap.get(code);
+    public void removeTree(String code, Map<String, List<DeptBean>> childrenMap, Map<String, DeptBean> mergeDept) {
+        List<DeptBean> children = childrenMap.get(code);
         if (null != children) {
-            for (JSONObject deptJson : children) {
-                mergeDept.remove(deptJson.getString(TreeEnum.CODE.getCode()));
-                removeTree(deptJson.getString(TreeEnum.CODE.getCode()), childrenMap, mergeDept);
+            for (DeptBean deptJson : children) {
+                mergeDept.remove(deptJson.getCode());
+                removeTree(deptJson.getCode(), childrenMap, mergeDept);
             }
         }
     }

@@ -9,7 +9,7 @@ import java.util.Map;
 public interface DeptService {
 
 
-    void buildDept() throws Exception;
+    void buildDeptByDomain(DomainInfo domainInfo);
 
     List<DeptBean> findDept(Map<String, Object> arguments, DomainInfo domain) throws Exception;
 }

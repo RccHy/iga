@@ -5,6 +5,8 @@ import com.qtgl.iga.bo.UpstreamType;
 import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.utils.DataBusUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,12 +24,11 @@ public class HelloController {
     @Autowired
     DataBusUtil busUtil;
 
-    @GetMapping("/depts")
-    public List<Dept> getAllDepts() throws Exception {
-        deptService.buildDept();
 
-        return null;
-    }
+
+
+
+
 
 
     @RequestMapping("/url")
