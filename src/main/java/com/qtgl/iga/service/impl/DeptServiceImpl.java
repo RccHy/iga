@@ -119,7 +119,7 @@ public class DeptServiceImpl implements DeptService {
      * @param nodeCode
      * @throws Exception
      */
-    private Map<String, DeptBean> nodeRules(DomainInfo domain, String deptTreeType, String nodeCode, Map<String, DeptBean> mainTree) throws Exception {
+    public Map<String, DeptBean> nodeRules(DomainInfo domain, String deptTreeType, String nodeCode, Map<String, DeptBean> mainTree) throws Exception {
         //获取根节点的规则
         List<Node> nodes = nodeDao.getByCode(domain.getId(), deptTreeType, nodeCode);
         for (Node node : nodes) {

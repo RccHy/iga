@@ -1,0 +1,190 @@
+package com.qtgl.iga.dao.impl;
+
+import com.qtgl.iga.bean.DeptBean;
+import com.qtgl.iga.bo.Dept;
+import com.qtgl.iga.bo.UserType;
+import com.qtgl.iga.dao.DeptDao;
+import com.qtgl.iga.dao.UserTypeDao;
+import org.apache.commons.beanutils.BeanUtils;
+import org.springframework.cglib.beans.BeanMap;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
+
+import javax.annotation.Resource;
+import java.lang.reflect.InvocationTargetException;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.util.*;
+
+
+@Repository
+@Component
+public class UserTypeDaoImpl implements UserTypeDao {
+
+
+    @Resource(name = "jdbcSSOAPI")
+    JdbcTemplate jdbcSSOAPI;
+
+    @Resource(name = "jdbcSSO")
+    JdbcTemplate jdbcSSO;
+
+
+
+
+
+    @Override
+    public List<UserType> findByTenantId(String id) {
+        // todo 修改sql
+        String sql = "select id, dept_code as deptCode , dept_name as deptName , parent_code as parentCode , " +
+                "del_mark as delMark , independent , tenant_id as tenantId , update_time as updateTime , source , tags ," +
+                "data_source as dataSource , description , orphan, meta ,tree_type as treeType , type , create_time as createTime ," +
+                " active from dept where tenant_id = ? and data_source != ?";
+
+        List<Map<String, Object>> mapList = jdbcSSOAPI.queryForList(sql, id,"API");
+        return getUserTypes(mapList);
+    }
+
+    private List<UserType> getUserTypes(List<Map<String, Object>> mapList) {
+        ArrayList<UserType> list = new ArrayList<>();
+        if (null != mapList && mapList.size() > 0) {
+            for (Map<String, Object> map : mapList) {
+                UserType userType = new UserType();
+                BeanMap beanMap = BeanMap.create(userType);
+                beanMap.putAll(map);
+                list.add(userType);
+            }
+            return list;
+        }
+
+        return null;
+    }
+
+    @Override
+    public ArrayList<DeptBean> updateDept(ArrayList<DeptBean> list, String tenantId) {
+        String str = "update dept set  dept_name=?, parent_code=?, del_mark=? ,tenant_id =?" +
+                ",source =?, data_source=?, description=?, meta=?,update_time=?,tags=?,independent=?,tree_type= ? " +
+                "where dept_code =?";
+        boolean contains = false;
+
+        int[] ints = jdbcSSOAPI.batchUpdate(str, new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                preparedStatement.setObject(1, list.get(i).getName());
+                preparedStatement.setObject(2, list.get(i).getParentCode());
+                preparedStatement.setObject(3, 0);
+                preparedStatement.setObject(4, tenantId);
+                preparedStatement.setObject(5, list.get(i).getSource());
+                preparedStatement.setObject(6, "pull");
+                preparedStatement.setObject(7, list.get(i).getDescription());
+                preparedStatement.setObject(8, list.get(i).getMeta());
+                preparedStatement.setObject(9, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
+                preparedStatement.setObject(10, list.get(i).getTags());
+                preparedStatement.setObject(11, list.get(i).getIndependent());
+                preparedStatement.setObject(12, list.get(i).getTreeType());
+                preparedStatement.setObject(13, list.get(i).getCode());
+
+            }
+
+            @Override
+            public int getBatchSize() {
+                return list.size();
+            }
+        });
+
+        contains = Arrays.toString(ints).contains("-1");
+
+
+        return contains ? null : list;
+    }
+
+    @Override
+    public ArrayList<DeptBean> saveDept(ArrayList<DeptBean> list, String tenantId) {
+        String str = "insert into dept (id,dept_code, dept_name, parent_code, del_mark ,tenant_id ,source, data_source, description, meta,create_time,tags,independent,active,active_time,tree_type) values" +
+                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        boolean contains = false;
+
+        int[] ints = jdbcSSOAPI.batchUpdate(str, new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                preparedStatement.setObject(1, UUID.randomUUID().toString().replace("-", ""));
+                preparedStatement.setObject(2, list.get(i).getCode());
+                preparedStatement.setObject(3, list.get(i).getName());
+                preparedStatement.setObject(4, list.get(i).getParentCode());
+                preparedStatement.setObject(5, 0);
+                preparedStatement.setObject(6, tenantId);
+                preparedStatement.setObject(7, list.get(i).getSource());
+                preparedStatement.setObject(8, "pull");
+                preparedStatement.setObject(9, list.get(i).getDescription());
+                preparedStatement.setObject(10, list.get(i).getMeta());
+                preparedStatement.setObject(11, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
+                preparedStatement.setObject(12, list.get(i).getTags());
+                preparedStatement.setObject(13, list.get(i).getIndependent());
+                preparedStatement.setObject(14, 0);
+                preparedStatement.setObject(15, LocalDateTime.now());
+                preparedStatement.setObject(16, list.get(i).getTreeType());
+            }
+
+            @Override
+            public int getBatchSize() {
+                return list.size();
+            }
+        });
+        contains = Arrays.toString(ints).contains("-1");
+
+
+        return contains ? null : list;
+    }
+
+    @Override
+    public ArrayList<DeptBean> deleteDept(ArrayList<DeptBean> list) {
+        String str = "update dept set   del_mark= ? , active = ?,active_time= ?  " +
+                "where dept_code =?";
+        boolean contains = false;
+
+        int[] ints = jdbcSSOAPI.batchUpdate(str, new BatchPreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                preparedStatement.setObject(1, 1);
+                preparedStatement.setObject(2, 1);
+                preparedStatement.setObject(3, LocalDateTime.now());
+                preparedStatement.setObject(4, list.get(i).getCode());
+            }
+
+            @Override
+            public int getBatchSize() {
+                return list.size();
+            }
+        });
+        contains = Arrays.toString(ints).contains("-1");
+
+
+        return contains ? null : list;
+    }
+
+    @Override
+    public List<DeptBean> findRootData() {
+        String sql = "select  user_type as code , name as name , parent_code as parentCode , " +
+                " tags ,data_source as dataSource , description , meta  " +
+                " from user_type ";
+
+        List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql);
+        ArrayList<DeptBean> list = new ArrayList<>();
+        if (null != mapList && mapList.size() > 0) {
+            for (Map<String, Object> map : mapList) {
+                DeptBean deptBean = new DeptBean();
+                try {
+                    BeanUtils.populate(deptBean,map);
+                } catch (IllegalAccessException | InvocationTargetException e) {
+                    e.printStackTrace();
+                }
+                list.add(deptBean);
+            }
+            return list;
+        }
+
+        return null;
+    }
+}

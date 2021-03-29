@@ -2,6 +2,7 @@ package com.qtgl.iga.dataFetcher;
 
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.service.DeptService;
+import com.qtgl.iga.service.UserTypeService;
 import com.qtgl.iga.utils.CertifiedConnector;
 import graphql.schema.DataFetcher;
 import org.slf4j.Logger;
@@ -20,6 +21,9 @@ public class DeptDataFetcher {
     @Autowired
     DeptService deptService;
 
+    @Autowired
+    UserTypeService userTypeService;
+
 
     public DataFetcher findDept() {
         return dataFetchingEvn -> {
@@ -28,6 +32,15 @@ public class DeptDataFetcher {
             // 获取传入参数
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
             return deptService.findDept(arguments, domain);
+        };
+    }
+
+    public DataFetcher findUserType() {
+        return dataFetchingEvn -> {
+            //1。更具token信息验证是否合法，并判断其租户
+            DomainInfo domain = CertifiedConnector.getDomain();
+            // 获取传入参数
+            return userTypeService.findUserType(domain);
         };
     }
 }

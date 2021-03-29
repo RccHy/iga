@@ -2,9 +2,11 @@ package com.qtgl.iga.utils;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.Token;
 import com.qtgl.iga.bo.UpstreamType;
 import com.qtgl.iga.bo.UpstreamTypeField;
+import com.qtgl.iga.service.DomainInfoService;
 import com.qtgl.iga.service.UpstreamTypeService;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -45,6 +47,9 @@ public class DataBusUtil {
 
     @Autowired
     UpstreamTypeService upstreamTypeService;
+
+    @Autowired
+    DomainInfoService domainInfoService;
 
     @Value("${app.scope}")
     private String appScope;
@@ -140,23 +145,25 @@ public class DataBusUtil {
         String sso = UrlUtil.getUrl(ssoUrl);
         //判断是否已有未过期token
         HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
-        StringBuffer url = request.getRequestURL();
-        String tempContextUrl = url.delete(url.length() - request.getRequestURI().length(), url.length()).append("/").toString();
+        String serverName = request.getServerName();
 
-        Token token = tokenMap.get(tempContextUrl);
+        //获取domain 信息
+        DomainInfo byDomainName = domainInfoService.getByDomainName(serverName);
+        Token token = tokenMap.get(serverName);
         if (null != token) {
             int i = token.getExpireIn().compareTo(System.currentTimeMillis());
             if (i > 0) {
                 return token.getToken();
             }
         }
+
         Object[] objects = Arrays.stream(appScope.replace("+", " ").split(" ")).filter(s -> s.contains("sys_")).toArray();
         String scope = ArrayUtils.toString(objects, ",").replace("{", "").replace("}", "");
         OAuthClientRequest oAuthClientRequest = null;
         try {
             oAuthClientRequest = OAuthClientRequest
                     .tokenLocation(sso + "/oauth2/token").setGrantType(GrantType.CLIENT_CREDENTIALS)
-                    .setClientId(appKey).setClientSecret(appSecret)
+                    .setClientId(byDomainName.getClientId()).setClientSecret(byDomainName.getClientSecret())
                     .setScope(scope.replace(",", " ")).buildBodyMessage();
         } catch (OAuthSystemException e) {
             logger.error("token 获取 : ->" + e.getMessage());
@@ -173,7 +180,7 @@ public class DataBusUtil {
         assert oAuthClientResponse != null;
         String accessToken = oAuthClientResponse.getAccessToken();
         long exp = System.currentTimeMillis() + (oAuthClientResponse.getExpiresIn() * 1000 - (10 * 60 * 1000));
-        tokenMap.put(tempContextUrl, new Token(oAuthClientResponse.getAccessToken(), exp, System.currentTimeMillis()));
+        tokenMap.put(serverName, new Token(oAuthClientResponse.getAccessToken(), exp, System.currentTimeMillis()));
         return accessToken;
     }
 

@@ -1,6 +1,8 @@
 extend type Query {
     #查询组织机构
     depts(treeType:String):[Dept]
+    #查询岗位
+    userTypes:[Dept]
 }
 
 
