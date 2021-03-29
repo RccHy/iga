@@ -47,7 +47,11 @@ public class UserTypeServiceImpl implements UserTypeService {
     @Override
     public List<DeptBean> findUserType( DomainInfo domain) throws Exception {
         //获取默认数据
-        List<DeptBean> rootBeans = userTypeDao.findRootData();
+        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        if (null == tenant) {
+            throw new Exception("租户不存在");
+        }
+        List<DeptBean> rootBeans = userTypeDao.findRootData(tenant.getId());
         //转化为map
         Map<String, DeptBean> mainTreeMap = rootBeans.stream().collect(Collectors.toMap(DeptBean::getCode, deptBean -> deptBean));
         deptService.nodeRules(domain, "", "", mainTreeMap);

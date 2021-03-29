@@ -37,13 +37,13 @@ public class UserTypeDaoImpl implements UserTypeDao {
 
     @Override
     public List<UserType> findByTenantId(String id) {
-        // todo 修改sql
-        String sql = "select id, dept_code as deptCode , dept_name as deptName , parent_code as parentCode , " +
-                "del_mark as delMark , independent , tenant_id as tenantId , update_time as updateTime , source , tags ," +
-                "data_source as dataSource , description , orphan, meta ,tree_type as treeType , type , create_time as createTime ," +
-                " active from dept where tenant_id = ? and data_source != ?";
+        //
+        String sql = "select id, user_type as userType , name, parent_code as parentCode , " +
+                "can_login as canLogin , delay_time as delayTime , tenant_id as tenantId , formal , tags , description ," +
+                "meta , del_mark as delMark , create_time as createTime, update_time as updateTime ,data_source as dataSource , orphan , active ," +
+                " active_time as activeTime from user_type where tenant_id = ? and data_source != ?";
 
-        List<Map<String, Object>> mapList = jdbcSSOAPI.queryForList(sql, id,"API");
+        List<Map<String, Object>> mapList = jdbcSSOAPI.queryForList(sql, id,"builtin");
         return getUserTypes(mapList);
     }
 
@@ -102,7 +102,7 @@ public class UserTypeDaoImpl implements UserTypeDao {
 
     @Override
     public ArrayList<DeptBean> saveDept(ArrayList<DeptBean> list, String tenantId) {
-        String str = "insert into dept (id,dept_code, dept_name, parent_code, del_mark ,tenant_id ,source, data_source, description, meta,create_time,tags,independent,active,active_time,tree_type) values" +
+        String str = "insert into user_type (id,user_type, name, parent_code, del_mark ,tenant_id ,source, data_source, description, meta,create_time,tags,independent,active,active_time,tree_type) values" +
                 "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         boolean contains = false;
 
@@ -140,7 +140,7 @@ public class UserTypeDaoImpl implements UserTypeDao {
 
     @Override
     public ArrayList<DeptBean> deleteDept(ArrayList<DeptBean> list) {
-        String str = "update dept set   del_mark= ? , active = ?,active_time= ?  " +
+        String str = "update user_type set   del_mark= ? , active = ?,active_time= ?  " +
                 "where dept_code =?";
         boolean contains = false;
 
@@ -165,12 +165,12 @@ public class UserTypeDaoImpl implements UserTypeDao {
     }
 
     @Override
-    public List<DeptBean> findRootData() {
+    public List<DeptBean> findRootData(String tenantId) {
         String sql = "select  user_type as code , name as name , parent_code as parentCode , " +
                 " tags ,data_source as dataSource , description , meta  " +
-                " from user_type ";
+                " from user_type where tenant_id=? and del_mark=0";
 
-        List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql);
+        List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql,tenantId);
         ArrayList<DeptBean> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {

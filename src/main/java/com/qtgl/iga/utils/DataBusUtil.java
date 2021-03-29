@@ -126,7 +126,7 @@ public class DataBusUtil {
         String[] split = upstreamType.getGraphqlUrl().split("/");
 
         //根据url 获取请求地址
-        String substring = new StringBuffer(ssoUrl).replace(ssoUrl.length() - 5, ssoUrl.length(), busUrl).
+        String substring = new StringBuffer(ssoUrl).replace(ssoUrl.length() - 4, ssoUrl.length(), busUrl).
                 append(graphqlUrl).append("/").append("builtin").append("?access_token=").append(key).toString();
 
         //工具类过滤处理url

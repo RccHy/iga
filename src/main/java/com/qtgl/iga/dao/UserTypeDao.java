@@ -20,5 +20,5 @@ public interface UserTypeDao {
 
     ArrayList<DeptBean> deleteDept(ArrayList<DeptBean> list);
 
-    List<DeptBean> findRootData();
+    List<DeptBean> findRootData(String tenantId);
 }
