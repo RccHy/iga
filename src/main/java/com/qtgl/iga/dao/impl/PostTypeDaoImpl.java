@@ -34,9 +34,9 @@ public class PostTypeDaoImpl implements PostTypeDao {
         String sql = "select id, user_type as userType , name, parent_code as parentCode , " +
                 "can_login as canLogin , delay_time as delayTime , tenant_id as tenantId , formal , tags , description ," +
                 "meta , del_mark as delMark , create_time as createTime, update_time as updateTime ,data_source as dataSource , orphan , active ," +
-                " active_time as activeTime, post_type as postType ,source from user_type where tenant_id = ? and data_source != ?";
+                " active_time as activeTime, post_type as postType ,source from user_type where tenant_id = ? ";
 
-        List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, id, "builtin");
+        List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, id);
         return getUserTypes(mapList);
     }
 

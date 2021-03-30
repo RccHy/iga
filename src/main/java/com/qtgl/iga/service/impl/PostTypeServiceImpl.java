@@ -38,15 +38,16 @@ public class PostTypeServiceImpl implements PostTypeService {
 
     @Override
     public List<DeptBean> findUserType(DomainInfo domain) throws Exception {
-        //获取默认数据
-        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
-        if (null == tenant) {
-            throw new Exception("租户不存在");
-        }
-        // todo 置空mainTree
-        List<DeptBean> rootBeans = postTypeDao.findRootData(tenant.getId());
-        //转化为map
-        Map<String, DeptBean> mainTreeMap = rootBeans.stream().collect(Collectors.toMap(DeptBean::getCode, deptBean -> deptBean));
+//        //获取默认数据
+//        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+//        if (null == tenant) {
+//            throw new Exception("租户不存在");
+//        }
+//        //  置空mainTree
+//        List<DeptBean> rootBeans = postTypeDao.findRootData(tenant.getId());
+//        //转化为map
+//        Map<String, DeptBean> mainTreeMap = rootBeans.stream().collect(Collectors.toMap(DeptBean::getCode, deptBean -> deptBean));
+        Map<String, DeptBean> mainTreeMap = new HashMap<>();
         deptService.nodeRules(domain, null, "", mainTreeMap);
 
         Collection<DeptBean> mainDept = mainTreeMap.values();
