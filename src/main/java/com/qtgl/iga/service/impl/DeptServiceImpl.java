@@ -78,9 +78,9 @@ public class DeptServiceImpl implements DeptService {
     }
 
     @Override
-    public List<DeptBean> findDeptByDomainName(String domainName) {
+    public List<DeptBean> findDeptByDomainName(String domainName, String treeType) {
         Tenant byDomainName = tenantDao.findByDomainName(domainName);
-        List<Dept> byTenantId = deptDao.findByTenantId(byDomainName.getId());
+        List<Dept> byTenantId = deptDao.findByTenantId(byDomainName.getId(), treeType);
         ArrayList<DeptBean> list = new ArrayList<>();
         for (Dept dept : byTenantId) {
             DeptBean deptBean = new DeptBean(dept);
@@ -402,7 +402,7 @@ public class DeptServiceImpl implements DeptService {
             throw new Exception("租户不存在");
         }
         //通过tenantId查询ssoApis库中的数据
-        List<Dept> beans = deptDao.findByTenantId(tenant.getId());
+        List<Dept> beans = deptDao.findByTenantId(tenant.getId(), treeTypeId);
         if (null != beans && beans.size() > 0) {
             //将null赋为""
             for (Dept bean : beans) {

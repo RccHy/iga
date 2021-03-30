@@ -49,24 +49,24 @@ public class PostTypeServiceImpl implements PostTypeService {
         //  置空mainTree
         List<DeptBean> rootBeans = postTypeDao.findRootData(tenant.getId());
         //转化为map
+        Map<String, DeptBean> rootMap = rootBeans.stream().collect(Collectors.toMap(DeptBean::getCode, deptBean -> deptBean));
         Map<String, DeptBean> mainTreeMap = rootBeans.stream().collect(Collectors.toMap(DeptBean::getCode, deptBean -> deptBean));
-        Map<String, DeptBean> mainTreeMap2 = rootBeans.stream().collect(Collectors.toMap(DeptBean::getCode, deptBean -> deptBean));
         // 将本次 add 进的 节点 进行 规则运算
-        for (Map.Entry<String, DeptBean> entry : mainTreeMap.entrySet()) {
-            deptService.nodeRules(domain, null, entry.getKey(), mainTreeMap2);
+        for (Map.Entry<String, DeptBean> entry : rootMap.entrySet()) {
+            deptService.nodeRules(domain, null, entry.getKey(), mainTreeMap);
         }
         System.out.println("==");
         // Map<String, DeptBean> mainTreeMap = new HashMap<>();
         //deptService.nodeRules(domain, null, "", mainTreeMap);
 
-        Collection<DeptBean> mainDept = mainTreeMap2.values();
+        Collection<DeptBean> mainDept = mainTreeMap.values();
         ArrayList<DeptBean> mainList = new ArrayList<>(mainDept);
 
         // 判断重复(code)
         groupByCode(mainList);
 
         //同步到sso
-        saveToSso(mainTreeMap2, domain, "");
+        saveToSso(mainTreeMap, domain, "");
         return new ArrayList<>(mainDept);
     }
 
@@ -161,17 +161,19 @@ public class PostTypeServiceImpl implements PostTypeService {
         if (null != beans) {
             //查询数据库需要删除的数据
             for (PostType bean : beans) {
-                boolean flag = true;
-                for (DeptBean deptBean : result.keySet()) {
-                    if (bean.getUserType().equals(deptBean.getCode())) {
-                        flag = false;
-                        break;
+                if (!"builtin".equals(bean.getDataSource())) {
+                    boolean flag = true;
+                    for (DeptBean deptBean : result.keySet()) {
+                        if (bean.getUserType().equals(deptBean.getCode())) {
+                            flag = false;
+                            break;
+                        }
                     }
-                }
-                if (flag && (!bean.getDataSource().equals("builtin"))) {
-                    DeptBean deptBean = new DeptBean();
-                    deptBean.setCode(bean.getUserType());
-                    result.put(deptBean, "delete");
+                    if (flag) {
+                        DeptBean deptBean = new DeptBean();
+                        deptBean.setCode(bean.getUserType());
+                        result.put(deptBean, "delete");
+                    }
                 }
             }
         }

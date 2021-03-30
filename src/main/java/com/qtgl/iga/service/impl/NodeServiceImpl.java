@@ -34,12 +34,12 @@ public class NodeServiceImpl implements NodeService {
         HashMap<String, Object> hashMap = new HashMap<>();
         hashMap.put("id", node.getId());
         NodeDto nodeDto = deleteNode(hashMap, domain);
-//        if (null != nodeDto) {
-//            node.setCreateTime(nodeDto.getCreateTime());
-//            node.setUpdateTime(System.currentTimeMillis());
-//        } else {
-//            node.setId(null);
-//        }
+        if (null != nodeDto) {
+            node.setCreateTime(nodeDto.getCreateTime());
+            node.setUpdateTime(System.currentTimeMillis());
+        } else {
+            node.setId(null);
+        }
 
         //添加节点规则
         node.setDomain(domain);
@@ -87,17 +87,18 @@ public class NodeServiceImpl implements NodeService {
 
         List<NodeRulesVo> rules = nodeRulesDao.findNodeRulesByNodeId((String) arguments.get("id"));
 
-        if(null==rules){
-            return null;
-        }
-        //删除range
-        for (NodeRulesVo rule : rules) {
-            List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(rule.getId());
-            flag = nodeRulesRangeDao.deleteNodeRulesRangeByRuleId(rule.getId());
-            if (flag > 0) {
-                rule.setNodeRulesRanges(byRulesId);
-            } else {
-                throw new Exception("删除节点规则作用域失败");
+        if (null != rules) {
+
+
+            //删除range
+            for (NodeRulesVo rule : rules) {
+                List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(rule.getId());
+                flag = nodeRulesRangeDao.deleteNodeRulesRangeByRuleId(rule.getId());
+                if (flag > 0) {
+                    rule.setNodeRulesRanges(byRulesId);
+                } else {
+                    throw new Exception("删除节点规则作用域失败");
+                }
             }
         }
         if (flag > 0) {
@@ -107,7 +108,8 @@ public class NodeServiceImpl implements NodeService {
         } else {
             throw new Exception("删除节点规则失败");
         }
-        if (i > 0) {
+        //如果节点规则明细为空,直接删除node并返回
+        if (i > 0 || null == rules) {
             //删除node
             Integer integer = nodeDao.deleteNode(arguments, id);
             if (integer > 0) {
@@ -130,7 +132,7 @@ public class NodeServiceImpl implements NodeService {
             NodeDto nodeDto = new NodeDto(node);
             List<NodeRulesVo> nodeRulesByNodeId = nodeRulesDao.findNodeRulesByNodeId(node.getId());
 
-            if(null!= nodeRulesByNodeId){
+            if (null != nodeRulesByNodeId) {
                 //根据rules查询对应的range
                 for (NodeRulesVo nodeRulesVo : nodeRulesByNodeId) {
                     List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(nodeRulesVo.getId());

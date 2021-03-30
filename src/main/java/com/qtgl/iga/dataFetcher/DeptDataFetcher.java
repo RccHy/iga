@@ -44,7 +44,7 @@ public class DeptDataFetcher {
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.error(domain.getDomainName() + e.getMessage());
-                List<DeptBean> deptBeans = deptService.findDeptByDomainName(domain.getDomainName());
+                List<DeptBean> deptBeans = deptService.findDeptByDomainName(domain.getDomainName(), (String) arguments.get("treeType"));
 
                 return getObject(e, deptBeans);
 

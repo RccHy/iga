@@ -13,11 +13,11 @@ public interface DeptDao {
 
     Dept findById(String id);
 
-    List<Dept> findByTenantId(String id);
+    List<Dept> findByTenantId(String id, String treeTypeId);
 
-    ArrayList<DeptBean> updateDept(ArrayList<DeptBean> list ,String tenantId);
+    ArrayList<DeptBean> updateDept(ArrayList<DeptBean> list, String tenantId);
 
-    ArrayList<DeptBean> saveDept(ArrayList<DeptBean> list,String tenantId);
+    ArrayList<DeptBean> saveDept(ArrayList<DeptBean> list, String tenantId);
 
     ArrayList<DeptBean> deleteDept(ArrayList<DeptBean> list);
 }
