@@ -1,10 +1,8 @@
 package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bean.DeptBean;
-import com.qtgl.iga.bo.Dept;
-import com.qtgl.iga.bo.UserType;
-import com.qtgl.iga.dao.DeptDao;
-import com.qtgl.iga.dao.UserTypeDao;
+import com.qtgl.iga.bo.PostType;
+import com.qtgl.iga.dao.PostTypeDao;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.cglib.beans.BeanMap;
@@ -23,7 +21,7 @@ import java.util.*;
 
 @Repository
 @Component
-public class UserTypeDaoImpl implements UserTypeDao {
+public class PostTypeDaoImpl implements PostTypeDao {
 
 
     @Resource(name = "jdbcSSO")
@@ -31,7 +29,7 @@ public class UserTypeDaoImpl implements UserTypeDao {
 
 
     @Override
-    public List<UserType> findByTenantId(String id) {
+    public List<PostType> findByTenantId(String id) {
         //
         String sql = "select id, user_type as userType , name, parent_code as parentCode , " +
                 "can_login as canLogin , delay_time as delayTime , tenant_id as tenantId , formal , tags , description ," +
@@ -42,14 +40,14 @@ public class UserTypeDaoImpl implements UserTypeDao {
         return getUserTypes(mapList);
     }
 
-    private List<UserType> getUserTypes(List<Map<String, Object>> mapList) {
-        ArrayList<UserType> list = new ArrayList<>();
+    private List<PostType> getUserTypes(List<Map<String, Object>> mapList) {
+        ArrayList<PostType> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {
-                UserType userType = new UserType();
-                BeanMap beanMap = BeanMap.create(userType);
+                PostType postType = new PostType();
+                BeanMap beanMap = BeanMap.create(postType);
                 beanMap.putAll(map);
-                list.add(userType);
+                list.add(postType);
             }
             return list;
         }
@@ -97,7 +95,7 @@ public class UserTypeDaoImpl implements UserTypeDao {
     @Override
     public ArrayList<DeptBean> saveDept(ArrayList<DeptBean> list, String tenantId) {
         String str = "insert into user_type (id,user_type, name, parent_code, can_login ,tenant_id ,tags, data_source, description, meta,create_time,del_mark,active,active_time,update_time,source) values" +
-                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         boolean contains = false;
 
         int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
@@ -162,9 +160,36 @@ public class UserTypeDaoImpl implements UserTypeDao {
     public List<DeptBean> findRootData(String tenantId) {
         String sql = "select  user_type as code , name as name , parent_code as parentCode , " +
                 " tags ,data_source as dataSource , description , meta,source,post_type as postType  " +
+                " from user_type where tenant_id=? and del_mark=0 and data_source=?";
+
+        List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId,"builtin");
+        ArrayList<DeptBean> list = new ArrayList<>();
+        if (null != mapList && mapList.size() > 0) {
+            for (Map<String, Object> map : mapList) {
+                DeptBean deptBean = new DeptBean();
+                try {
+                    BeanUtils.populate(deptBean, map);
+                } catch (IllegalAccessException | InvocationTargetException e) {
+                    e.printStackTrace();
+                }
+                if (StringUtils.isBlank(deptBean.getParentCode())) {
+                    deptBean.setParentCode("");
+                }
+                list.add(deptBean);
+            }
+            return list;
+        }
+
+        return null;
+    }
+
+    @Override
+    public List<DeptBean> findPostType(String id) {
+        String sql = "select  user_type as code , name as name , parent_code as parentCode , " +
+                " tags ,data_source as dataSource , description , meta,source,post_type as postType  " +
                 " from user_type where tenant_id=? and del_mark=0";
 
-        List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId);
+        List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql,id);
         ArrayList<DeptBean> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {

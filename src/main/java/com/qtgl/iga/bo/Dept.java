@@ -3,9 +3,7 @@ package com.qtgl.iga.bo;
 
 import lombok.Data;
 
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.Date;
 
 //组织机构
 @Data

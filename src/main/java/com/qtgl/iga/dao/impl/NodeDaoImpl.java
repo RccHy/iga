@@ -5,6 +5,7 @@ import com.qtgl.iga.bo.Node;
 import com.qtgl.iga.dao.NodeDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -55,8 +56,15 @@ public class NodeDaoImpl implements NodeDao {
         if (null == nodeCode) {
             sql = sql.replace("node_code=?", "node_code is null or node_code=\"\"");
             mapList = jdbcIGA.queryForList(sql, domain, deptTreeType);
-        } else {
+        }
+
+        if (null == deptTreeType) {
+            sql = sql.replace("dept_tree_type=? ", " (dept_tree_type is null or dept_tree_type=\"\") ");
+            mapList = jdbcIGA.queryForList(sql, domain, nodeCode);
+        }
+        if (null != deptTreeType && null != nodeCode) {
             mapList = jdbcIGA.queryForList(sql, domain, deptTreeType, nodeCode);
+
         }
         for (Map<String, Object> map : mapList) {
             Node node = new Node();

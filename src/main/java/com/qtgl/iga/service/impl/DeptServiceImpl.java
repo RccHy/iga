@@ -61,7 +61,7 @@ public class DeptServiceImpl implements DeptService {
 
 
     @Override
-    public List<DeptBean> findDept(Map<String, Object> arguments, DomainInfo domain)throws Exception  {
+    public List<DeptBean> findDept(Map<String, Object> arguments, DomainInfo domain) throws Exception {
 
         Map<String, DeptBean> mainTreeMap = new ConcurrentHashMap<>();
 
@@ -270,7 +270,7 @@ public class DeptServiceImpl implements DeptService {
                                 String key = deptEntry.getKey();
                                 DeptBean value = deptEntry.getValue();
                                 if (mainTree.containsKey(key) &&
-                                        (mainTree.get(key).getParentCode() == value.getParentCode() ||
+                                        (mainTree.get(key).getParentCode().equals(value.getParentCode()) ||
                                                 mainTree.get(key).getParentCode().equals(value.getParentCode()))
                                 ) {
                                     mergeDeptMap.remove(key);
@@ -292,7 +292,7 @@ public class DeptServiceImpl implements DeptService {
                             String key = deptEntry.getKey();
                             DeptBean value = deptEntry.getValue();
                             if (mainTree.containsKey(key) &&
-                                    (mainTree.get(key).getParentCode() == value.getParentCode() ||
+                                    (mainTree.get(key).getParentCode().equals(value.getParentCode()) ||
                                             mainTree.get(key).getParentCode().equals(value.getParentCode()))
                             ) {
                                 mergeDeptMap.remove(key);
@@ -339,7 +339,7 @@ public class DeptServiceImpl implements DeptService {
             for (DeptBean bean : mainList) {
                 if (deptBean.getCode().equals(bean.getParentCode()) && deptBean.getParentCode().equals(bean.getCode())) {
                     logger.error("节点循环依赖,请检查{}{}", deptBean, bean);
-                    throw new Exception("节点循环依赖,请检查");
+                    throw new Exception(bean.toString() + "与" + deptBean.toString() + "节点循环依赖,请检查");
                 }
             }
         }
@@ -352,13 +352,12 @@ public class DeptServiceImpl implements DeptService {
             for (DeptBean bean : mainList) {
                 if (deptBean.getCode().equals(bean.getParentCode()) && deptBean.getParentCode().equals(bean.getCode())) {
                     logger.error("节点循环依赖,请检查{},{}", deptBean, bean);
-                    throw new Exception(deptBean.toString()+"与"+bean.toString()+"节点循环依赖,请检查处理");
+                    throw new Exception(deptBean.toString() + "与" + bean.toString() + "节点循环依赖,请检查处理");
                 }
             }
         }
 
     }
-
 
 
     private void judgeData(Map<String, DeptBean> map) throws Exception {
@@ -404,7 +403,7 @@ public class DeptServiceImpl implements DeptService {
         }
         //通过tenantId查询ssoApis库中的数据
         List<Dept> beans = deptDao.findByTenantId(tenant.getId());
-        if(null!=beans && beans.size()>0){
+        if (null != beans && beans.size() > 0) {
             //将null赋为""
             for (Dept bean : beans) {
                 if (null == bean.getParentCode()) {
@@ -541,7 +540,7 @@ public class DeptServiceImpl implements DeptService {
             upstreamDepts = upstreamDeptDao.saveUpstreamDepts(upstreamDept);
         } else {
             upstreamDept.setId(upstreamDeptDb.getId());
-            upstreamDept.setCreateTime(new Timestamp(new Date().getTime()));
+            upstreamDept.setCreateTime(new Timestamp(System.currentTimeMillis()));
             upstreamDepts = upstreamDeptDao.updateUpstreamDepts(upstreamDept);
 
         }
@@ -562,7 +561,7 @@ public class DeptServiceImpl implements DeptService {
         for (NodeRulesRange nodeRulesRange : nodeRulesRanges) {
             // 重命名
             if (2 == nodeRulesRange.getType()) {
-                String rename=nodeRulesRange.getRename();
+                String rename = nodeRulesRange.getRename();
                 for (DeptBean deptBean : mergeDeptMap.values()) {
                     if (rename.contains("${code}")) {
                         String newCode = rename.replace("${code}", deptBean.getCode());

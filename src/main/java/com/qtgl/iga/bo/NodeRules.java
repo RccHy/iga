@@ -4,7 +4,6 @@ package com.qtgl.iga.bo;
 import lombok.Data;
 
 
-
 /**
  * 节点规则明细
  */

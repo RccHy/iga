@@ -5,13 +5,13 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * <FileName> UserType
+ * <FileName> PostType
  * <Desc> sso岗位表
  *
  * @author HP
  */
 @Data
-public class UserType {
+public class PostType {
     /**
      * 主键
      */
