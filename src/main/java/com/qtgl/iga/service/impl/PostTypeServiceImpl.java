@@ -64,7 +64,7 @@ public class PostTypeServiceImpl implements PostTypeService {
     public List<DeptBean> findDeptByDomainName(String domainName) {
 //        获取tenantId
         Tenant byDomainName = tenantDao.findByDomainName(domainName);
-        return  postTypeDao.findPostType(byDomainName.getId());
+        return postTypeDao.findPostType(byDomainName.getId());
 
     }
 

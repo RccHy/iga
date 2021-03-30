@@ -5,6 +5,7 @@ import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.NodeRules;
 import com.qtgl.iga.vo.NodeRulesVo;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Map;
 
@@ -29,4 +30,6 @@ public interface NodeRulesDao {
     NodeRules findNodeRulesById(String id);
 
     Integer deleteNodeRulesById(String id);
+
+    List<NodeRules> findNodeRulesByUpStreamTypeId(String id) throws InvocationTargetException, IllegalAccessException;
 }

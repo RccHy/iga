@@ -120,6 +120,30 @@ public class NodeDaoImpl implements NodeDao {
         return nodes;
     }
 
+    @Override
+    public List<Node> findByTreeTypeId(String id) {
+        ArrayList<Node> nodes = new ArrayList<>();
+
+        String sql = "select id,manual," +
+                "node_code as nodeCode," +
+                "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType" +
+                " from t_mgr_node where dept_tree_type= ? ";
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql,id);
+
+        for (Map<String, Object> map : mapList) {
+            try {
+                Node node = new Node();
+                BeanUtils.populate(node, map);
+                nodes.add(node);
+                return nodes;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        return null;
+    }
+
 
     private void dealData(Map<String, Object> arguments, StringBuffer stb, List<Object> param) {
         Iterator<Map.Entry<String, Object>> it = arguments.entrySet().iterator();

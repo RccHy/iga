@@ -185,7 +185,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
             for (UpstreamTypeField upStreamTypeField : upStreamType.getUpstreamTypeFields()) {
                 upStreamTypeField.setId(UUID.randomUUID().toString().replace("-", ""));
                 upStreamTypeField.setUpstreamTypeId(id);
-                Timestamp d = new Timestamp(new Date().getTime());
+                Timestamp d = new Timestamp(System.currentTimeMillis());
                 upStreamTypeField.setCreateTime(d);
                 upStreamTypeField.setUpdateTime(d);
                 upStreamTypeField.setDomain(domain);
@@ -292,7 +292,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
                 "where id =?";
 
         List<UpstreamTypeField> upStreamTypeFields = upStreamType.getUpstreamTypeFields();
-        Timestamp d = new Timestamp(new Date().getTime());
+        Timestamp d = new Timestamp(System.currentTimeMillis());
         if (null != upStreamTypeFields && upStreamTypeFields.size() > 0) {
             jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
                 @Override
@@ -435,6 +435,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
     }
 
     //检查源下的类型是否都处于停用 或者删除。
+    @Override
     public List<UpstreamType> findByUpstreamId(String upId) {
         Object[] params = new Object[1];
         params[0] = upId;
@@ -485,6 +486,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         return upstreamTypeFields;
     }
 
+    @Override
     public Integer deleteByUpstreamId(String id) {
         //删除字段映射表数据
         //查询所有类型

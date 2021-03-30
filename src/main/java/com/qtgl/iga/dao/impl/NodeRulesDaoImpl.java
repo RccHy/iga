@@ -64,7 +64,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
 
             } else {
                 nodeRules.setId(UUID.randomUUID().toString().replace("-", ""));
-                nodeRules.setCreateTime(new Date().getTime());
+                nodeRules.setCreateTime(System.currentTimeMillis());
                 nodeRules.setUpdateTime(null);
             }
             nodeRules.setNodeId(nodeDto.getId());
@@ -231,6 +231,26 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
         String sql = "delete from t_mgr_node_rules where  id = ? ";
 
         return jdbcIGA.update(sql, params);
+    }
+
+    @Override
+    public List<NodeRules> findNodeRulesByUpStreamTypeId(String id) throws InvocationTargetException, IllegalAccessException {
+        List<NodeRules> nodeRules = new ArrayList<>();
+        String sql = "select id,node_id as nodeId,type as type,active as active," +
+                "create_time as createTime,service_key as serviceKey,upstream_types_id as upstreamTypesId,inherit_id as inheritId," +
+                "active_time as activeTime,update_time as updateTime from t_mgr_node_rules where 1 = 1 and upstream_types_id= ? ";
+
+        List<Map<String, Object>> maps = jdbcIGA.queryForList(sql, id);
+        for (Map<String, Object> map : maps) {
+            NodeRules nodeRule = new NodeRules();
+            try {
+                BeanUtils.populate(nodeRule, map);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                e.printStackTrace();
+            }
+            nodeRules.add(nodeRule);
+        }
+        return nodeRules;
     }
 
 
