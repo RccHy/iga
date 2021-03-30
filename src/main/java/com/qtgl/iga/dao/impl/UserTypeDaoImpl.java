@@ -36,7 +36,7 @@ public class UserTypeDaoImpl implements UserTypeDao {
         String sql = "select id, user_type as userType , name, parent_code as parentCode , " +
                 "can_login as canLogin , delay_time as delayTime , tenant_id as tenantId , formal , tags , description ," +
                 "meta , del_mark as delMark , create_time as createTime, update_time as updateTime ,data_source as dataSource , orphan , active ," +
-                " active_time as activeTime, type,source from user_type where tenant_id = ? and data_source != ?";
+                " active_time as activeTime, post_type as postType ,source from user_type where tenant_id = ? and data_source != ?";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, id, "builtin");
         return getUserTypes(mapList);
@@ -61,7 +61,7 @@ public class UserTypeDaoImpl implements UserTypeDao {
     public ArrayList<DeptBean> updateDept(ArrayList<DeptBean> list, String tenantId) {
 
         String str = "update user_type set  name=?, parent_code=?, del_mark=? ,tenant_id =?" +
-                ", data_source=?, description=?, meta=?,update_time=?,tags=?" +
+                ", data_source=?, description=?, meta=?,update_time=?,tags=?,source=?" +
                 "where user_type =?";
         boolean contains = false;
 
@@ -77,7 +77,8 @@ public class UserTypeDaoImpl implements UserTypeDao {
                 preparedStatement.setObject(7, list.get(i).getMeta());
                 preparedStatement.setObject(8, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
                 preparedStatement.setObject(9, list.get(i).getTags());
-                preparedStatement.setObject(10, list.get(i).getCode());
+                preparedStatement.setObject(10, list.get(i).getSource());
+                preparedStatement.setObject(11, list.get(i).getCode());
 
             }
 
@@ -117,7 +118,7 @@ public class UserTypeDaoImpl implements UserTypeDao {
                 preparedStatement.setObject(13, 0);
                 preparedStatement.setObject(14, LocalDateTime.now());
                 preparedStatement.setObject(15, LocalDateTime.now());
-                preparedStatement.setObject(16, list.get(i).getDataSource());
+                preparedStatement.setObject(16, list.get(i).getSource());
             }
 
             @Override
@@ -160,7 +161,7 @@ public class UserTypeDaoImpl implements UserTypeDao {
     @Override
     public List<DeptBean> findRootData(String tenantId) {
         String sql = "select  user_type as code , name as name , parent_code as parentCode , " +
-                " tags ,data_source as dataSource , description , meta  " +
+                " tags ,data_source as dataSource , description , meta,source,post_type as postType  " +
                 " from user_type where tenant_id=? and del_mark=0";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId);
@@ -173,7 +174,6 @@ public class UserTypeDaoImpl implements UserTypeDao {
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }
-                deptBean.setSource(deptBean.getDataSource());
                 if (StringUtils.isBlank(deptBean.getParentCode())) {
                     deptBean.setParentCode("");
                 }

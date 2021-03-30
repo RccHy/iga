@@ -95,6 +95,7 @@ public class UserType {
     /**
      * 类型
      */
-    private Integer type;
+    private Integer postType;
+
 
 }
