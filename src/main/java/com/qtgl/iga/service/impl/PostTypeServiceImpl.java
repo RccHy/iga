@@ -2,8 +2,11 @@ package com.qtgl.iga.service.impl;
 
 
 import com.qtgl.iga.bean.DeptBean;
-import com.qtgl.iga.bo.*;
-import com.qtgl.iga.dao.*;
+import com.qtgl.iga.bo.DomainInfo;
+import com.qtgl.iga.bo.PostType;
+import com.qtgl.iga.bo.Tenant;
+import com.qtgl.iga.dao.PostTypeDao;
+import com.qtgl.iga.dao.TenantDao;
 import com.qtgl.iga.service.PostTypeService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -38,26 +41,32 @@ public class PostTypeServiceImpl implements PostTypeService {
 
     @Override
     public List<DeptBean> findUserType(DomainInfo domain) throws Exception {
-//        //获取默认数据
-//        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
-//        if (null == tenant) {
-//            throw new Exception("租户不存在");
-//        }
-//        //  置空mainTree
-//        List<DeptBean> rootBeans = postTypeDao.findRootData(tenant.getId());
-//        //转化为map
-//        Map<String, DeptBean> mainTreeMap = rootBeans.stream().collect(Collectors.toMap(DeptBean::getCode, deptBean -> deptBean));
-        Map<String, DeptBean> mainTreeMap = new HashMap<>();
-        deptService.nodeRules(domain, null, "", mainTreeMap);
+        //获取默认数据
+        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        if (null == tenant) {
+            throw new Exception("租户不存在");
+        }
+        //  置空mainTree
+        List<DeptBean> rootBeans = postTypeDao.findRootData(tenant.getId());
+        //转化为map
+        Map<String, DeptBean> mainTreeMap = rootBeans.stream().collect(Collectors.toMap(DeptBean::getCode, deptBean -> deptBean));
+        Map<String, DeptBean> mainTreeMap2 = rootBeans.stream().collect(Collectors.toMap(DeptBean::getCode, deptBean -> deptBean));
+        // 将本次 add 进的 节点 进行 规则运算
+        for (Map.Entry<String, DeptBean> entry : mainTreeMap.entrySet()) {
+            deptService.nodeRules(domain, null, entry.getKey(), mainTreeMap2);
+        }
+        System.out.println("==");
+        // Map<String, DeptBean> mainTreeMap = new HashMap<>();
+        //deptService.nodeRules(domain, null, "", mainTreeMap);
 
-        Collection<DeptBean> mainDept = mainTreeMap.values();
+        Collection<DeptBean> mainDept = mainTreeMap2.values();
         ArrayList<DeptBean> mainList = new ArrayList<>(mainDept);
 
         // 判断重复(code)
         groupByCode(mainList);
 
         //同步到sso
-        saveToSso(mainTreeMap, domain, "");
+        //saveToSso(mainTreeMap, domain, "");
         return new ArrayList<>(mainDept);
     }
 
