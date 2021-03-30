@@ -34,12 +34,12 @@ public class NodeServiceImpl implements NodeService {
         HashMap<String, Object> hashMap = new HashMap<>();
         hashMap.put("id", node.getId());
         NodeDto nodeDto = deleteNode(hashMap, domain);
-        if (null != nodeDto) {
-            node.setCreateTime(nodeDto.getCreateTime());
-            node.setUpdateTime(System.currentTimeMillis());
-        } else {
-            node.setId(null);
-        }
+//        if (null != nodeDto) {
+//            node.setCreateTime(nodeDto.getCreateTime());
+//            node.setUpdateTime(System.currentTimeMillis());
+//        } else {
+//            node.setId(null);
+//        }
 
         //添加节点规则
         node.setDomain(domain);
@@ -87,6 +87,9 @@ public class NodeServiceImpl implements NodeService {
 
         List<NodeRulesVo> rules = nodeRulesDao.findNodeRulesByNodeId((String) arguments.get("id"));
 
+        if(null==rules){
+            return null;
+        }
         //删除range
         for (NodeRulesVo rule : rules) {
             List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(rule.getId());

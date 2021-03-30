@@ -66,7 +66,7 @@ public class PostTypeServiceImpl implements PostTypeService {
         groupByCode(mainList);
 
         //同步到sso
-        //saveToSso(mainTreeMap, domain, "");
+        saveToSso(mainTreeMap2, domain, "");
         return new ArrayList<>(mainDept);
     }
 
@@ -168,7 +168,7 @@ public class PostTypeServiceImpl implements PostTypeService {
                         break;
                     }
                 }
-                if (flag) {
+                if (flag && (!bean.getDataSource().equals("builtin"))) {
                     DeptBean deptBean = new DeptBean();
                     deptBean.setCode(bean.getUserType());
                     result.put(deptBean, "delete");
