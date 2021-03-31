@@ -48,6 +48,11 @@ public class PostTypeServiceImpl implements PostTypeService {
         }
         //  置空mainTree
         List<DeptBean> rootBeans = postTypeDao.findRootData(tenant.getId());
+        for (DeptBean rootBean : rootBeans) {
+            if(null==rootBean.getParentCode()){
+                rootBean.setParentCode("");
+            }
+        }
         //转化为map
         Map<String, DeptBean> rootMap = rootBeans.stream().collect(Collectors.toMap(DeptBean::getCode, deptBean -> deptBean));
         Map<String, DeptBean> mainTreeMap = rootBeans.stream().collect(Collectors.toMap(DeptBean::getCode, deptBean -> deptBean));

@@ -104,7 +104,7 @@ public class DeptServiceImpl implements DeptService {
         for (DeptTreeType deptType : deptTreeTypes) {
             Map<String, DeptBean> mainTreeMap = new ConcurrentHashMap<>();
 
-            nodeRules(domain, deptType.getId(), "", mainTreeMap);
+            nodeRules(domain, deptType.getCode(), "", mainTreeMap);
             //  数据合法性
             Collection<DeptBean> mainDept = mainTreeMap.values();
             ArrayList<DeptBean> mainList = new ArrayList<>(mainDept);
@@ -113,7 +113,8 @@ public class DeptServiceImpl implements DeptService {
             groupByCode(mainList);
 
             //同步到sso
-            saveToSso(mainTreeMap, domain, deptType.getId());
+
+            saveToSso(mainTreeMap, domain, deptType.getCode());
             //      mainTreeMapGroupType.put(deptType.getCode(), new ArrayList<>(mainDept));
         }
         //}
@@ -188,11 +189,7 @@ public class DeptServiceImpl implements DeptService {
                     return mainTree;
                 }
                 logger.error("节点'{}'数据获取完成", code);
-                //循环引用判断
-                this.circularData(upstreamTree);
 
-                //判断上游是否给出时间戳
-                upstreamTree = this.judgeTime(upstreamTree, timestamp);
 
 
                 /////////////////
@@ -206,6 +203,13 @@ public class DeptServiceImpl implements DeptService {
                     upstreamDept.add(dept.toJavaObject(DeptBean.class));
 
                 }
+                System.out.println(upstreamTree.toJSONString());
+
+                //循环引用判断
+                this.circularData(upstreamTree);
+
+                //判断上游是否给出时间戳
+                upstreamTree = this.judgeTime(upstreamTree, timestamp);
 
                 Integer flag = saveDataToDb(upstreamTree, upstreamType.getId());
                 if (!(flag > 0)) {

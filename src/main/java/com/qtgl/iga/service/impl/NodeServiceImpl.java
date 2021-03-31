@@ -101,11 +101,12 @@ public class NodeServiceImpl implements NodeService {
                 }
             }
         }
-        if (flag > 0) {
+        if (flag > 0 && null!= rules) {
             //删除rule
             i = nodeRulesDao.deleteNodeRules((String) arguments.get("id"));
             nodeDto.setNodeRules(rules);
-        } else {
+        }
+        if(i<=0 && null!=rules){
             throw new Exception("删除节点规则失败");
         }
         //如果节点规则明细为空,直接删除node并返回
