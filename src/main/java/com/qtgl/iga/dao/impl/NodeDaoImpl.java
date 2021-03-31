@@ -84,7 +84,7 @@ public class NodeDaoImpl implements NodeDao {
         Object[] params = new Object[2];
         params[0] = arguments.get("id");
         params[1] = domain;
-        String sql = "delete from t_mgr_node where  id = ? and domain =?";
+        String sql = "delete from t_mgr_node where  id = ? and domain = ? ";
 
         return jdbcIGA.update(sql, params);
     }
