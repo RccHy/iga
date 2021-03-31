@@ -54,7 +54,7 @@ public class DeptDaoImpl implements DeptDao {
         String sql = "select id, dept_code as deptCode , dept_name as deptName , parent_code as parentCode , " +
                 "del_mark as delMark , independent , tenant_id as tenantId , update_time as updateTime , source , tags ," +
                 "data_source as dataSource , description , orphan, meta ,tree_type as treeType , type , create_time as createTime ," +
-                " active from dept where tenant_id = ? and tree_type=? and del_mark=0";
+                " active from dept where tenant_id = ? and tree_type=? ";
 
         List<Map<String, Object>> mapList = jdbcSSOAPI.queryForList(sql, id, treeType);
         return getDepts(mapList);
@@ -78,7 +78,7 @@ public class DeptDaoImpl implements DeptDao {
     @Override
     public ArrayList<DeptBean> updateDept(ArrayList<DeptBean> list, String tenantId) {
         String str = "update dept set  dept_name=?, parent_code=?, del_mark=? ,tenant_id =?" +
-                ",source =?, data_source=?, description=?, meta=?,update_time=?,tags=?,independent=?,tree_type= ? " +
+                ",source =?, data_source=?, description=?, meta=?,update_time=?,tags=?,independent=?,tree_type= ?,active=? " +
                 "where dept_code =?";
         boolean contains = false;
 
@@ -97,7 +97,8 @@ public class DeptDaoImpl implements DeptDao {
                 preparedStatement.setObject(10, list.get(i).getTags());
                 preparedStatement.setObject(11, list.get(i).getIndependent());
                 preparedStatement.setObject(12, list.get(i).getTreeType());
-                preparedStatement.setObject(13, list.get(i).getCode());
+                preparedStatement.setObject(13, 0);
+                preparedStatement.setObject(14, list.get(i).getCode());
 
             }
 

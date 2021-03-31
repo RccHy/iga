@@ -190,7 +190,8 @@ public class DeptServiceImpl implements DeptService {
                 }
                 logger.error("节点'{}'数据获取完成", code);
 
-
+                //判断上游是否给出时间戳
+                upstreamTree = this.judgeTime(upstreamTree, timestamp);
 
                 /////////////////
                 List<DeptBean> upstreamDept = new ArrayList<>();
@@ -208,8 +209,7 @@ public class DeptServiceImpl implements DeptService {
                 //循环引用判断
                 this.circularData(upstreamTree);
 
-                //判断上游是否给出时间戳
-                upstreamTree = this.judgeTime(upstreamTree, timestamp);
+
 
                 Integer flag = saveDataToDb(upstreamTree, upstreamType.getId());
                 if (!(flag > 0)) {
