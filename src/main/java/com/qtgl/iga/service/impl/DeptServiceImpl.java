@@ -269,10 +269,7 @@ public class DeptServiceImpl implements DeptService {
                             for (Map.Entry<String, DeptBean> deptEntry : mergeDeptMap2.entrySet()) {
                                 String key = deptEntry.getKey();
                                 DeptBean value = deptEntry.getValue();
-                                if (mainTree.containsKey(key) &&
-                                        (mainTree.get(key).getParentCode().equals(value.getParentCode()) ||
-                                                mainTree.get(key).getParentCode().equals(value.getParentCode()))
-                                ) {
+                                if (mainTree.containsKey(key) && mainTree.get(key).getParentCode().equals(value.getParentCode())) {
                                     mergeDeptMap.remove(key);
                                 }
                             }
@@ -291,10 +288,7 @@ public class DeptServiceImpl implements DeptService {
                         for (Map.Entry<String, DeptBean> deptEntry : mergeDeptMap2.entrySet()) {
                             String key = deptEntry.getKey();
                             DeptBean value = deptEntry.getValue();
-                            if (mainTree.containsKey(key) &&
-                                    (mainTree.get(key).getParentCode().equals(value.getParentCode()) ||
-                                            mainTree.get(key).getParentCode().equals(value.getParentCode()))
-                            ) {
+                            if (mainTree.containsKey(key) && mainTree.get(key).getParentCode().equals(value.getParentCode())) {
                                 mergeDeptMap.remove(key);
                             }
                         }
@@ -751,8 +745,10 @@ public class DeptServiceImpl implements DeptService {
         List<DeptBean> children = childrenMap.get(code);
         if (null != children) {
             for (DeptBean dept : children) {
-                mainTree.remove(dept.getCode());
-                removeMainTree(dept.getCode(), childrenMap, mainTree);
+                if (!dept.getDataSource().equals("builtin")) {
+                    mainTree.remove(dept.getCode());
+                    removeMainTree(dept.getCode(), childrenMap, mainTree);
+                }
             }
         }
     }
