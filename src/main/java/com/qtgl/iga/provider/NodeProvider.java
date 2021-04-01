@@ -19,7 +19,9 @@ public class NodeProvider {
 
     public TypeRuntimeWiring.Builder buildQueryRuntimeWiring() {
         TypeRuntimeWiring.Builder builder = newTypeWiring("Query")
-                .dataFetcher("nodes", dataFetcher.findNodes());
+                .dataFetcher("nodes", dataFetcher.findNodes())
+                .dataFetcher("nodesPlus", dataFetcher.findNodesPlus());
+
         return builder;
     }
 

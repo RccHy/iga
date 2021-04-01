@@ -187,15 +187,15 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
         Iterator<Map.Entry<String, Object>> it = arguments.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, Object> entry = it.next();
-            if (entry.getKey().equals("id")) {
+            if ("id".equals(entry.getKey())) {
                 stb.append("and id= ? ");
                 param.add(entry.getValue());
             }
 
-            if (entry.getKey().equals("filter")) {
+            if ("filter".equals(entry.getKey())) {
                 HashMap<String, Object> map = (HashMap<String, Object>) entry.getValue();
                 for (Map.Entry<String, Object> str : map.entrySet()) {
-                    if (str.getKey().equals("code")) {
+                    if ("code".equals(str.getKey())) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
                             if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
@@ -215,7 +215,7 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
                             }
                         }
                     }
-                    if (str.getKey().equals("name")) {
+                    if ("name".equals(str.getKey())) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
                             if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
@@ -235,7 +235,7 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
                             }
                         }
                     }
-                    if (str.getKey().equals("createTime")) {
+                    if ("createTime".equals(str.getKey())) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
                             //判断是否是区间

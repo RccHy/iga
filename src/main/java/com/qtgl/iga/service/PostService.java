@@ -7,12 +7,13 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * <FileName> PostTypeService
+ * <FileName> PostService
  * <Desc>
  *
- * @author HP*/
-public interface PostTypeService {
-    List<DeptBean> findUserType( DomainInfo domain) throws Exception;
+ * @author HP
+ */
+public interface PostService {
+    List<DeptBean> findPosts(DomainInfo domain) throws Exception;
 
     List<DeptBean> findDeptByDomainName(String domainName);
 }

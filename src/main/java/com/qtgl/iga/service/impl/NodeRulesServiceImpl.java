@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -108,5 +110,20 @@ public class NodeRulesServiceImpl implements NodeRulesService {
         NodeRulesVo nodeRulesVo = new NodeRulesVo(rules);
         nodeRulesVo.setNodeRulesRanges(ranges);
         return nodeRulesVo;
+    }
+
+    @Override
+    public List<NodeRulesVo> deleteBatchRules(Map<String, Object> arguments, String id) throws Exception {
+
+        List<String> ruleIds = (List<String>) arguments.get("ids");
+        ArrayList<NodeRulesVo> nodeRulesVos = new ArrayList<>();
+        for (String ruleId : ruleIds) {
+            HashMap<String, Object> map = new HashMap<>();
+            map.put("id", ruleId);
+            NodeRulesVo nodeRulesVo = deleteRules(map, id);
+            nodeRulesVos.add(nodeRulesVo);
+        }
+
+        return nodeRulesVos;
     }
 }

@@ -1,6 +1,9 @@
 extend type Query {
     #查询节点规则列表
     nodes(id:ID,filter:NodeFilter):[Node]
+
+    #查询plus
+    nodesPlus(codes:[String]!,treeType:String!):[Node]
 }
 extend type Mutation {
     #新增节点规则
@@ -57,8 +60,8 @@ input InputNode{
     #修改时间
     updateTime:Timestamp
 
-#    #租户
-#    domain:String
+    #    #租户
+    #    domain:String
     #部门树类型
     deptTreeType:String
 

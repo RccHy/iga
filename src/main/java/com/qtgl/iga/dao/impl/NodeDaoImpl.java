@@ -128,20 +128,55 @@ public class NodeDaoImpl implements NodeDao {
                 "node_code as nodeCode," +
                 "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType" +
                 " from t_mgr_node where dept_tree_type= ? ";
-        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql,id);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id);
 
+        return getNodes(nodes, mapList);
+    }
+
+    @Override
+    public List<Node> findNodesPlus(Map<String, Object> arguments, String id) {
+        ArrayList<Node> nodes = new ArrayList<>();
+
+        List<String> codes = (List<String>) arguments.get("codes");
+        String treeType = (String) arguments.get("treeType");
+        String sql = "select id,manual," +
+                "node_code as nodeCode," +
+                "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType" +
+                " from t_mgr_node where domain= ? and dept_tree_type =? and node_code in ( ";
+        List<Object> param = new ArrayList<>();
+        param.add(id);
+        param.add(treeType);
+        sql = handleSql(sql, codes, param);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, param.toArray());
+
+        return getNodes(nodes, mapList);
+    }
+
+    private List<Node> getNodes(ArrayList<Node> nodes, List<Map<String, Object>> mapList) {
         for (Map<String, Object> map : mapList) {
             try {
                 Node node = new Node();
                 BeanUtils.populate(node, map);
                 nodes.add(node);
-                return nodes;
+
+
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
+        return nodes;
 
-        return null;
+    }
+
+    private String handleSql(String sql, List<String> codes, List<Object> param) {
+        StringBuffer stb = new StringBuffer(sql);
+        for (String code : codes) {
+            stb.append(" ?,");
+            param.add(code);
+        }
+        String s = stb.toString();
+        s = s.substring(0, s.length() - 1) + ")";
+        return s;
     }
 
 
@@ -149,11 +184,11 @@ public class NodeDaoImpl implements NodeDao {
         Iterator<Map.Entry<String, Object>> it = arguments.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, Object> entry = it.next();
-            if (entry.getKey().equals("id")) {
+            if ("id".equals(entry.getKey())) {
                 stb.append("and id= ? ");
                 param.add(entry.getValue());
             }
-            if (entry.getKey().equals("filter")) {
+            if ("filter".equals(entry.getKey())) {
                 HashMap<String, Object> map = (HashMap<String, Object>) entry.getValue();
                 for (Map.Entry<String, Object> str : map.entrySet()) {
                     if (str.getKey().equals("deptTreeType")) {

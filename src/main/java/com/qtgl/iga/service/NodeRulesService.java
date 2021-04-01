@@ -17,4 +17,6 @@ public interface NodeRulesService {
     NodeRulesVo saveRules(NodeRulesVo nodeRules) throws Exception;
 
     NodeRulesVo updateRules(NodeRulesVo nodeRules) throws Exception;
+
+    List<NodeRulesVo> deleteBatchRules(Map<String, Object> arguments, String id) throws Exception;
 }

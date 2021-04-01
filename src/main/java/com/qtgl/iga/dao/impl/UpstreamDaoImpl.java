@@ -61,12 +61,18 @@ public class UpstreamDaoImpl implements UpstreamDao {
 
     @Override
     @Transactional
-    public Upstream saveUpstream(Upstream upstream, String domain) {
+    public Upstream saveUpstream(Upstream upstream, String domain) throws Exception {
+        //判重
+        Object[] param = new Object[]{upstream.getAppCode(), upstream.getAppName()};
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_upstream where app_code =? or app_name = ?", param);
+        if (null != mapList && mapList.size() > 0) {
+            throw new Exception("code 或 name 不能重复,添加组织机构树类别失败");
+        }
         String sql = "insert into t_mgr_upstream  values(?,?,?,?,?,?,?,?,?,?,?)";
         //生成主键和时间
         String id = UUID.randomUUID().toString().replace("-", "");
         upstream.setId(id);
-        Timestamp date = new Timestamp(new Date().getTime());
+        Timestamp date = new Timestamp(System.currentTimeMillis());
         upstream.setCreateTime(date);
         int update = jdbcIGA.update(sql, preparedStatement -> {
             preparedStatement.setObject(1, id);
@@ -129,6 +135,12 @@ public class UpstreamDaoImpl implements UpstreamDao {
     @Override
     @Transactional
     public Upstream updateUpstream(Upstream upstream) throws Exception {
+        //判重
+        Object[] param = new Object[]{upstream.getAppCode(), upstream.getAppName(), upstream.getId()};
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_upstream where (app_code = ? or app_name = ?) and id != ?  ", param);
+        if (null != mapList && mapList.size() > 0) {
+            throw new Exception("code 或 name 不能重复,修改组织机构类别树失败");
+        }
         if (!upstream.getActive()) {
             //判断类型是否都未启用
             List<UpstreamType> byUpstreamId = upstreamTypeDao.findByUpstreamId(upstream.getId());
@@ -140,7 +152,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
 
         String sql = "update t_mgr_upstream  set app_code = ?,app_name = ?,data_code = ?,create_user = ?,active = ?," +
                 "color = ?,domain = ?,active_time = ?,update_time= ?  where id=?";
-        Timestamp date = new Timestamp(new Date().getTime());
+        Timestamp date = new Timestamp(System.currentTimeMillis());
         int update = jdbcIGA.update(sql, preparedStatement -> {
             preparedStatement.setObject(1, upstream.getAppCode());
             preparedStatement.setObject(2, upstream.getAppName());

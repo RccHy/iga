@@ -54,9 +54,14 @@ public class DeptDaoImpl implements DeptDao {
         String sql = "select id, dept_code as deptCode , dept_name as deptName , parent_code as parentCode , " +
                 "del_mark as delMark , independent , tenant_id as tenantId , update_time as updateTime , source , tags ," +
                 "data_source as dataSource , description , orphan, meta ,tree_type as treeType , type , create_time as createTime ," +
-                " active from dept where tenant_id = ? and tree_type=? ";
-
-        List<Map<String, Object>> mapList = jdbcSSOAPI.queryForList(sql, id, treeType);
+                " active from dept where tenant_id = ? ";
+        List<Object> param = new ArrayList<>();
+        param.add(id);
+        if (null != treeType) {
+            sql = sql + " and tree_type=? ";
+            param.add(treeType);
+        }
+        List<Map<String, Object>> mapList = jdbcSSOAPI.queryForList(sql, param.toArray());
         return getDepts(mapList);
     }
 

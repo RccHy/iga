@@ -76,4 +76,14 @@ public class NodeRulesDataFetcher {
             throw new Exception("修改失败");
         };
     }
+
+    public DataFetcher deleteBatchRules() {
+        return dataFetchingEvn -> {
+            //1。更具token信息验证是否合法，并判断其租户
+            DomainInfo domain = CertifiedConnector.getDomain();
+            // 获取传入参数
+            Map<String, Object> arguments = dataFetchingEvn.getArguments();
+            return nodeRulesService.deleteBatchRules(arguments, domain.getId());
+        };
+    }
 }

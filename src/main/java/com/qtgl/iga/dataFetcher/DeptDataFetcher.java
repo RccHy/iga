@@ -5,7 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.DeptBean;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.service.DeptService;
-import com.qtgl.iga.service.PostTypeService;
+import com.qtgl.iga.service.PostService;
 import com.qtgl.iga.utils.CertifiedConnector;
 import com.qtgl.iga.utils.GraphqlError;
 import graphql.execution.DataFetcherResult;
@@ -29,7 +29,7 @@ public class DeptDataFetcher {
     DeptService deptService;
 
     @Autowired
-    PostTypeService postTypeService;
+    PostService postService;
 
 
     public DataFetcher findDept() {
@@ -54,18 +54,18 @@ public class DeptDataFetcher {
         };
     }
 
-    public DataFetcher findPostType() {
+    public DataFetcher findPosts() {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
             // 获取传入参数
             try {
-                List<DeptBean> userType = postTypeService.findUserType(domain);
-                return userType;
+                List<DeptBean> posts = postService.findPosts(domain);
+                return posts;
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.error(domain.getDomainName() + e.getMessage());
-                List<DeptBean> deptBeans = postTypeService.findDeptByDomainName(domain.getDomainName());
+                List<DeptBean> deptBeans = postService.findDeptByDomainName(domain.getDomainName());
 
                 return getObject(e, deptBeans);
             }

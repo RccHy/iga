@@ -28,7 +28,8 @@ public class NodeRulesProvider {
         TypeRuntimeWiring.Builder builder = newTypeWiring("Mutation")
                 .dataFetcher("saveRules", dataFetcher.saveRules())
                 .dataFetcher("deleteRules", dataFetcher.deleteRules())
-                .dataFetcher("updateRules", dataFetcher.updateRules());
+                .dataFetcher("updateRules", dataFetcher.updateRules())
+                .dataFetcher("deleteBatchRules", dataFetcher.deleteBatchRules());
         return builder;
 
     }

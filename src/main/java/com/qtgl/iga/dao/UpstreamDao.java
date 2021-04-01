@@ -10,7 +10,7 @@ public interface UpstreamDao {
 
     List<Upstream> findAll(Map<String, Object> arguments, String domain);
 
-    Upstream saveUpstream(Upstream upstream, String domain);
+    Upstream saveUpstream(Upstream upstream, String domain) throws Exception;
 
     Upstream deleteUpstream(Map<String, Object> arguments, String domain) throws Exception;
 

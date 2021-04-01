@@ -51,6 +51,8 @@ type upstreamType{
     upstreamTypeFields:[upstreamTypeField]
     #是否分页
     isPage:Boolean
+    #方式  推送0/拉取1
+    synWay:Int
 }
 
 
@@ -123,6 +125,8 @@ input InputupstreamType{
     upstreamTypeFields:[InputUpstreamTypeField]
     #是否分页
     isPage:Boolean
+    #方式 拉取0/推送1
+    synWay:Int
 }
 
 input upstreamTypeFilter{
@@ -133,6 +137,7 @@ input upstreamTypeFilter{
     synType:stringFilter
     createTime:timestampFilter
     updateTime:timestampFilter
+    synWay:integerFilter
 }
 
 

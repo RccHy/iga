@@ -25,12 +25,6 @@ public class HelloController {
     DataBusUtil busUtil;
 
 
-
-
-
-
-
-
     @RequestMapping("/url")
     @ResponseBody
     public Object getUrl(@RequestBody UpstreamType upstreamType) {

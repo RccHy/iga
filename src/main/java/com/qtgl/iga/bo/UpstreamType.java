@@ -62,4 +62,7 @@ public class UpstreamType implements Serializable {
 
     //是否分页
     private Boolean isPage;
+
+    //方式
+    private Integer synWay;
 }

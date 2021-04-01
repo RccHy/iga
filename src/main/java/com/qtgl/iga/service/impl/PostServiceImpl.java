@@ -2,12 +2,13 @@ package com.qtgl.iga.service.impl;
 
 
 import com.qtgl.iga.bean.DeptBean;
+import com.qtgl.iga.bo.Dept;
 import com.qtgl.iga.bo.DomainInfo;
-import com.qtgl.iga.bo.PostType;
+import com.qtgl.iga.bo.Post;
 import com.qtgl.iga.bo.Tenant;
-import com.qtgl.iga.dao.PostTypeDao;
+import com.qtgl.iga.dao.PostDao;
 import com.qtgl.iga.dao.TenantDao;
-import com.qtgl.iga.service.PostTypeService;
+import com.qtgl.iga.service.PostService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,16 +23,16 @@ import java.util.stream.Collectors;
 
 @Service
 @Transactional
-public class PostTypeServiceImpl implements PostTypeService {
+public class PostServiceImpl implements PostService {
 
 
-    public static Logger logger = LoggerFactory.getLogger(PostTypeServiceImpl.class);
+    public static Logger logger = LoggerFactory.getLogger(PostServiceImpl.class);
 
 
     @Autowired
     DeptServiceImpl deptService;
     @Autowired
-    PostTypeDao postTypeDao;
+    PostDao postDao;
     @Autowired
     TenantDao tenantDao;
 
@@ -40,16 +41,16 @@ public class PostTypeServiceImpl implements PostTypeService {
 
 
     @Override
-    public List<DeptBean> findUserType(DomainInfo domain) throws Exception {
+    public List<DeptBean> findPosts(DomainInfo domain) throws Exception {
         //获取默认数据
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
             throw new Exception("租户不存在");
         }
         //  置空mainTree
-        List<DeptBean> rootBeans = postTypeDao.findRootData(tenant.getId());
+        List<DeptBean> rootBeans = postDao.findRootData(tenant.getId());
         for (DeptBean rootBean : rootBeans) {
-            if(null==rootBean.getParentCode()){
+            if (null == rootBean.getParentCode()) {
                 rootBean.setParentCode("");
             }
         }
@@ -79,7 +80,7 @@ public class PostTypeServiceImpl implements PostTypeService {
     public List<DeptBean> findDeptByDomainName(String domainName) {
 //        获取tenantId
         Tenant byDomainName = tenantDao.findByDomainName(domainName);
-        return postTypeDao.findPostType(byDomainName.getId());
+        return postDao.findPostType(byDomainName.getId());
 
     }
 
@@ -116,10 +117,10 @@ public class PostTypeServiceImpl implements PostTypeService {
             throw new Exception("租户不存在");
         }
         //通过tenantId查询ssoApis库中的数据
-        List<PostType> beans = postTypeDao.findByTenantId(tenant.getId());
+        List<Post> beans = postDao.findByTenantId(tenant.getId());
         //将null赋为""
         if (null != beans && beans.size() > 0) {
-            for (PostType bean : beans) {
+            for (Post bean : beans) {
                 if (StringUtils.isBlank(bean.getParentCode())) {
                     bean.setParentCode("");
                 }
@@ -137,8 +138,10 @@ public class PostTypeServiceImpl implements PostTypeService {
                 deptBean.setTreeType(treeTypeId);
                 if (null != beans) {
                     //遍历数据库数据
-                    for (PostType bean : beans) {
+                    for (Post bean : beans) {
                         if (deptBean.getCode().equals(bean.getUserType())) {
+
+
                             if (null != deptBean.getCreateTime()) {
                                 //修改
                                 if (null == bean.getUpdateTime() || deptBean.getCreateTime().after(Timestamp.valueOf(bean.getUpdateTime()))) {
@@ -152,6 +155,7 @@ public class PostTypeServiceImpl implements PostTypeService {
                             }
                             flag = false;
                         }
+
                     }
                     //没有相等的应该是新增
                     if (flag) {
@@ -165,7 +169,8 @@ public class PostTypeServiceImpl implements PostTypeService {
         }
         if (null != beans) {
             //查询数据库需要删除的数据
-            for (PostType bean : beans) {
+            for (Post bean : beans) {
+
                 if (!"builtin".equals(bean.getDataSource())) {
                     boolean flag = true;
                     for (DeptBean deptBean : result.keySet()) {
@@ -184,15 +189,23 @@ public class PostTypeServiceImpl implements PostTypeService {
         }
 
         Map<String, List<Map.Entry<DeptBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
-
+        //  查询所有对比code
+        List<Post> realBeans = postDao.findByTenantId(tenant.getId());
+        Map<String, Post> collect1 = realBeans.stream().collect(Collectors.toMap(
+                (Post::getUserType),
+                (post -> post)));
         List<Map.Entry<DeptBean, String>> insert = collect.get("insert");
         //插入数据
         if (null != insert && insert.size() > 0) {
             ArrayList<DeptBean> list = new ArrayList<>();
             for (Map.Entry<DeptBean, String> key : insert) {
+                Post post = collect1.get(key.getKey());
+                if (null != post) {
+                    throw new RuntimeException("code" + key.getKey() + "重复,插入失败");
+                }
                 list.add(key.getKey());
             }
-            ArrayList<DeptBean> depts = postTypeDao.saveDept(list, tenant.getId());
+            ArrayList<DeptBean> depts = postDao.saveDept(list, tenant.getId());
             if (null != depts && depts.size() > 0) {
                 logger.info("插入" + list.size() + "条数据{}", depts.toString());
             } else {
@@ -215,7 +228,7 @@ public class PostTypeServiceImpl implements PostTypeService {
             for (Map.Entry<DeptBean, String> key : update) {
                 list.add(key.getKey());
             }
-            ArrayList<DeptBean> depts = postTypeDao.updateDept(list, tenant.getId());
+            ArrayList<DeptBean> depts = postDao.updateDept(list, tenant.getId());
             if (null != depts && depts.size() > 0) {
                 logger.info("更新" + list.size() + "条数据{}", depts.toString());
             } else {
@@ -229,7 +242,7 @@ public class PostTypeServiceImpl implements PostTypeService {
             for (Map.Entry<DeptBean, String> key : delete) {
                 list.add(key.getKey());
             }
-            ArrayList<DeptBean> depts = postTypeDao.deleteDept(list);
+            ArrayList<DeptBean> depts = postDao.deleteDept(list);
             if (null != depts && depts.size() > 0) {
                 logger.info("删除" + list.size() + "条数据{}", depts.toString());
             } else {

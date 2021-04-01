@@ -2,16 +2,16 @@ package com.qtgl.iga.dao;
 
 
 import com.qtgl.iga.bean.DeptBean;
-import com.qtgl.iga.bo.PostType;
+import com.qtgl.iga.bo.Post;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public interface PostTypeDao {
+public interface PostDao {
 
 
 
-    List<PostType> findByTenantId(String id);
+    List<Post> findByTenantId(String id);
 
     ArrayList<DeptBean> updateDept(ArrayList<DeptBean> list, String tenantId);
 

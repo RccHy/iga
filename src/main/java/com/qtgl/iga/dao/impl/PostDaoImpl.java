@@ -1,8 +1,8 @@
 package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bean.DeptBean;
-import com.qtgl.iga.bo.PostType;
-import com.qtgl.iga.dao.PostTypeDao;
+import com.qtgl.iga.bo.Post;
+import com.qtgl.iga.dao.PostDao;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.cglib.beans.BeanMap;
@@ -21,7 +21,7 @@ import java.util.*;
 
 @Repository
 @Component
-public class PostTypeDaoImpl implements PostTypeDao {
+public class PostDaoImpl implements PostDao {
 
 
     @Resource(name = "jdbcSSO")
@@ -29,7 +29,7 @@ public class PostTypeDaoImpl implements PostTypeDao {
 
 
     @Override
-    public List<PostType> findByTenantId(String id) {
+    public List<Post> findByTenantId(String id) {
         //
         String sql = "select id, user_type as userType , name, parent_code as parentCode , " +
                 "can_login as canLogin , delay_time as delayTime , tenant_id as tenantId , formal , tags , description ," +
@@ -40,14 +40,14 @@ public class PostTypeDaoImpl implements PostTypeDao {
         return getUserTypes(mapList);
     }
 
-    private List<PostType> getUserTypes(List<Map<String, Object>> mapList) {
-        ArrayList<PostType> list = new ArrayList<>();
+    private List<Post> getUserTypes(List<Map<String, Object>> mapList) {
+        ArrayList<Post> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {
-                PostType postType = new PostType();
-                BeanMap beanMap = BeanMap.create(postType);
+                Post post = new Post();
+                BeanMap beanMap = BeanMap.create(post);
                 beanMap.putAll(map);
-                list.add(postType);
+                list.add(post);
             }
             return list;
         }
@@ -162,7 +162,7 @@ public class PostTypeDaoImpl implements PostTypeDao {
                 " tags ,data_source as dataSource , description , meta,source,post_type as postType  " +
                 " from user_type where tenant_id=? and del_mark=0 and data_source=?";
 
-        List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId,"builtin");
+        List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId, "builtin");
         ArrayList<DeptBean> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {
@@ -189,7 +189,7 @@ public class PostTypeDaoImpl implements PostTypeDao {
                 " tags ,data_source as dataSource , description , meta,source,post_type as postType  " +
                 " from user_type where tenant_id=? and del_mark=0";
 
-        List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql,id);
+        List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, id);
         ArrayList<DeptBean> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {

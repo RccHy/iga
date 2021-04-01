@@ -60,7 +60,6 @@ public class TreeUtil<T> {
     }
 
 
-
     public static Map<String, DeptBean> toMap(List<DeptBean> deptBeans) {
 
         Map<String, DeptBean> map = deptBeans.stream()

@@ -26,12 +26,16 @@ public class DeptBean {
 
     private String source;
 
-    /**push  pull  builtin*/
+    /**
+     * push  pull  builtin
+     */
     private String dataSource;
 
     private Timestamp createTime;
 
-    /** todo 部门排序 暂不考虑*/
+    /**
+     * todo 部门排序 暂不考虑
+     */
     private Integer deptIndex;
 
     private String treeType;

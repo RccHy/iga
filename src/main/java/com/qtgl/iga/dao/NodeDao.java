@@ -18,4 +18,6 @@ public interface NodeDao {
     List<Node> findNodes(Map<String, Object> arguments, String domain);
 
     List<Node> findByTreeTypeId(String id);
+
+    List<Node> findNodesPlus(Map<String, Object> arguments, String id);
 }

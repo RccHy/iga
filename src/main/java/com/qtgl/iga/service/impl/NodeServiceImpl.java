@@ -8,6 +8,7 @@ import com.qtgl.iga.dao.NodeRulesDao;
 import com.qtgl.iga.dao.NodeRulesRangeDao;
 import com.qtgl.iga.service.NodeService;
 import com.qtgl.iga.vo.NodeRulesVo;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -101,12 +102,12 @@ public class NodeServiceImpl implements NodeService {
                 }
             }
         }
-        if (flag > 0 && null!= rules) {
+        if (flag > 0 && null != rules) {
             //删除rule
             i = nodeRulesDao.deleteNodeRules((String) arguments.get("id"));
             nodeDto.setNodeRules(rules);
         }
-        if(i<=0 && null!=rules){
+        if (i <= 0 && null != rules) {
             throw new Exception("删除节点规则失败");
         }
         //如果节点规则明细为空,直接删除node并返回
@@ -149,6 +150,42 @@ public class NodeServiceImpl implements NodeService {
     @Override
     public NodeDto updateNode(NodeDto nodeDto) {
         return null;
+    }
+
+    @Override
+    public List<NodeDto> findNodesPlus(Map<String, Object> arguments, String id) {
+        //查询node
+        ArrayList<NodeDto> nodeDos = new ArrayList<>();
+        //获取node
+        List<Node> nodeList = nodeDao.findNodesPlus(arguments, id);
+        //根据node查询rules
+        if (null != nodeList && nodeList.size() > 0) {
+            for (Node node : nodeList) {
+
+                NodeDto nodeDto = new NodeDto(node);
+                List<NodeRulesVo> nodeRulesByNodeId = nodeRulesDao.findNodeRulesByNodeId(node.getId());
+
+                if (null != nodeRulesByNodeId) {
+                    //根据rules查询对应的range
+                    ArrayList<NodeRulesVo> nodeRulesVos = new ArrayList<>();
+                    for (NodeRulesVo nodeRulesVo : nodeRulesByNodeId) {
+                        if (StringUtils.isBlank(nodeRulesVo.getInheritId())) {
+                            List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(nodeRulesVo.getId());
+                            nodeRulesVo.setNodeRulesRanges(byRulesId);
+                            nodeRulesVos.add(nodeRulesVo);
+                        } else {
+                            nodeRulesVos.add(null);
+                        }
+
+                    }
+                    nodeDto.setNodeRules(nodeRulesVos);
+                    nodeDos.add(nodeDto);
+                }
+            }
+        }
+
+
+        return nodeDos;
     }
 
 

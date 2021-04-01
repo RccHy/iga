@@ -254,6 +254,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
     }
 
 
+
     private void dealData(Map<String, Object> arguments, StringBuffer stb, List<Object> param) {
         Iterator<Map.Entry<String, Object>> it = arguments.entrySet().iterator();
         while (it.hasNext()) {

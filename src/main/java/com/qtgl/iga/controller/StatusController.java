@@ -26,7 +26,7 @@ public class StatusController {
     @GetMapping("/status")
     @ResponseBody
     public Map status() {
-        Map map=new HashMap();
+        Map map = new HashMap();
         map.putAll(getSystemRuntime());
         return map;
     }
@@ -45,8 +45,9 @@ public class StatusController {
             String path = cl.getResource("application.yml").getPath();
             if ("\\".equalsIgnoreCase(File.separator)) {
                 path = path.replaceAll("/", "\\\\");
-                if (path.substring(0, 1).equals("\\"))
+                if (path.substring(0, 1).equals("\\")) {
                     path = path.substring(1);
+                }
             } else if ("/".equalsIgnoreCase(File.separator)) {
                 path = path.replaceAll("\\\\", "/");
             }
@@ -60,7 +61,6 @@ public class StatusController {
         SimpleDateFormat sdf = new SimpleDateFormat(pattern);
         return sdf.format(created);
     }
-
 
 
     private Map getSystemRuntime() {

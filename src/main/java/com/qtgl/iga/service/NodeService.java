@@ -20,4 +20,6 @@ public interface NodeService {
     List<NodeDto> findNodes(Map<String, Object> arguments, String id);
 
     NodeDto updateNode(NodeDto nodeDto);
+
+    List<NodeDto> findNodesPlus(Map<String, Object> arguments, String id);
 }
