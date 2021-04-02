@@ -77,12 +77,15 @@ public class UpstreamServiceImpl implements UpstreamService {
         //查询上游源
         List<Upstream> upstreamList = upstreamDao.findAll(arguments, id);
         //查询上游源类型
-        for (Upstream upstream : upstreamList) {
-            UpstreamDto upstreamDto = new UpstreamDto(upstream);
-            List<UpstreamType> byUpstreamId = upstreamTypeDao.findByUpstreamId(upstream.getId());
-            upstreamDto.setUpstreamTypes(byUpstreamId);
-            upstreamDtos.add(upstreamDto);
+        if (null != upstreamList && upstreamList.size() > 0) {
+            for (Upstream upstream : upstreamList) {
+                UpstreamDto upstreamDto = new UpstreamDto(upstream);
+                List<UpstreamType> byUpstreamId = upstreamTypeDao.findByUpstreamId(upstream.getId());
+                upstreamDto.setUpstreamTypes(byUpstreamId);
+                upstreamDtos.add(upstreamDto);
+            }
         }
+
 
         return upstreamDtos;
     }

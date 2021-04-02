@@ -162,7 +162,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
     public List<NodeRulesVo> findNodeRulesByNodeId(String id) {
         String sql = "select id,node_id as nodeId,type as type,active as active," +
                 "create_time as createTime,service_key as serviceKey,upstream_types_id as upstreamTypesId,inherit_id as inheritId," +
-                "active_time as activeTime,update_time as updateTime from t_mgr_node_rules where node_id =? ";
+                "active_time as activeTime,update_time as updateTime , sort from t_mgr_node_rules where node_id =? ";
 
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id);
         ArrayList<NodeRulesVo> list = new ArrayList<>();
@@ -185,7 +185,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
     public NodeRulesVo saveNodeRules(NodeRulesVo nodeRules) {
         String str = "insert into t_mgr_node_rules values(?,?,?,?,?,?,?,?,?,?,?)";
         nodeRules.setId(UUID.randomUUID().toString().replace("-", ""));
-        nodeRules.setCreateTime(new Date().getTime());
+        nodeRules.setCreateTime(System.currentTimeMillis());
         nodeRules.setUpdateTime(null);
         return jdbcIGA.update(str, preparedStatement -> {
             preparedStatement.setObject(1, nodeRules.getId());
@@ -208,7 +208,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
     public NodeRules findNodeRulesById(String id) {
         String sql = "select id,node_id as nodeId,type as type,active as active," +
                 "create_time as createTime,service_key as serviceKey,upstream_types_id as upstreamTypesId,inherit_id as inheritId," +
-                "active_time as activeTime,update_time as updateTime from t_mgr_node_rules where 1 = 1 and id= ? ";
+                "active_time as activeTime,update_time as updateTime,sort from t_mgr_node_rules where 1 = 1 and id= ? ";
         Map<String, Object> mapList = jdbcIGA.queryForMap(sql, id);
         NodeRules nodeRules = new NodeRules();
 
@@ -238,7 +238,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
         List<NodeRules> nodeRules = new ArrayList<>();
         String sql = "select id,node_id as nodeId,type as type,active as active," +
                 "create_time as createTime,service_key as serviceKey,upstream_types_id as upstreamTypesId,inherit_id as inheritId," +
-                "active_time as activeTime,update_time as updateTime from t_mgr_node_rules where 1 = 1 and upstream_types_id= ? ";
+                "active_time as activeTime,update_time as updateTime,sort from t_mgr_node_rules where 1 = 1 and upstream_types_id= ? ";
 
         List<Map<String, Object>> maps = jdbcIGA.queryForList(sql, id);
         for (Map<String, Object> map : maps) {
@@ -259,7 +259,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
         Iterator<Map.Entry<String, Object>> it = arguments.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, Object> entry = it.next();
-            if (entry.getKey().equals("id")) {
+            if ("id".equals(entry.getKey())) {
                 stb.append("and id= ? ");
                 param.add(entry.getValue());
             }

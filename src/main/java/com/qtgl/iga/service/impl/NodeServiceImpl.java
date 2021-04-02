@@ -141,8 +141,9 @@ public class NodeServiceImpl implements NodeService {
                     nodeRulesVo.setNodeRulesRanges(byRulesId);
                 }
                 nodeDto.setNodeRules(nodeRulesByNodeId);
-                nodeDos.add(nodeDto);
+
             }
+            nodeDos.add(nodeDto);
         }
         return nodeDos;
     }
