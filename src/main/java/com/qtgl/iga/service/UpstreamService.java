@@ -21,4 +21,6 @@ public interface UpstreamService {
     UpstreamDto saveUpstreamAndTypes(UpstreamDto upstream, String id) throws Exception;
 
     List<UpstreamDto> upstreamsAndTypes(Map<String, Object> arguments, String id);
+
+    UpstreamDto updateUpstreamAndTypes(UpstreamDto upstream) throws Exception;
 }

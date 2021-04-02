@@ -35,7 +35,8 @@ public class UpstreamProvider {
                 .dataFetcher("saveUpstream", upstreamFetcher.saveUpstream())
                 .dataFetcher("deleteUpstream", upstreamFetcher.deleteUpstream())
                 .dataFetcher("updateUpstream", upstreamFetcher.updateUpstream())
-                .dataFetcher("saveUpstreamAndTypes", upstreamFetcher.saveUpstreamAndTypes());
+                .dataFetcher("saveUpstreamAndTypes", upstreamFetcher.saveUpstreamAndTypes())
+                .dataFetcher("updateUpstreamAndTypes", upstreamFetcher.updateUpstreamAndTypes());
         return builder;
 
     }

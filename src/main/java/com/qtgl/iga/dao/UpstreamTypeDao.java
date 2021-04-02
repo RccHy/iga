@@ -14,7 +14,7 @@ public interface UpstreamTypeDao {
 
     UpstreamType saveUpstreamType(UpstreamType upstreamType, String domain);
 
-    UpstreamType deleteUpstreamType(Map<String, Object> arguments, String domain) throws Exception;
+    UpstreamType deleteUpstreamType(String id, String domain) throws Exception;
 
     UpstreamType updateUpstreamType(UpstreamType upstreamType) throws Exception;
 
@@ -24,5 +24,5 @@ public interface UpstreamTypeDao {
 
     List<UpstreamTypeField> findFields(String url);
 
-    Integer deleteByUpstreamId(String id);
+    Integer deleteByUpstreamId(String id ,String domain);
 }

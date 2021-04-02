@@ -37,4 +37,6 @@ public class DeptTreeType {
 
     //租户外键
     private String domain;
+    //排序字段
+    private Integer treeIndex;
 }

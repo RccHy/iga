@@ -180,8 +180,9 @@ public class NodeServiceImpl implements NodeService {
 
                     }
                     nodeDto.setNodeRules(nodeRulesVos);
-                    nodeDos.add(nodeDto);
+
                 }
+                nodeDos.add(nodeDto);
             }
         }
 

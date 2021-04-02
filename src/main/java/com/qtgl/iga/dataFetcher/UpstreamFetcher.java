@@ -103,4 +103,21 @@ public class UpstreamFetcher {
             return upstreamService.upstreamsAndTypes(arguments, domain.getId());
         };
     }
+
+    public DataFetcher updateUpstreamAndTypes() {
+
+        return dataFetchingEvn -> {
+            //1。更具token信息验证是否合法，并判断其租户
+            DomainInfo domain = CertifiedConnector.getDomain();
+            // 获取传入参数
+            Map<String, Object> arguments = dataFetchingEvn.getArguments();
+            UpstreamDto upstream = JSON.parseObject(JSON.toJSONString(arguments.get("entity")), UpstreamDto.class);
+            upstream.setDomain(domain.getId());
+            UpstreamDto data = upstreamService.updateUpstreamAndTypes(upstream);
+            if (null != data) {
+                return data;
+            }
+            throw new Exception("修改失败");
+        };
+    }
 }

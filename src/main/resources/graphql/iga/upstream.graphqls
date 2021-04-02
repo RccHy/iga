@@ -14,11 +14,14 @@ extend type Mutation {
     saveUpstream(entity:InputUpstream!):upstream
 
     #新版上游源注册(带类型)
-    saveUpstreamAndTypes(entity:InputUpstream!):upstream
+#    saveUpstreamAndTypes(entity:InputUpstream!):upstream
     #根据id删除上游源注册
     deleteUpstream(id:ID!): upstream
     #更新上游源注册
     updateUpstream(entity:InputUpstream!):upstream
+
+    #更新上游源及类型
+#    updateUpstreamAndTypes(entity:InputUpstream!):upstream
 }
 
 

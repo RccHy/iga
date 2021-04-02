@@ -103,7 +103,7 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
     public NodeRulesRange updateRulesRange(NodeRulesRange rulesRange) {
         String sql = "update t_mgr_node_rules_range  set node_rules_id = ?,type = ?,node = ?,range = ?,create_time = ?," +
                 "rename = ?,update_time = ?  where id=?";
-        Timestamp date = new Timestamp(new Date().getTime());
+        Timestamp date = new Timestamp(System.currentTimeMillis());
         int update = jdbcIGA.update(sql, preparedStatement -> {
             preparedStatement.setObject(1, rulesRange.getNodeRulesId());
             preparedStatement.setObject(2, rulesRange.getType());
@@ -123,7 +123,7 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
             rulesRange.setId(UUID.randomUUID().toString().replace("-", ""));
         }
         String str = "insert into t_mgr_node_rules_range values(?,?,?,?,?,?,?,?)";
-        rulesRange.setCreateTime(new Date().getTime());
+        rulesRange.setCreateTime(System.currentTimeMillis());
         return jdbcIGA.update(str, preparedStatement -> {
             preparedStatement.setObject(1, rulesRange.getId());
             preparedStatement.setObject(2, rulesRange.getNodeRulesId());

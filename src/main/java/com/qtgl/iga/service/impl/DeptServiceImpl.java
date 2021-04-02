@@ -82,9 +82,11 @@ public class DeptServiceImpl implements DeptService {
         Tenant byDomainName = tenantDao.findByDomainName(domainName);
         List<Dept> byTenantId = deptDao.findByTenantId(byDomainName.getId(), treeType);
         ArrayList<DeptBean> list = new ArrayList<>();
-        for (Dept dept : byTenantId) {
-            DeptBean deptBean = new DeptBean(dept);
-            list.add(deptBean);
+        if (null != list && list.size() > 0) {
+            for (Dept dept : byTenantId) {
+                DeptBean deptBean = new DeptBean(dept);
+                list.add(deptBean);
+            }
         }
         return list;
     }

@@ -33,7 +33,7 @@ public class DeptTreeTypeServiceImpl implements DeptTreeTypeService {
         if (null != nodeList && nodeList.size() > 0) {
             throw new Exception("删除组织机构树类型失败,有绑定的node,请查看后再删除");
         }
-        return deptTreeTypeDao.deleteDeptTreeType(arguments, domain);
+        return deptTreeTypeDao.deleteDeptTreeType((String) arguments.get("id"), domain);
     }
 
     @Override

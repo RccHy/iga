@@ -2,11 +2,8 @@ package com.qtgl.iga.dao.impl;
 
 
 import com.qtgl.iga.bo.Upstream;
-import com.qtgl.iga.bo.UpstreamType;
 import com.qtgl.iga.dao.UpstreamDao;
-import com.qtgl.iga.dao.UpstreamTypeDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -27,8 +24,6 @@ public class UpstreamDaoImpl implements UpstreamDao {
     @Resource(name = "jdbcIGA")
     JdbcTemplate jdbcIGA;
 
-    @Autowired
-    UpstreamTypeDao upstreamTypeDao;
 
     @Override
     public List<Upstream> findAll(Map<String, Object> arguments, String domain) {
@@ -66,7 +61,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
         Object[] param = new Object[]{upstream.getAppCode(), upstream.getAppName()};
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_upstream where app_code =? or app_name = ?", param);
         if (null != mapList && mapList.size() > 0) {
-            throw new Exception("code 或 name 不能重复,添加组织机构树类别失败");
+            throw new Exception("appCode 或 appName 不能重复,添加失败" + upstream.getAppCode() + "---" + upstream.getAppName());
         }
         String sql = "insert into t_mgr_upstream  values(?,?,?,?,?,?,?,?,?,?,?)";
         //生成主键和时间
@@ -93,9 +88,22 @@ public class UpstreamDaoImpl implements UpstreamDao {
 
     @Override
     @Transactional
-    public Upstream deleteUpstream(Map<String, Object> arguments, String domain) throws Exception {
+    public Integer deleteUpstream(String id) {
+
+        //删除上游源数据
+        String sql = "delete from t_mgr_upstream  where id =?";
+
+
+        return jdbcIGA.update(sql, preparedStatement -> preparedStatement.setObject(1, id));
+
+
+    }
+
+    @Override
+    public ArrayList<Upstream> getUpstreams(String id, String domain) {
+        //查询上游源状态
         Object[] objects = new Object[2];
-        objects[0] = arguments.get("id");
+        objects[0] = id;
         objects[1] = domain;
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select id,app_code as appCode,app_name as appName,data_code as dataCode,create_time as createTime,create_user as createUser,active,color,domain ,active_time as activeTime,update_time as updateTime from t_mgr_upstream  where id =? and domain=?", objects);
 
@@ -108,28 +116,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
                 upstreamList.add(upstream);
             }
         }
-        if (null == upstreamList || upstreamList.size() > 1 || upstreamList.size() == 0) {
-            throw new Exception("数据异常，删除失败");
-        }
-        Upstream upstream = upstreamList.get(0);
-        if (null != upstream.getActive() && upstream.getActive()) {
-            throw new Exception("上游源已启用,不能进行删除操作");
-        }
-        //检查源下的类型是否都处于停用 或者删除。
-        List<UpstreamType> byUpstreamId = upstreamTypeDao.findByUpstreamId(upstream.getId());
-        if (null != byUpstreamId && byUpstreamId.size() != 0) {
-            throw new Exception("数据异常，删除失败");
-        }
-
-        //删除上游源数据
-        String sql = "delete from t_mgr_upstream  where id =?";
-        int id = jdbcIGA.update(sql, preparedStatement -> preparedStatement.setObject(1, arguments.get("id")));
-        //删除上游源数据类型
-        upstreamTypeDao.deleteByUpstreamId(upstream.getId());
-
-        return id > 0 ? upstream : null;
-
-
+        return upstreamList;
     }
 
     @Override
@@ -139,19 +126,12 @@ public class UpstreamDaoImpl implements UpstreamDao {
         Object[] param = new Object[]{upstream.getAppCode(), upstream.getAppName(), upstream.getId()};
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_upstream where (app_code = ? or app_name = ?) and id != ?  ", param);
         if (null != mapList && mapList.size() > 0) {
-            throw new Exception("code 或 name 不能重复,修改组织机构类别树失败");
-        }
-        if (null != upstream.getActive() && !upstream.getActive()) {
-            //判断类型是否都未启用
-            List<UpstreamType> byUpstreamId = upstreamTypeDao.findByUpstreamId(upstream.getId());
-            if (null != byUpstreamId && byUpstreamId.size() != 0) {
-                throw new Exception("上游源禁用失败,请检查相关上游源类型状态");
-            }
+            throw new Exception("code 或 name 不能重复,修改失败");
         }
 
 
         String sql = "update t_mgr_upstream  set app_code = ?,app_name = ?,data_code = ?,create_user = ?,active = ?," +
-                "color = ?,domain = ?,active_time = ?,update_time= ?  where id=?";
+                "color = ?,domain = ?,active_time = ?,update_time= ?  where id=? ";
         Timestamp date = new Timestamp(System.currentTimeMillis());
         int update = jdbcIGA.update(sql, preparedStatement -> {
             preparedStatement.setObject(1, upstream.getAppCode());

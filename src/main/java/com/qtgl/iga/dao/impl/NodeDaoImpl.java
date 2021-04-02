@@ -142,10 +142,18 @@ public class NodeDaoImpl implements NodeDao {
         String sql = "select id,manual," +
                 "node_code as nodeCode," +
                 "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType" +
-                " from t_mgr_node where domain= ? and dept_tree_type =? and node_code in ( ";
+                " from t_mgr_node where domain= ? ";
         List<Object> param = new ArrayList<>();
         param.add(id);
-        param.add(treeType);
+
+        if (StringUtils.isNotBlank(treeType)) {
+            sql = sql + " and dept_tree_type =?  ";
+            param.add(treeType);
+        } else {
+            sql = sql + " and (dept_tree_type is null or dept_tree_type= \"\")";
+        }
+        sql = sql + "and node_code in (";
+
         sql = handleSql(sql, codes, param);
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, param.toArray());
 
