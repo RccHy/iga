@@ -433,7 +433,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         Object[] params = new Object[1];
         params[0] = upId;
         String sql = "select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_type_id as deptTypeId,enable_prefix as enablePrefix,active,active_time asactiveTime,root,create_time as createTime,update_time as updateTime," +
-                " graphql_url as graphqlUrl,service_code as serviceCode,domain,syn_way as synWay from  t_mgr_upstream_types where active = 0 and del_mark=0 and upstream_id = ?";
+                " graphql_url as graphqlUrl,service_code as serviceCode,domain,syn_way as synWay from  t_mgr_upstream_types where  upstream_id = ?";
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, params);
         ArrayList<UpstreamType> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
@@ -443,8 +443,13 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
                 beanMap.putAll(map);
                 list.add(upstreamType);
             }
+            for (UpstreamType upstreamType : list) {
+                List<UpstreamTypeField> fields = findFields(upstreamType.getId());
+                upstreamType.setUpstreamTypeFields(fields);
+            }
             return list;
         }
+
 
         return null;
 

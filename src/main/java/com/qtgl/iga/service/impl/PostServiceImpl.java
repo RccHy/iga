@@ -49,10 +49,14 @@ public class PostServiceImpl implements PostService {
         }
         //  置空mainTree
         List<DeptBean> rootBeans = postDao.findRootData(tenant.getId());
-        for (DeptBean rootBean : rootBeans) {
-            if (null == rootBean.getParentCode()) {
-                rootBean.setParentCode("");
+        if (null != rootBeans && rootBeans.size() > 0) {
+            for (DeptBean rootBean : rootBeans) {
+                if (null == rootBean.getParentCode()) {
+                    rootBean.setParentCode("");
+                }
             }
+        }else {
+            throw new Exception("请检查根树是否合法");
         }
 
         //sso dept库的数据(通过domain 关联tenant查询)
