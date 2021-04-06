@@ -3,6 +3,7 @@ package com.qtgl.iga.dataFetcher;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.DeptBean;
+import com.qtgl.iga.bo.Dept;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.service.PostService;

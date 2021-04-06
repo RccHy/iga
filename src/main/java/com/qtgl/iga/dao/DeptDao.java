@@ -13,7 +13,7 @@ public interface DeptDao {
 
     Dept findById(String id);
 
-    List<Dept> findByTenantId(String id, String treeTypeId);
+    List<DeptBean> findByTenantId(String id, String treeTypeId);
 
     ArrayList<DeptBean> updateDept(ArrayList<DeptBean> list, String tenantId);
 

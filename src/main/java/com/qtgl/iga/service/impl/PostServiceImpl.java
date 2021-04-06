@@ -9,6 +9,7 @@ import com.qtgl.iga.bo.Tenant;
 import com.qtgl.iga.dao.PostDao;
 import com.qtgl.iga.dao.TenantDao;
 import com.qtgl.iga.service.PostService;
+import javafx.geometry.Pos;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,6 +55,21 @@ public class PostServiceImpl implements PostService {
                 rootBean.setParentCode("");
             }
         }
+
+        //sso dept库的数据(通过domain 关联tenant查询)
+        if (null == tenant) {
+            throw new Exception("租户不存在");
+        }
+        //通过tenantId查询ssoApis库中的数据
+        List<Post> beans = postDao.findByTenantId(tenant.getId());
+        //将null赋为""
+        if (null != beans && beans.size() > 0) {
+            for (Post bean : beans) {
+                if (StringUtils.isBlank(bean.getParentCode())) {
+                    bean.setParentCode("");
+                }
+            }
+        }
         //转化为map
         Map<String, DeptBean> rootMap = rootBeans.stream().collect(Collectors.toMap(DeptBean::getCode, deptBean -> deptBean));
         Map<String, DeptBean> mainTreeMap = rootBeans.stream().collect(Collectors.toMap(DeptBean::getCode, deptBean -> deptBean));
@@ -72,7 +88,7 @@ public class PostServiceImpl implements PostService {
         groupByCode(mainList);
 
         //同步到sso
-        saveToSso(mainTreeMap, domain, "");
+        saveToSso(mainTreeMap, domain, "",beans);
         return new ArrayList<>(mainDept);
     }
 
@@ -107,25 +123,25 @@ public class PostServiceImpl implements PostService {
      * @Description: 处理数据并插入sso
      * @return: void
      */
-    private void saveToSso(Map<String, DeptBean> mainTree, DomainInfo domainInfo, String treeTypeId) throws Exception {
+    private void saveToSso(Map<String, DeptBean> mainTree, DomainInfo domainInfo, String treeTypeId,List<Post> beans) throws Exception {
         //拉取的数据
         Collection<DeptBean> mainDept = mainTree.values();
         ArrayList<DeptBean> deptBeans = new ArrayList<>(mainDept);
-        //sso dept库的数据(通过domain 关联tenant查询)
-        Tenant tenant = tenantDao.findByDomainName(domainInfo.getDomainName());
-        if (null == tenant) {
-            throw new Exception("租户不存在");
-        }
-        //通过tenantId查询ssoApis库中的数据
-        List<Post> beans = postDao.findByTenantId(tenant.getId());
-        //将null赋为""
-        if (null != beans && beans.size() > 0) {
-            for (Post bean : beans) {
-                if (StringUtils.isBlank(bean.getParentCode())) {
-                    bean.setParentCode("");
-                }
-            }
-        }
+//        //sso dept库的数据(通过domain 关联tenant查询)
+//        Tenant tenant = tenantDao.findByDomainName(domainInfo.getDomainName());
+//        if (null == tenant) {
+//            throw new Exception("租户不存在");
+//        }
+//        //通过tenantId查询ssoApis库中的数据
+//        List<Post> beans = postDao.findByTenantId(tenant.getId());
+//        //将null赋为""
+//        if (null != beans && beans.size() > 0) {
+//            for (Post bean : beans) {
+//                if (StringUtils.isBlank(bean.getParentCode())) {
+//                    bean.setParentCode("");
+//                }
+//            }
+//        }
         //轮训比对标记(是否有主键id)
         Map<DeptBean, String> result = new HashMap<>();
 
@@ -144,7 +160,7 @@ public class PostServiceImpl implements PostService {
 
                             if (null != deptBean.getCreateTime()) {
                                 //修改
-                                if (null == bean.getUpdateTime() || deptBean.getCreateTime().after(Timestamp.valueOf(bean.getUpdateTime()))) {
+                                if (null == bean.getUpdateTime() || deptBean.getCreateTime().isAfter(bean.getUpdateTime())) {
                                     //新来的数据更实时
                                     result.put(deptBean, "update");
                                 } else {
@@ -190,7 +206,7 @@ public class PostServiceImpl implements PostService {
 
         Map<String, List<Map.Entry<DeptBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
         //  查询所有对比code
-        List<Post> realBeans = postDao.findByTenantId(tenant.getId());
+        List<Post> realBeans = postDao.findByTenantId(beans.get(0).getTenantId());
         Map<String, Post> collect1 = realBeans.stream().collect(Collectors.toMap(
                 (Post::getUserType),
                 (post -> post)));
@@ -205,7 +221,7 @@ public class PostServiceImpl implements PostService {
                 }
                 list.add(key.getKey());
             }
-            ArrayList<DeptBean> depts = postDao.saveDept(list, tenant.getId());
+            ArrayList<DeptBean> depts = postDao.saveDept(list, beans.get(0).getTenantId());
             if (null != depts && depts.size() > 0) {
                 logger.info("插入" + list.size() + "条数据{}", depts.toString());
             } else {
@@ -228,7 +244,7 @@ public class PostServiceImpl implements PostService {
             for (Map.Entry<DeptBean, String> key : update) {
                 list.add(key.getKey());
             }
-            ArrayList<DeptBean> depts = postDao.updateDept(list, tenant.getId());
+            ArrayList<DeptBean> depts = postDao.updateDept(list, beans.get(0).getTenantId());
             if (null != depts && depts.size() > 0) {
                 logger.info("更新" + list.size() + "条数据{}", depts.toString());
             } else {

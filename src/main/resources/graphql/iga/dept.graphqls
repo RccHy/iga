@@ -1,6 +1,7 @@
 extend type Query {
     #查询组织机构
-    depts(treeType:String):[Dept]
+    #(treeType:String)
+    depts:[Dept]
     #查询岗位
     posts:[Dept]
 }
@@ -18,6 +19,9 @@ type Dept{
     parentCode:String
     # 来源
     source:String
+
+    #
+    treeType:String
 
 }
 

@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -62,51 +63,68 @@ public class DeptServiceImpl implements DeptService {
 
     @Override
     public List<DeptBean> findDept(Map<String, Object> arguments, DomainInfo domain) throws Exception {
+        List<DeptBean> depts = this.buildDeptByDomain(domain);
+        System.out.println(depts.size());
 
-        Map<String, DeptBean> mainTreeMap = new ConcurrentHashMap<>();
+        return depts;
 
-        nodeRules(domain, (String) arguments.get("treeType"), "", mainTreeMap);
-        Collection<DeptBean> mainDept = mainTreeMap.values();
-        ArrayList<DeptBean> mainList = new ArrayList<>(mainDept);
-
-        // 判断重复(code)
-        groupByCode(mainList);
-
-        //同步到sso
-        saveToSso(mainTreeMap, domain, (String) arguments.get("treeType"));
-        return new ArrayList<>(mainDept);
+//        Map<String, DeptBean> mainTreeMap = new ConcurrentHashMap<>();
+//
+//        nodeRules(domain, (String) arguments.get("treeType"), "", mainTreeMap);
+//        Collection<DeptBean> mainDept = mainTreeMap.values();
+//        ArrayList<DeptBean> mainList = new ArrayList<>(mainDept);
+//
+//        // 判断重复(code)
+//        groupByCode(mainList);
+//
+//        //同步到sso
+//        saveToSso(mainTreeMap, domain, (String) arguments.get("treeType"));
     }
 
     @Override
     public List<DeptBean> findDeptByDomainName(String domainName, String treeType) {
         Tenant byDomainName = tenantDao.findByDomainName(domainName);
-        List<Dept> byTenantId = deptDao.findByTenantId(byDomainName.getId(), treeType);
-        ArrayList<DeptBean> list = new ArrayList<>();
-        if (null != list && list.size() > 0) {
-            for (Dept dept : byTenantId) {
-                DeptBean deptBean = new DeptBean(dept);
-                list.add(deptBean);
-            }
-        }
-        return list;
+        List<DeptBean> byTenantId = deptDao.findByTenantId(byDomainName.getId(), treeType);
+
+        return byTenantId;
     }
 
 
     @SneakyThrows
     @Override
-    public void buildDeptByDomain(DomainInfo domain) {
+    public List<DeptBean> buildDeptByDomain(DomainInfo domain) {
       /*  logger.info("hostname{}", hostname);
         //
         Map<String, List<DeptBean>> mainTreeMapGroupType = new ConcurrentHashMap<>();
         List<DomainInfo> domainInfos = domainInfoDao.findAll();
 
         for (DomainInfo domain : domainInfos) {*/
+
+
+        // todo 获取sso整树
+        //sso dept库的数据(通过domain 关联tenant查询)
+        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        if (null == tenant) {
+            throw new Exception("租户不存在");
+        }
+        //通过tenantId查询ssoApis库中的数据
+        List<DeptBean> beans = deptDao.findByTenantId(tenant.getId(), null);
+        if (null != beans && beans.size() > 0) {
+            //将null赋为""
+            for (DeptBean bean : beans) {
+                if (null == bean.getParentCode()) {
+                    bean.setParentCode("");
+                }
+            }
+        }
+        //轮训比对标记(是否有主键id)
+        Map<DeptBean, String> result = new HashMap<>();
         // 获取租户下开启的部门类型
         List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
         for (DeptTreeType deptType : deptTreeTypes) {
             Map<String, DeptBean> mainTreeMap = new ConcurrentHashMap<>();
-
-            nodeRules(domain, deptType.getId(), "", mainTreeMap);
+            //todo id 改为code
+            nodeRules(domain, deptType.getCode(), "", mainTreeMap);
             //  数据合法性
             Collection<DeptBean> mainDept = mainTreeMap.values();
             ArrayList<DeptBean> mainList = new ArrayList<>(mainDept);
@@ -115,11 +133,74 @@ public class DeptServiceImpl implements DeptService {
             groupByCode(mainList);
 
             //同步到sso
-            saveToSso(mainTreeMap, domain, deptType.getId());
+
+            beans = saveToSso(mainTreeMap, domain, deptType.getCode(), beans,result);
             //      mainTreeMapGroupType.put(deptType.getCode(), new ArrayList<>(mainDept));
         }
         //}
+        groupByCode(beans);
+        saveToSso(result,tenant.getId());
 
+        return beans;
+    }
+
+    private void saveToSso(Map<DeptBean, String> result,String tenantId) throws Exception {
+        //插入数据
+        Map<String, List<Map.Entry<DeptBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
+        List<Map.Entry<DeptBean, String>> insert = collect.get("insert");
+        if (null != insert && insert.size() > 0) {
+            ArrayList<DeptBean> list = new ArrayList<>();
+            for (Map.Entry<DeptBean, String> key : insert) {
+
+                list.add(key.getKey());
+            }
+            ArrayList<DeptBean> depts = deptDao.saveDept(list,tenantId);
+            if (null != depts && depts.size() > 0) {
+                logger.info("插入" + list.size() + "条数据{}", depts.toString());
+            } else {
+                throw new Exception("插入失败");
+            }
+
+
+        }
+        List<Map.Entry<DeptBean, String>> obsolete = collect.get("obsolete");
+        if (null != obsolete && obsolete.size() > 0) {
+            ArrayList<DeptBean> list = new ArrayList<>();
+            for (Map.Entry<DeptBean, String> key : obsolete) {
+                list.add(key.getKey());
+            }
+            logger.info("忽略" + list.size() + "条已过时数据{}", obsolete.toString());
+
+        }
+        List<Map.Entry<DeptBean, String>> update = collect.get("update");
+        //修改数据
+        if (null != update && update.size() > 0) {
+            ArrayList<DeptBean> list = new ArrayList<>();
+            for (Map.Entry<DeptBean, String> key : update) {
+                list.add(key.getKey());
+            }
+            ArrayList<DeptBean> depts = deptDao.updateDept(list, tenantId);
+            if (null != depts && depts.size() > 0) {
+                logger.info("更新" + list.size() + "条数据{}", depts.toString());
+            } else {
+                throw new Exception("更新失败");
+            }
+
+        }
+        List<Map.Entry<DeptBean, String>> delete = collect.get("delete");
+        //删除数据
+        if (null != delete && delete.size() > 0) {
+            ArrayList<DeptBean> list = new ArrayList<>();
+            for (Map.Entry<DeptBean, String> key : delete) {
+                list.add(key.getKey());
+            }
+            ArrayList<DeptBean> depts = deptDao.deleteDept(list);
+            if (null != depts && depts.size() > 0) {
+                logger.info("删除" + list.size() + "条数据{}", depts.toString());
+            } else {
+                throw new Exception("删除失败");
+            }
+        }
     }
 
     /**
@@ -167,7 +248,7 @@ public class DeptServiceImpl implements DeptService {
                 //获得部门树
                 JSONArray upstreamTree = new JSONArray();
                 //   请求graphql查询，获得部门树
-                Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+                LocalDateTime timestamp = LocalDateTime.now();
                 Map dataByBus = (Map) dataBusUtil.getDataByBus(upstreamType);
                 if (null == dataByBus) {
                     throw new Exception("数据获取失败");
@@ -313,7 +394,7 @@ public class DeptServiceImpl implements DeptService {
         return mainTree;
     }
 
-    private JSONArray judgeTime(JSONArray upstreamTree, Timestamp timestamp) {
+    private JSONArray judgeTime(JSONArray upstreamTree, LocalDateTime timestamp) {
         String str = upstreamTree.toString();
         boolean flag = str.contains("createTime");
         if (!flag) {
@@ -388,27 +469,26 @@ public class DeptServiceImpl implements DeptService {
      * @Description: 处理数据并插入sso
      * @return: void
      */
-    private void saveToSso(Map<String, DeptBean> mainTree, DomainInfo domainInfo, String treeTypeId) throws Exception {
+    private List<DeptBean> saveToSso(Map<String, DeptBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<DeptBean> beans,Map<DeptBean, String> result) throws Exception {
         //拉取的数据
         Collection<DeptBean> mainDept = mainTree.values();
         ArrayList<DeptBean> deptBeans = new ArrayList<>(mainDept);
-        //sso dept库的数据(通过domain 关联tenant查询)
+//        //sso dept库的数据(通过domain 关联tenant查询)
         Tenant tenant = tenantDao.findByDomainName(domainInfo.getDomainName());
-        if (null == tenant) {
-            throw new Exception("租户不存在");
-        }
-        //通过tenantId查询ssoApis库中的数据
-        List<Dept> beans = deptDao.findByTenantId(tenant.getId(), null);
-        if (null != beans && beans.size() > 0) {
-            //将null赋为""
-            for (Dept bean : beans) {
-                if (null == bean.getParentCode()) {
-                    bean.setParentCode("");
-                }
-            }
-        }
-        //轮训比对标记(是否有主键id)
-        Map<DeptBean, String> result = new HashMap<>();
+//        if (null == tenant) {
+//            throw new Exception("租户不存在");
+//        }
+//        //通过tenantId查询ssoApis库中的数据
+//        List<Dept> beans = deptDao.findByTenantId(tenant.getId(), null);
+//        if (null != beans && beans.size() > 0) {
+//            //将null赋为""
+//            for (Dept bean : beans) {
+//                if (null == bean.getParentCode()) {
+//                    bean.setParentCode("");
+//                }
+//            }
+//        }
+
 
         //遍历拉取数据
         for (DeptBean deptBean : deptBeans) {
@@ -418,13 +498,13 @@ public class DeptServiceImpl implements DeptService {
             deptBean.setTreeType(treeTypeId);
             if (null != beans) {
                 //遍历数据库数据
-                for (Dept bean : beans) {
-                    if (deptBean.getCode().equals(bean.getDeptCode())) {
+                for (DeptBean bean : beans) {
+                    if (deptBean.getCode().equals(bean.getCode())) {
                         //
                         if (deptBean.getTreeType().equals(bean.getTreeType())) {
                             if (null != deptBean.getCreateTime()) {
                                 //修改
-                                if (null == bean.getUpdateTime() || deptBean.getCreateTime().after(Timestamp.valueOf(bean.getUpdateTime()))) {
+                                if (null == bean.getCreateTime() || deptBean.getCreateTime().isAfter(bean.getCreateTime())) {
                                     //新来的数据更实时
                                     result.put(deptBean, "update");
                                 } else {
@@ -434,9 +514,10 @@ public class DeptServiceImpl implements DeptService {
                                 result.put(deptBean, "obsolete");
                             }
                             flag = false;
-                        } else {
-                            throw new RuntimeException(deptBean + "与" + bean + "code重复");
                         }
+//                        else {
+//                            throw new RuntimeException(deptBean + "与" + bean + "code重复");
+//                        }
                     }
                 }
                 //没有相等的应该是新增
@@ -450,18 +531,18 @@ public class DeptServiceImpl implements DeptService {
         }
         if (null != beans) {
             //查询数据库需要删除的数据
-            for (Dept bean : beans) {
+            for (DeptBean bean : beans) {
                 if (bean.getTreeType().equals(treeTypeId)) {
                     boolean flag = true;
                     for (DeptBean deptBean : result.keySet()) {
-                        if (bean.getDeptCode().equals(deptBean.getCode())) {
+                        if (bean.getCode().equals(deptBean.getCode())) {
                             flag = false;
                             break;
                         }
                     }
                     if (flag) {
                         DeptBean deptBean = new DeptBean();
-                        deptBean.setCode(bean.getDeptCode());
+                        deptBean.setCode(bean.getCode());
                         result.put(deptBean, "delete");
                     }
                 }
@@ -470,65 +551,79 @@ public class DeptServiceImpl implements DeptService {
 
         Map<String, List<Map.Entry<DeptBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
         //查询数据判断code是否重复
-        List<Dept> realBeans = deptDao.findByTenantId(tenant.getId(), null);
-        Map<String, Dept> collect1 = realBeans.stream().collect(Collectors.toMap(
-                (Dept::getDeptCode),
-                (dept -> dept)));
+//        List<DeptBean> realBeans = deptDao.findByTenantId(tenant.getId(), null);
+//        Map<String, DeptBean> collect1 = realBeans.stream().collect(Collectors.toMap(
+//                (DeptBean::getCode),
+//                (dept -> dept)));
+        Map<String, DeptBean> collect1 = beans.stream().collect(Collectors.toMap((DeptBean::getCode), (dept -> dept)));
+
         List<Map.Entry<DeptBean, String>> insert = collect.get("insert");
         //插入数据
         if (null != insert && insert.size() > 0) {
-            ArrayList<DeptBean> list = new ArrayList<>();
+//            ArrayList<DeptBean> list = new ArrayList<>();
+//            for (Map.Entry<DeptBean, String> key : insert) {
+//                DeptBean dept = collect1.get(key.getKey().getCode());
+//                if (null != dept) {
+//                    throw new RuntimeException("code" + key.getKey().getCode() + "重复,插入失败");
+//                }
+//                list.add(key.getKey());
+////            }
+//            ArrayList<DeptBean> depts = deptDao.saveDept(list, tenant.getId());
+//            if (null != depts && depts.size() > 0) {
+//                logger.info("插入" + list.size() + "条数据{}", depts.toString());
+//            } else {
+//                throw new Exception("插入失败");
+//            }
             for (Map.Entry<DeptBean, String> key : insert) {
-                Dept dept = collect1.get(key.getKey().getCode());
-                if (null != dept) {
-                    throw new RuntimeException("code" + key.getKey().getCode() + "重复,插入失败");
-                }
-                list.add(key.getKey());
+                collect1.put(key.getValue(),key.getKey());
             }
-            ArrayList<DeptBean> depts = deptDao.saveDept(list, tenant.getId());
-            if (null != depts && depts.size() > 0) {
-                logger.info("插入" + list.size() + "条数据{}", depts.toString());
-            } else {
-                throw new Exception("插入失败");
-            }
-        }
-        List<Map.Entry<DeptBean, String>> obsolete = collect.get("obsolete");
-        if (null != obsolete && obsolete.size() > 0) {
-            ArrayList<DeptBean> list = new ArrayList<>();
-            for (Map.Entry<DeptBean, String> key : obsolete) {
-                list.add(key.getKey());
-            }
-            logger.info("忽略" + list.size() + "条已过时数据{}", obsolete.toString());
 
         }
+//        List<Map.Entry<DeptBean, String>> obsolete = collect.get("obsolete");
+//        if (null != obsolete && obsolete.size() > 0) {
+//            ArrayList<DeptBean> list = new ArrayList<>();
+//            for (Map.Entry<DeptBean, String> key : obsolete) {
+//                list.add(key.getKey());
+//            }
+//            logger.info("忽略" + list.size() + "条已过时数据{}", obsolete.toString());
+//
+//        }
         List<Map.Entry<DeptBean, String>> update = collect.get("update");
         //修改数据
         if (null != update && update.size() > 0) {
-            ArrayList<DeptBean> list = new ArrayList<>();
+//            ArrayList<DeptBean> list = new ArrayList<>();
+//            for (Map.Entry<DeptBean, String> key : update) {
+//                list.add(key.getKey());
+//            }
+//            ArrayList<DeptBean> depts = deptDao.updateDept(list, tenant.getId());
+//            if (null != depts && depts.size() > 0) {
+//                logger.info("更新" + list.size() + "条数据{}", depts.toString());
+//            } else {
+//                throw new Exception("更新失败");
+//            }
             for (Map.Entry<DeptBean, String> key : update) {
-                list.add(key.getKey());
-            }
-            ArrayList<DeptBean> depts = deptDao.updateDept(list, tenant.getId());
-            if (null != depts && depts.size() > 0) {
-                logger.info("更新" + list.size() + "条数据{}", depts.toString());
-            } else {
-                throw new Exception("更新失败");
+                collect1.put(key.getValue(),key.getKey());
             }
         }
         List<Map.Entry<DeptBean, String>> delete = collect.get("delete");
         //删除数据
         if (null != delete && delete.size() > 0) {
-            ArrayList<DeptBean> list = new ArrayList<>();
+//            ArrayList<DeptBean> list = new ArrayList<>();
+//            for (Map.Entry<DeptBean, String> key : delete) {
+//                list.add(key.getKey());
+//            }
+//            ArrayList<DeptBean> depts = deptDao.deleteDept(list);
+//            if (null != depts && depts.size() > 0) {
+//                logger.info("删除" + list.size() + "条数据{}", depts.toString());
+//            } else {
+//                throw new Exception("删除失败");
+//            }
             for (Map.Entry<DeptBean, String> key : delete) {
-                list.add(key.getKey());
-            }
-            ArrayList<DeptBean> depts = deptDao.deleteDept(list);
-            if (null != depts && depts.size() > 0) {
-                logger.info("删除" + list.size() + "条数据{}", depts.toString());
-            } else {
-                throw new Exception("删除失败");
+                collect1.remove(key.getValue());
             }
         }
+        Collection<DeptBean> values = collect1.values();
+        return new ArrayList<>(values);
 
 
     }

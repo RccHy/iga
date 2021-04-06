@@ -3,6 +3,7 @@ package com.qtgl.iga.dao.impl;
 import com.qtgl.iga.bean.DeptBean;
 import com.qtgl.iga.bo.Dept;
 import com.qtgl.iga.dao.DeptDao;
+import org.apache.commons.beanutils.BeanUtils;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.Resource;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -50,11 +52,9 @@ public class DeptDaoImpl implements DeptDao {
     }
 
     @Override
-    public List<Dept> findByTenantId(String id, String treeType) {
-        String sql = "select id, dept_code as deptCode , dept_name as deptName , parent_code as parentCode , " +
-                "del_mark as delMark , independent , tenant_id as tenantId , update_time as updateTime , source , tags ," +
-                "data_source as dataSource , description , orphan, meta ,tree_type as treeType , type , create_time as createTime ," +
-                " active from dept where tenant_id = ? and del_mark=0 ";
+    public List<DeptBean> findByTenantId(String id, String treeType) {
+        String sql = "select dept_code as code , dept_name as name , parent_code as parentCode , " +
+                " update_time as createTime , source, tree_type as treeType  from dept where tenant_id = ? and del_mark=0 ";
         List<Object> param = new ArrayList<>();
         param.add(id);
         if (null != treeType) {
@@ -62,7 +62,7 @@ public class DeptDaoImpl implements DeptDao {
             param.add(treeType);
         }
         List<Map<String, Object>> mapList = jdbcSSOAPI.queryForList(sql, param.toArray());
-        return getDepts(mapList);
+        return getDeptBeans(mapList);
     }
 
     private List<Dept> getDepts(List<Map<String, Object>> mapList) {
@@ -72,6 +72,24 @@ public class DeptDaoImpl implements DeptDao {
                 Dept dept = new Dept();
                 BeanMap beanMap = BeanMap.create(dept);
                 beanMap.putAll(map);
+                list.add(dept);
+            }
+            return list;
+        }
+
+        return null;
+    }
+
+    private List<DeptBean> getDeptBeans(List<Map<String, Object>> mapList) {
+        ArrayList<DeptBean> list = new ArrayList<>();
+        if (null != mapList && mapList.size() > 0) {
+            for (Map<String, Object> map : mapList) {
+                DeptBean dept = new DeptBean();
+                try {
+                    BeanUtils.populate(dept, map);
+                } catch (IllegalAccessException | InvocationTargetException e) {
+                    e.printStackTrace();
+                }
                 list.add(dept);
             }
             return list;

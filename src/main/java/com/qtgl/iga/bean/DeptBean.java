@@ -6,6 +6,7 @@ import lombok.Data;
 
 
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 @Data
 public class DeptBean {
@@ -31,7 +32,7 @@ public class DeptBean {
      */
     private String dataSource;
 
-    private Timestamp createTime;
+    private LocalDateTime createTime;
 
     /**
      * todo 部门排序 暂不考虑
