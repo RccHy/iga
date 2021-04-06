@@ -29,22 +29,21 @@ public class PostDaoImpl implements PostDao {
 
 
     @Override
-    public List<Post> findByTenantId(String id) {
+    public List<DeptBean> findByTenantId(String id) {
         //
-        String sql = "select id, user_type as userType , name, parent_code as parentCode , " +
-                "can_login as canLogin , delay_time as delayTime , tenant_id as tenantId , formal , tags , description ," +
-                "meta , del_mark as delMark , create_time as createTime, update_time as updateTime ,data_source as dataSource , orphan , active ," +
-                " active_time as activeTime, post_type as postType ,source from user_type where tenant_id = ? and del_mark=0 ";
+        String sql = "select  user_type as code , name, parent_code as parentCode , " +
+                " update_time as createTime,"  +
+                "source from user_type where tenant_id = ? and del_mark=0 ";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, id);
         return getUserTypes(mapList);
     }
 
-    private List<Post> getUserTypes(List<Map<String, Object>> mapList) {
-        ArrayList<Post> list = new ArrayList<>();
+    private List<DeptBean> getUserTypes(List<Map<String, Object>> mapList) {
+        ArrayList<DeptBean> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {
-                Post post = new Post();
+                DeptBean post = new DeptBean();
                 BeanMap beanMap = BeanMap.create(post);
                 beanMap.putAll(map);
                 list.add(post);

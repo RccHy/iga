@@ -34,10 +34,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
@@ -253,8 +250,14 @@ public class DataBusUtil {
                 GraphqlQuery query = new DefaultGraphqlQuery(upstreamType.getSynType() + ":" + methodName);
                 ResultAttributtes edges = new ResultAttributtes("edges");
                 ResultAttributtes node = new ResultAttributtes("node");
+                ArrayList<UpstreamTypeField> upstreamTypeFields = new ArrayList<>();
                 for (UpstreamTypeField field : fields) {
-                    node.addResultAttributes(field.getSourceField() + ":" + field.getTargetField());
+                    // todo 修改常量
+                    if (field.getTargetField().contains("$")) {
+                        query.addResultAttributes(field.getSourceField() + ":" + field.getTargetField().substring(2, field.getTargetField().length() - 1));
+                    } else {
+                        upstreamTypeFields.add(field);
+                    }
                 }
                 edges.addResultAttributes(node);
                 query.addResultAttributes(edges);
@@ -275,13 +278,23 @@ public class DataBusUtil {
                 for (Map.Entry<String, Object> entry : result.entrySet()) {
                     logger.info("result  data --" + entry.getKey() + "------" + entry.getValue());
                 }
+                if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
+                    for (UpstreamTypeField upstreamTypeField : upstreamTypeFields) {
+                        result.put(upstreamTypeField.getSourceField(), upstreamTypeField.getTargetField());
+                    }
+                }
                 return result;
             }
         }
         if ("query".equals(type[4])) {
             GraphqlQuery query = new DefaultGraphqlQuery(methodName);
+            ArrayList<UpstreamTypeField> upstreamTypeFields = new ArrayList<>();
             for (UpstreamTypeField field : fields) {
-                query.addResultAttributes(field.getSourceField() + ":" + field.getTargetField());
+                if (field.getTargetField().contains("$")) {
+                    query.addResultAttributes(field.getSourceField() + ":" + field.getTargetField().substring(2, field.getTargetField().length() - 1));
+                } else {
+                    upstreamTypeFields.add(field);
+                }
             }
 
 
@@ -298,6 +311,11 @@ public class DataBusUtil {
             result = response.getData();
             for (Map.Entry<String, Object> entry : result.entrySet()) {
                 logger.info("result  data --" + entry.getKey() + "------" + entry.getValue());
+            }
+            if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
+                for (UpstreamTypeField upstreamTypeField : upstreamTypeFields) {
+                    result.put(upstreamTypeField.getSourceField(), upstreamTypeField.getTargetField());
+                }
             }
         }
 

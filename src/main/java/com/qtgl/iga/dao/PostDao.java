@@ -11,7 +11,7 @@ public interface PostDao {
 
 
 
-    List<Post> findByTenantId(String id);
+    List<DeptBean> findByTenantId(String id);
 
     ArrayList<DeptBean> updateDept(ArrayList<DeptBean> list, String tenantId);
 

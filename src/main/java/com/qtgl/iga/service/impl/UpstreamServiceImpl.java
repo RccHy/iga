@@ -46,7 +46,7 @@ public class UpstreamServiceImpl implements UpstreamService {
 //        }
         //查看是否有关联node_rules
         List<UpstreamType> byUpstreamId = upstreamTypeDao.findByUpstreamId((String) arguments.get("id"));
-        if (null!=byUpstreamId) {
+        if (null != byUpstreamId && byUpstreamId.size() > 0) {
             for (UpstreamType upstreamType : byUpstreamId) {
                 List<NodeRules> nodeRules = nodeRulesDao.findNodeRulesByUpStreamTypeId(upstreamType.getId());
                 if (null != nodeRules && nodeRules.size() > 0) {

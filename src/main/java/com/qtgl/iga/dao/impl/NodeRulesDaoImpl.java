@@ -41,14 +41,16 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
         }
         sql.append(" order by sort asc");
         List<Map<String, Object>> maps = jdbcIGA.queryForList(sql.toString(), para.toArray());
-        for (Map<String, Object> map : maps) {
-            NodeRules nodeRule = new NodeRules();
-            try {
-                BeanUtils.populate(nodeRule, map);
-            } catch (IllegalAccessException | InvocationTargetException e) {
-                e.printStackTrace();
+        if (null != maps && maps.size() > 0) {
+            for (Map<String, Object> map : maps) {
+                NodeRules nodeRule = new NodeRules();
+                try {
+                    BeanUtils.populate(nodeRule, map);
+                } catch (IllegalAccessException | InvocationTargetException e) {
+                    e.printStackTrace();
+                }
+                nodeRules.add(nodeRule);
             }
-            nodeRules.add(nodeRule);
         }
         return nodeRules;
     }
@@ -57,19 +59,21 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
     public NodeDto saveNodeRules(NodeDto nodeDto) {
 
         String str = "insert into t_mgr_node_rules values(?,?,?,?,?,?,?,?,?,?,?)";
-        for (NodeRules nodeRules : nodeDto.getNodeRules()) {
-            if (null != nodeRules.getId()) {
-                nodeRules.setCreateTime(nodeDto.getCreateTime());
-                nodeRules.setUpdateTime(nodeDto.getUpdateTime());
+        if (null != nodeDto.getNodeRules() && nodeDto.getNodeRules().size() > 0) {
+            for (NodeRules nodeRules : nodeDto.getNodeRules()) {
+                if (null != nodeRules.getId()) {
+                    nodeRules.setCreateTime(nodeDto.getCreateTime());
+                    nodeRules.setUpdateTime(nodeDto.getUpdateTime());
 
-            } else {
-                nodeRules.setId(UUID.randomUUID().toString().replace("-", ""));
-                nodeRules.setCreateTime(System.currentTimeMillis());
-                nodeRules.setUpdateTime(null);
+                } else {
+                    nodeRules.setId(UUID.randomUUID().toString().replace("-", ""));
+                    nodeRules.setCreateTime(System.currentTimeMillis());
+                    nodeRules.setUpdateTime(null);
+                }
+                nodeRules.setNodeId(nodeDto.getId());
+
+
             }
-            nodeRules.setNodeId(nodeDto.getId());
-
-
         }
         List<NodeRulesVo> nodeRules = nodeDto.getNodeRules();
         int[] ints = jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
@@ -241,14 +245,16 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
                 "active_time as activeTime,update_time as updateTime,sort from t_mgr_node_rules where 1 = 1 and upstream_types_id= ? ";
 
         List<Map<String, Object>> maps = jdbcIGA.queryForList(sql, id);
-        for (Map<String, Object> map : maps) {
-            NodeRules nodeRule = new NodeRules();
-            try {
-                BeanUtils.populate(nodeRule, map);
-            } catch (IllegalAccessException | InvocationTargetException e) {
-                e.printStackTrace();
+        if (null != maps && maps.size() > 0) {
+            for (Map<String, Object> map : maps) {
+                NodeRules nodeRule = new NodeRules();
+                try {
+                    BeanUtils.populate(nodeRule, map);
+                } catch (IllegalAccessException | InvocationTargetException e) {
+                    e.printStackTrace();
+                }
+                nodeRules.add(nodeRule);
             }
-            nodeRules.add(nodeRule);
         }
         return nodeRules;
     }

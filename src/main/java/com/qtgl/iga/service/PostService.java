@@ -15,5 +15,5 @@ import java.util.Map;
 public interface PostService {
     List<DeptBean> findPosts(DomainInfo domain) throws Exception;
 
-    List<DeptBean> findDeptByDomainName(String domainName);
+    List<DeptBean> findDeptByDomainName(String domainName) throws Exception;
 }

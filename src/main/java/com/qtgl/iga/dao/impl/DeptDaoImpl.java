@@ -40,7 +40,7 @@ public class DeptDaoImpl implements DeptDao {
 
         List<Map<String, Object>> mapList = jdbcSSOAPI.queryForList(sql, id);
         Dept dept = new Dept();
-        if (mapList.size() == 1) {
+        if (null != mapList && mapList.size() == 1) {
             for (Map<String, Object> map : mapList) {
 
                 BeanMap beanMap = BeanMap.create(dept);
