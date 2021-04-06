@@ -46,10 +46,12 @@ public class UpstreamServiceImpl implements UpstreamService {
 //        }
         //查看是否有关联node_rules
         List<UpstreamType> byUpstreamId = upstreamTypeDao.findByUpstreamId((String) arguments.get("id"));
-        for (UpstreamType upstreamType : byUpstreamId) {
-            List<NodeRules> nodeRules = nodeRulesDao.findNodeRulesByUpStreamTypeId(upstreamType.getId());
-            if (null != nodeRules && nodeRules.size() > 0) {
-                throw new Exception("删除上游源类型失败,有绑定的nodeRules规则,请查看后再删除");
+        if (null!=byUpstreamId) {
+            for (UpstreamType upstreamType : byUpstreamId) {
+                List<NodeRules> nodeRules = nodeRulesDao.findNodeRulesByUpStreamTypeId(upstreamType.getId());
+                if (null != nodeRules && nodeRules.size() > 0) {
+                    throw new Exception("删除上游源类型失败,有绑定的nodeRules规则,请查看后再删除");
+                }
             }
         }
 
@@ -57,7 +59,7 @@ public class UpstreamServiceImpl implements UpstreamService {
         Integer flag = upstreamDao.deleteUpstream((String) arguments.get("id"));
         //删除上游源数据类型
         if (flag > 0) {
-            Integer integer = upstreamTypeDao.deleteByUpstreamId((String) arguments.get("id"),domain);
+            Integer integer = upstreamTypeDao.deleteByUpstreamId((String) arguments.get("id"), domain);
             if (integer > 0) {
                 return new Upstream();
             } else {
