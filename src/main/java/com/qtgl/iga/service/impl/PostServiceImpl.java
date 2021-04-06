@@ -2,14 +2,14 @@ package com.qtgl.iga.service.impl;
 
 
 import com.qtgl.iga.bean.DeptBean;
-import com.qtgl.iga.bo.Dept;
+
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.Post;
 import com.qtgl.iga.bo.Tenant;
 import com.qtgl.iga.dao.PostDao;
 import com.qtgl.iga.dao.TenantDao;
 import com.qtgl.iga.service.PostService;
-import javafx.geometry.Pos;
+
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +18,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Timestamp;
+
 import java.util.*;
 import java.util.stream.Collectors;
 
