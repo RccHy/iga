@@ -470,86 +470,82 @@ public class DeptServiceImpl implements DeptService {
      * @return: void
      */
     private List<DeptBean> saveToSso(Map<String, DeptBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<DeptBean> beans, Map<DeptBean, String> result) throws Exception {
-
+        Map<String, DeptBean> collect = new HashMap<>();
         if (null != beans && beans.size() > 0) {
-            Map<String, DeptBean> collect = beans.stream().collect(Collectors.toMap((DeptBean::getCode), (dept -> dept)));
-            //拉取的数据
-            Collection<DeptBean> mainDept = mainTree.values();
-            ArrayList<DeptBean> deptBeans = new ArrayList<>(mainDept);
+            collect = beans.stream().collect(Collectors.toMap((DeptBean::getCode), (dept -> dept)));
+        }
+
+        //拉取的数据
+        Collection<DeptBean> mainDept = mainTree.values();
+        ArrayList<DeptBean> deptBeans = new ArrayList<>(mainDept);
 
 
-            //遍历拉取数据
-            for (DeptBean deptBean : deptBeans) {
-                //标记新增还是修改
-                boolean flag = true;
-                //赋值treeTypeId
-                deptBean.setTreeType(treeTypeId);
-                if (null != beans) {
-                    //遍历数据库数据
-                    for (DeptBean bean : beans) {
-                        if (deptBean.getCode().equals(bean.getCode())) {
-                            //
-                            if (deptBean.getTreeType().equals(bean.getTreeType())) {
-                                if (null != deptBean.getCreateTime()) {
-                                    //修改
-                                    if (null == bean.getCreateTime() || deptBean.getCreateTime().isAfter(bean.getCreateTime())) {
-                                        //新来的数据更实时
-                                        collect.put(deptBean.getCode(), deptBean);
-                                        result.put(deptBean, "update");
-                                    } else {
-                                        result.put(deptBean, "obsolete");
-                                    }
+        //遍历拉取数据
+        for (DeptBean deptBean : deptBeans) {
+            //标记新增还是修改
+            boolean flag = true;
+            //赋值treeTypeId
+            deptBean.setTreeType(treeTypeId);
+            if (null != beans) {
+                //遍历数据库数据
+                for (DeptBean bean : beans) {
+                    if (deptBean.getCode().equals(bean.getCode())) {
+                        //
+                        if (deptBean.getTreeType().equals(bean.getTreeType())) {
+                            if (null != deptBean.getCreateTime()) {
+                                //修改
+                                if (null == bean.getCreateTime() || deptBean.getCreateTime().isAfter(bean.getCreateTime())) {
+                                    //新来的数据更实时
+                                    collect.put(deptBean.getCode(), deptBean);
+                                    result.put(deptBean, "update");
                                 } else {
                                     result.put(deptBean, "obsolete");
                                 }
-                                flag = false;
+                            } else {
+                                result.put(deptBean, "obsolete");
                             }
+                            flag = false;
+                        }
 //                        else {
 //                            throw new RuntimeException(deptBean + "与" + bean + "code重复");
 //                        }
-                        }
                     }
-                    //没有相等的应该是新增
-                    if (flag) {
-                        //新增
-                        collect.put(deptBean.getCode(), deptBean);
-                        result.put(deptBean, "insert");
-                    }
-                } else {
+                }
+                //没有相等的应该是新增
+                if (flag) {
+                    //新增
                     collect.put(deptBean.getCode(), deptBean);
                     result.put(deptBean, "insert");
                 }
+            } else {
+                collect.put(deptBean.getCode(), deptBean);
+                result.put(deptBean, "insert");
             }
-            if (null != beans) {
-                //查询数据库需要删除的数据
-                for (DeptBean bean : beans) {
-                    if (null != bean.getTreeType() && bean.getTreeType().equals(treeTypeId)) {
-                        boolean flag = true;
-                        for (DeptBean deptBean : result.keySet()) {
-                            if (bean.getCode().equals(deptBean.getCode())) {
-                                flag = false;
-                                break;
-                            }
+        }
+        if (null != beans) {
+            //查询数据库需要删除的数据
+            for (DeptBean bean : beans) {
+                if (null != bean.getTreeType() && bean.getTreeType().equals(treeTypeId)) {
+                    boolean flag = true;
+                    for (DeptBean deptBean : result.keySet()) {
+                        if (bean.getCode().equals(deptBean.getCode())) {
+                            flag = false;
+                            break;
                         }
-                        if (flag) {
-                            DeptBean deptBean = new DeptBean();
-                            deptBean.setCode(bean.getCode());
-                            collect.remove(deptBean.getCode());
-                            result.put(deptBean, "delete");
-                        }
+                    }
+                    if (flag) {
+                        DeptBean deptBean = new DeptBean();
+                        deptBean.setCode(bean.getCode());
+                        collect.remove(deptBean.getCode());
+                        result.put(deptBean, "delete");
                     }
                 }
             }
-
-
-            Map<String, DeptBean> collect1 = beans.stream().collect(Collectors.toMap((DeptBean::getCode), (dept -> dept)));
-
-
-            Collection<DeptBean> values = collect1.values();
-            return new ArrayList<>(values);
         }
 
-        return null;
+
+        Collection<DeptBean> values = collect.values();
+        return new ArrayList<>(values);
 
 
     }

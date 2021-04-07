@@ -50,7 +50,7 @@ public class ApiController {
                 domainInfo.setClientId(clientId);
                 domainInfo.setClientSecret(clientSecret);
                 domainInfo.setStatus(0);
-                domainInfo.setCreateTime(new Timestamp(new Date().getTime()));
+                domainInfo.setCreateTime(new Timestamp(System.currentTimeMillis()));
                 try {
                     domainInfoService.install(domainInfo);
                     //GraphQLService.setDomainGraphQLMap(runner.buildGraphql());

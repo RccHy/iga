@@ -59,7 +59,7 @@ public class PostDaoImpl implements PostDao {
 
         String str = "update user_type set  name=?, parent_code=?, del_mark=? ,tenant_id =?" +
                 ", data_source=?, description=?, meta=?,update_time=?,tags=?,source=?" +
-                "where user_type =?";
+                "where user_type =? and del_mark =0";
         boolean contains = false;
 
         int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {

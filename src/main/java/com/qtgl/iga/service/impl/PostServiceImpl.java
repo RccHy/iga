@@ -55,7 +55,7 @@ public class PostServiceImpl implements PostService {
                     rootBean.setParentCode("");
                 }
             }
-        }else {
+        } else {
             throw new Exception("请检查根树是否合法");
         }
 
@@ -198,7 +198,10 @@ public class PostServiceImpl implements PostService {
      * @return: void
      */
     private List<DeptBean> saveToSso(Map<String, DeptBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<DeptBean> beans, Map<DeptBean, String> result) throws Exception {
-        Map<String, DeptBean> collect = beans.stream().collect(Collectors.toMap((DeptBean::getCode), (dept -> dept)));
+        Map<String, DeptBean> collect = new HashMap<>();
+        if (null != beans && beans.size() > 0) {
+            collect = beans.stream().collect(Collectors.toMap((DeptBean::getCode), (dept -> dept)));
+        }
         //拉取的数据
         Collection<DeptBean> mainDept = mainTree.values();
         ArrayList<DeptBean> deptBeans = new ArrayList<>(mainDept);
@@ -282,10 +285,9 @@ public class PostServiceImpl implements PostService {
                 }
             }
         }
-        Map<String, DeptBean> collect1 = beans.stream().collect(Collectors.toMap((DeptBean::getCode), (dept -> dept)));
 
 
-        Collection<DeptBean> values = collect1.values();
+        Collection<DeptBean> values = collect.values();
         return new ArrayList<>(values);
 
     }
