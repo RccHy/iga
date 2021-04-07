@@ -1,7 +1,9 @@
 package com.qtgl.iga.utils;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.google.gson.JsonArray;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.Token;
 import com.qtgl.iga.bo.UpstreamType;
@@ -117,7 +119,7 @@ public class DataBusUtil {
     }
 
 
-    public Object getDataByBus(UpstreamType upstreamType) {
+    public JSONArray getDataByBus(UpstreamType upstreamType) {
         //获取token
         String key = getToken();
         String[] split = upstreamType.getGraphqlUrl().split("/");
@@ -236,7 +238,7 @@ public class DataBusUtil {
 
     }
 
-    private Map invokeForData(String dataUrl, UpstreamType upstreamType) {
+    private JSONArray invokeForData(String dataUrl, UpstreamType upstreamType) {
         logger.info("source url " + dataUrl);
         //获取字段映射
         List<UpstreamTypeField> fields = upstreamTypeService.findFields(upstreamType.getId());
@@ -244,7 +246,7 @@ public class DataBusUtil {
         GraphqlClient graphqlClient = GraphqlClient.buildGraphqlClient(dataUrl);
         String methodName = type[5];
         Map<String, Object> result = null;
-
+        JSONArray objects = new JSONArray();
         if (upstreamType.getIsPage()) {
             if ("query".equals(type[4])) {
                 GraphqlQuery query = new DefaultGraphqlQuery(upstreamType.getSynType() + ":" + methodName);
@@ -254,11 +256,12 @@ public class DataBusUtil {
                 for (UpstreamTypeField field : fields) {
                     // todo 修改常量
                     if (field.getTargetField().contains("$")) {
-                        query.addResultAttributes(field.getSourceField() + ":" + field.getTargetField().substring(2, field.getTargetField().length() - 1));
+                        node.addResultAttributes(field.getSourceField() + ":" + field.getTargetField().substring(2, field.getTargetField().length() - 1));
                     } else {
                         upstreamTypeFields.add(field);
                     }
                 }
+
                 edges.addResultAttributes(node);
                 query.addResultAttributes(edges);
 
@@ -278,12 +281,31 @@ public class DataBusUtil {
                 for (Map.Entry<String, Object> entry : result.entrySet()) {
                     logger.info("result  data --" + entry.getKey() + "------" + entry.getValue());
                 }
-                if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
-                    for (UpstreamTypeField upstreamTypeField : upstreamTypeFields) {
-                        result.put(upstreamTypeField.getSourceField(), upstreamTypeField.getTargetField());
+
+                if (null == result || null == result.get("data")) {
+                    try {
+                        throw new Exception("数据获取失败");
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
                 }
-                return result;
+                Map dataMap = (Map) result.get("data");
+
+                Map deptMap = (Map) dataMap.get("dept");
+                JSONArray deptArray = (JSONArray) JSONArray.toJSON(deptMap.get("edges"));
+                for (Object deptOb : deptArray) {
+                    JSONObject nodeJson = (JSONObject) deptOb;
+                    JSONObject node1 = nodeJson.getJSONObject("node");
+                    if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
+                        for (UpstreamTypeField field : upstreamTypeFields) {
+                            node1.put(field.getSourceField(), field.getTargetField());
+                        }
+                    }
+                    objects.add(node1);
+                }
+
+
+                return objects;
             }
         }
         if ("query".equals(type[4])) {
@@ -312,15 +334,30 @@ public class DataBusUtil {
             for (Map.Entry<String, Object> entry : result.entrySet()) {
                 logger.info("result  data --" + entry.getKey() + "------" + entry.getValue());
             }
-            if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
-                for (UpstreamTypeField upstreamTypeField : upstreamTypeFields) {
-                    result.put(upstreamTypeField.getSourceField(), upstreamTypeField.getTargetField());
+            if (null == result || null == result.get("data")) {
+                try {
+                    throw new Exception("数据获取失败");
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
+            }
+            JSONObject.parseObject(result.get("data").toString()).getJSONArray("dept");
+            Map dataMap = (Map) result.get("data");
+            JSONArray dept = (JSONArray) JSONArray.toJSON(dataMap.get("dept"));
+            for (Object o : dept) {
+                JSONObject nodeJson = (JSONObject) o;
+                JSONObject node1 = nodeJson.getJSONObject("node");
+                if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
+                    for (UpstreamTypeField field : upstreamTypeFields) {
+                        node1.put(field.getSourceField(), field.getTargetField());
+                    }
+                }
+                objects.add(node1);
             }
         }
 
 
-        return result;
+        return objects;
     }
 
 }

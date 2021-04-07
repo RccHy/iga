@@ -247,22 +247,22 @@ public class DeptServiceImpl implements DeptService {
                 JSONArray upstreamTree = new JSONArray();
                 //   请求graphql查询，获得部门树
                 LocalDateTime timestamp = LocalDateTime.now();
-                Map dataByBus = (Map) dataBusUtil.getDataByBus(upstreamType);
-                if (null == dataByBus || null == dataByBus.get("data")) {
-                    throw new Exception("数据获取失败");
-                }
-                if (upstreamType.getIsPage()) {
-                    //JSONArray dpetArray = JSONObject.parseObject(dataByBus.get("data").toString()).getJSONObject("dept").getJSONArray("edges");
-                    Map dataMap = (Map) dataByBus.get("data");
-                    Map deptMap = (Map) dataMap.get("dept");
-                    JSONArray deptArray = (JSONArray) JSONArray.toJSON(deptMap.get("edges"));
-                    for (Object deptOb : deptArray) {
-                        JSONObject nodeJson = (JSONObject) deptOb;
-                        upstreamTree.add(nodeJson.getJSONObject("node"));
-                    }
-                } else {
-                    upstreamTree = JSONObject.parseObject(dataByBus.get("data").toString()).getJSONArray("dept");
-                }
+                upstreamTree = dataBusUtil.getDataByBus(upstreamType);
+//                if (null == dataByBus || null == dataByBus.get("data")) {
+//                    throw new Exception("数据获取失败");
+//                }
+//                if (upstreamType.getIsPage()) {
+//                    //JSONArray dpetArray = JSONObject.parseObject(dataByBus.get("data").toString()).getJSONObject("dept").getJSONArray("edges");
+//                    Map dataMap = (Map) dataByBus.get("data");
+//                    Map deptMap = (Map) dataMap.get("dept");
+//                    JSONArray deptArray = (JSONArray) JSONArray.toJSON(deptMap.get("edges"));
+//                    for (Object deptOb : deptArray) {
+//                        JSONObject nodeJson = (JSONObject) deptOb;
+//                        upstreamTree.add(nodeJson.getJSONObject("node"));
+//                    }
+//                } else {
+//                    upstreamTree = JSONObject.parseObject(dataByBus.get("data").toString()).getJSONArray("dept");
+//                }
                 //验证树的合法性
                 if (upstreamTree.size() <= 0) {
                     logger.info("节点'{}'数据源{}获取部门数据为空", code, upstreamType.getGraphqlUrl());

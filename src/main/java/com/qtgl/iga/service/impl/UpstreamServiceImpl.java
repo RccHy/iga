@@ -58,16 +58,19 @@ public class UpstreamServiceImpl implements UpstreamService {
         //删除上游源数据
         Integer flag = upstreamDao.deleteUpstream((String) arguments.get("id"));
         //删除上游源数据类型
-        if (flag > 0) {
-            Integer integer = upstreamTypeDao.deleteByUpstreamId((String) arguments.get("id"), domain);
-            if (integer > 0) {
-                return new Upstream();
+        if (null != byUpstreamId && byUpstreamId.size() > 0) {
+            if (flag > 0) {
+                Integer integer = upstreamTypeDao.deleteByUpstreamId((String) arguments.get("id"), domain);
+                if (integer > 0) {
+                    return new Upstream();
+                } else {
+                    throw new RuntimeException("删除上游源类型失败");
+                }
             } else {
-                throw new RuntimeException("删除上游源类型失败");
+                throw new RuntimeException("删除上游源失败");
             }
-        } else {
-            throw new RuntimeException("删除上游源失败");
         }
+        return new Upstream();
 
     }
 

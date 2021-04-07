@@ -253,7 +253,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         String sql = "update t_mgr_upstream_types  set upstream_id = ?,description = ?," +
                 "syn_type = ?,dept_type_id = ?,enable_prefix = ?,active = ?,active_time = ?," +
                 "root = ?,create_time = ?,update_time = ?,service_code = ?," +
-                "graphql_url = ?, domain = ? ,dept_tree_type_id = ? ,is_page = ?  syn_way = ?,del_mark=? where id= ? ";
+                "graphql_url = ?, domain = ? ,dept_tree_type_id = ? ,is_page = ? , syn_way = ?,del_mark=? where id= ? ";
         Timestamp date = new Timestamp(System.currentTimeMillis());
         upStreamType.setUpdateTime(date);
         int update = jdbcIGA.update(sql, preparedStatement -> {

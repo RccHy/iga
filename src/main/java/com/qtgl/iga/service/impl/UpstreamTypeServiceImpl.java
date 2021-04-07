@@ -45,7 +45,10 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
     }
 
     @Override
-    public UpstreamType saveUpstreamType(UpstreamType upstreamType, String domain) {
+    public UpstreamType saveUpstreamType(UpstreamType upstreamType, String domain) throws Exception {
+        if(null== upstreamType.getUpstreamId()){
+            throw  new Exception("请选择或先添加上游源");
+        }
         return upstreamTypeDao.saveUpstreamType(upstreamType, domain);
     }
 
