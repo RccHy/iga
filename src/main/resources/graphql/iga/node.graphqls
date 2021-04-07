@@ -1,9 +1,9 @@
 extend type Query {
     #查询节点规则列表
-    nodes(id:ID,filter:NodeFilter):[Node]
+    nodes(id:ID,status:Int!,filter:NodeFilter):[Node]
 
     #查询plus
-    nodesPlus(codes:[String]!,treeType:String!):[Node]
+    nodesPlus(codes:[String]!,status:Int!,treeType:String!):[Node]
 }
 extend type Mutation {
     #新增节点规则
@@ -39,6 +39,8 @@ type Node{
     nodeRules:[NodeRules]
     #部门树类型
     deptTreeType:String
+    #状态 0 发布 1 编辑中 2 历史
+    status :Int
 
 }
 
@@ -67,7 +69,8 @@ input InputNode{
 
     #规则明细
     nodeRules:[InputNodeRules]
-
+    #状态 0 发布 1 编辑中 2 历史
+    status :Int
 
 
 }
@@ -75,6 +78,7 @@ input InputNode{
 input NodeFilter{
     deptTreeType:stringFilter
     nodeCode:stringFilter
+    status:integerFilter
 }
 
 

@@ -35,8 +35,8 @@ public class NodeRulesServiceImpl implements NodeRulesService {
 
     @Override
     public NodeRulesVo deleteRules(Map<String, Object> arguments, String id) throws Exception {
-        //查询是否有range需要删除
-        List<NodeRulesRange> ranges = nodeRulesRangeDao.getByRulesId((String) arguments.get("id"));
+        //查询是否有range需要删除 todo 暂时为0 (Integer) arguments.get("status")
+        List<NodeRulesRange> ranges = nodeRulesRangeDao.getByRulesId((String) arguments.get("id"),0);
         //删除range
         if (null != ranges && ranges.size() > 0) {
             Integer i = nodeRulesRangeDao.deleteNodeRulesRangeByRuleId((String) arguments.get("id"));
@@ -45,7 +45,7 @@ public class NodeRulesServiceImpl implements NodeRulesService {
             }
         }
         //查询rule
-        NodeRules nodeRules = nodeRulesDao.findNodeRulesById((String) arguments.get("id"));
+        NodeRules nodeRules = nodeRulesDao.findNodeRulesById((String) arguments.get("id"), 0);
         //删除rules
         Integer flag = nodeRulesDao.deleteNodeRulesById((String) arguments.get("id"));
         if (flag > 0) {

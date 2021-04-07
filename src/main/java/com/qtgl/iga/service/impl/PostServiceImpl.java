@@ -80,7 +80,7 @@ public class PostServiceImpl implements PostService {
         Map<String, DeptBean> mainTreeMap = rootBeans.stream().collect(Collectors.toMap(DeptBean::getCode, deptBean -> deptBean));
         // 将本次 add 进的 节点 进行 规则运算
         for (Map.Entry<String, DeptBean> entry : rootMap.entrySet()) {
-            deptService.nodeRules(domain, null, entry.getKey(), mainTreeMap);
+            deptService.nodeRules(domain, null, entry.getKey(), mainTreeMap,0);
         }
         System.out.println("==");
         // Map<String, DeptBean> mainTreeMap = new HashMap<>();

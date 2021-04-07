@@ -41,13 +41,15 @@ public class DeptBean {
 
     private String treeType;
 
+    private String abbreviation;
 
-    public DeptBean(Dept dept) {
-        this.setCode(dept.getDeptCode());
-        this.setParentCode(dept.getParentCode());
-        this.setName(dept.getDeptName());
-        this.setSource(dept.getSource());
-    }
+
+//    public DeptBean(Dept dept) {
+//        this.setCode(dept.getDeptCode());
+//        this.setParentCode(dept.getParentCode());
+//        this.setName(dept.getDeptName());
+//        this.setSource(dept.getSource());
+//    }
 
     public DeptBean() {
     }

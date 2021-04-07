@@ -26,15 +26,16 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
 
 
     @Override
-    public List<NodeRules> getByNodeAndType(String nodeId, Integer type, Boolean active) {
+    public List<NodeRules> getByNodeAndType(String nodeId, Integer type, Boolean active, Integer status) {
         List<NodeRules> nodeRules = new ArrayList<>();
         List<Object> para = new ArrayList<>();
         para.add(nodeId);
         para.add(active);
+        para.add(status);
         StringBuffer sql = new StringBuffer("select id, node_id as nodeId,type,active,inherit_id as inheritId," +
                 " active_time as activeTime, create_time as createTime,  update_time as updateTime," +
-                "service_key as serviceKey,upstream_types_id as upstreamTypesId,sort " +
-                " from t_mgr_node_rules where node_id=? and active=? ");
+                "service_key as serviceKey,upstream_types_id as upstreamTypesId,sort,status " +
+                " from t_mgr_node_rules where node_id=? and active=? and status=? ");
         if (null != type) {
             sql.append(" and type=? ");
             para.add(type);
@@ -58,7 +59,9 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
     @Override
     public NodeDto saveNodeRules(NodeDto nodeDto) {
 
-        String str = "insert into t_mgr_node_rules values(?,?,?,?,?,?,?,?,?,?,?)";
+        String str = "insert into t_mgr_node_rules (id,node_id,type,active,active_time,create_time,update_time" +
+                ",service_key,upstream_types_id,inherit_id,sort,status)" +
+                "values(?,?,?,?,?,?,?,?,?,?,?,?)";
         if (null != nodeDto.getNodeRules() && nodeDto.getNodeRules().size() > 0) {
             for (NodeRules nodeRules : nodeDto.getNodeRules()) {
                 if (null != nodeRules.getId()) {
@@ -90,6 +93,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
                 preparedStatement.setObject(9, nodeRules.get(i).getUpstreamTypesId());
                 preparedStatement.setObject(10, nodeRules.get(i).getInheritId());
                 preparedStatement.setObject(11, nodeRules.get(i).getSort());
+                preparedStatement.setObject(12, nodeRules.get(i).getStatus());
             }
 
             @Override
@@ -105,12 +109,14 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
     public List<NodeRules> findNodeRules(Map<String, Object> arguments) {
         String sql = "select id,node_id as nodeId,type as type,active as active," +
                 "create_time as createTime,service_key as serviceKey,upstream_types_id as upstreamTypesId,inherit_id as inheritId," +
-                "active_time as activeTime,update_time as updateTime from t_mgr_node_rules where 1 = 1 ";
+                "active_time as activeTime,update_time as updateTime from t_mgr_node_rules where 1 = 1 and status =?";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
         List<Object> param = new ArrayList<>();
+        Integer status = (Integer) arguments.get("status");
 
+        param.add(status);
         dealData(arguments, stb, param);
 
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
@@ -135,8 +141,8 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
     public NodeRules updateRules(NodeRules nodeRules) {
 
         String sql = "update t_mgr_node_rules  set node_id = ?,type = ?,active = ?,active_time = ?,create_time = ?," +
-                "update_time = ?,service_key = ?,upstream_types_id = ?,inherit_id= ? ,sort=? where id=?";
-        nodeRules.setUpdateTime(new Date().getTime());
+                "update_time = ?,service_key = ?,upstream_types_id = ?,inherit_id= ? ,sort=?,status =? where id=?";
+        nodeRules.setUpdateTime(System.currentTimeMillis());
         int update = jdbcIGA.update(sql, preparedStatement -> {
             preparedStatement.setObject(1, nodeRules.getNodeId());
             preparedStatement.setObject(2, nodeRules.getType());
@@ -148,7 +154,8 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
             preparedStatement.setObject(8, nodeRules.getUpstreamTypesId());
             preparedStatement.setObject(9, nodeRules.getInheritId());
             preparedStatement.setObject(10, nodeRules.getSort());
-            preparedStatement.setObject(11, nodeRules.getId());
+            preparedStatement.setObject(11, nodeRules.getStatus());
+            preparedStatement.setObject(12, nodeRules.getId());
         });
         return update > 0 ? nodeRules : null;
     }
@@ -163,12 +170,12 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
     }
 
     @Override
-    public List<NodeRulesVo> findNodeRulesByNodeId(String id) {
+    public List<NodeRulesVo> findNodeRulesByNodeId(String id, Integer status) {
         String sql = "select id,node_id as nodeId,type as type,active as active," +
                 "create_time as createTime,service_key as serviceKey,upstream_types_id as upstreamTypesId,inherit_id as inheritId," +
-                "active_time as activeTime,update_time as updateTime , sort from t_mgr_node_rules where node_id =? ";
+                "active_time as activeTime,update_time as updateTime , sort ,status from t_mgr_node_rules where node_id =? and status=?";
 
-        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id, status);
         ArrayList<NodeRulesVo> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {
@@ -187,7 +194,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
 
     @Override
     public NodeRulesVo saveNodeRules(NodeRulesVo nodeRules) {
-        String str = "insert into t_mgr_node_rules values(?,?,?,?,?,?,?,?,?,?,?)";
+        String str = "insert into t_mgr_node_rules (id,node_id,type,active,active_time,create_time,update_time,service_key,upstream_types_id,inherit_id,sort,status) values(?,?,?,?,?,?,?,?,?,?,?,?)";
         nodeRules.setId(UUID.randomUUID().toString().replace("-", ""));
         nodeRules.setCreateTime(System.currentTimeMillis());
         nodeRules.setUpdateTime(null);
@@ -203,17 +210,18 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
             preparedStatement.setObject(9, nodeRules.getUpstreamTypesId());
             preparedStatement.setObject(10, nodeRules.getInheritId());
             preparedStatement.setObject(11, nodeRules.getSort());
+            preparedStatement.setObject(12, nodeRules.getStatus());
         }) > 0 ? nodeRules : null;
 
 
     }
 
     @Override
-    public NodeRules findNodeRulesById(String id) {
+    public NodeRules findNodeRulesById(String id, Integer status) {
         String sql = "select id,node_id as nodeId,type as type,active as active," +
                 "create_time as createTime,service_key as serviceKey,upstream_types_id as upstreamTypesId,inherit_id as inheritId," +
-                "active_time as activeTime,update_time as updateTime,sort from t_mgr_node_rules where 1 = 1 and id= ? ";
-        Map<String, Object> mapList = jdbcIGA.queryForMap(sql, id);
+                "active_time as activeTime,update_time as updateTime,sort,status from t_mgr_node_rules where 1 = 1 and id= ? and status=? ";
+        Map<String, Object> mapList = jdbcIGA.queryForMap(sql, id, status);
         NodeRules nodeRules = new NodeRules();
 
         if (null != mapList) {
@@ -238,11 +246,11 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
     }
 
     @Override
-    public List<NodeRules> findNodeRulesByUpStreamTypeId(String id) throws InvocationTargetException, IllegalAccessException {
+    public List<NodeRules> findNodeRulesByUpStreamTypeId(String id, Integer status) throws InvocationTargetException, IllegalAccessException {
         List<NodeRules> nodeRules = new ArrayList<>();
         String sql = "select id,node_id as nodeId,type as type,active as active," +
                 "create_time as createTime,service_key as serviceKey,upstream_types_id as upstreamTypesId,inherit_id as inheritId," +
-                "active_time as activeTime,update_time as updateTime,sort from t_mgr_node_rules where 1 = 1 and upstream_types_id= ? ";
+                "active_time as activeTime,update_time as updateTime,sort,status from t_mgr_node_rules where 1 = 1 and upstream_types_id= ? and status =? ";
 
         List<Map<String, Object>> maps = jdbcIGA.queryForList(sql, id);
         if (null != maps && maps.size() > 0) {

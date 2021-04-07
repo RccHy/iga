@@ -24,15 +24,15 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
     JdbcTemplate jdbcIGA;
 
     @Override
-    public List<NodeRulesRange> getByRulesId(String rulesId) {
+    public List<NodeRulesRange> getByRulesId(String rulesId,Integer status) {
         try {
             List<NodeRulesRange> nodeRulesRanges = new ArrayList<>();
             List<Map<String, Object>> maps = jdbcIGA.queryForList("select " +
-                            "id,node_rules_id as nodeRulesId,`type`,`rename`,node,`range`,create_time as createTime " +
+                            "id,node_rules_id as nodeRulesId,`type`,`rename`,node,`range`,create_time as createTime,status " +
                             "from t_mgr_node_rules_range " +
-                            "where node_rules_id=? " +
+                            "where node_rules_id=? and status =? " +
                             "order by `type` desc",
-                    rulesId);
+                    rulesId,status);
             for (Map<String, Object> map : maps) {
                 NodeRulesRange nodeRulesRange = new NodeRulesRange();
                 BeanUtils.populate(nodeRulesRange, map);
@@ -48,7 +48,8 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
 
     @Override
     public NodeDto saveNodeRuleRange(NodeDto nodeDto) {
-        String str = "insert into t_mgr_node_rules_range values(?,?,?,?,?,?,?,?)";
+        //(id,node_rules_id,type,node,range,create_time,rename,update_time,status)
+        String str = "insert into t_mgr_node_rules_range  values (?,?,?,?,?,?,?,?,?)";
         boolean contains = false;
         for (NodeRulesVo nodeRule : nodeDto.getNodeRules()) {
             List<NodeRulesRange> nodeRulesRanges = nodeRule.getNodeRulesRanges();
@@ -74,6 +75,7 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
                     preparedStatement.setObject(6, null == nodeRulesRanges.get(i).getCreateTime() ? null : new Timestamp(nodeRulesRanges.get(i).getCreateTime()));
                     preparedStatement.setObject(7, nodeRulesRanges.get(i).getRename());
                     preparedStatement.setObject(8, null == nodeRulesRanges.get(i).getUpdateTime() ? null : new Timestamp(nodeRulesRanges.get(i).getUpdateTime()));
+                    preparedStatement.setObject(9, nodeRulesRanges.get(i).getStatus());
 
                 }
 
@@ -102,7 +104,7 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
     @Override
     public NodeRulesRange updateRulesRange(NodeRulesRange rulesRange) {
         String sql = "update t_mgr_node_rules_range  set node_rules_id = ?,type = ?,node = ?,range = ?,create_time = ?," +
-                "rename = ?,update_time = ?  where id=?";
+                "rename = ?,update_time = ? ,status =? where id=?";
         Timestamp date = new Timestamp(System.currentTimeMillis());
         int update = jdbcIGA.update(sql, preparedStatement -> {
             preparedStatement.setObject(1, rulesRange.getNodeRulesId());
@@ -112,7 +114,8 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
             preparedStatement.setObject(5, rulesRange.getCreateTime());
             preparedStatement.setObject(6, rulesRange.getRename());
             preparedStatement.setObject(7, date);
-            preparedStatement.setObject(8, rulesRange.getId());
+            preparedStatement.setObject(8, rulesRange.getStatus());
+            preparedStatement.setObject(9, rulesRange.getId());
         });
         return update > 0 ? rulesRange : null;
     }
@@ -122,7 +125,8 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
         if (null == rulesRange.getId()) {
             rulesRange.setId(UUID.randomUUID().toString().replace("-", ""));
         }
-        String str = "insert into t_mgr_node_rules_range values(?,?,?,?,?,?,?,?)";
+        //(id,node_rules_id,type,node,range,create_time,rename,update_time,status)
+        String str = "insert into t_mgr_node_rules_range values(?,?,?,?,?,?,?,?,?)";
         rulesRange.setCreateTime(System.currentTimeMillis());
         return jdbcIGA.update(str, preparedStatement -> {
             preparedStatement.setObject(1, rulesRange.getId());
@@ -133,6 +137,7 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
             preparedStatement.setObject(6, new Timestamp(rulesRange.getCreateTime()));
             preparedStatement.setObject(7, rulesRange.getRename());
             preparedStatement.setObject(8, null);
+            preparedStatement.setObject(9, rulesRange.getStatus());
         }) > 0 ? rulesRange : null;
 
     }

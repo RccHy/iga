@@ -32,8 +32,8 @@ public class PostDaoImpl implements PostDao {
     public List<DeptBean> findByTenantId(String id) {
         //
         String sql = "select  user_type as code , name, parent_code as parentCode , " +
-                " update_time as createTime,"  +
-                "source,data_source as dataSource from user_type where tenant_id = ? and del_mark=0 ";
+                " update_time as createTime," +
+                "source,data_source as dataSource,user_type_index as deptIndex from user_type where tenant_id = ? ";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, id);
         return getUserTypes(mapList);
@@ -59,7 +59,7 @@ public class PostDaoImpl implements PostDao {
 
         String str = "update user_type set  name=?, parent_code=?, del_mark=? ,tenant_id =?" +
                 ", data_source=?, description=?, meta=?,update_time=?,tags=?,source=?" +
-                "where user_type =? and del_mark =0";
+                ", user_type_index = ?,del_mark =0  where user_type =?";
         boolean contains = false;
 
         int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
@@ -75,7 +75,8 @@ public class PostDaoImpl implements PostDao {
                 preparedStatement.setObject(8, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
                 preparedStatement.setObject(9, list.get(i).getTags());
                 preparedStatement.setObject(10, list.get(i).getSource());
-                preparedStatement.setObject(11, list.get(i).getCode());
+                preparedStatement.setObject(11, null == list.get(i).getDeptIndex() ? null : list.get(i).getDeptIndex());
+                preparedStatement.setObject(12, list.get(i).getCode());
 
             }
 
@@ -93,8 +94,8 @@ public class PostDaoImpl implements PostDao {
 
     @Override
     public ArrayList<DeptBean> saveDept(ArrayList<DeptBean> list, String tenantId) {
-        String str = "insert into user_type (id,user_type, name, parent_code, can_login ,tenant_id ,tags, data_source, description, meta,create_time,del_mark,active,active_time,update_time,source) values" +
-                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        String str = "insert into user_type (id,user_type, name, parent_code, can_login ,tenant_id ,tags, data_source, description, meta,create_time,del_mark,active,active_time,update_time,source,user_type_index) values" +
+                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         boolean contains = false;
 
         int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
@@ -116,6 +117,7 @@ public class PostDaoImpl implements PostDao {
                 preparedStatement.setObject(14, LocalDateTime.now());
                 preparedStatement.setObject(15, LocalDateTime.now());
                 preparedStatement.setObject(16, list.get(i).getSource());
+                preparedStatement.setObject(17, null == list.get(i).getDeptIndex() ? null : list.get(i).getDeptIndex());
             }
 
             @Override
@@ -158,7 +160,7 @@ public class PostDaoImpl implements PostDao {
     @Override
     public List<DeptBean> findRootData(String tenantId) {
         String sql = "select  user_type as code , name as name , parent_code as parentCode , " +
-                " tags ,data_source as dataSource , description , meta,source,post_type as postType  " +
+                " tags ,data_source as dataSource , description , meta,source,post_type as postType,user_type_index as deptIndex  " +
                 " from user_type where tenant_id=? and del_mark=0 and data_source=?";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId, "builtin");
@@ -185,7 +187,7 @@ public class PostDaoImpl implements PostDao {
     @Override
     public List<DeptBean> findPostType(String id) {
         String sql = "select  user_type as code , name as name , parent_code as parentCode , " +
-                " tags ,data_source as dataSource , description , meta,source,post_type as postType  " +
+                " tags ,data_source as dataSource , description , meta,source,post_type as postType,user_type_index as deptIndex  " +
                 " from user_type where tenant_id=? and del_mark=0";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, id);

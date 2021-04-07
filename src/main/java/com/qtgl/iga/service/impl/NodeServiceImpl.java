@@ -64,12 +64,12 @@ public class NodeServiceImpl implements NodeService {
 
     @Override
     public Node getRoot(String domain, String deptTreeType) {
-        return nodeDao.getByCode(domain, deptTreeType, "").get(0);
+        return nodeDao.getByCode(domain, deptTreeType, "", 0).get(0);
     }
 
     @Override
     public List<Node> getByCode(String domain, String deptTreeType, String nodeCode) {
-        return nodeDao.getByCode(domain, deptTreeType, nodeCode);
+        return nodeDao.getByCode(domain, deptTreeType, nodeCode, 0);
     }
 
     @Override
@@ -78,7 +78,7 @@ public class NodeServiceImpl implements NodeService {
         Integer i = 0;
         Integer flag = 0;
 
-
+        arguments.put("status",0);
         List<Node> nodes = nodeDao.findNodes(arguments, id);
         if (null == nodes || nodes.size() <= 0) {
             return null;
@@ -86,14 +86,14 @@ public class NodeServiceImpl implements NodeService {
 
         NodeDto nodeDto = new NodeDto(nodes.get(0));
 
-        List<NodeRulesVo> rules = nodeRulesDao.findNodeRulesByNodeId((String) arguments.get("id"));
+        List<NodeRulesVo> rules = nodeRulesDao.findNodeRulesByNodeId((String) arguments.get("id"), 0);
 
         if (null != rules) {
 
 
             //删除range
             for (NodeRulesVo rule : rules) {
-                List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(rule.getId());
+                List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(rule.getId(),0);
                 flag = nodeRulesRangeDao.deleteNodeRulesRangeByRuleId(rule.getId());
                 if (flag > 0) {
                     rule.setNodeRulesRanges(byRulesId);
@@ -132,12 +132,12 @@ public class NodeServiceImpl implements NodeService {
         //根据node查询对应规则
         for (Node node : nodeList) {
             NodeDto nodeDto = new NodeDto(node);
-            List<NodeRulesVo> nodeRulesByNodeId = nodeRulesDao.findNodeRulesByNodeId(node.getId());
+            List<NodeRulesVo> nodeRulesByNodeId = nodeRulesDao.findNodeRulesByNodeId(node.getId(), (Integer) arguments.get("status"));
 
             if (null != nodeRulesByNodeId) {
                 //根据rules查询对应的range
                 for (NodeRulesVo nodeRulesVo : nodeRulesByNodeId) {
-                    List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(nodeRulesVo.getId());
+                    List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(nodeRulesVo.getId(),(Integer) arguments.get("status"));
                     nodeRulesVo.setNodeRulesRanges(byRulesId);
                 }
                 nodeDto.setNodeRules(nodeRulesByNodeId);
@@ -164,14 +164,14 @@ public class NodeServiceImpl implements NodeService {
             for (Node node : nodeList) {
 
                 NodeDto nodeDto = new NodeDto(node);
-                List<NodeRulesVo> nodeRulesByNodeId = nodeRulesDao.findNodeRulesByNodeId(node.getId());
+                List<NodeRulesVo> nodeRulesByNodeId = nodeRulesDao.findNodeRulesByNodeId(node.getId(), (Integer) arguments.get("status"));
 
                 if (null != nodeRulesByNodeId) {
                     //根据rules查询对应的range
                     ArrayList<NodeRulesVo> nodeRulesVos = new ArrayList<>();
                     for (NodeRulesVo nodeRulesVo : nodeRulesByNodeId) {
                         if (StringUtils.isBlank(nodeRulesVo.getInheritId())) {
-                            List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(nodeRulesVo.getId());
+                            List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(nodeRulesVo.getId(),(Integer) arguments.get("status"));
                             nodeRulesVo.setNodeRulesRanges(byRulesId);
                             nodeRulesVos.add(nodeRulesVo);
                         } else {

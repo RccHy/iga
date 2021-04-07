@@ -29,5 +29,6 @@ public class NodeDto extends Node {
         this.setNodeCode(node.getNodeCode());
         this.setUpdateTime(node.getUpdateTime());
         this.setDeptTreeType(node.getDeptTreeType());
+        this.setStatus(node.getStatus());
     }
 }

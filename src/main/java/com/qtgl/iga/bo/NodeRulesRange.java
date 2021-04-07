@@ -32,4 +32,7 @@ public class NodeRulesRange {
 
     //创建时间
     private Long updateTime;
+    //当前状态 0 发布 1 编辑中 2 历史
+    private Integer status;
+
 }

@@ -29,6 +29,7 @@ public class NodeRulesVo extends NodeRules {
         this.setServiceKey(nodeRules.getServiceKey());
         this.setUpstreamTypesId(nodeRules.getUpstreamTypesId());
         this.setSort(nodeRules.getSort());
+        this.setStatus(nodeRules.getStatus());
     }
 
     public NodeRulesVo() {

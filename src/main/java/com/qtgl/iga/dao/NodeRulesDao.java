@@ -12,7 +12,7 @@ import java.util.Map;
 public interface NodeRulesDao {
 
 
-    List<NodeRules> getByNodeAndType(String nodeId, Integer type, Boolean active);
+    List<NodeRules> getByNodeAndType(String nodeId, Integer type, Boolean active,Integer status);
 
 
     NodeDto saveNodeRules(NodeDto nodeRules);
@@ -23,13 +23,13 @@ public interface NodeRulesDao {
 
     Integer deleteNodeRules(String id);
 
-    List<NodeRulesVo> findNodeRulesByNodeId(String id);
+    List<NodeRulesVo> findNodeRulesByNodeId(String id,Integer status);
 
     NodeRulesVo saveNodeRules(NodeRulesVo nodeRules);
 
-    NodeRules findNodeRulesById(String id);
+    NodeRules findNodeRulesById(String id,Integer status);
 
     Integer deleteNodeRulesById(String id);
 
-    List<NodeRules> findNodeRulesByUpStreamTypeId(String id) throws InvocationTargetException, IllegalAccessException;
+    List<NodeRules> findNodeRulesByUpStreamTypeId(String id,Integer status) throws InvocationTargetException, IllegalAccessException;
 }

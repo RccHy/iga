@@ -11,13 +11,13 @@ public interface NodeDao {
 
     NodeDto save(NodeDto node);
 
-    List<Node> getByCode(String domain, String deptTreeType, String nodeCode);
+    List<Node> getByCode(String domain, String deptTreeType, String nodeCode,Integer status);
 
     Integer deleteNode(Map<String, Object> arguments, String id);
 
     List<Node> findNodes(Map<String, Object> arguments, String domain);
 
-    List<Node> findByTreeTypeId(String id);
+    List<Node> findByTreeTypeId(String id,Integer status);
 
     List<Node> findNodesPlus(Map<String, Object> arguments, String id);
 }

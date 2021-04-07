@@ -9,7 +9,7 @@ import java.util.List;
 public interface NodeRulesRangeDao {
 
 
-    List<NodeRulesRange> getByRulesId(String rulesId);
+    List<NodeRulesRange> getByRulesId(String rulesId,Integer status);
 
 
     NodeDto saveNodeRuleRange(NodeDto nodeRulesRanges);

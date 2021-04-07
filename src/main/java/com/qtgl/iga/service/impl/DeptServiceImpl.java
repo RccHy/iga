@@ -122,7 +122,7 @@ public class DeptServiceImpl implements DeptService {
         for (DeptTreeType deptType : deptTreeTypes) {
             Map<String, DeptBean> mainTreeMap = new ConcurrentHashMap<>();
             //todo id 改为code
-            nodeRules(domain, deptType.getCode(), "", mainTreeMap);
+            nodeRules(domain, deptType.getCode(), "", mainTreeMap,0);
             //  数据合法性
             Collection<DeptBean> mainDept = mainTreeMap.values();
             ArrayList<DeptBean> mainList = new ArrayList<>(mainDept);
@@ -206,9 +206,9 @@ public class DeptServiceImpl implements DeptService {
      * @param nodeCode
      * @throws Exception
      */
-    public Map<String, DeptBean> nodeRules(DomainInfo domain, String deptTreeType, String nodeCode, Map<String, DeptBean> mainTree) throws Exception {
+    public Map<String, DeptBean> nodeRules(DomainInfo domain, String deptTreeType, String nodeCode, Map<String, DeptBean> mainTree,Integer status) throws Exception {
         //获取根节点的规则
-        List<Node> nodes = nodeDao.getByCode(domain.getId(), deptTreeType, nodeCode);
+        List<Node> nodes = nodeDao.getByCode(domain.getId(), deptTreeType, nodeCode,status);
         for (Node node : nodes) {
             if (null == node) {
                 return mainTree;
@@ -216,7 +216,7 @@ public class DeptServiceImpl implements DeptService {
             String code = node.getNodeCode();
             logger.info("开始'{}'节点规则运算", code);
             //获取节点的[拉取] 规则，来获取部门树
-            List<NodeRules> nodeRules = rulesDao.getByNodeAndType(node.getId(), 1, true);
+            List<NodeRules> nodeRules = rulesDao.getByNodeAndType(node.getId(), 1, true,status);
 
             //将主树进行 分组
             final Collection<DeptBean> mainDept = mainTree.values();
@@ -299,7 +299,7 @@ public class DeptServiceImpl implements DeptService {
                 //对树进行 parent 分组
                 Map<String, List<DeptBean>> childrenMap = TreeUtil.groupChildren(upstreamDept);
                 //查询 树 运行  规则,
-                List<NodeRulesRange> nodeRulesRanges = rangeDao.getByRulesId(nodeRule.getId());
+                List<NodeRulesRange> nodeRulesRanges = rangeDao.getByRulesId(nodeRule.getId(),status);
                 Map<String, DeptBean> mergeDeptMap = new ConcurrentHashMap<>();
                 logger.error("节点'{}'开始运行挂载", code);
                 //获取并检测 需要挂载的树， add 进入 待合并的树集合 mergeDept
@@ -382,7 +382,7 @@ public class DeptServiceImpl implements DeptService {
                 mainTree.putAll(mergeDeptMap);
                 // 将本次 add 进的 节点 进行 规则运算
                 for (Map.Entry<String, DeptBean> entry : mergeDeptMap.entrySet()) {
-                    nodeRules(domain, deptTreeType, entry.getKey(), mainTree);
+                    nodeRules(domain, deptTreeType, entry.getKey(), mainTree,status);
                 }
 
                 /*========================规则运算完成=============================*/

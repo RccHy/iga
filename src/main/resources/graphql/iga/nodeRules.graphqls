@@ -1,6 +1,6 @@
 extend type Query {
     #查询节点规则明细列表
-    nodeRules(id:ID,filter:NodeRulesFilter):[NodeRules]
+    nodeRules(id:ID,status:Int!,filter:NodeRulesFilter):[NodeRules]
 }
 extend type Mutation {
     #新增节点规则明细
@@ -39,6 +39,8 @@ type NodeRules{
     sort:Int
     #规则明细作用域
     nodeRulesRanges:[NodeRulesRange]
+    #状态 0 发布 1 编辑中 2 历史
+    status :Int
 }
 
 
@@ -68,10 +70,14 @@ input InputNodeRules{
     sort:Int
     #规则明细作用域
     nodeRulesRanges:[InputNodeRulesRange]
+    #状态 0 发布 1 编辑中 2 历史
+    status :Int
 }
 
 input NodeRulesFilter{
     type:integerFilter
+    status:integerFilter
+
 }
 
 
