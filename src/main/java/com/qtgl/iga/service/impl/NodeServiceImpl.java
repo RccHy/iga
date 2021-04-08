@@ -32,34 +32,39 @@ public class NodeServiceImpl implements NodeService {
     @Override
     public NodeDto saveNode(NodeDto node, String domain) throws Exception {
         //删除原有数据
-        HashMap<String, Object> hashMap = new HashMap<>();
-        hashMap.put("id", node.getId());
-        NodeDto nodeDto = deleteNode(hashMap, domain);
-        if (null != nodeDto) {
-            node.setCreateTime(nodeDto.getCreateTime());
-            node.setUpdateTime(System.currentTimeMillis());
-        } else {
-            node.setId(null);
+        if (null != node.getId()) {
+            HashMap<String, Object> hashMap = new HashMap<>();
+            hashMap.put("id", node.getId());
+            deleteNode(hashMap, domain);
+        }
+//        if (null != nodeDto) {
+//            node.setCreateTime(nodeDto.getCreateTime());
+//            node.setUpdateTime(System.currentTimeMillis());
+//        } else {
+//            node.setId(null);
+//        }
+        if (null != node.getNodeRules() && node.getNodeRules().size() > 0) {
+            //添加节点规则
+            node.setDomain(domain);
+            NodeDto save = nodeDao.save(node);
+            if (null == save) {
+                throw new Exception("添加节点失败");
+            }
+            //添加节点规则明细
+            NodeDto nodeRule = nodeRulesDao.saveNodeRules(save);
+            if (null == nodeRule) {
+                throw new Exception("添加节点规则明细失败");
+            }
+            //添加节点规则明细作用域
+            NodeDto range = nodeRulesRangeDao.saveNodeRuleRange(nodeRule);
+            if (null == range) {
+                throw new Exception("添加节点规则明细作用域失败");
+            }
+            return range;
         }
 
-        //添加节点规则
-        node.setDomain(domain);
-        NodeDto save = nodeDao.save(node);
-        if (null == save) {
-            throw new Exception("添加节点失败");
-        }
-        //添加节点规则明细
-        NodeDto nodeRule = nodeRulesDao.saveNodeRules(save);
-        if (null == nodeRule) {
-            throw new Exception("添加节点规则明细失败");
-        }
-        //添加节点规则明细作用域
-        NodeDto range = nodeRulesRangeDao.saveNodeRuleRange(nodeRule);
-        if (null == range) {
-            throw new Exception("添加节点规则明细作用域失败");
-        }
+        return new NodeDto();
 
-        return range;
     }
 
     @Override
@@ -78,7 +83,7 @@ public class NodeServiceImpl implements NodeService {
         Integer i = 0;
         Integer flag = 0;
 
-        arguments.put("status",0);
+        arguments.put("status", 0);
         List<Node> nodes = nodeDao.findNodes(arguments, id);
         if (null == nodes || nodes.size() <= 0) {
             return null;
@@ -86,14 +91,14 @@ public class NodeServiceImpl implements NodeService {
 
         NodeDto nodeDto = new NodeDto(nodes.get(0));
 
-        List<NodeRulesVo> rules = nodeRulesDao.findNodeRulesByNodeId((String) arguments.get("id"),null);
+        List<NodeRulesVo> rules = nodeRulesDao.findNodeRulesByNodeId((String) arguments.get("id"), null);
 
         if (null != rules) {
 
 
             //删除range
             for (NodeRulesVo rule : rules) {
-                List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(rule.getId(),null);
+                List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(rule.getId(), null);
                 flag = nodeRulesRangeDao.deleteNodeRulesRangeByRuleId(rule.getId());
                 if (flag > 0) {
                     rule.setNodeRulesRanges(byRulesId);
@@ -132,12 +137,12 @@ public class NodeServiceImpl implements NodeService {
         //根据node查询对应规则
         for (Node node : nodeList) {
             NodeDto nodeDto = new NodeDto(node);
-            List<NodeRulesVo> nodeRulesByNodeId = nodeRulesDao.findNodeRulesByNodeId(node.getId(),null);
+            List<NodeRulesVo> nodeRulesByNodeId = nodeRulesDao.findNodeRulesByNodeId(node.getId(), null);
 
             if (null != nodeRulesByNodeId) {
                 //根据rules查询对应的range
                 for (NodeRulesVo nodeRulesVo : nodeRulesByNodeId) {
-                    List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(nodeRulesVo.getId(),null);
+                    List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(nodeRulesVo.getId(), null);
                     nodeRulesVo.setNodeRulesRanges(byRulesId);
                 }
                 nodeDto.setNodeRules(nodeRulesByNodeId);
@@ -164,14 +169,14 @@ public class NodeServiceImpl implements NodeService {
             for (Node node : nodeList) {
 
                 NodeDto nodeDto = new NodeDto(node);
-                List<NodeRulesVo> nodeRulesByNodeId = nodeRulesDao.findNodeRulesByNodeId(node.getId(),null);
+                List<NodeRulesVo> nodeRulesByNodeId = nodeRulesDao.findNodeRulesByNodeId(node.getId(), null);
 
                 if (null != nodeRulesByNodeId) {
                     //根据rules查询对应的range
                     ArrayList<NodeRulesVo> nodeRulesVos = new ArrayList<>();
                     for (NodeRulesVo nodeRulesVo : nodeRulesByNodeId) {
                         if (StringUtils.isBlank(nodeRulesVo.getInheritId())) {
-                            List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(nodeRulesVo.getId(),null);
+                            List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(nodeRulesVo.getId(), null);
                             nodeRulesVo.setNodeRulesRanges(byRulesId);
                             nodeRulesVos.add(nodeRulesVo);
                         } else {

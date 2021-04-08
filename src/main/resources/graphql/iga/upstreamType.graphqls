@@ -53,8 +53,7 @@ type upstreamType{
     isPage:Boolean
     #方式  推送0/拉取1
     synWay:Int
-    #标注是否删除
-    delMark:Boolean
+
 }
 
 
@@ -129,8 +128,7 @@ input InputupstreamType{
     isPage:Boolean
     #方式 拉取0/推送1
     synWay:Int
-    #标注是否删除
-    delMark:Boolean
+
 }
 
 input upstreamTypeFilter{

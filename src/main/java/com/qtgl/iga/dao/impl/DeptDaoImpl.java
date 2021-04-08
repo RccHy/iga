@@ -52,14 +52,18 @@ public class DeptDaoImpl implements DeptDao {
     }
 
     @Override
-    public List<DeptBean> findByTenantId(String id, String treeType) {
+    public List<DeptBean> findByTenantId(String id, String treeType,Integer delMark) {
         String sql = "select dept_code as code , dept_name as name , parent_code as parentCode , " +
-                " update_time as createTime , source, tree_type as treeType,abbreviation  from dept where tenant_id = ?  ";
+                " update_time as createTime , source, tree_type as treeType,abbreviation  from dept where tenant_id = ? ";
         List<Object> param = new ArrayList<>();
         param.add(id);
         if (null != treeType) {
             sql = sql + " and tree_type=? ";
             param.add(treeType);
+        }
+        if (null != treeType) {
+            sql = sql + " and del_mark=? ";
+            param.add(delMark);
         }
         List<Map<String, Object>> mapList = jdbcSSOAPI.queryForList(sql, param.toArray());
         return getDeptBeans(mapList);
@@ -165,7 +169,7 @@ public class DeptDaoImpl implements DeptDao {
                 preparedStatement.setObject(16, list.get(i).getTreeType());
                 preparedStatement.setObject(17, null == list.get(i).getDeptIndex() ? null : list.get(i).getDeptIndex());
                 preparedStatement.setObject(18, null == list.get(i).getAbbreviation() ? null : list.get(i).getAbbreviation());
-                preparedStatement.setObject(18, LocalDateTime.now());
+                preparedStatement.setObject(19, LocalDateTime.now());
             }
 
             @Override

@@ -97,13 +97,16 @@ public class NodeDaoImpl implements NodeDao {
         String sql = "select id,manual," +
                 "node_code as nodeCode," +
                 "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status" +
-                " from t_mgr_node where domain= ? and status =?  ";
+                " from t_mgr_node where domain= ?   ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
         List<Object> param = new ArrayList<>();
         param.add(domain);
-        param.add(status);
+        if (null != status) {
+            stb.append(" and status =?  ");
+            param.add(status);
+        }
         dealData(arguments, stb, param);
 //        getChild(arguments,param,stb);
         System.out.println(stb.toString());
