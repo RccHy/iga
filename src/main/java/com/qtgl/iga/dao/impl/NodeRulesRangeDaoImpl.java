@@ -24,15 +24,23 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
     JdbcTemplate jdbcIGA;
 
     @Override
-    public List<NodeRulesRange> getByRulesId(String rulesId,Integer status) {
+    public List<NodeRulesRange> getByRulesId(String rulesId, Integer status) {
         try {
             List<NodeRulesRange> nodeRulesRanges = new ArrayList<>();
-            List<Map<String, Object>> maps = jdbcIGA.queryForList("select " +
-                            "id,node_rules_id as nodeRulesId,`type`,`rename`,node,`range`,create_time as createTime,status " +
-                            "from t_mgr_node_rules_range " +
-                            "where node_rules_id=? and status =? " +
-                            "order by `type` desc",
-                    rulesId,status);
+            String sql = "select " +
+                    "id,node_rules_id as nodeRulesId,`type`,`rename`,node,`range`,create_time as createTime,status " +
+                    "from t_mgr_node_rules_range " +
+                    "where node_rules_id=?  ";
+            List<Object> param = new ArrayList<>();
+            param.add(rulesId);
+            if (null != status) {
+                sql = sql + " and status =? ";
+                param.add(status);
+            }
+            sql = sql + " order by `type` desc ";
+            List<Map<String, Object>> maps = jdbcIGA.queryForList(sql,
+                    param.toArray());
+
             for (Map<String, Object> map : maps) {
                 NodeRulesRange nodeRulesRange = new NodeRulesRange();
                 BeanUtils.populate(nodeRulesRange, map);

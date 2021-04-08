@@ -1,0 +1,56 @@
+extend type Query {
+    #查询岗位类型
+    postTypes(id:ID,filter:PostTypeFilter):[PostType]
+}
+extend type Mutation {
+    #新增岗位类型
+    savePostType(entity:InputPostType!):PostType
+    #根据id删除岗位类型
+    deletePostType(id:ID!): PostType
+    #更新岗位类型
+    updatePostType(entity:InputPostType!):PostType
+}
+
+
+
+# 岗位类型实体
+type PostType{
+    # 主键
+    id:ID
+    # 机构类型代码
+    code:String
+    # 机构类型名称
+    name:String
+    # 描述
+    description:String
+    # 创建日期
+    createTime:Timestamp
+    # 修改日期
+    updateTime:Timestamp
+    # 创建人员工号
+    createUser:String
+}
+
+
+# 岗位类型入参
+input InputPostType{
+    id:ID
+    code:String
+    name:String
+    description:String
+    createTime:Timestamp
+    updateTime:Timestamp
+    createUser:String
+}
+
+input PostTypeFilter{
+    code:stringFilter
+    name:stringFilter
+    createTime:timestampFilter
+    updateTime:timestampFilter
+}
+
+
+
+
+

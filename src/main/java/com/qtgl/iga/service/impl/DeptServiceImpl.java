@@ -299,7 +299,7 @@ public class DeptServiceImpl implements DeptService {
                 //对树进行 parent 分组
                 Map<String, List<DeptBean>> childrenMap = TreeUtil.groupChildren(upstreamDept);
                 //查询 树 运行  规则,
-                List<NodeRulesRange> nodeRulesRanges = rangeDao.getByRulesId(nodeRule.getId(),status);
+                List<NodeRulesRange> nodeRulesRanges = rangeDao.getByRulesId(nodeRule.getId(),null);
                 Map<String, DeptBean> mergeDeptMap = new ConcurrentHashMap<>();
                 logger.error("节点'{}'开始运行挂载", code);
                 //获取并检测 需要挂载的树， add 进入 待合并的树集合 mergeDept

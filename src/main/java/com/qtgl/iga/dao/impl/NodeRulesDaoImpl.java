@@ -31,14 +31,17 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
         List<Object> para = new ArrayList<>();
         para.add(nodeId);
         para.add(active);
-        para.add(status);
         StringBuffer sql = new StringBuffer("select id, node_id as nodeId,type,active,inherit_id as inheritId," +
                 " active_time as activeTime, create_time as createTime,  update_time as updateTime," +
                 "service_key as serviceKey,upstream_types_id as upstreamTypesId,sort,status " +
-                " from t_mgr_node_rules where node_id=? and active=? and status=? ");
+                " from t_mgr_node_rules where node_id=? and active=?  ");
         if (null != type) {
             sql.append(" and type=? ");
             para.add(type);
+        }
+        if(null!=status){
+            sql.append(" and status = ? ");
+            para.add(status);
         }
         sql.append(" order by sort asc");
         List<Map<String, Object>> maps = jdbcIGA.queryForList(sql.toString(), para.toArray());
@@ -173,9 +176,14 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
     public List<NodeRulesVo> findNodeRulesByNodeId(String id, Integer status) {
         String sql = "select id,node_id as nodeId,type as type,active as active," +
                 "create_time as createTime,service_key as serviceKey,upstream_types_id as upstreamTypesId,inherit_id as inheritId," +
-                "active_time as activeTime,update_time as updateTime , sort ,status from t_mgr_node_rules where node_id =? and status=?";
-
-        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id, status);
+                "active_time as activeTime,update_time as updateTime , sort ,status from t_mgr_node_rules where node_id =? ";
+        List<Object> param = new ArrayList<>();
+        param.add(id);
+        if(null!= status){
+            sql = sql + "and status =? ";
+            param.add(status);
+        }
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, param.toArray());
         ArrayList<NodeRulesVo> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {
@@ -220,8 +228,14 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
     public NodeRules findNodeRulesById(String id, Integer status) {
         String sql = "select id,node_id as nodeId,type as type,active as active," +
                 "create_time as createTime,service_key as serviceKey,upstream_types_id as upstreamTypesId,inherit_id as inheritId," +
-                "active_time as activeTime,update_time as updateTime,sort,status from t_mgr_node_rules where 1 = 1 and id= ? and status=? ";
-        Map<String, Object> mapList = jdbcIGA.queryForMap(sql, id, status);
+                "active_time as activeTime,update_time as updateTime,sort,status from t_mgr_node_rules where 1 = 1 and id= ?  ";
+        List<Object> param = new ArrayList<>();
+        param.add(id);
+        if(null!= status){
+            sql = sql + "and status =? ";
+            param.add(status);
+        }
+        Map<String, Object> mapList = jdbcIGA.queryForMap(sql, param.toArray());
         NodeRules nodeRules = new NodeRules();
 
         if (null != mapList) {
@@ -250,9 +264,14 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
         List<NodeRules> nodeRules = new ArrayList<>();
         String sql = "select id,node_id as nodeId,type as type,active as active," +
                 "create_time as createTime,service_key as serviceKey,upstream_types_id as upstreamTypesId,inherit_id as inheritId," +
-                "active_time as activeTime,update_time as updateTime,sort,status from t_mgr_node_rules where 1 = 1 and upstream_types_id= ? and status =? ";
-
-        List<Map<String, Object>> maps = jdbcIGA.queryForList(sql, id);
+                "active_time as activeTime,update_time as updateTime,sort,status from t_mgr_node_rules where 1 = 1 and upstream_types_id= ?  ";
+        List<Object> param = new ArrayList<>();
+        param.add(id);
+        if(null!= status){
+            sql = sql + "and status =? ";
+            param.add(status);
+        }
+        List<Map<String, Object>> maps = jdbcIGA.queryForList(sql,param.toArray());
         if (null != maps && maps.size() > 0) {
             for (Map<String, Object> map : maps) {
                 NodeRules nodeRule = new NodeRules();
