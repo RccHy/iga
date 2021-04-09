@@ -88,6 +88,44 @@ public class DeptServiceImpl implements DeptService {
     }
 
 
+      @SneakyThrows
+    //@Override
+    public Map<DeptBean, String> buildDeptByDomain2(DomainInfo domain) {
+        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        if (null == tenant) {
+            throw new Exception("租户不存在");
+        }
+        //通过tenantId查询ssoApis库中的数据
+        List<DeptBean> beans = deptDao.findByTenantId(tenant.getId(), null,null);
+        if (null != beans && beans.size() > 0) {
+            //将null赋为""
+            for (DeptBean bean : beans) {
+                if (null == bean.getParentCode()) {
+                    bean.setParentCode("");
+                }
+            }
+        }
+        //轮训比对标记(是否有主键id)
+        Map<DeptBean, String> result = new HashMap<>();
+        // 获取租户下开启的部门类型
+        List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
+        for (DeptTreeType deptType : deptTreeTypes) {
+            Map<String, DeptBean> mainTreeMap = new ConcurrentHashMap<>();
+            //todo id 改为code
+            nodeRules(domain, deptType.getCode(), "", mainTreeMap,0);
+            //  数据合法性
+            Collection<DeptBean> mainDept = mainTreeMap.values();
+            ArrayList<DeptBean> mainList = new ArrayList<>(mainDept);
+            // 判断重复(code)
+            groupByCode(mainList);
+            //同步到sso
+            beans = saveToSso(mainTreeMap, domain, deptType.getCode(), beans, result);
+        }
+        groupByCode(beans);
+        saveToSso(result, tenant.getId());
+        return result;
+    }
+
     @SneakyThrows
     @Override
     public List<DeptBean> buildDeptByDomain(DomainInfo domain) {
@@ -98,8 +136,6 @@ public class DeptServiceImpl implements DeptService {
 
         for (DomainInfo domain : domainInfos) {*/
 
-
-        // todo 获取sso整树
         //sso dept库的数据(通过domain 关联tenant查询)
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
@@ -177,6 +213,7 @@ public class DeptServiceImpl implements DeptService {
             for (Map.Entry<DeptBean, String> key : update) {
                 list.add(key.getKey());
             }
+            // 修改同时要比对是否时间戳比数据库中更新
             ArrayList<DeptBean> depts = deptDao.updateDept(list, tenantId);
             if (null != depts && depts.size() > 0) {
                 logger.info("更新" + list.size() + "条数据{}", depts.toString());
@@ -594,8 +631,8 @@ public class DeptServiceImpl implements DeptService {
                     if (rename.contains("${code}")) {
                         String newCode = rename.replace("${code}", deptBean.getCode());
                         deptBean.setCode(newCode);
-                        // 如果当前节点有子集，则同时修改子集的parentCode指向
-                        if (childrenMap.containsKey(deptBean.getParentCode())) {
+                        // 如果当前节点有子集，则同时修改子集的parentCode指向. 而原本就为"" 的顶级部门不应修改
+                        if (childrenMap.containsKey(deptBean.getParentCode())&&!"".equals(deptBean.getParentCode())) {
                             String newParentCode = rename.replace("${code}", deptBean.getParentCode());
                             childrenMap.get(deptBean.getParentCode()).forEach(deptBean1 -> {
                                 deptBean1.setParentCode(newParentCode);
