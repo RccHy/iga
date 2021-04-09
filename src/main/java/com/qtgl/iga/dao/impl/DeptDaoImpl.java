@@ -106,7 +106,7 @@ public class DeptDaoImpl implements DeptDao {
     public ArrayList<DeptBean> updateDept(ArrayList<DeptBean> list, String tenantId) {
         String str = "update dept set  dept_name=?, parent_code=?, del_mark=? ,tenant_id =?" +
                 ",source =?, data_source=?, description=?, meta=?,update_time=?,tags=?,independent=?,tree_type= ?,active=? ,abbreviation=?,del_mark=0 " +
-                "where dept_code =?";
+                "where dept_code =? and update_time< ?";
         boolean contains = false;
 
         int[] ints = jdbcSSOAPI.batchUpdate(str, new BatchPreparedStatementSetter() {
@@ -127,6 +127,7 @@ public class DeptDaoImpl implements DeptDao {
                 preparedStatement.setObject(13, 0);
                 preparedStatement.setObject(14, null == list.get(i).getAbbreviation() ? null : list.get(i).getAbbreviation());
                 preparedStatement.setObject(15, list.get(i).getCode());
+                preparedStatement.setObject(16, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
 
             }
 

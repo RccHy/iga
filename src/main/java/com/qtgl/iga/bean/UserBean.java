@@ -6,65 +6,32 @@ import java.time.LocalDateTime;
 
 /**
  * <FileName> UserBean
- * <Desc> 岗位
+ * <Desc> 自然人实体
  *
- * @author HP
+ * @author RCC
  */
 @Data
 public class UserBean {
 
-    /**
-     * 岗位代码（唯一）
-     */
-    private String userType;
-    /**
-     * 岗位名称
-     */
+
+
     private String name;
-    /**
-     * 父级code
-     */
-    private String parentCode;
 
-    /**
-     * 所属租户id
-     */
-    private String tenantId;
-    /**
-     * 是否身份岗
-     */
-    private Boolean formal;
-    /**
-     * 标签
-     */
-    private String tags;
-    /**
-     * 描述
-     */
-    private String description;
-    /**
-     *
-     */
-    private String meta;
+    private String code;
 
-    /**
-     * 创建时间
-     */
-    private LocalDateTime createTime;
+    private String cardType;
 
-    /**
-     * 数据来源（）
-     */
-    private String dataSource;
-    /**
-     * 是否孤儿节点
-     */
-    private Boolean orphan;
+    private String cardNum;
 
-    /**
-     * 排序
-     */
-    private String index;
+    private String email;
+
+    private String phone;
+
+
+
+
+
+
 
 
 }
