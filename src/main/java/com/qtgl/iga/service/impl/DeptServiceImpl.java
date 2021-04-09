@@ -14,7 +14,6 @@ import com.qtgl.iga.utils.DataBusUtil;
 import com.qtgl.iga.utils.TreeEnum;
 import com.qtgl.iga.utils.TreeUtil;
 import com.qtgl.iga.vo.NodeRulesVo;
-import com.sun.xml.internal.ws.api.message.ExceptionHasMessage;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -152,15 +151,15 @@ public class DeptServiceImpl implements DeptService {
     }
 
 
-    @SneakyThrows
-    //@Override
-    public Map<DeptBean, String> buildDeptByDomain2(DomainInfo domain) {
+  @SneakyThrows
+    @Override
+    public Map<DeptBean, String> buildDeptUpdateResult(DomainInfo domain) {
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
             throw new Exception("租户不存在");
         }
         //通过tenantId查询ssoApis库中的数据
-        List<DeptBean> beans = deptDao.findByTenantId(tenant.getId(), null, null);
+        List<DeptBean> beans = deptDao.findByTenantId(tenant.getId(), null,null);
         if (null != beans && beans.size() > 0) {
             //将null赋为""
             for (DeptBean bean : beans) {
@@ -176,7 +175,7 @@ public class DeptServiceImpl implements DeptService {
         for (DeptTreeType deptType : deptTreeTypes) {
             Map<String, DeptBean> mainTreeMap = new ConcurrentHashMap<>();
             //todo id 改为code
-            nodeRules(domain, deptType.getCode(), "", mainTreeMap, 0);
+            nodeRules(domain, deptType.getCode(), "", mainTreeMap,0);
             //  数据合法性
             Collection<DeptBean> mainDept = mainTreeMap.values();
             ArrayList<DeptBean> mainList = new ArrayList<>(mainDept);

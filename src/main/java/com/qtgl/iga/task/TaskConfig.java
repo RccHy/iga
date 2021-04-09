@@ -1,5 +1,6 @@
 package com.qtgl.iga.task;
 
+import com.qtgl.iga.bean.DeptBean;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.config.TaskThreadPool;
 import com.qtgl.iga.service.DeptService;
@@ -11,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -34,7 +36,7 @@ public class TaskConfig {
      * 串行执行 部门、岗位、人员、三元组 同步
      */
 
-     @Scheduled(cron = "${dept.task.cron}")
+    // @Scheduled(cron = "${dept.task.cron}")
     public void deptTask() {
         try {
             log.info("hostname{}", hostname);
@@ -50,7 +52,7 @@ public class TaskConfig {
                                         try {
                                             log.info(Thread.currentThread().getName() + ": 开始" + System.currentTimeMillis());
                                             //todo 部门数据同步至sso
-                                            deptService.buildDeptByDomain(domainInfo);
+                                            //final Map<DeptBean, String> deptBeanStringMap = deptService.buildDeptUpdateResult(domainInfo);
                                             //todo 岗位数据同步至sso
                                             //
                                             //todo 人员数据同步至sso

@@ -15,4 +15,6 @@ public interface DeptService {
     List<DeptBean> findDept(Map<String, Object> arguments, DomainInfo domain) throws Exception;
 
     List<DeptBean> findDeptByDomainName(String domainName, String treeType,Integer delMark);
+
+     Map<DeptBean, String> buildDeptUpdateResult(DomainInfo domain);
 }
