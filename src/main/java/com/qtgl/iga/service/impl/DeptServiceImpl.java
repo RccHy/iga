@@ -419,7 +419,7 @@ public class DeptServiceImpl implements DeptService {
                 mainTree.putAll(mergeDeptMap);
                 // 将本次 add 进的 节点 进行 规则运算
                 for (Map.Entry<String, DeptBean> entry : mergeDeptMap.entrySet()) {
-                    nodeRules(domain, deptTreeType, entry.getKey(), mainTree,status);
+                    nodeRules(domain, deptTreeType, entry.getValue().getCode(), mainTree,status);
                 }
 
                 /*========================规则运算完成=============================*/
@@ -629,13 +629,14 @@ public class DeptServiceImpl implements DeptService {
                 String rename = nodeRulesRange.getRename();
                 for (DeptBean deptBean : mergeDeptMap.values()) {
                     if (rename.contains("${code}")) {
+                        String oldCode=deptBean.getCode();
                         String newCode = rename.replace("${code}", deptBean.getCode());
                         deptBean.setCode(newCode);
                         // 如果当前节点有子集，则同时修改子集的parentCode指向. 而原本就为"" 的顶级部门不应修改
-                        if (childrenMap.containsKey(deptBean.getParentCode())&&!"".equals(deptBean.getParentCode())) {
-                            String newParentCode = rename.replace("${code}", deptBean.getParentCode());
-                            childrenMap.get(deptBean.getParentCode()).forEach(deptBean1 -> {
-                                deptBean1.setParentCode(newParentCode);
+                        if (childrenMap.containsKey(oldCode)) {
+                            //String newParentCode = rename.replace("${code}", deptBean.getParentCode());
+                            childrenMap.get(oldCode).forEach(deptBean1 -> {
+                                deptBean1.setParentCode(newCode);
                             });
                         }
                     }
