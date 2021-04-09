@@ -1,11 +1,13 @@
 package com.qtgl.iga.service.impl;
 
 
+import com.qtgl.iga.bo.Node;
 import com.qtgl.iga.bo.NodeRules;
 import com.qtgl.iga.bo.NodeRulesRange;
 import com.qtgl.iga.dao.NodeRulesDao;
 import com.qtgl.iga.dao.NodeRulesRangeDao;
 import com.qtgl.iga.service.NodeRulesService;
+import com.qtgl.iga.service.NodeService;
 import com.qtgl.iga.vo.NodeRulesVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,8 @@ public class NodeRulesServiceImpl implements NodeRulesService {
     NodeRulesDao nodeRulesDao;
     @Autowired
     NodeRulesRangeDao nodeRulesRangeDao;
+    @Autowired
+    NodeService nodeService;
 
 
     @Override
@@ -34,7 +38,22 @@ public class NodeRulesServiceImpl implements NodeRulesService {
     }
 
     @Override
-    public NodeRulesVo deleteRules(Map<String, Object> arguments, String id) throws Exception {
+    public NodeRulesVo deleteRules(Map<String, Object> arguments, String domain) throws Exception {
+        // todo 查询删除规则拉取的数据子节点是否有规则
+        List<String> codes = (List<String>) arguments.get("codes");
+        if(null != codes &&codes.size()>0){
+            //根据code查询是否有对应的规则
+            for (String code : codes) {
+               List<Node> nodes =  nodeService.findNodesByCode(code,domain);
+               if(null!=nodes &&nodes.size()>0){
+                   for (Node node : nodes) {
+                       HashMap<String, Object> hashMap = new HashMap<>();
+                       hashMap.put("id",node.getId());
+                       nodeService.deleteNode(hashMap,domain);
+                   }
+               }
+            }
+        }
         //查询是否有range需要删除
         List<NodeRulesRange> ranges = nodeRulesRangeDao.getByRulesId((String) arguments.get("id"),null);
         //删除range

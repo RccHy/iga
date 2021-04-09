@@ -1,12 +1,12 @@
 extend type Query {
     #查询节点规则明细列表
-    nodeRules(id:ID,status:Int!,filter:NodeRulesFilter):[NodeRules]
+    nodeRules(id:ID,status:Int,filter:NodeRulesFilter):[NodeRules]
 }
 extend type Mutation {
     #新增节点规则明细
     saveRules(entity:InputNodeRules!):NodeRules
     #根据id删除节点规则明细
-    deleteRules(id:ID!): NodeRules
+    deleteRules(id:ID!,codes:[String]): NodeRules
     #根据id删除节点规则明细(批删)
     deleteBatchRules(ids:[String]!): [NodeRules]
     #更新节点规则明细

@@ -31,18 +31,20 @@ public class NodeServiceImpl implements NodeService {
 
     @Override
     public NodeDto saveNode(NodeDto node, String domain) throws Exception {
+        NodeDto nodeDto = null;
         //删除原有数据
         if (null != node.getId()) {
             HashMap<String, Object> hashMap = new HashMap<>();
             hashMap.put("id", node.getId());
-            deleteNode(hashMap, domain);
+            nodeDto = deleteNode(hashMap, domain);
         }
-//        if (null != nodeDto) {
-//            node.setCreateTime(nodeDto.getCreateTime());
-//            node.setUpdateTime(System.currentTimeMillis());
-//        } else {
-//            node.setId(null);
-//        }
+        //保留版本号
+
+        if (null != nodeDto) {
+            node.setCreateTime(nodeDto.getCreateTime());
+            node.setUpdateTime(System.currentTimeMillis());
+        }
+
         if (null != node.getNodeRules() && node.getNodeRules().size() > 0) {
             //添加节点规则
             node.setDomain(domain);
@@ -83,7 +85,6 @@ public class NodeServiceImpl implements NodeService {
         Integer i = 0;
         Integer flag = 0;
 
-        arguments.put("status", 0);
         List<Node> nodes = nodeDao.findNodes(arguments, id);
         if (null == nodes || nodes.size() <= 0) {
             return null;
@@ -100,26 +101,26 @@ public class NodeServiceImpl implements NodeService {
             for (NodeRulesVo rule : rules) {
                 List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(rule.getId(), null);
                 flag = nodeRulesRangeDao.deleteNodeRulesRangeByRuleId(rule.getId());
-                if (flag > 0) {
+                if (flag >= 0) {
                     rule.setNodeRulesRanges(byRulesId);
                 } else {
                     throw new Exception("删除节点规则作用域失败");
                 }
             }
         }
-        if (flag > 0 && null != rules) {
+        if (flag >= 0 && null != rules) {
             //删除rule
             i = nodeRulesDao.deleteNodeRules((String) arguments.get("id"));
             nodeDto.setNodeRules(rules);
         }
-        if (i <= 0 && null != rules) {
+        if (i < 0 && null != rules) {
             throw new Exception("删除节点规则失败");
         }
         //如果节点规则明细为空,直接删除node并返回
-        if (i > 0 || null == rules) {
+        if (i >= 0 || null == rules) {
             //删除node
             Integer integer = nodeDao.deleteNode(arguments, id);
-            if (integer > 0) {
+            if (integer >= 0) {
 
                 return nodeDto;
             }
@@ -131,6 +132,8 @@ public class NodeServiceImpl implements NodeService {
 
     @Override
     public List<NodeDto> findNodes(Map<String, Object> arguments, String id) {
+        //标识是否含有继承
+        Boolean flag = false;
         ArrayList<NodeDto> nodeDos = new ArrayList<>();
         //获取node
         List<Node> nodeList = nodeDao.findNodes(arguments, id);
@@ -142,9 +145,15 @@ public class NodeServiceImpl implements NodeService {
             if (null != nodeRulesByNodeId) {
                 //根据rules查询对应的range
                 for (NodeRulesVo nodeRulesVo : nodeRulesByNodeId) {
-                    List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(nodeRulesVo.getId(), null);
-                    nodeRulesVo.setNodeRulesRanges(byRulesId);
+                    if (null == nodeRulesVo.getInheritId()) {
+                        List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(nodeRulesVo.getId(), null);
+                        nodeRulesVo.setNodeRulesRanges(byRulesId);
+                    } else {
+                        flag = true;
+                    }
+
                 }
+                nodeDto.setInherit(flag);
                 nodeDto.setNodeRules(nodeRulesByNodeId);
 
             }
@@ -193,6 +202,27 @@ public class NodeServiceImpl implements NodeService {
 
 
         return nodeDos;
+    }
+
+    @Override
+    public List<Node> findNodesByCode(String code, String domain) {
+        return nodeDao.findNodesByCode(code, domain);
+    }
+
+    @Override
+    public Node applyNode(String id) {
+        Integer i = nodeDao.makeNodeToHistory(id);
+        Integer n = nodeDao.publishNode(id);
+        if ((i > 0) && (n > 0)) {
+            return new Node();
+        }
+        return null;
+    }
+
+    @Override
+    public Node rollbackNode(String id) {
+        //todo 删除编辑中的node
+      return  null;
     }
 
 

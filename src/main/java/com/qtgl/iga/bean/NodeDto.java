@@ -18,6 +18,8 @@ public class NodeDto extends Node {
      */
     private List<NodeRulesVo> nodeRules;
 
+    private Boolean inherit;
+
     public NodeDto() {
     }
 

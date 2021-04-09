@@ -5,12 +5,16 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.DeptBean;
+import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.DeptService;
+import com.qtgl.iga.service.NodeService;
 import com.qtgl.iga.utils.DataBusUtil;
 import com.qtgl.iga.utils.TreeEnum;
 import com.qtgl.iga.utils.TreeUtil;
+import com.qtgl.iga.vo.NodeRulesVo;
+import com.sun.xml.internal.ws.api.message.ExceptionHasMessage;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -56,6 +60,8 @@ public class DeptServiceImpl implements DeptService {
     UpstreamDeptDao upstreamDeptDao;
     @Autowired
     TenantDao tenantDao;
+    @Autowired
+    NodeService nodeService;
 
     @Value("${iga.hostname}")
     String hostname;
@@ -63,32 +69,90 @@ public class DeptServiceImpl implements DeptService {
 
     @Override
     public List<DeptBean> findDept(Map<String, Object> arguments, DomainInfo domain) throws Exception {
-        List<DeptBean> depts = this.buildDeptByDomain(domain);
-        return depts;
+        List<NodeDto> nodeList = null;
+        Integer status = (Integer) arguments.get("status");
+        if (null == status) {
+            throw new Exception("状态不能为空");
+        }
+        if (1 == status) {
+            //查看是否有治理中的规则
+            HashMap<String, Object> map = new HashMap<>();
+            map.put("status", 1);
+            nodeList = nodeService.findNodes(map, domain.getId());
+        }
+        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        if (null == tenant) {
+            throw new Exception("租户不存在");
+        }
+        //通过tenantId查询ssoApis库中的数据
+        List<DeptBean> beans = deptDao.findByTenantId(tenant.getId(), null, null);
+        if (null != beans && beans.size() > 0) {
+            //将null赋为""
+            for (DeptBean bean : beans) {
+                if (null == bean.getParentCode()) {
+                    bean.setParentCode("");
+                }
+            }
+        }
+        //轮训比对标记(是否有主键id)
+        Map<DeptBean, String> result = new HashMap<>();
+        // 获取租户下开启的部门类型
+        List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
+        for (DeptTreeType deptType : deptTreeTypes) {
+            Map<String, DeptBean> mainTreeMap = new ConcurrentHashMap<>();
+            // id 改为code
+            nodeRules(domain, deptType.getCode(), "", mainTreeMap, status);
+            //  数据合法性
+            Collection<DeptBean> mainDept = mainTreeMap.values();
+            ArrayList<DeptBean> mainList = new ArrayList<>(mainDept);
+            // 判断重复(code)
+            groupByCode(mainList);
+            //同步到sso
+            beans = saveToSso(mainTreeMap, domain, deptType.getCode(), beans, result);
+        }
 
-//        Map<String, DeptBean> mainTreeMap = new ConcurrentHashMap<>();
-//
-//        nodeRules(domain, (String) arguments.get("treeType"), "", mainTreeMap);
-//        Collection<DeptBean> mainDept = mainTreeMap.values();
-//        ArrayList<DeptBean> mainList = new ArrayList<>(mainDept);
-//
-//        // 判断重复(code)
-//        groupByCode(mainList);
-//
-//        //同步到sso
-//        saveToSso(mainTreeMap, domain, (String) arguments.get("treeType"));
+        // todo 如果状态为编辑,并且没有治理中的数据
+        if (null == nodeList && status == 1) {
+            //复制,再返回
+            HashMap<String, Object> map = new HashMap<>();
+            map.put("status", 0);
+            List<NodeDto> nodes = nodeService.findNodes(map, domain.getId());
+            //复制数据
+            for (NodeDto node : nodes) {
+                node.setId(null);
+                node.setStatus(1);
+                node.setCreateTime(System.currentTimeMillis());
+                for (NodeRulesVo nodeRule : node.getNodeRules()) {
+                    nodeRule.setId(null);
+                    nodeRule.setStatus(1);
+                    for (NodeRulesRange nodeRulesRange : nodeRule.getNodeRulesRanges()) {
+                        nodeRulesRange.setId(null);
+                        nodeRulesRange.setStatus(1);
+                    }
+                }
+
+                nodeService.saveNode(node, domain.getId());
+            }
+
+            return null;
+
+        }
+        groupByCode(beans);
+
+        return beans;
+
     }
 
     @Override
-    public List<DeptBean> findDeptByDomainName(String domainName, String treeType,Integer delMark) {
+    public List<DeptBean> findDeptByDomainName(String domainName, String treeType, Integer delMark) {
         Tenant byDomainName = tenantDao.findByDomainName(domainName);
-        List<DeptBean> byTenantId = deptDao.findByTenantId(byDomainName.getId(), treeType,delMark);
+        List<DeptBean> byTenantId = deptDao.findByTenantId(byDomainName.getId(), treeType, delMark);
 
         return byTenantId;
     }
 
 
-      @SneakyThrows
+    @SneakyThrows
     //@Override
     public Map<DeptBean, String> buildDeptByDomain2(DomainInfo domain) {
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
@@ -96,7 +160,7 @@ public class DeptServiceImpl implements DeptService {
             throw new Exception("租户不存在");
         }
         //通过tenantId查询ssoApis库中的数据
-        List<DeptBean> beans = deptDao.findByTenantId(tenant.getId(), null,null);
+        List<DeptBean> beans = deptDao.findByTenantId(tenant.getId(), null, null);
         if (null != beans && beans.size() > 0) {
             //将null赋为""
             for (DeptBean bean : beans) {
@@ -112,7 +176,7 @@ public class DeptServiceImpl implements DeptService {
         for (DeptTreeType deptType : deptTreeTypes) {
             Map<String, DeptBean> mainTreeMap = new ConcurrentHashMap<>();
             //todo id 改为code
-            nodeRules(domain, deptType.getCode(), "", mainTreeMap,0);
+            nodeRules(domain, deptType.getCode(), "", mainTreeMap, 0);
             //  数据合法性
             Collection<DeptBean> mainDept = mainTreeMap.values();
             ArrayList<DeptBean> mainList = new ArrayList<>(mainDept);
@@ -136,13 +200,14 @@ public class DeptServiceImpl implements DeptService {
 
         for (DomainInfo domain : domainInfos) {*/
 
+        //  获取sso整树
         //sso dept库的数据(通过domain 关联tenant查询)
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
             throw new Exception("租户不存在");
         }
         //通过tenantId查询ssoApis库中的数据
-        List<DeptBean> beans = deptDao.findByTenantId(tenant.getId(), null,null);
+        List<DeptBean> beans = deptDao.findByTenantId(tenant.getId(), null, null);
         if (null != beans && beans.size() > 0) {
             //将null赋为""
             for (DeptBean bean : beans) {
@@ -157,23 +222,23 @@ public class DeptServiceImpl implements DeptService {
         List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
         for (DeptTreeType deptType : deptTreeTypes) {
             Map<String, DeptBean> mainTreeMap = new ConcurrentHashMap<>();
-            //todo id 改为code
-            nodeRules(domain, deptType.getCode(), "", mainTreeMap,0);
+            // id 改为code
+            nodeRules(domain, deptType.getCode(), "", mainTreeMap, 0);
             //  数据合法性
             Collection<DeptBean> mainDept = mainTreeMap.values();
             ArrayList<DeptBean> mainList = new ArrayList<>(mainDept);
-
             // 判断重复(code)
             groupByCode(mainList);
-
             //同步到sso
-
             beans = saveToSso(mainTreeMap, domain, deptType.getCode(), beans, result);
-            //      mainTreeMapGroupType.put(deptType.getCode(), new ArrayList<>(mainDept));
         }
         //}
         groupByCode(beans);
-        saveToSso(result, tenant.getId());
+
+//        if (status) {
+//            saveToSso(result, tenant.getId());
+//        }
+
 
         return beans;
     }
@@ -243,9 +308,9 @@ public class DeptServiceImpl implements DeptService {
      * @param nodeCode
      * @throws Exception
      */
-    public Map<String, DeptBean> nodeRules(DomainInfo domain, String deptTreeType, String nodeCode, Map<String, DeptBean> mainTree,Integer status) throws Exception {
+    public Map<String, DeptBean> nodeRules(DomainInfo domain, String deptTreeType, String nodeCode, Map<String, DeptBean> mainTree, Integer status) throws Exception {
         //获取根节点的规则
-        List<Node> nodes = nodeDao.getByCode(domain.getId(), deptTreeType, nodeCode,status);
+        List<Node> nodes = nodeDao.getByCode(domain.getId(), deptTreeType, nodeCode, status);
         for (Node node : nodes) {
             if (null == node) {
                 return mainTree;
@@ -253,7 +318,7 @@ public class DeptServiceImpl implements DeptService {
             String code = node.getNodeCode();
             logger.info("开始'{}'节点规则运算", code);
             //获取节点的[拉取] 规则，来获取部门树
-            List<NodeRules> nodeRules = rulesDao.getByNodeAndType(node.getId(), 1, true,status);
+            List<NodeRules> nodeRules = rulesDao.getByNodeAndType(node.getId(), 1, true, status);
 
             //将主树进行 分组
             final Collection<DeptBean> mainDept = mainTree.values();
@@ -336,7 +401,7 @@ public class DeptServiceImpl implements DeptService {
                 //对树进行 parent 分组
                 Map<String, List<DeptBean>> childrenMap = TreeUtil.groupChildren(upstreamDept);
                 //查询 树 运行  规则,
-                List<NodeRulesRange> nodeRulesRanges = rangeDao.getByRulesId(nodeRule.getId(),null);
+                List<NodeRulesRange> nodeRulesRanges = rangeDao.getByRulesId(nodeRule.getId(), null);
                 Map<String, DeptBean> mergeDeptMap = new ConcurrentHashMap<>();
                 logger.error("节点'{}'开始运行挂载", code);
                 //获取并检测 需要挂载的树， add 进入 待合并的树集合 mergeDept
@@ -419,7 +484,7 @@ public class DeptServiceImpl implements DeptService {
                 mainTree.putAll(mergeDeptMap);
                 // 将本次 add 进的 节点 进行 规则运算
                 for (Map.Entry<String, DeptBean> entry : mergeDeptMap.entrySet()) {
-                    nodeRules(domain, deptTreeType, entry.getValue().getCode(), mainTree,status);
+                    nodeRules(domain, deptTreeType, entry.getValue().getCode(), mainTree, status);
                 }
 
                 /*========================规则运算完成=============================*/
@@ -629,7 +694,7 @@ public class DeptServiceImpl implements DeptService {
                 String rename = nodeRulesRange.getRename();
                 for (DeptBean deptBean : mergeDeptMap.values()) {
                     if (rename.contains("${code}")) {
-                        String oldCode=deptBean.getCode();
+                        String oldCode = deptBean.getCode();
                         String newCode = rename.replace("${code}", deptBean.getCode());
                         deptBean.setCode(newCode);
                         // 如果当前节点有子集，则同时修改子集的parentCode指向. 而原本就为"" 的顶级部门不应修改
@@ -817,9 +882,11 @@ public class DeptServiceImpl implements DeptService {
         List<DeptBean> children = childrenMap.get(code);
         if (null != children) {
             for (DeptBean dept : children) {
-                if (!dept.getDataSource().equals("builtin")) {
-                    mainTree.remove(dept.getCode());
-                    removeMainTree(dept.getCode(), childrenMap, mainTree);
+                if (null != dept.getDataSource()) {
+                    if (!dept.getDataSource().equals("builtin")) {
+                        mainTree.remove(dept.getCode());
+                        removeMainTree(dept.getCode(), childrenMap, mainTree);
+                    }
                 }
             }
         }

@@ -22,4 +22,10 @@ public interface NodeService {
     NodeDto updateNode(NodeDto nodeDto);
 
     List<NodeDto> findNodesPlus(Map<String, Object> arguments, String id);
+
+    List<Node> findNodesByCode(String code, String domain);
+
+    Node applyNode(String id);
+
+    Node rollbackNode(String id);
 }

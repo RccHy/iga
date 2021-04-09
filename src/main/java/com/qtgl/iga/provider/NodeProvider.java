@@ -30,7 +30,9 @@ public class NodeProvider {
         TypeRuntimeWiring.Builder builder = newTypeWiring("Mutation")
                 .dataFetcher("saveNode", dataFetcher.saveNode())
                 .dataFetcher("deleteNode", dataFetcher.deleteNode())
-                .dataFetcher("updateNode", dataFetcher.updateNode());
+                .dataFetcher("updateNode", dataFetcher.updateNode())
+                .dataFetcher("applyNode", dataFetcher.applyNode())
+                .dataFetcher("rollbackNode", dataFetcher.rollbackNode());
         return builder;
 
     }

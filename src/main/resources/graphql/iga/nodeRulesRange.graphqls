@@ -1,6 +1,6 @@
 extend type Query {
     #查询节点规则明细作用域
-    nodeRulesRanges(id:ID,status:Int!,filter:NodeRulesRangeFilter):[NodeRulesRange]
+    nodeRulesRanges(id:ID,status:Int,filter:NodeRulesRangeFilter):[NodeRulesRange]
 }
 extend type Mutation {
     #新增节点规则明细作用域

@@ -88,4 +88,22 @@ public class NodeDataFetcher {
             return nodeService.findNodesPlus(arguments, domain.getId());
         };
     }
+
+    public DataFetcher applyNode() {
+        return dataFetchingEvn -> {
+            //1。更具token信息验证是否合法，并判断其租户
+            DomainInfo domain = CertifiedConnector.getDomain();
+
+            return nodeService.applyNode(domain.getId());
+        };
+    }
+
+    public DataFetcher rollbackNode() {
+        return dataFetchingEvn -> {
+            //1。更具token信息验证是否合法，并判断其租户
+            DomainInfo domain = CertifiedConnector.getDomain();
+
+            return nodeService.rollbackNode(domain.getId());
+        };
+    }
 }

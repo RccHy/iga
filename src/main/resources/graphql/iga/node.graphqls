@@ -12,6 +12,10 @@ extend type Mutation {
     deleteNode(id:ID!): Node
     #更新节点规则
     updateNode(entity:InputNode!):Node
+    #应用规则
+    applyNode:Node
+    #回滚规则
+    rollbackNode:Node
 }
 
 # 节点规则实体
@@ -41,6 +45,8 @@ type Node{
     deptTreeType:String
     #状态 0 发布 1 编辑中 2 历史
     status :Int
+    #是否继承
+    inherit:Boolean
 
 }
 

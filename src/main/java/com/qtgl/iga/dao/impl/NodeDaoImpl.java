@@ -6,11 +6,15 @@ import com.qtgl.iga.dao.NodeDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.Resource;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.*;
 
 
@@ -165,6 +169,61 @@ public class NodeDaoImpl implements NodeDao {
 
         return getNodes(nodes, mapList);
     }
+
+    @Override
+    public List<Node> findNodesByCode(String code, String domain) {
+        ArrayList<Node> nodes = new ArrayList<>();
+        String sql = "select id,manual," +
+                "node_code as nodeCode," +
+                "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status" +
+                " from t_mgr_node where domain= ?  and node_code =?  ";
+        //存入参数
+        List<Object> param = new ArrayList<>();
+        param.add(domain);
+
+        param.add(code);
+
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, param.toArray());
+        if (null == mapList || mapList.size() == 0) {
+            return null;
+        }
+        for (Map<String, Object> map : mapList) {
+            try {
+                Node node = new Node();
+                BeanUtils.populate(node, map);
+                nodes.add(node);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        return nodes;
+    }
+
+    @Override
+    public Integer makeNodeToHistory(String id) {
+        String str = "update t_mgr_node set  status= ? " +
+                "where domain =? and status=0 ";
+        int update = jdbcIGA.update(str, preparedStatement -> {
+
+            preparedStatement.setObject(1, 2);
+            preparedStatement.setObject(2, id);
+        });
+        return update;
+    }
+
+    @Override
+    public Integer publishNode(String id) {
+        String str = "update t_mgr_node set  status= ? " +
+                "where domain =? and status=1 ";
+        int update = jdbcIGA.update(str, preparedStatement -> {
+
+            preparedStatement.setObject(1, 0);
+            preparedStatement.setObject(2, id);
+        });
+        return update;
+    }
+
 
     private List<Node> getNodes(ArrayList<Node> nodes, List<Map<String, Object>> mapList) {
         for (Map<String, Object> map : mapList) {

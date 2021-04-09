@@ -20,4 +20,11 @@ public interface NodeDao {
     List<Node> findByTreeTypeId(String id,Integer status);
 
     List<Node> findNodesPlus(Map<String, Object> arguments, String id);
+
+    List<Node> findNodesByCode(String code, String domain);
+
+    Integer makeNodeToHistory(String id);
+
+    Integer publishNode(String id);
+
 }

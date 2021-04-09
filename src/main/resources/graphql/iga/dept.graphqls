@@ -1,7 +1,7 @@
 extend type Query {
     #查询组织机构
     #(treeType:String)
-    depts:[Dept]
+    depts(status:Int):[Dept]
     #查询岗位
     posts:[Dept]
 }

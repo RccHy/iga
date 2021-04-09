@@ -73,7 +73,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
 
                 } else {
                     nodeRules.setId(UUID.randomUUID().toString().replace("-", ""));
-                    nodeRules.setCreateTime(System.currentTimeMillis());
+                    nodeRules.setCreateTime(nodeDto.getCreateTime());
                     nodeRules.setUpdateTime(null);
                 }
                 nodeRules.setNodeId(nodeDto.getId());
@@ -252,9 +252,11 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
 
     @Override
     public Integer deleteNodeRulesById(String id) {
-        Object[] params = new Object[1];
+        Object[] params = new Object[2];
         params[0] = id;
-        String sql = "delete from t_mgr_node_rules where  id = ? ";
+        params[1] = id;
+        //todo 删除rule
+        String sql = "delete from t_mgr_node_rules where  id = ? or inherit_id= ?";
 
         return jdbcIGA.update(sql, params);
     }
