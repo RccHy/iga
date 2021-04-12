@@ -61,10 +61,11 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
         boolean contains = false;
         for (NodeRulesVo nodeRule : nodeDto.getNodeRules()) {
             // 只保存非继承的
-            if (null != nodeRule.getInheritId()) {
+            if (null == nodeRule.getInheritId()) {
                 List<NodeRulesRange> nodeRulesRanges = nodeRule.getNodeRulesRanges();
                 for (NodeRulesRange nodeRulesRange : nodeRulesRanges) {
                     if (null != nodeRulesRange.getId()) {
+                        nodeRulesRange.setCreateTime(nodeDto.getCreateTime());
                         nodeRulesRange.setUpdateTime(nodeDto.getUpdateTime());
                     } else {
                         nodeRulesRange.setId(UUID.randomUUID().toString().replace("-", ""));
@@ -154,5 +155,16 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
 
     }
 
+    @Override
+    public Integer makeNodeRulesRangesToHistory(String id,Integer status) {
+        String str = "update t_mgr_node_rules_range set  status= ? " +
+                "where id = ?  ";
+        int update = jdbcIGA.update(str, preparedStatement -> {
+
+            preparedStatement.setObject(1, status);
+            preparedStatement.setObject(2, id);
+        });
+        return update;
+    }
 
 }

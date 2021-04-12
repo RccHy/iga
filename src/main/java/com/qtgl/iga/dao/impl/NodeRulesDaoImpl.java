@@ -39,7 +39,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
             sql.append(" and type=? ");
             para.add(type);
         }
-        if(null!=status){
+        if (null != status) {
             sql.append(" and status = ? ");
             para.add(status);
         }
@@ -89,9 +89,9 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
                 preparedStatement.setObject(2, nodeRules.get(i).getNodeId());
                 preparedStatement.setObject(3, nodeRules.get(i).getType());
                 preparedStatement.setObject(4, nodeRules.get(i).getActive());
-                preparedStatement.setObject(5, null == nodeRules.get(i).getActiveTime() ? null : new Timestamp(nodeRules.get(i).getActiveTime()));
+                preparedStatement.setObject(5, null);
                 preparedStatement.setObject(6, new Timestamp(nodeRules.get(i).getCreateTime()));
-                preparedStatement.setObject(7, null == nodeRules.get(i).getUpdateTime() ? null : new Timestamp(nodeRules.get(i).getUpdateTime()));
+                preparedStatement.setObject(7, null );
                 preparedStatement.setObject(8, nodeRules.get(i).getServiceKey());
                 preparedStatement.setObject(9, nodeRules.get(i).getUpstreamTypesId());
                 preparedStatement.setObject(10, nodeRules.get(i).getInheritId());
@@ -179,7 +179,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
                 "active_time as activeTime,update_time as updateTime , sort ,status from t_mgr_node_rules where node_id =? ";
         List<Object> param = new ArrayList<>();
         param.add(id);
-        if(null!= status){
+        if (null != status) {
             sql = sql + "and status =? ";
             param.add(status);
         }
@@ -231,21 +231,25 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
                 "active_time as activeTime,update_time as updateTime,sort,status from t_mgr_node_rules where 1 = 1 and id= ?  ";
         List<Object> param = new ArrayList<>();
         param.add(id);
-        if(null!= status){
+        if (null != status) {
             sql = sql + "and status =? ";
             param.add(status);
         }
-        Map<String, Object> mapList = jdbcIGA.queryForMap(sql, param.toArray());
-        NodeRules nodeRules = new NodeRules();
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, param.toArray());
+        ArrayList<NodeRules> list = new ArrayList<>();
 
         if (null != mapList) {
             try {
-                BeanUtils.populate(nodeRules, mapList);
+                for (Map<String, Object> map : mapList) {
+                    NodeRules nodeRules = new NodeRules();
+                    BeanUtils.populate(nodeRules, map);
+                    list.add(nodeRules);
+                }
             } catch (IllegalAccessException | InvocationTargetException e) {
                 e.printStackTrace();
             }
 
-            return nodeRules;
+            return list.get(0);
         }
         return null;
     }
@@ -269,11 +273,11 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
                 "active_time as activeTime,update_time as updateTime,sort,status from t_mgr_node_rules where 1 = 1 and upstream_types_id= ?  ";
         List<Object> param = new ArrayList<>();
         param.add(id);
-        if(null!= status){
+        if (null != status) {
             sql = sql + "and status =? ";
             param.add(status);
         }
-        List<Map<String, Object>> maps = jdbcIGA.queryForList(sql,param.toArray());
+        List<Map<String, Object>> maps = jdbcIGA.queryForList(sql, param.toArray());
         if (null != maps && maps.size() > 0) {
             for (Map<String, Object> map : maps) {
                 NodeRules nodeRule = new NodeRules();
@@ -286,6 +290,18 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
             }
         }
         return nodeRules;
+    }
+
+    @Override
+    public Integer makeNodeRulesToHistory(String id,Integer status) {
+        String str = "update t_mgr_node_rules set  status= ? " +
+                "where id = ?  ";
+        int update = jdbcIGA.update(str, preparedStatement -> {
+
+            preparedStatement.setObject(1, status);
+            preparedStatement.setObject(2, id);
+        });
+        return update;
     }
 
 

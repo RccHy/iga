@@ -23,7 +23,7 @@ public interface NodeDao {
 
     List<Node> findNodesByCode(String code, String domain);
 
-    Integer makeNodeToHistory(String id);
+    Integer makeNodeToHistory(String domain,Integer status,String id);
 
     Integer publishNode(String id);
 

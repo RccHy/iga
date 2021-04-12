@@ -25,7 +25,7 @@ public interface NodeService {
 
     List<Node> findNodesByCode(String code, String domain);
 
-    Node applyNode(String id);
+    Node applyNode(Map<String, Object> arguments,String id) throws Exception;
 
-    Node rollbackNode(String id);
+    Node rollbackNode(Map<String, Object> arguments,String id) throws Exception;
 }

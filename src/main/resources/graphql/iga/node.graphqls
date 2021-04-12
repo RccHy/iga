@@ -12,10 +12,10 @@ extend type Mutation {
     deleteNode(id:ID!): Node
     #更新节点规则
     updateNode(entity:InputNode!):Node
-    #应用规则
-    applyNode:Node
-    #回滚规则
-    rollbackNode:Node
+    #应用规则     mark为true 则为回滚  false为应用
+    applyNode(version:Timestamp!,mark:Boolean):Node
+#    #回滚规则
+#    rollbackNode(version:Timestamp!):Node
 }
 
 # 节点规则实体

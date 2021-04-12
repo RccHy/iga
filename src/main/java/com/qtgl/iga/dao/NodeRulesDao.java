@@ -32,4 +32,6 @@ public interface NodeRulesDao {
     Integer deleteNodeRulesById(String id);
 
     List<NodeRules> findNodeRulesByUpStreamTypeId(String id,Integer status) throws InvocationTargetException, IllegalAccessException;
+
+    Integer makeNodeRulesToHistory(String id,Integer status);
 }

@@ -43,7 +43,7 @@ public class DeptBean {
 
     private String abbreviation;
 
-
+    private String type;
 //    public DeptBean(Dept dept) {
 //        this.setCode(dept.getDeptCode());
 //        this.setParentCode(dept.getParentCode());

@@ -63,8 +63,8 @@ public class NodeRulesServiceImpl implements NodeRulesService {
                 throw new Exception("删除range失败");
             }
         }
-        //查询rule
-        NodeRules nodeRules = nodeRulesDao.findNodeRulesById((String) arguments.get("id"), 0);
+        //todo 查询rule  删除编辑中
+        NodeRules nodeRules = nodeRulesDao.findNodeRulesById((String) arguments.get("id"), 1);
         //删除rules
         Integer flag = nodeRulesDao.deleteNodeRulesById((String) arguments.get("id"));
         if (flag > 0) {

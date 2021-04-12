@@ -111,26 +111,28 @@ public class DeptServiceImpl implements DeptService {
         }
 
         // todo 如果状态为编辑,并且没有治理中的数据
-        if (null == nodeList && status == 1) {
+        if (null==nodeList && status==1) {
             //复制,再返回
             HashMap<String, Object> map = new HashMap<>();
             map.put("status", 0);
             List<NodeDto> nodes = nodeService.findNodes(map, domain.getId());
             //复制数据
-            for (NodeDto node : nodes) {
-                node.setId(null);
-                node.setStatus(1);
-                node.setCreateTime(System.currentTimeMillis());
-                for (NodeRulesVo nodeRule : node.getNodeRules()) {
-                    nodeRule.setId(null);
-                    nodeRule.setStatus(1);
-                    for (NodeRulesRange nodeRulesRange : nodeRule.getNodeRulesRanges()) {
-                        nodeRulesRange.setId(null);
-                        nodeRulesRange.setStatus(1);
+            if(null!=nodes&&nodes.size()>0){
+                for (NodeDto node : nodes) {
+                    node.setId(null);
+                    node.setStatus(1);
+                    node.setCreateTime(System.currentTimeMillis());
+                    for (NodeRulesVo nodeRule : node.getNodeRules()) {
+                        nodeRule.setId(null);
+                        nodeRule.setStatus(1);
+                        for (NodeRulesRange nodeRulesRange : nodeRule.getNodeRulesRanges()) {
+                            nodeRulesRange.setId(null);
+                            nodeRulesRange.setStatus(1);
+                        }
                     }
-                }
 
-                nodeService.saveNode(node, domain.getId());
+                    nodeService.saveNode(node, domain.getId());
+                }
             }
 
             return null;
@@ -151,7 +153,7 @@ public class DeptServiceImpl implements DeptService {
     }
 
 
-  @SneakyThrows
+    @SneakyThrows
     @Override
     public Map<DeptBean, String> buildDeptUpdateResult(DomainInfo domain) {
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
@@ -159,7 +161,7 @@ public class DeptServiceImpl implements DeptService {
             throw new Exception("租户不存在");
         }
         //通过tenantId查询ssoApis库中的数据
-        List<DeptBean> beans = deptDao.findByTenantId(tenant.getId(), null,null);
+        List<DeptBean> beans = deptDao.findByTenantId(tenant.getId(), null, null);
         if (null != beans && beans.size() > 0) {
             //将null赋为""
             for (DeptBean bean : beans) {
@@ -175,7 +177,7 @@ public class DeptServiceImpl implements DeptService {
         for (DeptTreeType deptType : deptTreeTypes) {
             Map<String, DeptBean> mainTreeMap = new ConcurrentHashMap<>();
             //todo id 改为code
-            nodeRules(domain, deptType.getCode(), "", mainTreeMap,0);
+            nodeRules(domain, deptType.getCode(), "", mainTreeMap, 0);
             //  数据合法性
             Collection<DeptBean> mainDept = mainTreeMap.values();
             ArrayList<DeptBean> mainList = new ArrayList<>(mainDept);
@@ -725,6 +727,9 @@ public class DeptServiceImpl implements DeptService {
     private void excludeRules(Map<String, DeptBean> mergeDept, Map<String, List<DeptBean>> childrenMap, List<NodeRulesRange> nodeRulesRanges) throws Exception {
         for (NodeRulesRange nodeRulesRange : nodeRulesRanges) {
             //配置的节点
+            if (null == nodeRulesRange.getNode()) {
+                throw new Exception("配置节点为空");
+            }
             String rangeNodeCode = nodeRulesRange.getNode();
             // 排除 规则
             if (1 == nodeRulesRange.getType()) {

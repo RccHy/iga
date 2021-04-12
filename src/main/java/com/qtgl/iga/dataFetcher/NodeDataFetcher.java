@@ -93,8 +93,9 @@ public class NodeDataFetcher {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
-
-            return nodeService.applyNode(domain.getId());
+            // 获取传入参数
+            Map<String, Object> arguments = dataFetchingEvn.getArguments();
+            return nodeService.applyNode(arguments,domain.getId());
         };
     }
 
@@ -102,8 +103,9 @@ public class NodeDataFetcher {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
-
-            return nodeService.rollbackNode(domain.getId());
+            // 获取传入参数
+            Map<String, Object> arguments = dataFetchingEvn.getArguments();
+            return nodeService.rollbackNode(arguments,domain.getId());
         };
     }
 }

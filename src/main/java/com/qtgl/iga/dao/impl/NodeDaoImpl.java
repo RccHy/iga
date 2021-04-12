@@ -40,7 +40,7 @@ public class NodeDaoImpl implements NodeDao {
             preparedStatement.setObject(2, node.getManual());
             preparedStatement.setObject(3, node.getNodeCode());
             preparedStatement.setObject(4, new Timestamp(node.getCreateTime()));
-            preparedStatement.setObject(5, null == node.getUpdateTime() ? null : new Timestamp(node.getUpdateTime()));
+            preparedStatement.setObject(5, null );
             preparedStatement.setObject(6, node.getDomain());
             preparedStatement.setObject(7, node.getDeptTreeType());
             preparedStatement.setObject(8, node.getStatus());
@@ -97,7 +97,8 @@ public class NodeDaoImpl implements NodeDao {
     @Override
     public List<Node> findNodes(Map<String, Object> arguments, String domain) {
         ArrayList<Node> nodes = new ArrayList<>();
-        Integer status = (Integer) arguments.get("status");
+        Integer status = null== arguments.get("status")?null:(Integer) arguments.get("status");
+        Object version = null== arguments.get("version")?null: arguments.get("version");
         String sql = "select id,manual," +
                 "node_code as nodeCode," +
                 "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status" +
@@ -107,9 +108,13 @@ public class NodeDaoImpl implements NodeDao {
         //存入参数
         List<Object> param = new ArrayList<>();
         param.add(domain);
-        if (null != status) {
+        if (null != status ) {
             stb.append(" and status =?  ");
             param.add(status);
+        }
+        if (null != version) {
+            stb.append(" and create_time =?  ");
+            param.add(version);
         }
         dealData(arguments, stb, param);
 //        getChild(arguments,param,stb);
@@ -201,13 +206,14 @@ public class NodeDaoImpl implements NodeDao {
     }
 
     @Override
-    public Integer makeNodeToHistory(String id) {
+    public Integer makeNodeToHistory(String domain,Integer status,String id) {
         String str = "update t_mgr_node set  status= ? " +
-                "where domain =? and status=0 ";
+                "where domain =? and id=? ";
         int update = jdbcIGA.update(str, preparedStatement -> {
 
-            preparedStatement.setObject(1, 2);
-            preparedStatement.setObject(2, id);
+            preparedStatement.setObject(1, status);
+            preparedStatement.setObject(2, domain);
+            preparedStatement.setObject(3, id);
         });
         return update;
     }

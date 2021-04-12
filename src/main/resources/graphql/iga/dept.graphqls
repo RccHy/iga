@@ -19,9 +19,12 @@ type Dept{
     parentCode:String
     # 来源
     source:String
-
     #
     treeType:String
+    #类型
+    type:String
+    #标签
+    tags:String
 
 }
 
