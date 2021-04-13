@@ -291,17 +291,19 @@ public class DataBusUtil {
                 }
                 Map dataMap = (Map) result.get("data");
 
-                Map deptMap = (Map) dataMap.get("dept");
+                Map deptMap = (Map) dataMap.get(upstreamType.getSynType());
                 JSONArray deptArray = (JSONArray) JSONArray.toJSON(deptMap.get("edges"));
-                for (Object deptOb : deptArray) {
-                    JSONObject nodeJson = (JSONObject) deptOb;
-                    JSONObject node1 = nodeJson.getJSONObject("node");
-                    if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
-                        for (UpstreamTypeField field : upstreamTypeFields) {
-                            node1.put(field.getSourceField(), field.getTargetField());
+                if (null != deptArray) {
+                    for (Object deptOb : deptArray) {
+                        JSONObject nodeJson = (JSONObject) deptOb;
+                        JSONObject node1 = nodeJson.getJSONObject("node");
+                        if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
+                            for (UpstreamTypeField field : upstreamTypeFields) {
+                                node1.put(field.getSourceField(), field.getTargetField());
+                            }
                         }
+                        objects.add(node1);
                     }
-                    objects.add(node1);
                 }
 
 
@@ -341,7 +343,7 @@ public class DataBusUtil {
                     e.printStackTrace();
                 }
             }
-            JSONObject.parseObject(result.get("data").toString()).getJSONArray("dept");
+            JSONObject.parseObject(result.get("data").toString()).getJSONArray(upstreamType.getSynType());
             Map dataMap = (Map) result.get("data");
             JSONArray dept = (JSONArray) JSONArray.toJSON(dataMap.get("dept"));
             for (Object o : dept) {
