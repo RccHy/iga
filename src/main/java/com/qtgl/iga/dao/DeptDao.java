@@ -1,7 +1,7 @@
 package com.qtgl.iga.dao;
 
 
-import com.qtgl.iga.bean.DeptBean;
+import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.Dept;
 
 import java.util.ArrayList;
@@ -13,11 +13,11 @@ public interface DeptDao {
 
     Dept findById(String id);
 
-    List<DeptBean> findByTenantId(String id, String treeTypeId,Integer delMark);
+    List<TreeBean> findByTenantId(String id, String treeTypeId, Integer delMark);
 
-    ArrayList<DeptBean> updateDept(ArrayList<DeptBean> list, String tenantId);
+    ArrayList<TreeBean> updateDept(ArrayList<TreeBean> list, String tenantId);
 
-    ArrayList<DeptBean> saveDept(ArrayList<DeptBean> list, String tenantId);
+    ArrayList<TreeBean> saveDept(ArrayList<TreeBean> list, String tenantId);
 
-    ArrayList<DeptBean> deleteDept(ArrayList<DeptBean> list);
+    ArrayList<TreeBean> deleteDept(ArrayList<TreeBean> list);
 }

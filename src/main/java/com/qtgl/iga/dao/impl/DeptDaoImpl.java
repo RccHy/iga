@@ -1,6 +1,6 @@
 package com.qtgl.iga.dao.impl;
 
-import com.qtgl.iga.bean.DeptBean;
+import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.Dept;
 import com.qtgl.iga.dao.DeptDao;
 import org.apache.commons.beanutils.BeanUtils;
@@ -52,7 +52,7 @@ public class DeptDaoImpl implements DeptDao {
     }
 
     @Override
-    public List<DeptBean> findByTenantId(String id, String treeType,Integer delMark) {
+    public List<TreeBean> findByTenantId(String id, String treeType, Integer delMark) {
         String sql = "select dept_code as code , dept_name as name , parent_code as parentCode , " +
                 " update_time as createTime , source, tree_type as treeType,abbreviation,tags,type  from dept where tenant_id = ? ";
         List<Object> param = new ArrayList<>();
@@ -84,11 +84,11 @@ public class DeptDaoImpl implements DeptDao {
         return null;
     }
 
-    private List<DeptBean> getDeptBeans(List<Map<String, Object>> mapList) {
-        ArrayList<DeptBean> list = new ArrayList<>();
+    private List<TreeBean> getDeptBeans(List<Map<String, Object>> mapList) {
+        ArrayList<TreeBean> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {
-                DeptBean dept = new DeptBean();
+                TreeBean dept = new TreeBean();
                 try {
                     BeanUtils.populate(dept, map);
                 } catch (IllegalAccessException | InvocationTargetException e) {
@@ -103,7 +103,7 @@ public class DeptDaoImpl implements DeptDao {
     }
 
     @Override
-    public ArrayList<DeptBean> updateDept(ArrayList<DeptBean> list, String tenantId) {
+    public ArrayList<TreeBean> updateDept(ArrayList<TreeBean> list, String tenantId) {
         String str = "update dept set  dept_name=?, parent_code=?, del_mark=? ,tenant_id =?" +
                 ",source =?, data_source=?, description=?, meta=?,update_time=?,tags=?,independent=?,tree_type= ?,active=? ,abbreviation=?,del_mark=0 ,type = ? " +
                 "where dept_code =? and update_time< ?";
@@ -145,7 +145,7 @@ public class DeptDaoImpl implements DeptDao {
     }
 
     @Override
-    public ArrayList<DeptBean> saveDept(ArrayList<DeptBean> list, String tenantId) {
+    public ArrayList<TreeBean> saveDept(ArrayList<TreeBean> list, String tenantId) {
         String str = "insert into dept (id,dept_code, dept_name, parent_code, del_mark ,tenant_id ,source, data_source, description, meta,create_time,tags,independent,active,active_time,tree_type,dept_index,abbreviation,update_time,type) values" +
                 "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         boolean contains = false;
@@ -187,7 +187,7 @@ public class DeptDaoImpl implements DeptDao {
     }
 
     @Override
-    public ArrayList<DeptBean> deleteDept(ArrayList<DeptBean> list) {
+    public ArrayList<TreeBean> deleteDept(ArrayList<TreeBean> list) {
         String str = "update dept set   del_mark= ? , active = ?,active_time= ?  " +
                 "where dept_code =?";
         boolean contains = false;

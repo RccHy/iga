@@ -2,7 +2,7 @@ package com.qtgl.iga.utils;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.qtgl.iga.bean.DeptBean;
+import com.qtgl.iga.bean.TreeBean;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -43,9 +43,9 @@ public class TreeUtil<T> {
         return map;
     }
 
-    public static Map<String, List<DeptBean>> groupChildren(List<DeptBean> deptBeans) {
-        Map<String, List<DeptBean>> map = deptBeans.stream().
-                collect(Collectors.groupingBy(DeptBean::getParentCode));
+    public static Map<String, List<TreeBean>> groupChildren(List<TreeBean> treeBeans) {
+        Map<String, List<TreeBean>> map = treeBeans.stream().
+                collect(Collectors.groupingBy(TreeBean::getParentCode));
         return map;
     }
 
@@ -60,19 +60,19 @@ public class TreeUtil<T> {
     }
 
 
-    public static Map<String, DeptBean> toMap(List<DeptBean> deptBeans) {
+    public static Map<String, TreeBean> toMap(List<TreeBean> treeBeans) {
 
-        Map<String, DeptBean> map = deptBeans.stream()
+        Map<String, TreeBean> map = treeBeans.stream()
                 .collect(Collectors.toMap(
                         (dept -> dept.getCode()),
                         (dept -> dept)));
         return map;
     }
 
-    public static void removeMainTree(String code, Map<String, List<DeptBean>> childrenMap, Map<String, DeptBean> mainTree) {
-        List<DeptBean> children = childrenMap.get(code);
+    public static void removeMainTree(String code, Map<String, List<TreeBean>> childrenMap, Map<String, TreeBean> mainTree) {
+        List<TreeBean> children = childrenMap.get(code);
         if (null != children) {
-            for (DeptBean dept : children) {
+            for (TreeBean dept : children) {
                 if (null != dept.getDataSource()) {
                     if (!dept.getDataSource().equals("builtin")) {
                         mainTree.remove(dept.getCode());
@@ -83,10 +83,10 @@ public class TreeUtil<T> {
         }
     }
 
-    public static void removeTree(String code, Map<String, List<DeptBean>> childrenMap, Map<String, DeptBean> mergeDept) {
-        List<DeptBean> children = childrenMap.get(code);
+    public static void removeTree(String code, Map<String, List<TreeBean>> childrenMap, Map<String, TreeBean> mergeDept) {
+        List<TreeBean> children = childrenMap.get(code);
         if (null != children) {
-            for (DeptBean deptJson : children) {
+            for (TreeBean deptJson : children) {
                 mergeDept.remove(deptJson.getCode());
                 removeTree(deptJson.getCode(), childrenMap, mergeDept);
             }

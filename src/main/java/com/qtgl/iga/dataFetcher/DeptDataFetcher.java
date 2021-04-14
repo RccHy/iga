@@ -2,8 +2,7 @@ package com.qtgl.iga.dataFetcher;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.qtgl.iga.bean.DeptBean;
-import com.qtgl.iga.bo.Dept;
+import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.service.PostService;
@@ -40,14 +39,14 @@ public class DeptDataFetcher {
             // 获取传入参数
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
             try {
-                List<DeptBean> dept = deptService.findDept(arguments, domain);
+                List<TreeBean> dept = deptService.findDept(arguments, domain);
                 return dept;
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.error(domain.getDomainName() + e.getMessage());
-                List<DeptBean> deptBeans = deptService.findDeptByDomainName(domain.getDomainName(), (String) arguments.get("treeType"),0);
+                List<TreeBean> treeBeans = deptService.findDeptByDomainName(domain.getDomainName(), (String) arguments.get("treeType"),0);
 
-                return getObject(e, deptBeans);
+                return getObject(e, treeBeans);
 
 
             }
@@ -62,19 +61,19 @@ public class DeptDataFetcher {
             // 获取传入参数
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
             try {
-                List<DeptBean> posts = postService.findPosts(arguments,domain);
+                List<TreeBean> posts = postService.findPosts(arguments,domain);
                 return posts;
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.error(domain.getDomainName() + e.getMessage());
-                List<DeptBean> deptBeans = postService.findDeptByDomainName(domain.getDomainName());
+                List<TreeBean> treeBeans = postService.findDeptByDomainName(domain.getDomainName());
 
-                return getObject(e, deptBeans);
+                return getObject(e, treeBeans);
             }
         };
     }
 
-    private Object getObject(Exception e, List<DeptBean> deptBeans) {
+    private Object getObject(Exception e, List<TreeBean> treeBeans) {
         JSONObject hashMap = new JSONObject();
 
         JSONArray errors = new JSONArray();
@@ -84,12 +83,12 @@ public class DeptDataFetcher {
 
         hashMap.put("errors", errors);
         JSONObject json = new JSONObject();
-        json.put("depts", deptBeans);
+        json.put("depts", treeBeans);
         hashMap.put("data", json);
 //                return hashMap;
         List<GraphqlError> errorsList = new ArrayList<>();
         errorsList.add(new GraphqlError(e.getLocalizedMessage()));
 
-        return new DataFetcherResult(deptBeans, errorsList);
+        return new DataFetcherResult(treeBeans, errorsList);
     }
 }

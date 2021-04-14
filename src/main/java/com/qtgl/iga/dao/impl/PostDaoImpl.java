@@ -1,7 +1,6 @@
 package com.qtgl.iga.dao.impl;
 
-import com.qtgl.iga.bean.DeptBean;
-import com.qtgl.iga.bo.Post;
+import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.dao.PostDao;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -29,7 +28,7 @@ public class PostDaoImpl implements PostDao {
 
 
     @Override
-    public List<DeptBean> findByTenantId(String id) {
+    public List<TreeBean> findByTenantId(String id) {
         //
         String sql = "select  user_type as code , name, parent_code as parentCode , " +
                 " update_time as createTime," +
@@ -39,11 +38,11 @@ public class PostDaoImpl implements PostDao {
         return getUserTypes(mapList);
     }
 
-    private List<DeptBean> getUserTypes(List<Map<String, Object>> mapList) {
-        ArrayList<DeptBean> list = new ArrayList<>();
+    private List<TreeBean> getUserTypes(List<Map<String, Object>> mapList) {
+        ArrayList<TreeBean> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {
-                DeptBean post = new DeptBean();
+                TreeBean post = new TreeBean();
                 BeanMap beanMap = BeanMap.create(post);
                 beanMap.putAll(map);
                 list.add(post);
@@ -55,7 +54,7 @@ public class PostDaoImpl implements PostDao {
     }
 
     @Override
-    public ArrayList<DeptBean> updateDept(ArrayList<DeptBean> list, String tenantId) {
+    public ArrayList<TreeBean> updateDept(ArrayList<TreeBean> list, String tenantId) {
 
         String str = "update user_type set  name=?, parent_code=?, del_mark=? ,tenant_id =?" +
                 ", data_source=?, description=?, meta=?,update_time=?,tags=?,source=?" +
@@ -93,7 +92,7 @@ public class PostDaoImpl implements PostDao {
     }
 
     @Override
-    public ArrayList<DeptBean> saveDept(ArrayList<DeptBean> list, String tenantId) {
+    public ArrayList<TreeBean> saveDept(ArrayList<TreeBean> list, String tenantId) {
         String str = "insert into user_type (id,user_type, name, parent_code, can_login ,tenant_id ,tags, data_source, description, meta,create_time,del_mark,active,active_time,update_time,source,user_type_index) values" +
                 "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         boolean contains = false;
@@ -132,7 +131,7 @@ public class PostDaoImpl implements PostDao {
     }
 
     @Override
-    public ArrayList<DeptBean> deleteDept(ArrayList<DeptBean> list) {
+    public ArrayList<TreeBean> deleteDept(ArrayList<TreeBean> list) {
         String str = "update user_type set   del_mark= ? , active = ?,active_time= ?  " +
                 "where user_type =?";
         boolean contains = false;
@@ -158,25 +157,25 @@ public class PostDaoImpl implements PostDao {
     }
 
     @Override
-    public List<DeptBean> findRootData(String tenantId) {
+    public List<TreeBean> findRootData(String tenantId) {
         String sql = "select  user_type as code , name as name , parent_code as parentCode , " +
                 " tags ,data_source as dataSource , description , meta,source,post_type as postType,user_type_index as deptIndex  " +
                 " from user_type where tenant_id=? and del_mark=0 and data_source=?";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId, "builtin");
-        ArrayList<DeptBean> list = new ArrayList<>();
+        ArrayList<TreeBean> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {
-                DeptBean deptBean = new DeptBean();
+                TreeBean treeBean = new TreeBean();
                 try {
-                    BeanUtils.populate(deptBean, map);
+                    BeanUtils.populate(treeBean, map);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }
-                if (StringUtils.isBlank(deptBean.getParentCode())) {
-                    deptBean.setParentCode("");
+                if (StringUtils.isBlank(treeBean.getParentCode())) {
+                    treeBean.setParentCode("");
                 }
-                list.add(deptBean);
+                list.add(treeBean);
             }
             return list;
         }
@@ -185,25 +184,25 @@ public class PostDaoImpl implements PostDao {
     }
 
     @Override
-    public List<DeptBean> findPostType(String id) {
+    public List<TreeBean> findPostType(String id) {
         String sql = "select  user_type as code , name as name , parent_code as parentCode , " +
                 " tags ,data_source as dataSource , description , meta,source,post_type as postType,user_type_index as deptIndex  " +
                 " from user_type where tenant_id=? and del_mark=0";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, id);
-        ArrayList<DeptBean> list = new ArrayList<>();
+        ArrayList<TreeBean> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {
-                DeptBean deptBean = new DeptBean();
+                TreeBean treeBean = new TreeBean();
                 try {
-                    BeanUtils.populate(deptBean, map);
+                    BeanUtils.populate(treeBean, map);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }
-                if (StringUtils.isBlank(deptBean.getParentCode())) {
-                    deptBean.setParentCode("");
+                if (StringUtils.isBlank(treeBean.getParentCode())) {
+                    treeBean.setParentCode("");
                 }
-                list.add(deptBean);
+                list.add(treeBean);
             }
             return list;
         }

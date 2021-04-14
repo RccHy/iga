@@ -1,8 +1,7 @@
 package com.qtgl.iga.dao;
 
 
-import com.qtgl.iga.bean.DeptBean;
-import com.qtgl.iga.bo.Post;
+import com.qtgl.iga.bean.TreeBean;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,15 +10,15 @@ public interface PostDao {
 
 
 
-    List<DeptBean> findByTenantId(String id);
+    List<TreeBean> findByTenantId(String id);
 
-    ArrayList<DeptBean> updateDept(ArrayList<DeptBean> list, String tenantId);
+    ArrayList<TreeBean> updateDept(ArrayList<TreeBean> list, String tenantId);
 
-    ArrayList<DeptBean> saveDept(ArrayList<DeptBean> list, String tenantId);
+    ArrayList<TreeBean> saveDept(ArrayList<TreeBean> list, String tenantId);
 
-    ArrayList<DeptBean> deleteDept(ArrayList<DeptBean> list);
+    ArrayList<TreeBean> deleteDept(ArrayList<TreeBean> list);
 
-    List<DeptBean> findRootData(String tenantId);
+    List<TreeBean> findRootData(String tenantId);
 
-    List<DeptBean> findPostType(String id);
+    List<TreeBean> findPostType(String id);
 }

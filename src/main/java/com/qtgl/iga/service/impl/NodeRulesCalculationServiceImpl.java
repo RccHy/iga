@@ -3,7 +3,7 @@ package com.qtgl.iga.service.impl;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.qtgl.iga.bean.DeptBean;
+import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.utils.DataBusUtil;
@@ -55,16 +55,16 @@ public class NodeRulesCalculationServiceImpl {
      * @param nodeRulesRanges
      * @param childrenMap
      */
-    public void renameRules(Map<String, DeptBean> mergeDeptMap, List<NodeRulesRange> nodeRulesRanges, Map<String, List<DeptBean>> childrenMap) {
+    public void renameRules(Map<String, TreeBean> mergeDeptMap, List<NodeRulesRange> nodeRulesRanges, Map<String, List<TreeBean>> childrenMap) {
         for (NodeRulesRange nodeRulesRange : nodeRulesRanges) {
             // 重命名
             if (2 == nodeRulesRange.getType()) {
                 String rename = nodeRulesRange.getRename();
-                for (DeptBean deptBean : mergeDeptMap.values()) {
+                for (TreeBean treeBean : mergeDeptMap.values()) {
                     if (rename.contains("${code}")) {
-                        String oldCode = deptBean.getCode();
-                        String newCode = rename.replace("${code}", deptBean.getCode());
-                        deptBean.setCode(newCode);
+                        String oldCode = treeBean.getCode();
+                        String newCode = rename.replace("${code}", treeBean.getCode());
+                        treeBean.setCode(newCode);
                         // 如果当前节点有子集，则同时修改子集的parentCode指向. 而原本就为"" 的顶级部门不应修改
                         if (childrenMap.containsKey(oldCode)) {
                             //String newParentCode = rename.replace("${code}", deptBean.getParentCode());
@@ -74,8 +74,8 @@ public class NodeRulesCalculationServiceImpl {
                         }
                     }
                     if (rename.contains("${name}")) {
-                        String newName = rename.replace("${name}", deptBean.getName());
-                        deptBean.setName(newName);
+                        String newName = rename.replace("${name}", treeBean.getName());
+                        treeBean.setName(newName);
                     }
                 }
             }
@@ -91,7 +91,7 @@ public class NodeRulesCalculationServiceImpl {
      * @param nodeRulesRanges
      * @throws Exception
      */
-    public void excludeRules(Map<String, DeptBean> mergeDept, Map<String, List<DeptBean>> childrenMap, List<NodeRulesRange> nodeRulesRanges) throws Exception {
+    public void excludeRules(Map<String, TreeBean> mergeDept, Map<String, List<TreeBean>> childrenMap, List<NodeRulesRange> nodeRulesRanges) throws Exception {
         for (NodeRulesRange nodeRulesRange : nodeRulesRanges) {
             //配置的节点
             if (null == nodeRulesRange.getNode()) {
@@ -135,9 +135,9 @@ public class NodeRulesCalculationServiceImpl {
      * @param mergeDeptMap
      * @throws Exception
      */
-    public void mountRules(String nodeCode, Map<String, DeptBean> mainTree, Map<String, DeptBean> upstreamMap,
-                            Map<String, List<DeptBean>> childrenMap, List<NodeRulesRange> nodeRulesRanges,
-                            Map<String, DeptBean> mergeDeptMap, String source) throws Exception {
+    public void mountRules(String nodeCode, Map<String, TreeBean> mainTree, Map<String, TreeBean> upstreamMap,
+                           Map<String, List<TreeBean>> childrenMap, List<NodeRulesRange> nodeRulesRanges,
+                           Map<String, TreeBean> mergeDeptMap, String source) throws Exception {
         for (NodeRulesRange nodeRulesRange : nodeRulesRanges) {
             //配置的节点
             String rangeNodeCode = nodeRulesRange.getNode();
@@ -148,17 +148,17 @@ public class NodeRulesCalculationServiceImpl {
                     if (!upstreamMap.containsKey(rangeNodeCode)) {
                         throw new Exception("无法在树中找到挂载节点：" + rangeNodeCode);
                     }
-                    DeptBean deptBean = upstreamMap.get(rangeNodeCode);
-                    deptBean.setParentCode(nodeCode);
+                    TreeBean treeBean = upstreamMap.get(rangeNodeCode);
+                    treeBean.setParentCode(nodeCode);
                     /*if (mainTree.containsKey(deptBean.getCode()) &&
                             (!mainTree.get(deptBean.getCode()).getParentCode().equals(deptBean.getParentCode()))) {
                         throw new Exception("挂载异常，节点中有同code不同parentCode节点：" + deptBean.getCode());
                     }*/
                     // mainTree.put(deptBean.getCode(), deptBean);
-                    deptBean.setSource(source);
-                    mergeDeptMap.put(deptBean.getCode(), deptBean);
+                    treeBean.setSource(source);
+                    mergeDeptMap.put(treeBean.getCode(), treeBean);
                     //对该节点下所有子树同时进行挂载
-                    mergeDeptTree(deptBean.getCode(), deptBean.getCode(), childrenMap, mergeDeptMap, source);
+                    mergeDeptTree(treeBean.getCode(), treeBean.getCode(), childrenMap, mergeDeptMap, source);
                 }
                 // 去除根节点开始挂载
                 if (1 == nodeRulesRange.getRange()) {
@@ -217,11 +217,11 @@ public class NodeRulesCalculationServiceImpl {
      * @param childrenMap
      * @throws Exception
      */
-    public void mergeDeptTree(String code, String parentNode, Map<String, List<DeptBean>> childrenMap,
-                              Map<String, DeptBean> mergeDeptMap, String source) throws Exception {
-        List<DeptBean> children = childrenMap.get(code);
+    public void mergeDeptTree(String code, String parentNode, Map<String, List<TreeBean>> childrenMap,
+                              Map<String, TreeBean> mergeDeptMap, String source) throws Exception {
+        List<TreeBean> children = childrenMap.get(code);
         if (null != children) {
-            for (DeptBean treeJson : children) {
+            for (TreeBean treeJson : children) {
                 String treeCode = treeJson.getCode();
                 String treeParentCode = treeJson.getParentCode();
                /* if (mainTree.containsKey(treeCode) &&
@@ -242,7 +242,7 @@ public class NodeRulesCalculationServiceImpl {
      * @param nodeCode
      * @throws Exception
      */
-    public Map<String, DeptBean> nodeRules(DomainInfo domain, String deptTreeType, String nodeCode, Map<String, DeptBean> mainTree, Integer status, String type) throws Exception {
+    public Map<String, TreeBean> nodeRules(DomainInfo domain, String deptTreeType, String nodeCode, Map<String, TreeBean> mainTree, Integer status, String type) throws Exception {
         //获取根节点的规则
         List<Node> nodes = nodeDao.getByCode(domain.getId(), deptTreeType, nodeCode, status,type);
         for (Node node : nodes) {
@@ -255,8 +255,8 @@ public class NodeRulesCalculationServiceImpl {
             List<NodeRules> nodeRules = rulesDao.getByNodeAndType(node.getId(), 1, true, status);
 
             //将主树进行 分组
-            final Collection<DeptBean> mainDept = mainTree.values();
-            final Map<String, List<DeptBean>> mainTreeChildren = TreeUtil.groupChildren(new ArrayList<>(mainDept));
+            final Collection<TreeBean> mainDept = mainTree.values();
+            final Map<String, List<TreeBean>> mainTreeChildren = TreeUtil.groupChildren(new ArrayList<>(mainDept));
 
 
             // 过滤出继承下来的NodeRules
@@ -313,14 +313,14 @@ public class NodeRulesCalculationServiceImpl {
 
 
                 /////////////////
-                List<DeptBean> upstreamDept = new ArrayList<>();
+                List<TreeBean> upstreamDept = new ArrayList<>();
                 //
                 for (Object o : upstreamTree) {
                     JSONObject dept = (JSONObject) o;
                     if (null == dept.getString(TreeEnum.PARENTCODE.getCode())) {
                         dept.put(TreeEnum.PARENTCODE.getCode(), "");
                     }
-                    upstreamDept.add(dept.toJavaObject(DeptBean.class));
+                    upstreamDept.add(dept.toJavaObject(TreeBean.class));
 
                 }
                 //   待优化
@@ -330,13 +330,13 @@ public class NodeRulesCalculationServiceImpl {
                 }
                 logger.error("节点'{}'数据入库完成", code);
                 //对树 json 转为 map
-                Map<String, DeptBean> upstreamMap = TreeUtil.toMap(upstreamDept);
+                Map<String, TreeBean> upstreamMap = TreeUtil.toMap(upstreamDept);
 
                 //对树进行 parent 分组
-                Map<String, List<DeptBean>> childrenMap = TreeUtil.groupChildren(upstreamDept);
+                Map<String, List<TreeBean>> childrenMap = TreeUtil.groupChildren(upstreamDept);
                 //查询 树 运行  规则,
                 List<NodeRulesRange> nodeRulesRanges = rangeDao.getByRulesId(nodeRule.getId(), null);
-                Map<String, DeptBean> mergeDeptMap = new ConcurrentHashMap<>();
+                Map<String, TreeBean> mergeDeptMap = new ConcurrentHashMap<>();
                 logger.error("节点'{}'开始运行挂载", code);
                 //获取并检测 需要挂载的树， add 进入 待合并的树集合 mergeDept
                 mountRules(nodeCode, mainTree, upstreamMap, childrenMap, nodeRulesRanges, mergeDeptMap, upstream.getAppCode());
@@ -368,11 +368,11 @@ public class NodeRulesCalculationServiceImpl {
                     for (Map.Entry<String, NodeRules> nodeRulesEntry : inheritNodeRules.entrySet()) {
                         // 当前权重大于 继承来源
                         if (nodeRule.getSort() < nodeRulesEntry.getValue().getSort()) {
-                            Map<String, DeptBean> mainTreeMap2 = new ConcurrentHashMap<>();
+                            Map<String, TreeBean> mainTreeMap2 = new ConcurrentHashMap<>();
                             mainTreeMap2.putAll(mainTree);
-                            for (Map.Entry<String, DeptBean> deptEntry : mainTreeMap2.entrySet()) {
+                            for (Map.Entry<String, TreeBean> deptEntry : mainTreeMap2.entrySet()) {
                                 String key = deptEntry.getKey();
-                                DeptBean value = deptEntry.getValue();
+                                TreeBean value = deptEntry.getValue();
                                 if (mainTree.containsKey(key) &&
                                         mainTree.get(key).getParentCode().equals(value.getParentCode())
                                 ) {
@@ -381,11 +381,11 @@ public class NodeRulesCalculationServiceImpl {
                             }
                         } else {
                             // 当前权重 小于 继承来源
-                            Map<String, DeptBean> mergeDeptMap2 = new ConcurrentHashMap<>();
+                            Map<String, TreeBean> mergeDeptMap2 = new ConcurrentHashMap<>();
                             mergeDeptMap2.putAll(mergeDeptMap);
-                            for (Map.Entry<String, DeptBean> deptEntry : mergeDeptMap2.entrySet()) {
+                            for (Map.Entry<String, TreeBean> deptEntry : mergeDeptMap2.entrySet()) {
                                 String key = deptEntry.getKey();
-                                DeptBean value = deptEntry.getValue();
+                                TreeBean value = deptEntry.getValue();
                                 if (mainTree.containsKey(key) && mainTree.get(key).getParentCode().equals(value.getParentCode())) {
                                     mergeDeptMap.remove(key);
                                 }
@@ -400,11 +400,11 @@ public class NodeRulesCalculationServiceImpl {
                         TreeUtil.removeMainTree(nodeCode, mainTreeChildren, mainTree);
                     } else {
                         //完全不继承 非一个数据源， 直接去重 向主树合并
-                        Map<String, DeptBean> mergeDeptMap2 = new ConcurrentHashMap<>();
+                        Map<String, TreeBean> mergeDeptMap2 = new ConcurrentHashMap<>();
                         mergeDeptMap2.putAll(mergeDeptMap);
-                        for (Map.Entry<String, DeptBean> deptEntry : mergeDeptMap2.entrySet()) {
+                        for (Map.Entry<String, TreeBean> deptEntry : mergeDeptMap2.entrySet()) {
                             String key = deptEntry.getKey();
-                            DeptBean value = deptEntry.getValue();
+                            TreeBean value = deptEntry.getValue();
                             if (mainTree.containsKey(key) && mainTree.get(key).getParentCode().equals(value.getParentCode())) {
                                 mergeDeptMap.remove(key);
                             }
@@ -417,7 +417,7 @@ public class NodeRulesCalculationServiceImpl {
 
                 mainTree.putAll(mergeDeptMap);
                 // 将本次 add 进的 节点 进行 规则运算
-                for (Map.Entry<String, DeptBean> entry : mergeDeptMap.entrySet()) {
+                for (Map.Entry<String, TreeBean> entry : mergeDeptMap.entrySet()) {
                     nodeRules(domain, deptTreeType, entry.getValue().getCode(), mainTree, status,type);
                 }
 
@@ -433,9 +433,9 @@ public class NodeRulesCalculationServiceImpl {
         boolean flag = str.contains("createTime");
         if (!flag) {
 
-            List<DeptBean> mainList = JSON.parseArray(str, DeptBean.class);
-            for (DeptBean deptBean : mainList) {
-                deptBean.setCreateTime(timestamp);
+            List<TreeBean> mainList = JSON.parseArray(str, TreeBean.class);
+            for (TreeBean treeBean : mainList) {
+                treeBean.setCreateTime(timestamp);
             }
             return JSONArray.parseArray(JSON.toJSONString(mainList));
         } else {
@@ -443,14 +443,14 @@ public class NodeRulesCalculationServiceImpl {
         }
     }
 
-    public void circularData(Map<String, DeptBean> mergeDeptMap) throws Exception {
-        Collection<DeptBean> values = mergeDeptMap.values();
-        ArrayList<DeptBean> mainList = new ArrayList<>(values);
-        for (DeptBean deptBean : mainList) {
-            for (DeptBean bean : mainList) {
-                if (deptBean.getCode().equals(bean.getParentCode()) && deptBean.getParentCode().equals(bean.getCode())) {
-                    logger.error("节点循环依赖,请检查{}{}", deptBean, bean);
-                    throw new Exception(bean.toString() + "与" + deptBean.toString() + "节点循环依赖,请检查");
+    public void circularData(Map<String, TreeBean> mergeDeptMap) throws Exception {
+        Collection<TreeBean> values = mergeDeptMap.values();
+        ArrayList<TreeBean> mainList = new ArrayList<>(values);
+        for (TreeBean treeBean : mainList) {
+            for (TreeBean bean : mainList) {
+                if (treeBean.getCode().equals(bean.getParentCode()) && treeBean.getParentCode().equals(bean.getCode())) {
+                    logger.error("节点循环依赖,请检查{}{}", treeBean, bean);
+                    throw new Exception(bean.toString() + "与" + treeBean.toString() + "节点循环依赖,请检查");
                 }
             }
         }
@@ -458,12 +458,12 @@ public class NodeRulesCalculationServiceImpl {
     }
 
     public void circularData(JSONArray mergeDeptMap) throws Exception {
-        List<DeptBean> mainList = JSON.parseArray(mergeDeptMap.toString(), DeptBean.class);
-        for (DeptBean deptBean : mainList) {
-            for (DeptBean bean : mainList) {
-                if (deptBean.getCode().equals(bean.getParentCode()) && deptBean.getParentCode().equals(bean.getCode())) {
-                    logger.error("节点循环依赖,请检查{},{}", deptBean, bean);
-                    throw new Exception(deptBean.toString() + "与" + bean.toString() + "节点循环依赖,请检查处理");
+        List<TreeBean> mainList = JSON.parseArray(mergeDeptMap.toString(), TreeBean.class);
+        for (TreeBean treeBean : mainList) {
+            for (TreeBean bean : mainList) {
+                if (treeBean.getCode().equals(bean.getParentCode()) && treeBean.getParentCode().equals(bean.getCode())) {
+                    logger.error("节点循环依赖,请检查{},{}", treeBean, bean);
+                    throw new Exception(treeBean.toString() + "与" + bean.toString() + "节点循环依赖,请检查处理");
                 }
             }
         }
@@ -471,26 +471,26 @@ public class NodeRulesCalculationServiceImpl {
     }
 
 
-    public void judgeData(Map<String, DeptBean> map) throws Exception {
-        Collection<DeptBean> values = map.values();
-        ArrayList<DeptBean> mainList = new ArrayList<>(values);
-        for (DeptBean deptBean : mainList) {
-            if (StringUtils.isBlank(deptBean.getName()) || StringUtils.isBlank(deptBean.getCode())) {
+    public void judgeData(Map<String, TreeBean> map) throws Exception {
+        Collection<TreeBean> values = map.values();
+        ArrayList<TreeBean> mainList = new ArrayList<>(values);
+        for (TreeBean treeBean : mainList) {
+            if (StringUtils.isBlank(treeBean.getName()) || StringUtils.isBlank(treeBean.getCode())) {
                 throw new Exception("含非法数据,请检查");
             }
         }
     }
 
-    public void groupByCode(List<DeptBean> deptBeans) throws Exception {
+    public void groupByCode(List<TreeBean> treeBeans) throws Exception {
         HashMap<String, Integer> map = new HashMap<>();
         HashMap<String, Integer> result = new HashMap<>();
-        if (null != deptBeans && deptBeans.size() > 0) {
-            for (DeptBean deptBean : deptBeans) {
-                Integer num = map.get(deptBean.getCode());
+        if (null != treeBeans && treeBeans.size() > 0) {
+            for (TreeBean treeBean : treeBeans) {
+                Integer num = map.get(treeBean.getCode());
                 num = (num == null ? 0 : num) + 1;
-                map.put(deptBean.getCode(), num);
+                map.put(treeBean.getCode(), num);
                 if (num > 1) {
-                    result.put(deptBean.getCode(), num);
+                    result.put(treeBean.getCode(), num);
                 }
             }
         }

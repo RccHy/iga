@@ -9,7 +9,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
 @Data
-public class DeptBean {
+public class TreeBean {
 
     private String code;
 
@@ -51,6 +51,6 @@ public class DeptBean {
 //        this.setSource(dept.getSource());
 //    }
 
-    public DeptBean() {
+    public TreeBean() {
     }
 }

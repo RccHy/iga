@@ -1,20 +1,20 @@
 package com.qtgl.iga.task;
 
-import com.qtgl.iga.bean.DeptBean;
+import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.DomainInfo;
+import com.qtgl.iga.bo.Person;
 import com.qtgl.iga.config.TaskThreadPool;
 import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.service.DomainInfoService;
+import com.qtgl.iga.service.PersonService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.annotation.Scheduled;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
 
 
 @Slf4j
@@ -30,6 +30,9 @@ public class TaskConfig {
 
     @Autowired
     DeptService deptService;
+
+    @Autowired
+    PersonService personService;
 
     /**
      * 根据租户区分线程池
@@ -52,11 +55,11 @@ public class TaskConfig {
                                         try {
                                             log.info(Thread.currentThread().getName() + ": 开始" + System.currentTimeMillis());
                                             //todo 部门数据同步至sso
-                                            //final Map<DeptBean, String> deptBeanStringMap = deptService.buildDeptUpdateResult(domainInfo);
+                                            final Map<TreeBean, String> deptResult = deptService.buildDeptUpdateResult(domainInfo);
                                             //todo 岗位数据同步至sso
                                             //
                                             //todo 人员数据同步至sso
-
+                                            Map<String, List<Person>> personResult = personService.buildPerson(domainInfo);
                                             //todo 人员身份数据同步至sso
 
                                             //todo 发送消息 MQ。

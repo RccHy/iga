@@ -1,18 +1,15 @@
 package com.qtgl.iga.service.impl;
 
 
-import com.qtgl.iga.bean.DeptBean;
+import com.qtgl.iga.bean.TreeBean;
 
-import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.DomainInfo;
-import com.qtgl.iga.bo.NodeRulesRange;
 import com.qtgl.iga.bo.Tenant;
 import com.qtgl.iga.dao.PostDao;
 import com.qtgl.iga.dao.TenantDao;
 import com.qtgl.iga.service.NodeService;
 import com.qtgl.iga.service.PostService;
 
-import com.qtgl.iga.vo.NodeRulesVo;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +44,7 @@ public class PostServiceImpl implements PostService {
 
 
     @Override
-    public List<DeptBean> findPosts(Map<String, Object> arguments, DomainInfo domain) throws Exception {
+    public List<TreeBean> findPosts(Map<String, Object> arguments, DomainInfo domain) throws Exception {
         String TYPE = "post";
         Integer status = nodeService.judgeEdit(arguments, domain, TYPE);
 
@@ -57,9 +54,9 @@ public class PostServiceImpl implements PostService {
             throw new Exception("租户不存在");
         }
         //  置空mainTree
-        List<DeptBean> rootBeans = postDao.findRootData(tenant.getId());
+        List<TreeBean> rootBeans = postDao.findRootData(tenant.getId());
         if (null != rootBeans && rootBeans.size() > 0) {
-            for (DeptBean rootBean : rootBeans) {
+            for (TreeBean rootBean : rootBeans) {
                 if (null == rootBean.getParentCode()) {
                     rootBean.setParentCode("");
                 }
@@ -77,27 +74,27 @@ public class PostServiceImpl implements PostService {
         }
 
         //轮训比对标记(是否有主键id)
-        Map<DeptBean, String> result = new HashMap<>();
+        Map<TreeBean, String> result = new HashMap<>();
         //转化为map
-        Map<String, DeptBean> rootMap = rootBeans.stream().collect(Collectors.toMap(DeptBean::getCode, deptBean -> deptBean));
-        Map<String, DeptBean> mainTreeMap = rootBeans.stream().collect(Collectors.toMap(DeptBean::getCode, deptBean -> deptBean));
+        Map<String, TreeBean> rootMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+        Map<String, TreeBean> mainTreeMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
         // 将本次 add 进的 节点 进行 规则运算
-        for (Map.Entry<String, DeptBean> entry : rootMap.entrySet()) {
+        for (Map.Entry<String, TreeBean> entry : rootMap.entrySet()) {
             calculationService.nodeRules(domain, null, entry.getKey(), mainTreeMap, status, TYPE);
         }
         System.out.println("==");
 
-        Collection<DeptBean> mainDept = mainTreeMap.values();
-        ArrayList<DeptBean> mainList = new ArrayList<>(mainDept);
+        Collection<TreeBean> mainDept = mainTreeMap.values();
+        ArrayList<TreeBean> mainList = new ArrayList<>(mainDept);
 
         // 判断重复(code)
         calculationService.groupByCode(mainList);
 
         //通过tenantId查询ssoApis库中的数据
-        List<DeptBean> beans = postDao.findByTenantId(tenant.getId());
+        List<TreeBean> beans = postDao.findByTenantId(tenant.getId());
         //将null赋为""
         if (null != beans && beans.size() > 0) {
-            for (DeptBean bean : beans) {
+            for (TreeBean bean : beans) {
                 if (StringUtils.isBlank(bean.getParentCode())) {
                     bean.setParentCode("");
                 }
@@ -120,54 +117,54 @@ public class PostServiceImpl implements PostService {
      * @Description: 增量插入sso数据库
      * @return: void
      */
-    private void saveToSso(Map<DeptBean, String> result, String id) throws Exception {
-        Map<String, List<Map.Entry<DeptBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
+    private void saveToSso(Map<TreeBean, String> result, String id) throws Exception {
+        Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
 
-        List<Map.Entry<DeptBean, String>> insert = collect.get("insert");
+        List<Map.Entry<TreeBean, String>> insert = collect.get("insert");
         //插入数据
         if (null != insert && insert.size() > 0) {
-            ArrayList<DeptBean> list = new ArrayList<>();
-            for (Map.Entry<DeptBean, String> key : insert) {
+            ArrayList<TreeBean> list = new ArrayList<>();
+            for (Map.Entry<TreeBean, String> key : insert) {
                 list.add(key.getKey());
             }
-            ArrayList<DeptBean> depts = postDao.saveDept(list, id);
+            ArrayList<TreeBean> depts = postDao.saveDept(list, id);
             if (null != depts && depts.size() > 0) {
                 logger.info("插入" + list.size() + "条数据{}", depts.toString());
             } else {
                 throw new Exception("插入失败");
             }
         }
-        List<Map.Entry<DeptBean, String>> obsolete = collect.get("obsolete");
+        List<Map.Entry<TreeBean, String>> obsolete = collect.get("obsolete");
         if (null != obsolete && obsolete.size() > 0) {
-            ArrayList<DeptBean> list = new ArrayList<>();
-            for (Map.Entry<DeptBean, String> key : obsolete) {
+            ArrayList<TreeBean> list = new ArrayList<>();
+            for (Map.Entry<TreeBean, String> key : obsolete) {
                 list.add(key.getKey());
             }
             logger.info("忽略" + list.size() + "条已过时数据{}", obsolete.toString());
 
         }
-        List<Map.Entry<DeptBean, String>> update = collect.get("update");
+        List<Map.Entry<TreeBean, String>> update = collect.get("update");
         //修改数据
         if (null != update && update.size() > 0) {
-            ArrayList<DeptBean> list = new ArrayList<>();
-            for (Map.Entry<DeptBean, String> key : update) {
+            ArrayList<TreeBean> list = new ArrayList<>();
+            for (Map.Entry<TreeBean, String> key : update) {
                 list.add(key.getKey());
             }
-            ArrayList<DeptBean> depts = postDao.updateDept(list, id);
+            ArrayList<TreeBean> depts = postDao.updateDept(list, id);
             if (null != depts && depts.size() > 0) {
                 logger.info("更新" + list.size() + "条数据{}", depts.toString());
             } else {
                 throw new Exception("更新失败");
             }
         }
-        List<Map.Entry<DeptBean, String>> delete = collect.get("delete");
+        List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
         //删除数据
         if (null != delete && delete.size() > 0) {
-            ArrayList<DeptBean> list = new ArrayList<>();
-            for (Map.Entry<DeptBean, String> key : delete) {
+            ArrayList<TreeBean> list = new ArrayList<>();
+            for (Map.Entry<TreeBean, String> key : delete) {
                 list.add(key.getKey());
             }
-            ArrayList<DeptBean> depts = postDao.deleteDept(list);
+            ArrayList<TreeBean> depts = postDao.deleteDept(list);
             if (null != depts && depts.size() > 0) {
                 logger.info("删除" + list.size() + "条数据{}", depts.toString());
             } else {
@@ -182,7 +179,7 @@ public class PostServiceImpl implements PostService {
      * @return: java.util.List<com.qtgl.iga.bean.DeptBean>
      */
     @Override
-    public List<DeptBean> findDeptByDomainName(String domainName) throws Exception {
+    public List<TreeBean> findDeptByDomainName(String domainName) throws Exception {
 //        获取tenantId
         Tenant byDomainName = tenantDao.findByDomainName(domainName);
         if (null != byDomainName) {
@@ -219,14 +216,14 @@ public class PostServiceImpl implements PostService {
      * @Description: 处理数据
      * @return: void
      */
-    private List<DeptBean> saveToSso(Map<String, DeptBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<DeptBean> beans, Map<DeptBean, String> result) throws Exception {
-        Map<String, DeptBean> collect = new HashMap<>();
+    private List<TreeBean> saveToSso(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> beans, Map<TreeBean, String> result) throws Exception {
+        Map<String, TreeBean> collect = new HashMap<>();
         if (null != beans && beans.size() > 0) {
-            collect = beans.stream().collect(Collectors.toMap((DeptBean::getCode), (dept -> dept)));
+            collect = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
         }
         //拉取的数据
-        Collection<DeptBean> mainDept = mainTree.values();
-        ArrayList<DeptBean> deptBeans = new ArrayList<>(mainDept);
+        Collection<TreeBean> mainDept = mainTree.values();
+        ArrayList<TreeBean> treeBeans = new ArrayList<>(mainDept);
 //        //sso dept库的数据(通过domain 关联tenant查询)
 //        Tenant tenant = tenantDao.findByDomainName(domainInfo.getDomainName());
 //        if (null == tenant) {
@@ -246,29 +243,29 @@ public class PostServiceImpl implements PostService {
 //        Map<DeptBean, String> result = new HashMap<>();
 
         //遍历拉取数据
-        for (DeptBean deptBean : deptBeans) {
-            if (!"builtin".equals(deptBean.getDataSource())) {
+        for (TreeBean treeBean : treeBeans) {
+            if (!"builtin".equals(treeBean.getDataSource())) {
                 //标记新增还是修改
                 boolean flag = true;
                 //赋值treeTypeId
-                deptBean.setTreeType(treeTypeId);
+                treeBean.setTreeType(treeTypeId);
                 if (null != beans) {
                     //遍历数据库数据
-                    for (DeptBean bean : beans) {
-                        if (deptBean.getCode().equals(bean.getCode())) {
+                    for (TreeBean bean : beans) {
+                        if (treeBean.getCode().equals(bean.getCode())) {
 
 
-                            if (null != deptBean.getCreateTime()) {
+                            if (null != treeBean.getCreateTime()) {
                                 //修改
-                                if (null == bean.getCreateTime() || deptBean.getCreateTime().isAfter(bean.getCreateTime())) {
+                                if (null == bean.getCreateTime() || treeBean.getCreateTime().isAfter(bean.getCreateTime())) {
                                     //新来的数据更实时
-                                    collect.put(deptBean.getCode(), deptBean);
-                                    result.put(deptBean, "update");
+                                    collect.put(treeBean.getCode(), treeBean);
+                                    result.put(treeBean, "update");
                                 } else {
-                                    result.put(deptBean, "obsolete");
+                                    result.put(treeBean, "obsolete");
                                 }
                             } else {
-                                result.put(deptBean, "obsolete");
+                                result.put(treeBean, "obsolete");
                             }
                             flag = false;
                         }
@@ -277,39 +274,39 @@ public class PostServiceImpl implements PostService {
                     //没有相等的应该是新增
                     if (flag) {
                         //新增
-                        collect.put(deptBean.getCode(), deptBean);
-                        result.put(deptBean, "insert");
+                        collect.put(treeBean.getCode(), treeBean);
+                        result.put(treeBean, "insert");
                     }
                 } else {
-                    collect.put(deptBean.getCode(), deptBean);
-                    result.put(deptBean, "insert");
+                    collect.put(treeBean.getCode(), treeBean);
+                    result.put(treeBean, "insert");
                 }
             }
         }
         if (null != beans) {
             //查询数据库需要删除的数据
-            for (DeptBean bean : beans) {
+            for (TreeBean bean : beans) {
 
                 if (!"builtin".equals(bean.getDataSource())) {
                     boolean flag = true;
-                    for (DeptBean deptBean : result.keySet()) {
-                        if (bean.getCode().equals(deptBean.getCode())) {
+                    for (TreeBean treeBean : result.keySet()) {
+                        if (bean.getCode().equals(treeBean.getCode())) {
                             flag = false;
                             break;
                         }
                     }
                     if (flag) {
-                        DeptBean deptBean = new DeptBean();
-                        deptBean.setCode(bean.getCode());
-                        collect.remove(deptBean.getCode());
-                        result.put(deptBean, "delete");
+                        TreeBean treeBean = new TreeBean();
+                        treeBean.setCode(bean.getCode());
+                        collect.remove(treeBean.getCode());
+                        result.put(treeBean, "delete");
                     }
                 }
             }
         }
 
 
-        Collection<DeptBean> values = collect.values();
+        Collection<TreeBean> values = collect.values();
         return new ArrayList<>(values);
 
     }
