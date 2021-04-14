@@ -40,14 +40,16 @@ public class NodeServiceImpl implements NodeService {
         if (null != node.getId()) {
             HashMap<String, Object> hashMap = new HashMap<>();
             hashMap.put("id", node.getId());
-            hashMap.put("type",node.getType());
+            hashMap.put("type", node.getType());
             nodeDto = deleteNode(hashMap, domain);
         }
         //保留版本号
 
-        if (null != nodeDto) {
-            node.setCreateTime(nodeDto.getCreateTime());
-            node.setUpdateTime(System.currentTimeMillis());
+        if (null == node.getCreateTime()) {
+            List<Node> nodesByStatusAndType = nodeDao.findNodesByStatusAndType(null, node.getType(), domain, null);
+            if (null != nodesByStatusAndType) {
+                node.setCreateTime(nodesByStatusAndType.get(0).getCreateTime());
+            }
         }
 
         if (null != node.getNodeRules() && node.getNodeRules().size() > 0) {
@@ -230,13 +232,13 @@ public class NodeServiceImpl implements NodeService {
         if (mark) {
             //查询编辑中的node
 
-            //todo 加 type查询
+            // 加 type查询
             List<Node> nodes = nodeDao.findNodesByStatusAndType(1, type, domain, null);
             for (Node node : nodes) {
                 HashMap<String, Object> map = new HashMap<>();
                 map.put("id", node.getId());
                 map.put("status", 1);
-                map.put("type",type);
+                map.put("type", type);
                 deleteNode(map, domain);
             }
         }
@@ -340,12 +342,16 @@ public class NodeServiceImpl implements NodeService {
                     node.setId(null);
                     node.setStatus(1);
                     node.setCreateTime(System.currentTimeMillis());
-                    for (NodeRulesVo nodeRule : node.getNodeRules()) {
-                        nodeRule.setId(null);
-                        nodeRule.setStatus(1);
-                        for (NodeRulesRange nodeRulesRange : nodeRule.getNodeRulesRanges()) {
-                            nodeRulesRange.setId(null);
-                            nodeRulesRange.setStatus(1);
+                    if (null != node.getNodeRules()) {
+                        for (NodeRulesVo nodeRule : node.getNodeRules()) {
+                            nodeRule.setId(null);
+                            nodeRule.setStatus(1);
+                            if (null != nodeRule.getNodeRulesRanges()) {
+                                for (NodeRulesRange nodeRulesRange : nodeRule.getNodeRulesRanges()) {
+                                    nodeRulesRange.setId(null);
+                                    nodeRulesRange.setStatus(1);
+                                }
+                            }
                         }
                     }
 
