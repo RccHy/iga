@@ -16,4 +16,6 @@ public interface PostService {
     List<TreeBean> findPosts(Map<String, Object> arguments, DomainInfo domain) throws Exception;
 
     List<TreeBean> findDeptByDomainName(String domainName) throws Exception;
+
+    Map<TreeBean, String> buildPostUpdateResult(DomainInfo domain)  throws Exception ;
 }

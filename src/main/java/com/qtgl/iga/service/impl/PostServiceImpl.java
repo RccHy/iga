@@ -42,12 +42,66 @@ public class PostServiceImpl implements PostService {
     @Value("${iga.hostname}")
     String hostname;
 
+    final String TYPE = "post";
+
+
+
+    @Override
+    public Map<TreeBean, String> buildPostUpdateResult(DomainInfo domain) throws Exception {
+        //获取默认数据
+        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        if (null == tenant) {
+            throw new Exception("租户不存在");
+        }
+        //  查sso builtin 的岗位
+        List<TreeBean> rootBeans = postDao.findRootData(tenant.getId());
+        if (null != rootBeans && rootBeans.size() > 0) {
+            for (TreeBean rootBean : rootBeans) {
+                if (null == rootBean.getParentCode()) {
+                    rootBean.setParentCode("");
+                }
+            }
+        } else {
+            throw new Exception("无builtin岗位，请先创建");
+        }
+        //轮训比对标记(是否有主键id)
+        Map<TreeBean, String> result = new HashMap<>();
+        //转化为map
+        Map<String, TreeBean> rootMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+        Map<String, TreeBean> mainTreeMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+        // 将本次 add 进的 节点 进行 规则运算
+        for (Map.Entry<String, TreeBean> entry : rootMap.entrySet()) {
+            calculationService.nodeRules(domain, null, entry.getKey(), mainTreeMap, 0, TYPE);
+        }
+        Collection<TreeBean> mainDept = mainTreeMap.values();
+        ArrayList<TreeBean> mainList = new ArrayList<>(mainDept);
+        // 判断重复(code)
+        calculationService.groupByCode(mainList);
+
+        //通过tenantId查询ssoApis库中的数据
+        List<TreeBean> beans = postDao.findByTenantId(tenant.getId());
+        //将null赋为""
+        if (null != beans && beans.size() > 0) {
+            for (TreeBean bean : beans) {
+                if (StringUtils.isBlank(bean.getParentCode())) {
+                    bean.setParentCode("");
+                }
+            }
+        }
+        //同步到sso
+        beans = saveToSso(mainTreeMap, domain, "", beans, result);
+
+        // 判断重复(code)
+        calculationService.groupByCode(beans);
+
+        saveToSso(result, tenant.getId());
+
+        return result;
+    }
 
     @Override
     public List<TreeBean> findPosts(Map<String, Object> arguments, DomainInfo domain) throws Exception {
-        String TYPE = "post";
         Integer status = nodeService.judgeEdit(arguments, domain, TYPE);
-
         //获取默认数据
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {

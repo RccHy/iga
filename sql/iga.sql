@@ -1,103 +1,182 @@
 
-SET NAMES utf8mb4;
-SET FOREIGN_KEY_CHECKS = 0;
+create table t_mgr_dept_tree_type
+(
+    id                 varchar(50)      not null comment '主键'
+        primary key,
+    code               varchar(50)      not null comment '机构树类型代码',
+    name               varchar(50)      not null comment '机构类型名称',
+    description        varchar(500)     null comment '描述',
+    multiple_root_node bit default b'0' null comment '是否允许多个根节点',
+    create_time        timestamp        null comment '创建时间',
+    update_time        timestamp        null comment '修改时间',
+    create_user        varchar(50)      null comment '创建人工号',
+    domain             varchar(50)      null comment '租户外键',
+    tree_index         int(1)           null comment '排序字段'
+)
+    comment '组织机构树类别' charset = utf8;
 
--- ----------------------------
--- Table structure for t_mgr_dept_tree_type
--- ----------------------------
+create table t_mgr_dept_type
+(
+    id          varchar(50) not null comment '主键'
+        primary key,
+    code        varchar(50) not null comment '机构类型代码',
+    name        varchar(50) not null comment '机构类型名称',
+    description varchar(50) null comment '描述',
+    create_time timestamp   null comment '创建时间',
+    update_time timestamp   null comment '修改时间',
+    create_user varchar(50) null comment '创建人工号',
+    domain      varchar(50) null comment '租户外键'
+)
+    comment '组织机构类别' charset = utf8;
 
-CREATE TABLE `t_mgr_dept_tree_type`  (
-  `id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '主键',
-  `code` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '机构树类型代码',
-  `name` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '机构类型名称',
-  `description` varchar(500) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '描述',
-  `multiple_root_node` bit(1) NOT NULL DEFAULT b'0' COMMENT '是否允许多个根节点',
-  `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-  `update_time` datetime NULL DEFAULT NULL COMMENT '修改时间',
-  `create_user` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '创建人工号',
-  `domain` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '租户外键',
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = '组织机构树类别' ROW_FORMAT = Compact;
+create table t_mgr_domain_info
+(
+    id            varchar(50) not null comment '主键'
+        primary key,
+    domain_id     varchar(50) null comment '租户id',
+    domain_name   varchar(50) not null comment '租户名称（域名）',
+    client_id     varchar(50) null comment '授权id',
+    client_secret varchar(50) null comment '授权密钥',
+    create_time   timestamp   null comment '注册时间',
+    update_time   timestamp   null,
+    create_user   varchar(50) null comment '注册人员',
+    status        int(1)      null comment '状态  启用0/停用1'
+)
+    comment '租户注册表' charset = utf8;
 
--- ----------------------------
--- Table structure for t_mgr_dept_type
--- ----------------------------
-CREATE TABLE `t_mgr_dept_type`  (
-  `id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '主键',
-  `code` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '机构类型代码',
-  `name` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '机构类型名称',
-  `description` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '描述',
-  `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-  `update_time` datetime NULL DEFAULT NULL COMMENT '修改时间',
-  `create_user` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '创建人工号',
-  `domain` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '租户外键',
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = '组织机构类别' ROW_FORMAT = Compact;
+create table t_mgr_node
+(
+    id             varchar(50)  not null
+        primary key,
+    manual         bit          null comment '是否允许手工',
+    node_code      varchar(255) not null comment '节点',
+    create_time    timestamp    null comment '创建时间/版本号',
+    update_time    timestamp    null comment '修改时间',
+    domain         varchar(50)  not null comment '所属租户',
+    dept_tree_type varchar(50)  null comment '部门树类型',
+    status         int          not null comment '当前状态 0 发布 1 编辑中 2 历史'
+)
+    charset = utf8;
 
--- ----------------------------
--- Table structure for t_mgr_domain_info
--- ----------------------------
-CREATE TABLE `t_mgr_domain_info`  (
-  `id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '主键',
-  `domain_id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '租户id',
-  `domain_name` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '租户名称（域名）',
-  `client_id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '授权id',
-  `client_secret` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '授权密钥',
-  `create_time` datetime NULL DEFAULT NULL COMMENT '注册时间',
-  `create_user` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '注册人员',
-  `status` int(1) NULL DEFAULT NULL COMMENT '状态  启用0/停用1',
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = '租户注册表' ROW_FORMAT = Compact;
+create index t_mgr_node_t_mgr_dept_tree_type_id_fk
+    on t_mgr_node (dept_tree_type);
 
--- ----------------------------
--- Table structure for t_mgr_upstream
--- ----------------------------
-CREATE TABLE `t_mgr_upstream`  (
-  `id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '主键',
-  `app_code` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '应用代码，如人事：HR_SYS',
-  `app_name` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '应用名称，如人事',
-  `data_code` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '数据前缀代码 HR',
-  `create_time` datetime NULL DEFAULT NULL COMMENT '注册时间',
-  `create_user` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '注册人员',
-  `state` int(1) NULL DEFAULT NULL COMMENT '状态  启用/不启用',
-  `color` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '代表色',
-  `domain` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '租户信息外建',
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = '上游源注册表' ROW_FORMAT = Compact;
+create table t_mgr_post_type
+(
+    id          varchar(50) not null comment '主键'
+        primary key,
+    code        varchar(50) not null comment '机构类型代码',
+    name        varchar(50) not null comment '机构类型名称',
+    description varchar(50) null comment '描述',
+    create_time timestamp   null comment '创建时间',
+    update_time timestamp   null comment '修改时间',
+    create_user varchar(50) null comment '创建人工号',
+    domain      varchar(50) null comment '租户外键'
+)
+    comment '组织机构类别' charset = utf8;
 
--- ----------------------------
--- Table structure for t_mgr_upstream_types
--- ----------------------------
-CREATE TABLE `t_mgr_upstream_types`  (
-  `id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '主键',
-  `upstream_id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '应用集成注册外建',
-  `description` varchar(500) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '描述',
-  `syn_type` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '同步类型  部门/岗位/人员',
-  `dept_typeId` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '属组织机构类别外建',
-  `enable_prefix` bit(1) NULL DEFAULT NULL COMMENT '是否启用前缀 【规则】',
-  `active` int(1) NULL DEFAULT NULL COMMENT '是否启用',
-  `active_time` datetime NULL DEFAULT NULL COMMENT '是否启用时间',
-  `root` bit(1) NOT NULL DEFAULT b'0' COMMENT '是否为根数据源【抽到新表】',
-  `create_time` datetime NULL DEFAULT NULL COMMENT '注册时间',
-  `update_time` datetime NULL DEFAULT NULL COMMENT '修改时间',
-  `service_code` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '网关数据服务id',
-  `graphql_url` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '://服务/类型/方法',
-  `domain` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '租户外键',
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = '上游源类型注册表' ROW_FORMAT = Compact;
+create table t_mgr_upstream
+(
+    id          varchar(50)      not null comment '主键'
+        primary key,
+    app_code    varchar(50)      not null comment '应用代码，如人事：HR_SYS',
+    app_name    varchar(50)      not null comment '应用名称，如人事',
+    data_code   varchar(50)      null comment '数据前缀代码 HR',
+    create_time timestamp        null comment '注册时间',
+    create_user varchar(50)      null comment '注册人员',
+    active      bit default b'0' null comment '状态  启用/不启用',
+    color       varchar(50)      null comment '代表色',
+    domain      varchar(50)      not null comment '租户信息外建',
+    active_time timestamp        null comment '是否启用时间',
+    update_time timestamp        null comment '修改时间'
+)
+    comment '上游源注册表' charset = utf8;
 
--- ----------------------------
--- Table structure for t_mgr_upstream_types_field
--- ----------------------------
-CREATE TABLE `t_mgr_upstream_types_field`  (
-  `id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '主键',
-  `upstream_type_id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '上游源数据类型注册外键',
-  `source_field` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '源字段名称',
-  `target_field` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '转换后字段名称',
-  `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-  `update_time` datetime NULL DEFAULT NULL COMMENT '修改时间',
-  `domain` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '租户外键',
-  PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = '上游源类型字段映射表' ROW_FORMAT = Compact;
+create table t_mgr_upstream_dept
+(
+    id               varchar(50) not null comment '主键'
+        primary key,
+    upstream_type_id varchar(50) not null comment '外键',
+    dept             text        null comment '内容',
+    create_time      timestamp   null comment '拉取时间'
+)
+    comment '上游部门表' charset = utf8;
 
-SET FOREIGN_KEY_CHECKS = 1;
+create table t_mgr_upstream_types
+(
+    id                varchar(50)      not null comment '主键'
+        primary key,
+    upstream_id       varchar(50)      null comment '应用集成注册外建',
+    description       varchar(500)     null comment '描述',
+    syn_type          varchar(50)      null comment '同步类型  部门/岗位/人员',
+    dept_type_id      varchar(50)      null comment '属组织机构类别外建',
+    enable_prefix     bit              null comment '是否启用前缀 【规则】',
+    active            bit              null comment '是否启用',
+    active_time       timestamp        null comment '是否启用时间',
+    root              bit default b'0' null comment '是否为根数据源【抽到新表】',
+    create_time       timestamp        null comment '注册时间',
+    update_time       timestamp        null comment '修改时间',
+    graphql_url       varchar(255)     null comment '://服务/类型/方法',
+    service_code      varchar(50)      null comment '网关数据服务id',
+    domain            varchar(50)      null comment '租户外键',
+    dept_tree_type_id varchar(50)      null comment '属组织机构类别树外键',
+    is_page           bit              not null comment '是否分页,0为不支持',
+    syn_way           int(1)           null comment ' 拉取0/推送1'
+)
+    comment '上游源类型注册表' charset = utf8;
+
+create table t_mgr_node_rules
+(
+    id                varchar(50)              not null comment '主键'
+        primary key,
+    node_id           varchar(50)              not null comment '节点外建',
+    type              int                      not null comment '规则类型 0推送 1拉取 3手动',
+    active            bit         default b'1' not null comment '是否启用
+',
+    active_time       timestamp                null,
+    create_time       timestamp                null,
+    update_time       timestamp                null comment '修改时间',
+    service_key       varchar(255)             null comment '允许【推送】的服务标识',
+    upstream_types_id varchar(50)              null comment '【拉取】所用的类型信息外建',
+    inherit_id        varchar(50) default '\0' null comment '是否继承自父级',
+    sort              int                      not null comment '排序',
+    status            int                      not null,
+    constraint fk_node
+        foreign key (node_id) references t_mgr_node (id),
+    constraint fk_upstream_type
+        foreign key (upstream_types_id) references t_mgr_upstream_types (id)
+)
+    comment '节点规则集' charset = utf8;
+
+create table t_mgr_node_rules_range
+(
+    id            varchar(50)  not null
+        primary key,
+    node_rules_id varchar(50)  not null comment '外健',
+    type          int          null comment '规则类型 0 挂载 1 排除 2 重命名',
+    node          varchar(255) null comment '作用节点',
+    `range`       int(255)     null comment '作用域0/1；挂载（是否包含节点本身0还是仅其子树1） 排除（排除无用节点以及0/仅1其子树） ',
+    create_time   timestamp    null,
+    `rename`      varchar(255) null comment '重命名规则',
+    update_time   timestamp    null comment '修改时间',
+    status        int          not null,
+    constraint t_mgr_node_rules_range_t_mgr_node_rules_id_fk
+        foreign key (node_rules_id) references t_mgr_node_rules (id)
+)
+    charset = utf8;
+
+create table t_mgr_upstream_types_field
+(
+    id               varchar(50) not null comment '主键'
+        primary key,
+    upstream_type_id varchar(50) not null comment '上游源数据类型注册外键',
+    source_field     varchar(50) null comment '源字段名称',
+    target_field     varchar(50) null comment '转换后字段名称',
+    create_time      timestamp   null comment '创建时间',
+    update_time      timestamp   null comment '修改时间',
+    domain           varchar(50) null comment '租户外键'
+)
+    comment '上游源类型字段映射表' charset = utf8;
+
+
+
