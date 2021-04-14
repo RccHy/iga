@@ -69,5 +69,29 @@ public class TreeUtil<T> {
         return map;
     }
 
+    public static void removeMainTree(String code, Map<String, List<DeptBean>> childrenMap, Map<String, DeptBean> mainTree) {
+        List<DeptBean> children = childrenMap.get(code);
+        if (null != children) {
+            for (DeptBean dept : children) {
+                if (null != dept.getDataSource()) {
+                    if (!dept.getDataSource().equals("builtin")) {
+                        mainTree.remove(dept.getCode());
+                        removeMainTree(dept.getCode(), childrenMap, mainTree);
+                    }
+                }
+            }
+        }
+    }
+
+    public static void removeTree(String code, Map<String, List<DeptBean>> childrenMap, Map<String, DeptBean> mergeDept) {
+        List<DeptBean> children = childrenMap.get(code);
+        if (null != children) {
+            for (DeptBean deptJson : children) {
+                mergeDept.remove(deptJson.getCode());
+                removeTree(deptJson.getCode(), childrenMap, mergeDept);
+            }
+        }
+    }
+
 
 }

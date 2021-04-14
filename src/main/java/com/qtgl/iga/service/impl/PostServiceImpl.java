@@ -3,12 +3,16 @@ package com.qtgl.iga.service.impl;
 
 import com.qtgl.iga.bean.DeptBean;
 
+import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.DomainInfo;
+import com.qtgl.iga.bo.NodeRulesRange;
 import com.qtgl.iga.bo.Tenant;
 import com.qtgl.iga.dao.PostDao;
 import com.qtgl.iga.dao.TenantDao;
+import com.qtgl.iga.service.NodeService;
 import com.qtgl.iga.service.PostService;
 
+import com.qtgl.iga.vo.NodeRulesVo;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,18 +34,23 @@ public class PostServiceImpl implements PostService {
 
 
     @Autowired
-    DeptServiceImpl deptService;
+    NodeRulesCalculationServiceImpl calculationService;
     @Autowired
     PostDao postDao;
     @Autowired
     TenantDao tenantDao;
+    @Autowired
+    NodeService nodeService;
 
     @Value("${iga.hostname}")
     String hostname;
 
 
     @Override
-    public List<DeptBean> findPosts(DomainInfo domain) throws Exception {
+    public List<DeptBean> findPosts(Map<String, Object> arguments, DomainInfo domain) throws Exception {
+        String TYPE = "post";
+        Integer status = nodeService.judgeEdit(arguments, domain, TYPE);
+
         //获取默认数据
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
@@ -58,11 +67,32 @@ public class PostServiceImpl implements PostService {
         } else {
             throw new Exception("请检查根树是否合法");
         }
+        if (status == null) {
+            return rootBeans;
+        }
 
         //sso dept库的数据(通过domain 关联tenant查询)
         if (null == tenant) {
             throw new Exception("租户不存在");
         }
+
+        //轮训比对标记(是否有主键id)
+        Map<DeptBean, String> result = new HashMap<>();
+        //转化为map
+        Map<String, DeptBean> rootMap = rootBeans.stream().collect(Collectors.toMap(DeptBean::getCode, deptBean -> deptBean));
+        Map<String, DeptBean> mainTreeMap = rootBeans.stream().collect(Collectors.toMap(DeptBean::getCode, deptBean -> deptBean));
+        // 将本次 add 进的 节点 进行 规则运算
+        for (Map.Entry<String, DeptBean> entry : rootMap.entrySet()) {
+            calculationService.nodeRules(domain, null, entry.getKey(), mainTreeMap, status, TYPE);
+        }
+        System.out.println("==");
+
+        Collection<DeptBean> mainDept = mainTreeMap.values();
+        ArrayList<DeptBean> mainList = new ArrayList<>(mainDept);
+
+        // 判断重复(code)
+        calculationService.groupByCode(mainList);
+
         //通过tenantId查询ssoApis库中的数据
         List<DeptBean> beans = postDao.findByTenantId(tenant.getId());
         //将null赋为""
@@ -73,36 +103,23 @@ public class PostServiceImpl implements PostService {
                 }
             }
         }
-        //轮训比对标记(是否有主键id)
-        Map<DeptBean, String> result = new HashMap<>();
-        //转化为map
-        Map<String, DeptBean> rootMap = rootBeans.stream().collect(Collectors.toMap(DeptBean::getCode, deptBean -> deptBean));
-        Map<String, DeptBean> mainTreeMap = rootBeans.stream().collect(Collectors.toMap(DeptBean::getCode, deptBean -> deptBean));
-        // 将本次 add 进的 节点 进行 规则运算
-        for (Map.Entry<String, DeptBean> entry : rootMap.entrySet()) {
-            deptService.nodeRules(domain, null, entry.getKey(), mainTreeMap,0);
-        }
-        System.out.println("==");
-        // Map<String, DeptBean> mainTreeMap = new HashMap<>();
-        //deptService.nodeRules(domain, null, "", mainTreeMap);
-
-        Collection<DeptBean> mainDept = mainTreeMap.values();
-        ArrayList<DeptBean> mainList = new ArrayList<>(mainDept);
-
-        // 判断重复(code)
-        groupByCode(mainList);
-
         //同步到sso
         beans = saveToSso(mainTreeMap, domain, "", beans, result);
 
         // 判断重复(code)
-        groupByCode(beans);
+        calculationService.groupByCode(beans);
 
-        saveToSso(result, tenant.getId());
+//        saveToSso(result, tenant.getId());
 
         return beans;
     }
 
+    /**
+     * @param result
+     * @param id
+     * @Description: 增量插入sso数据库
+     * @return: void
+     */
     private void saveToSso(Map<DeptBean, String> result, String id) throws Exception {
         Map<String, List<Map.Entry<DeptBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
 
@@ -159,6 +176,11 @@ public class PostServiceImpl implements PostService {
         }
     }
 
+    /**
+     * @param domainName
+     * @Description: 通过租户获取sso库的数据
+     * @return: java.util.List<com.qtgl.iga.bean.DeptBean>
+     */
     @Override
     public List<DeptBean> findDeptByDomainName(String domainName) throws Exception {
 //        获取tenantId
@@ -173,28 +195,28 @@ public class PostServiceImpl implements PostService {
     }
 
 
-    private void groupByCode(List<DeptBean> deptBeans) throws Exception {
-        HashMap<String, Integer> map = new HashMap<>();
-        HashMap<String, Integer> result = new HashMap<>();
-        if (null != deptBeans && deptBeans.size() > 0) {
-            for (DeptBean deptBean : deptBeans) {
-                Integer num = map.get(deptBean.getCode());
-                num = (num == null ? 0 : num) + 1;
-                map.put(deptBean.getCode(), num);
-                if (num > 1) {
-                    result.put(deptBean.getCode(), num);
-                }
-            }
-        }
-
-        if (result != null && result.size() > 0) {
-            throw new Exception("有重复code" + result.toString());
-        }
-    }
+//    private void groupByCode(List<DeptBean> deptBeans) throws Exception {
+//        HashMap<String, Integer> map = new HashMap<>();
+//        HashMap<String, Integer> result = new HashMap<>();
+//        if (null != deptBeans && deptBeans.size() > 0) {
+//            for (DeptBean deptBean : deptBeans) {
+//                Integer num = map.get(deptBean.getCode());
+//                num = (num == null ? 0 : num) + 1;
+//                map.put(deptBean.getCode(), num);
+//                if (num > 1) {
+//                    result.put(deptBean.getCode(), num);
+//                }
+//            }
+//        }
+//
+//        if (result != null && result.size() > 0) {
+//            throw new Exception("有重复code" + result.toString());
+//        }
+//    }
 
     /**
      * @param mainTree
-     * @Description: 处理数据并插入sso
+     * @Description: 处理数据
      * @return: void
      */
     private List<DeptBean> saveToSso(Map<String, DeptBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<DeptBean> beans, Map<DeptBean, String> result) throws Exception {

@@ -39,23 +39,24 @@ public class NodeRulesServiceImpl implements NodeRulesService {
 
     @Override
     public NodeRulesVo deleteRules(Map<String, Object> arguments, String domain) throws Exception {
-        // todo 查询删除规则拉取的数据子节点是否有规则
+        //   查询删除规则拉取的数据子节点是否有规则
         List<String> codes = (List<String>) arguments.get("codes");
-        if(null != codes &&codes.size()>0){
+        String type = (String) arguments.get("type");
+        if (null != codes && codes.size() > 0) {
             //根据code查询是否有对应的规则
             for (String code : codes) {
-               List<Node> nodes =  nodeService.findNodesByCode(code,domain);
-               if(null!=nodes &&nodes.size()>0){
-                   for (Node node : nodes) {
-                       HashMap<String, Object> hashMap = new HashMap<>();
-                       hashMap.put("id",node.getId());
-                       nodeService.deleteNode(hashMap,domain);
-                   }
-               }
+                List<Node> nodes = nodeService.findNodesByCode(code, domain, type);
+                if (null != nodes && nodes.size() > 0) {
+                    for (Node node : nodes) {
+                        HashMap<String, Object> hashMap = new HashMap<>();
+                        hashMap.put("id", node.getId());
+                        nodeService.deleteNode(hashMap, domain);
+                    }
+                }
             }
         }
         //查询是否有range需要删除
-        List<NodeRulesRange> ranges = nodeRulesRangeDao.getByRulesId((String) arguments.get("id"),null);
+        List<NodeRulesRange> ranges = nodeRulesRangeDao.getByRulesId((String) arguments.get("id"), null);
         //删除range
         if (null != ranges && ranges.size() > 0) {
             Integer i = nodeRulesRangeDao.deleteNodeRulesRangeByRuleId((String) arguments.get("id"));
@@ -63,7 +64,7 @@ public class NodeRulesServiceImpl implements NodeRulesService {
                 throw new Exception("删除range失败");
             }
         }
-        //todo 查询rule  删除编辑中
+        //  查询rule  删除编辑中
         NodeRules nodeRules = nodeRulesDao.findNodeRulesById((String) arguments.get("id"), 1);
         //删除rules
         Integer flag = nodeRulesDao.deleteNodeRulesById((String) arguments.get("id"));
@@ -139,6 +140,7 @@ public class NodeRulesServiceImpl implements NodeRulesService {
         for (String ruleId : ruleIds) {
             HashMap<String, Object> map = new HashMap<>();
             map.put("id", ruleId);
+            map.put("type", arguments.get("type"));
             NodeRulesVo nodeRulesVo = deleteRules(map, id);
             nodeRulesVos.add(nodeRulesVo);
         }

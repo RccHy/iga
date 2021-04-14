@@ -3,7 +3,7 @@ extend type Query {
     #(treeType:String)
     depts(status:Int):[Dept]
     #查询岗位
-    posts:[Dept]
+    posts(status:Int):[Dept]
 }
 
 

@@ -254,7 +254,7 @@ public class DataBusUtil {
                 ResultAttributtes node = new ResultAttributtes("node");
                 ArrayList<UpstreamTypeField> upstreamTypeFields = new ArrayList<>();
                 for (UpstreamTypeField field : fields) {
-                    // todo 修改常量
+                    //   修改常量
                     if (field.getTargetField().contains("$")) {
                         node.addResultAttributes(field.getSourceField() + ":" + field.getTargetField().substring(2, field.getTargetField().length() - 1));
                     } else {
@@ -345,7 +345,7 @@ public class DataBusUtil {
             }
             JSONObject.parseObject(result.get("data").toString()).getJSONArray(upstreamType.getSynType());
             Map dataMap = (Map) result.get("data");
-            JSONArray dept = (JSONArray) JSONArray.toJSON(dataMap.get("dept"));
+            JSONArray dept = (JSONArray) JSONArray.toJSON(dataMap.get(upstreamType.getSynType()));
             for (Object o : dept) {
                 JSONObject nodeJson = (JSONObject) o;
                 JSONObject node1 = nodeJson.getJSONObject("node");

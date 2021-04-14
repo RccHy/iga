@@ -259,7 +259,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
         Object[] params = new Object[2];
         params[0] = id;
         params[1] = id;
-        //todo 删除rule
+        //  删除rule
         String sql = "delete from t_mgr_node_rules where  id = ? or inherit_id= ?";
 
         return jdbcIGA.update(sql, params);

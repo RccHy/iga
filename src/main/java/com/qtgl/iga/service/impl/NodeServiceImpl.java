@@ -1,6 +1,7 @@
 package com.qtgl.iga.service.impl;
 
 import com.qtgl.iga.bean.NodeDto;
+import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.Node;
 import com.qtgl.iga.bo.NodeRulesRange;
 import com.qtgl.iga.dao.NodeDao;
@@ -39,6 +40,7 @@ public class NodeServiceImpl implements NodeService {
         if (null != node.getId()) {
             HashMap<String, Object> hashMap = new HashMap<>();
             hashMap.put("id", node.getId());
+            hashMap.put("type",node.getType());
             nodeDto = deleteNode(hashMap, domain);
         }
         //保留版本号
@@ -74,12 +76,12 @@ public class NodeServiceImpl implements NodeService {
 
     @Override
     public Node getRoot(String domain, String deptTreeType) {
-        return nodeDao.getByCode(domain, deptTreeType, "", 0).get(0);
+        return nodeDao.getByCode(domain, deptTreeType, "", 0, "dept").get(0);
     }
 
     @Override
     public List<Node> getByCode(String domain, String deptTreeType, String nodeCode) {
-        return nodeDao.getByCode(domain, deptTreeType, nodeCode, 0);
+        return nodeDao.getByCode(domain, deptTreeType, nodeCode, 0, "dept");
     }
 
     @Override
@@ -212,67 +214,70 @@ public class NodeServiceImpl implements NodeService {
     }
 
     @Override
-    public List<Node> findNodesByCode(String code, String domain) {
-        return nodeDao.findNodesByCode(code, domain);
+    public List<Node> findNodesByCode(String code, String domain, String type) {
+        return nodeDao.findNodesByCode(code, domain, type);
     }
 
     @Override
     public Node applyNode(Map<String, Object> arguments, String domain) throws Exception {
         Object version = arguments.get("version");
+        String type = (String) arguments.get("type");
         Boolean mark = (Boolean) arguments.get("mark");
         if (null == version) {
             throw new Exception("版本非法,请确认");
         }
         //mark为true 则为回滚  false为应用
-        if(mark){
+        if (mark) {
             //查询编辑中的node
-            List<Node> nodes = nodeDao.findNodes(arguments, domain);
+
+            //todo 加 type查询
+            List<Node> nodes = nodeDao.findNodesByStatusAndType(1, type, domain, null);
             for (Node node : nodes) {
                 HashMap<String, Object> map = new HashMap<>();
                 map.put("id", node.getId());
                 map.put("status", 1);
+                map.put("type",type);
                 deleteNode(map, domain);
             }
         }
         //将所有版本改为历史版本
-        Integer nodeHistory = getInteger(new HashMap<>(), domain);
-        //将编辑版本改为正式版本
-        HashMap<String, Object> map = new HashMap<>();
-        map.put("status", 0);
-        map.put("version", arguments.get("version"));
-        Integer rangeNew = getInteger(map, domain);
+
+        Integer nodeHistory = getInteger(null, type, domain, null);
+
+        //将传入版本改为正式版本
+        Integer rangeNew = getInteger(null, type, domain, version);
         if ((nodeHistory >= 0) && (rangeNew >= 0)) {
             return new Node();
         }
         return null;
     }
 
-    private Integer getInteger(Map<String, Object> arguments, String id) {
+    private Integer getInteger(Integer status, String type, String domain, Object version) {
 
-        Integer status = null == (Integer) arguments.get("status") ? null : (Integer) arguments.get("status");
-        arguments.put("status", null);
-        List<Node> nodes = nodeDao.findNodes(arguments, id);
-        for (Node node : nodes) {
-            List<NodeRulesVo> rules = nodeRulesDao.findNodeRulesByNodeId(node.getId(), null);
-            for (NodeRulesVo rule : rules) {
-                List<NodeRulesRange> ranges = nodeRulesRangeDao.getByRulesId(rule.getId(), null);
-                for (NodeRulesRange range : ranges) {
-                    Integer rangeHistory = nodeRulesRangeDao.makeNodeRulesRangesToHistory(range.getId(), null == status ? 2 : status);
-                    if (rangeHistory < 0) {
-                        logger.error("应用失败 range {}", range);
+        List<Node> nodes = nodeDao.findNodesByStatusAndType(status, type, domain, version);
+        if (null != nodes && nodes.size() > 0) {
+            for (Node node : nodes) {
+                List<NodeRulesVo> rules = nodeRulesDao.findNodeRulesByNodeId(node.getId(), null);
+                for (NodeRulesVo rule : rules) {
+                    List<NodeRulesRange> ranges = nodeRulesRangeDao.getByRulesId(rule.getId(), null);
+                    for (NodeRulesRange range : ranges) {
+                        Integer rangeHistory = nodeRulesRangeDao.makeNodeRulesRangesToHistory(range.getId(), null == version ? 2 : 0);
+                        if (rangeHistory < 0) {
+                            logger.error("应用失败 range {}", range);
+                            throw new RuntimeException("应用失败");
+                        }
+                    }
+                    Integer ruleHistory = nodeRulesDao.makeNodeRulesToHistory(rule.getId(), null == version ? 2 : 0);
+                    if (ruleHistory < 0) {
+                        logger.error("应用失败rule  {}", rule);
                         throw new RuntimeException("应用失败");
                     }
                 }
-                Integer ruleHistory = nodeRulesDao.makeNodeRulesToHistory(rule.getId(), null == status ? 2 : status);
-                if (ruleHistory < 0) {
-                    logger.error("应用失败rule  {}", rule);
+                Integer nodeHistory = nodeDao.makeNodeToHistory(domain, null == version ? 2 : 0, node.getId());
+                if (nodeHistory < 0) {
+                    logger.error("应用失败  {}", nodes);
                     throw new RuntimeException("应用失败");
                 }
-            }
-            Integer nodeHistory = nodeDao.makeNodeToHistory(id, null == status ? 2 : status, node.getId());
-            if (nodeHistory < 0) {
-                logger.error("应用失败  {}", nodes);
-                throw new RuntimeException("应用失败");
             }
         }
 
@@ -286,7 +291,7 @@ public class NodeServiceImpl implements NodeService {
         if (null == version) {
             throw new Exception("版本非法,请确认");
         }
-        //todo 删除编辑中的node
+        //  删除编辑中的node
         //查询编辑中的node
         List<Node> nodes = nodeDao.findNodes(arguments, domain);
         for (Node node : nodes) {
@@ -299,6 +304,59 @@ public class NodeServiceImpl implements NodeService {
             }
         }
         return new Node();
+    }
+
+    /**
+     * @param arguments
+     * @param domain
+     * @param type
+     * @Description: 判断是否有编辑中node
+     * @return: java.lang.Integer
+     */
+    @Override
+    public Integer judgeEdit(Map<String, Object> arguments, DomainInfo domain, String type) throws Exception {
+        List<NodeDto> nodeList = null;
+        Integer status = (Integer) arguments.get("status");
+        if (null == status) {
+            throw new Exception("状态不能为空");
+        }
+        if (1 == status) {
+            //查看是否有治理中的规则
+            HashMap<String, Object> map = new HashMap<>();
+            map.put("status", 1);
+            map.put("type", type);
+            nodeList = findNodes(map, domain.getId());
+        }
+        //   如果状态为编辑,并且没有治理中的数据
+        if (null == nodeList && status == 1) {
+            //复制,再返回
+            HashMap<String, Object> map = new HashMap<>();
+            map.put("status", 0);
+            map.put("type", type);
+            List<NodeDto> nodes = findNodes(map, domain.getId());
+            //复制数据
+            if (null != nodes && nodes.size() > 0) {
+                for (NodeDto node : nodes) {
+                    node.setId(null);
+                    node.setStatus(1);
+                    node.setCreateTime(System.currentTimeMillis());
+                    for (NodeRulesVo nodeRule : node.getNodeRules()) {
+                        nodeRule.setId(null);
+                        nodeRule.setStatus(1);
+                        for (NodeRulesRange nodeRulesRange : nodeRule.getNodeRulesRanges()) {
+                            nodeRulesRange.setId(null);
+                            nodeRulesRange.setStatus(1);
+                        }
+                    }
+
+                    saveNode(node, domain.getId());
+                }
+            }
+
+            return null;
+
+        }
+        return status;
     }
 
 

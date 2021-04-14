@@ -6,15 +6,11 @@ import com.qtgl.iga.dao.NodeDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.Resource;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.util.*;
 
 
@@ -28,7 +24,7 @@ public class NodeDaoImpl implements NodeDao {
     @Override
     public NodeDto save(NodeDto node) {
 
-        String sql = "insert into t_mgr_node  (id,manual,node_code,create_time,update_time,domain,dept_tree_type,status)values(?,?,?,?,?,?,?,?)";
+        String sql = "insert into t_mgr_node  (id,manual,node_code,create_time,update_time,domain,dept_tree_type,status,type)values(?,?,?,?,?,?,?,?,?)";
         //生成主键和时间
         if (null == node.getId()) {
             String id = UUID.randomUUID().toString().replace("-", "");
@@ -40,35 +36,36 @@ public class NodeDaoImpl implements NodeDao {
             preparedStatement.setObject(2, node.getManual());
             preparedStatement.setObject(3, node.getNodeCode());
             preparedStatement.setObject(4, new Timestamp(node.getCreateTime()));
-            preparedStatement.setObject(5, null );
+            preparedStatement.setObject(5, null);
             preparedStatement.setObject(6, node.getDomain());
             preparedStatement.setObject(7, node.getDeptTreeType());
             preparedStatement.setObject(8, node.getStatus());
+            preparedStatement.setObject(9, node.getType());
 
         });
         return update > 0 ? node : null;
     }
 
     @Override
-    public List<Node> getByCode(String domain, String deptTreeType, String nodeCode, Integer status) {
+    public List<Node> getByCode(String domain, String deptTreeType, String nodeCode, Integer status, String type) {
         List<Node> nodes = new ArrayList<>();
 
         String sql = "select id,manual," +
                 "node_code as nodeCode," +
-                "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status" +
-                " from t_mgr_node where domain=? and dept_tree_type=? and node_code=?  and status=?";
+                "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status,type" +
+                " from t_mgr_node where domain=? and dept_tree_type=? and node_code=?   and status=?  and type=?  ";
         List<Map<String, Object>> mapList = new ArrayList<>();
         if (null == nodeCode) {
             sql = sql.replace("node_code=?", "node_code is null or node_code=\"\"");
-            mapList = jdbcIGA.queryForList(sql, domain, deptTreeType, status);
+            mapList = jdbcIGA.queryForList(sql, domain, deptTreeType, status, type);
         }
 
         if (null == deptTreeType) {
             sql = sql.replace("dept_tree_type=? ", " (dept_tree_type is null or dept_tree_type=\"\") ");
-            mapList = jdbcIGA.queryForList(sql, domain, nodeCode, status);
+            mapList = jdbcIGA.queryForList(sql, domain, nodeCode, status, type);
         }
         if (null != deptTreeType && null != nodeCode) {
-            mapList = jdbcIGA.queryForList(sql, domain, deptTreeType, nodeCode, status);
+            mapList = jdbcIGA.queryForList(sql, domain, deptTreeType, nodeCode, status, type);
 
         }
         for (Map<String, Object> map : mapList) {
@@ -97,18 +94,20 @@ public class NodeDaoImpl implements NodeDao {
     @Override
     public List<Node> findNodes(Map<String, Object> arguments, String domain) {
         ArrayList<Node> nodes = new ArrayList<>();
-        Integer status = null== arguments.get("status")?null:(Integer) arguments.get("status");
-        Object version = null== arguments.get("version")?null: arguments.get("version");
+        Integer status = null == arguments.get("status") ? null : (Integer) arguments.get("status");
+        Object version = null == arguments.get("version") ? null : arguments.get("version");
+        Object type = arguments.get("type");
         String sql = "select id,manual," +
                 "node_code as nodeCode," +
-                "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status" +
-                " from t_mgr_node where domain= ?   ";
+                "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status,type" +
+                " from t_mgr_node where domain= ?  and type =?  ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
         List<Object> param = new ArrayList<>();
         param.add(domain);
-        if (null != status ) {
+        param.add(type);
+        if (null != status) {
             stb.append(" and status =?  ");
             param.add(status);
         }
@@ -140,7 +139,7 @@ public class NodeDaoImpl implements NodeDao {
 
         String sql = "select id,manual," +
                 "node_code as nodeCode," +
-                "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status" +
+                "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status,type" +
                 " from t_mgr_node where dept_tree_type= ? and status=?";
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id, status);
 
@@ -154,13 +153,15 @@ public class NodeDaoImpl implements NodeDao {
         List<String> codes = (List<String>) arguments.get("codes");
         String treeType = (String) arguments.get("treeType");
         Integer status = (Integer) arguments.get("status");
+        String type = (String) arguments.get("type");
         String sql = "select id,manual," +
                 "node_code as nodeCode," +
-                "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType, status" +
-                " from t_mgr_node where domain= ? and status=?  ";
+                "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType, status,type" +
+                " from t_mgr_node where domain= ? and status=? and type=? ";
         List<Object> param = new ArrayList<>();
         param.add(id);
         param.add(status);
+        param.add(type);
         if (StringUtils.isNotBlank(treeType)) {
             sql = sql + " and dept_tree_type =?  ";
             param.add(treeType);
@@ -176,18 +177,18 @@ public class NodeDaoImpl implements NodeDao {
     }
 
     @Override
-    public List<Node> findNodesByCode(String code, String domain) {
+    public List<Node> findNodesByCode(String code, String domain, String type) {
         ArrayList<Node> nodes = new ArrayList<>();
         String sql = "select id,manual," +
                 "node_code as nodeCode," +
-                "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status" +
-                " from t_mgr_node where domain= ?  and node_code =?  ";
+                "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status,type" +
+                " from t_mgr_node where domain= ?  and node_code =? and type=?  ";
         //存入参数
         List<Object> param = new ArrayList<>();
         param.add(domain);
 
         param.add(code);
-
+        param.add(type);
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, param.toArray());
         if (null == mapList || mapList.size() == 0) {
             return null;
@@ -206,9 +207,9 @@ public class NodeDaoImpl implements NodeDao {
     }
 
     @Override
-    public Integer makeNodeToHistory(String domain,Integer status,String id) {
+    public Integer makeNodeToHistory(String domain, Integer status, String id) {
         String str = "update t_mgr_node set  status= ? " +
-                "where domain =? and id=? ";
+                "where domain =? and id=?  ";
         int update = jdbcIGA.update(str, preparedStatement -> {
 
             preparedStatement.setObject(1, status);
@@ -219,16 +220,55 @@ public class NodeDaoImpl implements NodeDao {
     }
 
     @Override
-    public Integer publishNode(String id) {
-        String str = "update t_mgr_node set  status= ? " +
-                "where domain =? and status=1 ";
-        int update = jdbcIGA.update(str, preparedStatement -> {
+    public List<Node> findNodesByStatusAndType(Integer status, String type, String domain, Object version) {
+        ArrayList<Node> nodes = new ArrayList<>();
+        String sql = "select id,manual," +
+                "node_code as nodeCode," +
+                "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status,type" +
+                " from t_mgr_node where domain= ?  and type =?    ";
+        List<Object> param = new ArrayList<>();
+        param.add(domain);
+        param.add(type);
+        //存入参数
+        if (null != status) {
+            sql = sql + " and status = ? ";
+            param.add(status);
+        }
+        if (null != version) {
+            sql = sql + " and create_time = ?";
+            param.add(version);
+        }
 
-            preparedStatement.setObject(1, 0);
-            preparedStatement.setObject(2, id);
-        });
-        return update;
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, param.toArray());
+        if (null == mapList || mapList.size() == 0) {
+            return null;
+        }
+        for (Map<String, Object> map : mapList) {
+            try {
+                Node node = new Node();
+                BeanUtils.populate(node, map);
+                nodes.add(node);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        if (null != nodes && nodes.size() > 0) {
+            return nodes;
+        }
+        return null;
     }
+
+//    @Override
+//    public Integer publishNode(String id) {
+//        String str = "update t_mgr_node set  status= ? " +
+//                "where domain =? and status=1 ";
+//        int update = jdbcIGA.update(str, preparedStatement -> {
+//
+//            preparedStatement.setObject(1, 0);
+//            preparedStatement.setObject(2, id);
+//        });
+//        return update;
+//    }
 
 
     private List<Node> getNodes(ArrayList<Node> nodes, List<Map<String, Object>> mapList) {
@@ -285,7 +325,7 @@ public class NodeDaoImpl implements NodeDao {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
                             if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "=")) {
-                                stb.append("and node_code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                stb.append(" and node_code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
                                 param.add(soe.getValue());
                             }
                         }

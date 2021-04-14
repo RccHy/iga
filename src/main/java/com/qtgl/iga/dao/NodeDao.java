@@ -4,6 +4,7 @@ package com.qtgl.iga.dao;
 import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.Node;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -11,7 +12,7 @@ public interface NodeDao {
 
     NodeDto save(NodeDto node);
 
-    List<Node> getByCode(String domain, String deptTreeType, String nodeCode,Integer status);
+    List<Node> getByCode(String domain, String deptTreeType, String nodeCode,Integer status,String type);
 
     Integer deleteNode(Map<String, Object> arguments, String id);
 
@@ -21,10 +22,13 @@ public interface NodeDao {
 
     List<Node> findNodesPlus(Map<String, Object> arguments, String id);
 
-    List<Node> findNodesByCode(String code, String domain);
+    List<Node> findNodesByCode(String code, String domain,String type);
 
     Integer makeNodeToHistory(String domain,Integer status,String id);
 
-    Integer publishNode(String id);
+    List<Node> findNodesByStatusAndType(Integer status, String type, String domain,Object version);
+
+
+//    Integer publishNode(String id);
 
 }

@@ -13,7 +13,7 @@ import java.util.Map;
  * @author HP
  */
 public interface PostService {
-    List<DeptBean> findPosts(DomainInfo domain) throws Exception;
+    List<DeptBean> findPosts(Map<String, Object> arguments,DomainInfo domain) throws Exception;
 
     List<DeptBean> findDeptByDomainName(String domainName) throws Exception;
 }
