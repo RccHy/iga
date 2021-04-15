@@ -83,13 +83,13 @@ public class DeptServiceImpl implements DeptService {
         for (DeptTreeType deptType : deptTreeTypes) {
             Map<String, TreeBean> mainTreeMap = new ConcurrentHashMap<>();
             // id 改为code
-            calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeMap, status, TYPE);
+            calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeMap, status, TYPE,"system");
             //  数据合法性
             Collection<TreeBean> mainDept = mainTreeMap.values();
             ArrayList<TreeBean> mainList = new ArrayList<>(mainDept);
             // 判断重复(code)
             calculationService.groupByCode(mainList);
-            //同步到sso
+//            //同步到sso
             beans = saveToSso(mainTreeMap, domain, deptType.getCode(), beans, result);
         }
         calculationService.groupByCode(beans);
@@ -145,7 +145,7 @@ public class DeptServiceImpl implements DeptService {
         for (DeptTreeType deptType : deptTreeTypes) {
             Map<String, TreeBean> mainTreeMap = new ConcurrentHashMap<>();
             //  id 改为code
-            calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeMap, 0, TYPE);
+            calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeMap, 0, TYPE,"task");
             //  数据合法性
             Collection<TreeBean> mainDept = mainTreeMap.values();
             ArrayList<TreeBean> mainList = new ArrayList<>(mainDept);

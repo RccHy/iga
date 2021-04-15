@@ -238,11 +238,17 @@ public class NodeRulesCalculationServiceImpl {
     }
 
     /**
-     * @param domain
-     * @param nodeCode
-     * @throws Exception
+     * @Description: 规则运算
+     * @param domain  租户
+     * @param deptTreeType 组织机构树类型
+     * @param nodeCode 节点
+     * @param mainTree
+     * @param status 状态(0:正式,1:编辑,2:历史)
+     * @param type 来源类型 person,post,dept,occupy
+     * @param operator 操作:task定时任务,system:系统操作
+     * @return: java.util.Map<java.lang.String,com.qtgl.iga.bean.TreeBean>
      */
-    public Map<String, TreeBean> nodeRules(DomainInfo domain, String deptTreeType, String nodeCode, Map<String, TreeBean> mainTree, Integer status, String type) throws Exception {
+    public Map<String, TreeBean> nodeRules(DomainInfo domain, String deptTreeType, String nodeCode, Map<String, TreeBean> mainTree, Integer status, String type,String operator) throws Exception {
         //获取根节点的规则
         List<Node> nodes = nodeDao.getByCode(domain.getId(), deptTreeType, nodeCode, status,type);
         for (Node node : nodes) {
@@ -323,12 +329,14 @@ public class NodeRulesCalculationServiceImpl {
                     upstreamDept.add(dept.toJavaObject(TreeBean.class));
 
                 }
-                //   待优化
-                Integer flag = saveDataToDb(upstreamTree, upstreamType.getId());
-                if (!(flag > 0)) {
-                    throw new Exception("数据插入 iga 失败");
-                }
-                logger.error("节点'{}'数据入库完成", code);
+               if("task".equals(operator)){
+                   //   待优化
+                   Integer flag = saveDataToDb(upstreamTree, upstreamType.getId());
+                   if (!(flag > 0)) {
+                       throw new Exception("数据插入 iga 失败");
+                   }
+                   logger.error("节点'{}'数据入库完成", code);
+               }
                 //对树 json 转为 map
                 Map<String, TreeBean> upstreamMap = TreeUtil.toMap(upstreamDept);
 
@@ -418,7 +426,7 @@ public class NodeRulesCalculationServiceImpl {
                 mainTree.putAll(mergeDeptMap);
                 // 将本次 add 进的 节点 进行 规则运算
                 for (Map.Entry<String, TreeBean> entry : mergeDeptMap.entrySet()) {
-                    nodeRules(domain, deptTreeType, entry.getValue().getCode(), mainTree, status,type);
+                    nodeRules(domain, deptTreeType, entry.getValue().getCode(), mainTree, status,type,operator);
                 }
 
                 /*========================规则运算完成=============================*/

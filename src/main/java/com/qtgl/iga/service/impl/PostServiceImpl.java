@@ -71,7 +71,7 @@ public class PostServiceImpl implements PostService {
         Map<String, TreeBean> mainTreeMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
         // 将本次 add 进的 节点 进行 规则运算
         for (Map.Entry<String, TreeBean> entry : rootMap.entrySet()) {
-            calculationService.nodeRules(domain, null, entry.getKey(), mainTreeMap, 0, TYPE);
+            calculationService.nodeRules(domain, null, entry.getKey(), mainTreeMap, 0, TYPE,"task");
         }
         Collection<TreeBean> mainDept = mainTreeMap.values();
         ArrayList<TreeBean> mainList = new ArrayList<>(mainDept);
@@ -134,7 +134,7 @@ public class PostServiceImpl implements PostService {
         Map<String, TreeBean> mainTreeMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
         // 将本次 add 进的 节点 进行 规则运算
         for (Map.Entry<String, TreeBean> entry : rootMap.entrySet()) {
-            calculationService.nodeRules(domain, null, entry.getKey(), mainTreeMap, status, TYPE);
+            calculationService.nodeRules(domain, null, entry.getKey(), mainTreeMap, status, TYPE,"system");
         }
         System.out.println("==");
 

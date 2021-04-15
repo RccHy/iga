@@ -26,7 +26,7 @@ public class NodeDaoImpl implements NodeDao {
 
         String sql = "insert into t_mgr_node  (id,manual,node_code,create_time,update_time,domain,dept_tree_type,status,type)values(?,?,?,?,?,?,?,?,?)";
         //生成主键和时间
-        if (null == node.getId()) {
+        if (StringUtils.isBlank(node.getId())) {
             String id = UUID.randomUUID().toString().replace("-", "");
             node.setId(id);
         }
@@ -100,13 +100,16 @@ public class NodeDaoImpl implements NodeDao {
         String sql = "select id,manual," +
                 "node_code as nodeCode," +
                 "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status,type" +
-                " from t_mgr_node where domain= ?  and type =?  ";
+                " from t_mgr_node where domain= ?    ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
         List<Object> param = new ArrayList<>();
         param.add(domain);
-        param.add(type);
+        if (null != type) {
+            stb.append(" and type =?  ");
+            param.add(type);
+        }
         if (null != status) {
             stb.append(" and status =?  ");
             param.add(status);
