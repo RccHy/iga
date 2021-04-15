@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
  **/
 
 @Service
-@Transactional
+//@Transactional
 public class NodeRulesCalculationServiceImpl {
     @Autowired
     NodeRulesDao rulesDao;
@@ -506,7 +506,8 @@ public class NodeRulesCalculationServiceImpl {
      * @Description: 将上游部门数据存入iga数据库
      * @return: java.lang.Integer
      */
-    private Integer saveDataToDb(JSONArray upstreamTree, String id) {
+    @Transactional
+     Integer saveDataToDb(JSONArray upstreamTree, String id) {
         //上游数据已有时间戳的情况
         UpstreamDept upstreamDept = new UpstreamDept();
         upstreamDept.setDept(upstreamTree.toJSONString());

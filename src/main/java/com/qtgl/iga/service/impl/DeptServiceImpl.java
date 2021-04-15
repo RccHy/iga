@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional
+//@Transactional
 public class DeptServiceImpl implements DeptService {
 
 
@@ -218,7 +218,8 @@ public class DeptServiceImpl implements DeptService {
      * @Description: 插入sso数据库
      * @return: void
      */
-    private void saveToSso(Map<TreeBean, String> result, String tenantId) throws Exception {
+    @Transactional
+    void saveToSso(Map<TreeBean, String> result, String tenantId) throws Exception {
         //插入数据
         Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
         List<Map.Entry<TreeBean, String>> insert = collect.get("insert");
