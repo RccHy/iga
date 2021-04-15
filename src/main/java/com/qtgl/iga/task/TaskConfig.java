@@ -4,10 +4,7 @@ import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.Person;
 import com.qtgl.iga.config.TaskThreadPool;
-import com.qtgl.iga.service.DeptService;
-import com.qtgl.iga.service.DomainInfoService;
-import com.qtgl.iga.service.PersonService;
-import com.qtgl.iga.service.PostService;
+import com.qtgl.iga.service.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,8 +27,10 @@ public class TaskConfig {
     @Autowired
     DomainInfoService domainInfoService;
 
-    @Autowired
-    DeptService deptService;
+
+
+     @Autowired
+     DeptService deptService;
 
     @Autowired
     PersonService personService;
@@ -44,7 +43,7 @@ public class TaskConfig {
      * 串行执行 部门、岗位、人员、三元组 同步
      */
 
-   // @Scheduled(cron = "${dept.task.cron}")
+    @Scheduled(cron = "${dept.task.cron}")
     public void deptTask() {
         try {
             log.info("hostname{}", hostname);
@@ -58,23 +57,20 @@ public class TaskConfig {
                                     @Override
                                     public void run() {
                                         try {
-                                            log.info(Thread.currentThread().getName() + ": 开始" + System.currentTimeMillis());
-                                            //todo 部门数据同步至sso
+                                            //部门数据同步至sso
                                             final Map<TreeBean, String> deptResult = deptService.buildDeptUpdateResult(domainInfo);
-                                            log.info(Thread.currentThread().getName() + ": 部门同步完成：{}==={}" ,deptResult.size(),System.currentTimeMillis());
+                                            log.info(Thread.currentThread().getName() + ": 部门同步完成：{}==={}", deptResult.size(), System.currentTimeMillis());
 
-                                            //todo 岗位数据同步至sso
+                                            //岗位数据同步至sso
                                             final Map<TreeBean, String> treeBeanStringMap = postService.buildPostUpdateResult(domainInfo);
-                                            log.info(Thread.currentThread().getName() + ": 岗位同步完成：{}==={}" ,deptResult.size(),System.currentTimeMillis());
+                                            log.info(Thread.currentThread().getName() + ": 岗位同步完成：{}==={}", treeBeanStringMap.size(), System.currentTimeMillis());
 
-                                            //todo 人员数据同步至sso
+                                            //人员数据同步至sso
                                             Map<String, List<Person>> personResult = personService.buildPerson(domainInfo);
-                                            log.info(Thread.currentThread().getName() + ": 人员同步完成{}==={}" ,deptResult.size(),System.currentTimeMillis());
-                                            //todo 人员身份数据同步至sso
+                                            log.info(Thread.currentThread().getName() + ": 人员同步完成{}==={}", personResult.size(), System.currentTimeMillis());
 
-                                            //todo 发送消息 MQ。
+                                            // todo 人员身份同步
 
-                                            log.info(Thread.currentThread().getName() + ": 结束" + System.currentTimeMillis());
                                         } catch (Exception e) {
                                             e.printStackTrace();
                                         }

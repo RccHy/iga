@@ -283,7 +283,7 @@ public class NodeRulesCalculationServiceImpl {
                 JSONArray upstreamTree = new JSONArray();
                 //   请求graphql查询，获得部门树
                 LocalDateTime timestamp = LocalDateTime.now();
-                upstreamTree = dataBusUtil.getDataByBus(upstreamType);
+                upstreamTree = dataBusUtil.getDataByBus(upstreamType,domain.getDomainName());
 //                if (null == dataByBus || null == dataByBus.get("data")) {
 //                    throw new Exception("数据获取失败");
 //                }

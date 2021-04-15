@@ -16,16 +16,17 @@ public class UrlUtil {
      * @return
      */
     static String getUrl(String url) {
-        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-        String personalUrl = url;
-        String port = ":" + request.getServerPort();
-        if (("http".equalsIgnoreCase(request.getScheme()) && request.getServerPort() == 80)
-                || ("https".equalsIgnoreCase(request.getScheme()) && request.getServerPort() == 443)) {
-            port = "";
-        }
 
-        String base = request.getScheme() + "://" + request.getServerName() + port;
+        String personalUrl = url;
+
         if (!isUrl(personalUrl)) {
+            HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+            String port = ":" + request.getServerPort();
+            if (("http".equalsIgnoreCase(request.getScheme()) && request.getServerPort() == 80)
+                    || ("https".equalsIgnoreCase(request.getScheme()) && request.getServerPort() == 443)) {
+                port = "";
+            }
+            String base = request.getScheme() + "://" + request.getServerName() + port;
             personalUrl = personalUrl.startsWith("/") ? personalUrl : ("/" + personalUrl);
             personalUrl = base + personalUrl;
         }

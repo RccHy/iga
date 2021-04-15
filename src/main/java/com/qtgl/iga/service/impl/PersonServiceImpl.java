@@ -10,6 +10,7 @@ import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.PersonService;
 import com.qtgl.iga.utils.DataBusUtil;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,8 +54,9 @@ public class PersonServiceImpl implements PersonService {
      * 2： 拉取上游源数据并根据 证件类型+证件 号码进行和重，并验证证件类型对应的号码是否符合 正则表达式
      * 3： 如果有手动合重规则，运算手动合重规则【待确认】
      */
+    @SneakyThrows
     @Override
-    public Map<String, List<Person>> buildPerson(DomainInfo domain) throws Exception {
+    public Map<String, List<Person>> buildPerson(DomainInfo domain)  {
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
             throw new Exception("租户不存在");
@@ -77,7 +79,7 @@ public class PersonServiceImpl implements PersonService {
             // 通过规则获取数据
             UpstreamType upstreamType = upstreamTypeDao.findById(rules.getUpstreamTypesId());
             ArrayList<Upstream> upstreams = upstreamDao.getUpstreams(upstreamType.getUpstreamId(), domain.getDomainId());
-            JSONArray dataByBus = dataBusUtil.getDataByBus(upstreamType);
+            JSONArray dataByBus = dataBusUtil.getDataByBus(upstreamType,domain.getDomainName());
             List<Person> personBeanList = dataByBus.toJavaList(Person.class);
             if (null != personBeanList) {
                 for (Person personBean : personBeanList) {

@@ -1,9 +1,7 @@
 package com.qtgl.iga.utils;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.google.gson.JsonArray;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.Token;
 import com.qtgl.iga.bo.UpstreamType;
@@ -20,7 +18,6 @@ import org.apache.oltu.oauth2.client.response.OAuthJSONAccessTokenResponse;
 import org.apache.oltu.oauth2.common.exception.OAuthProblemException;
 import org.apache.oltu.oauth2.common.exception.OAuthSystemException;
 import org.apache.oltu.oauth2.common.message.types.GrantType;
-import org.apache.oltu.oauth2.common.utils.OAuthUtils;
 import org.mountcloud.graphql.GraphqlClient;
 import org.mountcloud.graphql.request.query.DefaultGraphqlQuery;
 import org.mountcloud.graphql.request.query.GraphqlQuery;
@@ -66,42 +63,6 @@ public class DataBusUtil {
     private ConcurrentHashMap<String, Token> tokenMap = new ConcurrentHashMap<>();
 
 
-    public static String getService(String busUrl, String name) {
-        HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
-        String token = OAuthUtils.getAuthHeaderField(request.getHeader("Authorization"));
-        if (StringUtils.isBlank(token)) {
-            token = request.getParameter("access_token");
-        }
-
-        if (StringUtils.isBlank(token)) {
-            logger.error("getService[error]:Missing required args '[access_token]'");
-        }
-
-        logger.info("Service name:{}", name);
-
-        JSONObject params = new JSONObject();
-        String graphql = "query {" +
-                "services(filter:{name:{like:\"${name}\"}}){" +
-                "      id" +
-                "    }" +
-                "}";
-        params.put("query", graphql.replace("${name}", name));
-        logger.info("Service query:{}", graphql);
-        busUrl = UrlUtil.getUrl(busUrl);
-        logger.info("busUrl=>" + busUrl);
-        String result = sendPostRequest(busUrl + "?access_token=" + token, params);
-
-        assert result != null;
-        if (result.contains("data")) {
-            logger.info("services:{}", result);
-            return JSONObject.parseObject(result).getJSONObject("data").getJSONArray("services").getJSONObject(0).getString("id");
-        } else {
-            logger.error("services[error] name{}:", name);
-            logger.error("services[error]:{}", result);
-        }
-        return null;
-    }
-
     private static String sendPostRequest(String url, JSONObject params) {
         url = UrlUtil.getUrl(url);
         logger.info("pub post url:" + url);
@@ -119,19 +80,15 @@ public class DataBusUtil {
     }
 
 
-    public JSONArray getDataByBus(UpstreamType upstreamType) {
+    public JSONArray getDataByBus(UpstreamType upstreamType,String serverName) {
         //获取token
-        String key = getToken();
+        String key = getToken(serverName);
         String[] split = upstreamType.getGraphqlUrl().split("/");
 
         //根据url 获取请求地址
-        String substring = new StringBuffer(ssoUrl).replace(ssoUrl.length() - 4, ssoUrl.length(), busUrl).
-                append(graphqlUrl).append("/").append("builtin").append("?access_token=").append(key).toString();
-
+        String substring = new StringBuffer(busUrl).append(graphqlUrl).append("/").append("builtin").append("?access_token=").append(key).toString();
         //工具类过滤处理url
         String dealUrl = UrlUtil.getUrl(substring);
-
-
         //调用获取资源url
         String dataUrl = invokeUrl(dealUrl, split);
         //请求获取资源
@@ -140,11 +97,13 @@ public class DataBusUtil {
         return invokeForData(UrlUtil.getUrl(u), upstreamType);
     }
 
-    private String getToken() {
+    private String getToken(String serverName) {
         String sso = UrlUtil.getUrl(ssoUrl);
         //判断是否已有未过期token
-        HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
-        String serverName = request.getServerName();
+        if (StringUtils.isEmpty(serverName)) {
+            HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
+            serverName = request.getServerName();
+        }
 
         //获取domain 信息
         DomainInfo byDomainName = domainInfoService.getByDomainName(serverName);
@@ -364,13 +323,9 @@ public class DataBusUtil {
         return objects;
     }
 
-
-
-
-
-    public Map getDataByBus(UpstreamType upstreamType,Integer offset,Integer first) {
+    public Map getDataByBus(UpstreamType upstreamType, Integer offset, Integer first) {
         //获取token
-        String key = getToken();
+        String key = getToken(null);
         String[] split = upstreamType.getGraphqlUrl().split("/");
 
         //根据url 获取请求地址
@@ -386,11 +341,11 @@ public class DataBusUtil {
         //请求获取资源
         String u = dataUrl + "/" + "?access_token=" + key;
 
-        return invokeForMapData(UrlUtil.getUrl(u), upstreamType,offset,first);
+        return invokeForMapData(UrlUtil.getUrl(u), upstreamType, offset, first);
     }
 
 
-    private Map invokeForMapData(String dataUrl, UpstreamType upstreamType,Integer offset,Integer first) {
+    private Map invokeForMapData(String dataUrl, UpstreamType upstreamType, Integer offset, Integer first) {
         logger.info("source url " + dataUrl);
         //获取字段映射
         List<UpstreamTypeField> fields = upstreamTypeService.findFields(upstreamType.getId());
@@ -399,60 +354,58 @@ public class DataBusUtil {
         String methodName = type[5];
         Map<String, Object> result = null;
         JSONArray objects = new JSONArray();
-            if ("query".equals(type[4])) {
-                GraphqlQuery query = new DefaultGraphqlQuery(upstreamType.getSynType() + ":" + methodName);
-                if(null!=offset){
-                    query.addParameter("offset",offset);
+        if ("query".equals(type[4])) {
+            GraphqlQuery query = new DefaultGraphqlQuery(upstreamType.getSynType() + ":" + methodName);
+            if (null != offset) {
+                query.addParameter("offset", offset);
+            }
+            if (null != first) {
+                query.addParameter("first", first);
+            }
+            ResultAttributtes edges = new ResultAttributtes("edges");
+            ResultAttributtes node = new ResultAttributtes("node");
+            ArrayList<UpstreamTypeField> upstreamTypeFields = new ArrayList<>();
+            for (UpstreamTypeField field : fields) {
+                //   修改常量
+                if (field.getTargetField().contains("$")) {
+                    node.addResultAttributes(field.getSourceField() + ":" + field.getTargetField().substring(2, field.getTargetField().length() - 1));
+                } else {
+                    upstreamTypeFields.add(field);
                 }
-                if(null!=first){
-                    query.addParameter("first",first);
-                }
-                ResultAttributtes edges = new ResultAttributtes("edges");
-                ResultAttributtes node = new ResultAttributtes("node");
-                ArrayList<UpstreamTypeField> upstreamTypeFields = new ArrayList<>();
-                for (UpstreamTypeField field : fields) {
-                    //   修改常量
-                    if (field.getTargetField().contains("$")) {
-                        node.addResultAttributes(field.getSourceField() + ":" + field.getTargetField().substring(2, field.getTargetField().length() - 1));
-                    } else {
-                        upstreamTypeFields.add(field);
-                    }
-                }
+            }
 
-                edges.addResultAttributes(node);
-                query.addResultAttributes(edges);
-                query.addResultAttributes("totalCount");
+            edges.addResultAttributes(node);
+            query.addResultAttributes(edges);
+            query.addResultAttributes("totalCount");
 
 
+            logger.info("body " + query);
+            GraphqlResponse response = null;
+            try {
+                response = graphqlClient.doQuery(query);
+            } catch (IOException e) {
+                logger.info("response :  ->" + e.getMessage());
+                e.printStackTrace();
+            }
 
-                logger.info("body " + query);
-                GraphqlResponse response = null;
+            //获取数据，数据为map类型
+            assert response != null;
+            result = response.getData();
+            for (Map.Entry<String, Object> entry : result.entrySet()) {
+                logger.info("result  data --" + entry.getKey() + "------" + entry.getValue());
+            }
+
+            if (null == result || null == result.get("data")) {
                 try {
-                    response = graphqlClient.doQuery(query);
-                } catch (IOException e) {
-                    logger.info("response :  ->" + e.getMessage());
+                    throw new Exception("数据获取失败");
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
-
-                //获取数据，数据为map类型
-                assert response != null;
-                result = response.getData();
-                for (Map.Entry<String, Object> entry : result.entrySet()) {
-                    logger.info("result  data --" + entry.getKey() + "------" + entry.getValue());
-                }
-
-                if (null == result || null == result.get("data")) {
-                    try {
-                        throw new Exception("数据获取失败");
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-
-
-
             }
-        return  (Map) result.get("data");
+
+
+        }
+        return (Map) result.get("data");
 
 
     }

@@ -45,10 +45,13 @@ tenantId: "" 租户全局code(domain)
 | SSO_API_DATASOURCE_URL | sso-api项目数据库地址 | jdbc:mysql://XXXX:3306/sso-api
 | SSO_API_DATASOURCE_USERNAME | 数据库用户名 | ----- 
 | SSO_API_DATASOURCE_PASSWORD | 数据库地址 | ----- 
-| SSO_URL | 科探云SSO地址 | https://cloud.ketanyun.cn/sso 支持多租环境待相对路径 /sso
-| BUS_URL | 网关bus地址 | https://cloud.ketanyun.cn/bus 支持多租环境待相对路径 /bus
+| SSO_URL | 科探云SSO地址 | https://cloud.ketanyun.cn/sso 支持多租环境，多组环境下任意挑选其中一租户的sso绝对路径
+| BUS_URL | 网关bus地址 | https://cloud.ketanyun.cn/bus 支持多租环境，多组环境下任意挑选其中一租户的sso绝对路径
 | APP_CLIENT | 应用id | ------
 | APP_SECRET | 应用密钥 |------
 
 * 注：
 在maker中创建应用，并在sso/admin中勾选scope客户端认证：data、introspect
+  
+* TODO：
+SSO_URL、BUS_URL 多组环境下，支持标准的相对路径配置。
