@@ -4,10 +4,11 @@ import com.qtgl.iga.bo.Person;
 import lombok.Data;
 
 /**
- * <FileName> PersonBean
+ * <FileName> PersonEdge
  * <Desc>
  **/
 @Data
-public class PersonBean extends Person {
-    private Integer totalCount;
+public class PersonEdge {
+
+    private Person node;
 }

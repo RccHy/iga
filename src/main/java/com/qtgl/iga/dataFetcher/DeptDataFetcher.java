@@ -2,6 +2,7 @@ package com.qtgl.iga.dataFetcher;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.qtgl.iga.bean.PersonConnection;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.Person;
@@ -105,7 +106,7 @@ public class DeptDataFetcher {
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
 
 
-            List<Person> persons = personService.findPersons(arguments, domain);
+            PersonConnection persons = personService.findPersons(arguments, domain);
             return persons;
 
 

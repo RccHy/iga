@@ -4,13 +4,12 @@ package com.qtgl.iga.service.impl;
 import com.alibaba.druid.util.StringUtils;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.qtgl.iga.bean.PersonBean;
-import com.qtgl.iga.bean.TreeBean;
+import com.qtgl.iga.bean.PersonConnection;
+import com.qtgl.iga.bean.PersonEdge;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.PersonService;
 import com.qtgl.iga.utils.DataBusUtil;
-import com.qtgl.iga.utils.TreeEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,7 +77,7 @@ public class PersonServiceImpl implements PersonService {
             // 通过规则获取数据
             UpstreamType upstreamType = upstreamTypeDao.findById(rules.getUpstreamTypesId());
             ArrayList<Upstream> upstreams = upstreamDao.getUpstreams(upstreamType.getUpstreamId(), domain.getDomainId());
-            JSONArray dataByBus = dataBusUtil.getDataByBus(upstreamType, null, null);
+            JSONArray dataByBus = dataBusUtil.getDataByBus(upstreamType);
             List<Person> personBeanList = dataByBus.toJavaList(Person.class);
             if (null != personBeanList) {
                 for (Person personBean : personBeanList) {
@@ -193,25 +192,33 @@ public class PersonServiceImpl implements PersonService {
     }
 
     @Override
-    public List<Person> findPersons(Map<String, Object> arguments, DomainInfo domain) {
+    public PersonConnection findPersons(Map<String, Object> arguments, DomainInfo domain) {
+        List<PersonEdge> upstreamDept = new ArrayList<>();
         String upstreamTypeId = (String) arguments.get("upstreamTypeId");
         Integer offset = (Integer) arguments.get("offset");
         Integer first = (Integer) arguments.get("first");
-        UpstreamType byId = upstreamTypeDao.findById(upstreamTypeId);
-        JSONArray dataByBus = dataBusUtil.getDataByBus(byId, offset, first);
-        //验证树的合法性
-        if (dataByBus.size() <= 0) {
-            log.warn("上游源类型:{},获取数据为空", byId.getDescription());
-            return null;
-        }
-        List<Person> upstreamDept = new ArrayList<>();
-        //
-        for (Object o : dataByBus) {
-            JSONObject dept = (JSONObject) o;
+        UpstreamType upstreamType = upstreamTypeDao.findById(upstreamTypeId);
 
-            upstreamDept.add(dept.toJavaObject(PersonBean.class));
+        Map dataMap = dataBusUtil.getDataByBus(upstreamType, offset, first);
 
+        Map deptMap = (Map) dataMap.get(upstreamType.getSynType());
+        JSONArray deptArray = (JSONArray) JSONArray.toJSON(deptMap.get("edges"));
+        Integer totalCount = (Integer) deptMap.get("totalCount");
+        if (null != deptArray) {
+            for (Object deptOb : deptArray) {
+                JSONObject nodeJson = (JSONObject) deptOb;
+                JSONObject node1 = nodeJson.getJSONObject("node");
+                Person person = node1.toJavaObject(Person.class);
+                PersonEdge personEdge = new PersonEdge();
+                personEdge.setNode(person);
+                upstreamDept.add(personEdge);
+            }
         }
-        return upstreamDept;
+        PersonConnection personConnection = new PersonConnection();
+        personConnection.setEdges(upstreamDept);
+        personConnection.setTotalCount(totalCount);
+
+
+        return personConnection;
     }
 }

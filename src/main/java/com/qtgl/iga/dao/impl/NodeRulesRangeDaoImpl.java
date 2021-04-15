@@ -60,42 +60,44 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
         String str = "insert into t_mgr_node_rules_range  values (?,?,?,?,?,?,?,?,?)";
         boolean contains = false;
         for (NodeRulesVo nodeRule : nodeDto.getNodeRules()) {
-            // 只保存非继承的
-            if (null == nodeRule.getInheritId()) {
-                List<NodeRulesRange> nodeRulesRanges = nodeRule.getNodeRulesRanges();
-                for (NodeRulesRange nodeRulesRange : nodeRulesRanges) {
-                    if (null != nodeRulesRange.getId()) {
-                        nodeRulesRange.setCreateTime(nodeDto.getCreateTime());
-                        nodeRulesRange.setUpdateTime(nodeDto.getUpdateTime());
-                    } else {
-                        nodeRulesRange.setId(UUID.randomUUID().toString().replace("-", ""));
-                        nodeRulesRange.setCreateTime(nodeDto.getCreateTime());
-                        nodeRulesRange.setUpdateTime(null);
-                    }
-                    nodeRulesRange.setNodeRulesId(nodeRule.getId());
+            if (null != nodeRule.getNodeRulesRanges() && nodeRule.getNodeRulesRanges().size() > 0) {
+                // 只保存非继承的
+                if (null == nodeRule.getInheritId()) {
+                    List<NodeRulesRange> nodeRulesRanges = nodeRule.getNodeRulesRanges();
+                    for (NodeRulesRange nodeRulesRange : nodeRulesRanges) {
+                        if (null != nodeRulesRange.getId()) {
+                            nodeRulesRange.setCreateTime(nodeDto.getCreateTime());
+                            nodeRulesRange.setUpdateTime(nodeDto.getUpdateTime());
+                        } else {
+                            nodeRulesRange.setId(UUID.randomUUID().toString().replace("-", ""));
+                            nodeRulesRange.setCreateTime(nodeDto.getCreateTime());
+                            nodeRulesRange.setUpdateTime(null);
+                        }
+                        nodeRulesRange.setNodeRulesId(nodeRule.getId());
 
+                    }
+                    int[] ints = jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, nodeRulesRanges.get(i).getId());
+                            preparedStatement.setObject(2, nodeRulesRanges.get(i).getNodeRulesId());
+                            preparedStatement.setObject(3, nodeRulesRanges.get(i).getType());
+                            preparedStatement.setObject(4, nodeRulesRanges.get(i).getNode());
+                            preparedStatement.setObject(5, nodeRulesRanges.get(i).getRange());
+                            preparedStatement.setObject(6, null == nodeRulesRanges.get(i).getCreateTime() ? null : new Timestamp(nodeRulesRanges.get(i).getCreateTime()));
+                            preparedStatement.setObject(7, nodeRulesRanges.get(i).getRename());
+                            preparedStatement.setObject(8, null == nodeRulesRanges.get(i).getUpdateTime() ? null : new Timestamp(nodeRulesRanges.get(i).getUpdateTime()));
+                            preparedStatement.setObject(9, nodeRulesRanges.get(i).getStatus());
+
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return nodeRulesRanges.size();
+                        }
+                    });
+                    contains = contains || Arrays.toString(ints).contains("-1");
                 }
-                int[] ints = jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
-                    @Override
-                    public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                        preparedStatement.setObject(1, nodeRulesRanges.get(i).getId());
-                        preparedStatement.setObject(2, nodeRulesRanges.get(i).getNodeRulesId());
-                        preparedStatement.setObject(3, nodeRulesRanges.get(i).getType());
-                        preparedStatement.setObject(4, nodeRulesRanges.get(i).getNode());
-                        preparedStatement.setObject(5, nodeRulesRanges.get(i).getRange());
-                        preparedStatement.setObject(6, null == nodeRulesRanges.get(i).getCreateTime() ? null : new Timestamp(nodeRulesRanges.get(i).getCreateTime()));
-                        preparedStatement.setObject(7, nodeRulesRanges.get(i).getRename());
-                        preparedStatement.setObject(8, null == nodeRulesRanges.get(i).getUpdateTime() ? null : new Timestamp(nodeRulesRanges.get(i).getUpdateTime()));
-                        preparedStatement.setObject(9, nodeRulesRanges.get(i).getStatus());
-
-                    }
-
-                    @Override
-                    public int getBatchSize() {
-                        return nodeRulesRanges.size();
-                    }
-                });
-                contains = contains || Arrays.toString(ints).contains("-1");
             }
 
         }
@@ -156,7 +158,7 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
     }
 
     @Override
-    public Integer makeNodeRulesRangesToHistory(String id,Integer status) {
+    public Integer makeNodeRulesRangesToHistory(String id, Integer status) {
         String str = "update t_mgr_node_rules_range set  status= ? " +
                 "where id = ?  ";
         int update = jdbcIGA.update(str, preparedStatement -> {

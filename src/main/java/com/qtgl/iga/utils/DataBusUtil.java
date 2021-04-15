@@ -118,14 +118,8 @@ public class DataBusUtil {
 
     }
 
-    /**
-     * @Description:
-     * @param upstreamType
-     * @param offset 跳过几条
-     * @param first 取几条
-     * @return: com.alibaba.fastjson.JSONArray
-     */
-    public JSONArray getDataByBus(UpstreamType upstreamType,Integer offset,Integer first) {
+
+    public JSONArray getDataByBus(UpstreamType upstreamType) {
         //获取token
         String key = getToken();
         String[] split = upstreamType.getGraphqlUrl().split("/");
@@ -143,7 +137,7 @@ public class DataBusUtil {
         //请求获取资源
         String u = dataUrl + "/" + "?access_token=" + key;
 
-        return invokeForData(UrlUtil.getUrl(u), upstreamType,offset,first);
+        return invokeForData(UrlUtil.getUrl(u), upstreamType);
     }
 
     private String getToken() {
@@ -244,7 +238,7 @@ public class DataBusUtil {
 
     }
 
-    private JSONArray invokeForData(String dataUrl, UpstreamType upstreamType,Integer offset,Integer first) {
+    private JSONArray invokeForData(String dataUrl, UpstreamType upstreamType) {
         logger.info("source url " + dataUrl);
         //获取字段映射
         List<UpstreamTypeField> fields = upstreamTypeService.findFields(upstreamType.getId());
@@ -256,12 +250,6 @@ public class DataBusUtil {
         if (upstreamType.getIsPage()) {
             if ("query".equals(type[4])) {
                 GraphqlQuery query = new DefaultGraphqlQuery(upstreamType.getSynType() + ":" + methodName);
-                if(null!=offset){
-                    query.addParameter("offset",offset);
-                }
-                if(null!=first){
-                    query.addParameter("first",first);
-                }
                 ResultAttributtes edges = new ResultAttributtes("edges");
                 ResultAttributtes node = new ResultAttributtes("node");
                 ArrayList<UpstreamTypeField> upstreamTypeFields = new ArrayList<>();
@@ -276,8 +264,6 @@ public class DataBusUtil {
 
                 edges.addResultAttributes(node);
                 query.addResultAttributes(edges);
-                // todo 总条数
-                query.addResultAttributes("totalCount");
 
 
                 logger.info("body " + query);
@@ -307,7 +293,6 @@ public class DataBusUtil {
 
                 Map deptMap = (Map) dataMap.get(upstreamType.getSynType());
                 JSONArray deptArray = (JSONArray) JSONArray.toJSON(deptMap.get("edges"));
-                Object totalCount = deptMap.get("totalCount");
                 if (null != deptArray) {
                     for (Object deptOb : deptArray) {
                         JSONObject nodeJson = (JSONObject) deptOb;
@@ -317,9 +302,7 @@ public class DataBusUtil {
                                 node1.put(field.getSourceField(), field.getTargetField());
                             }
                         }
-                        if (null != offset && null != first) {
-                            node1.put("totalCount",totalCount);
-                        }
+
                         objects.add(node1);
                     }
                 }
@@ -330,12 +313,7 @@ public class DataBusUtil {
         }
         if ("query".equals(type[4])) {
             GraphqlQuery query = new DefaultGraphqlQuery(methodName);
-            if(null!=offset){
-                query.addParameter("offset",offset);
-            }
-            if(null!=first){
-                query.addParameter("first",first);
-            }
+
             ArrayList<UpstreamTypeField> upstreamTypeFields = new ArrayList<>();
             for (UpstreamTypeField field : fields) {
                 if (field.getTargetField().contains("$")) {
@@ -385,5 +363,99 @@ public class DataBusUtil {
 
         return objects;
     }
+
+
+
+
+
+    public Map getDataByBus(UpstreamType upstreamType,Integer offset,Integer first) {
+        //获取token
+        String key = getToken();
+        String[] split = upstreamType.getGraphqlUrl().split("/");
+
+        //根据url 获取请求地址
+        String substring = new StringBuffer(ssoUrl).replace(ssoUrl.length() - 4, ssoUrl.length(), busUrl).
+                append(graphqlUrl).append("/").append("builtin").append("?access_token=").append(key).toString();
+
+        //工具类过滤处理url
+        String dealUrl = UrlUtil.getUrl(substring);
+
+
+        //调用获取资源url
+        String dataUrl = invokeUrl(dealUrl, split);
+        //请求获取资源
+        String u = dataUrl + "/" + "?access_token=" + key;
+
+        return invokeForMapData(UrlUtil.getUrl(u), upstreamType,offset,first);
+    }
+
+
+    private Map invokeForMapData(String dataUrl, UpstreamType upstreamType,Integer offset,Integer first) {
+        logger.info("source url " + dataUrl);
+        //获取字段映射
+        List<UpstreamTypeField> fields = upstreamTypeService.findFields(upstreamType.getId());
+        String[] type = upstreamType.getGraphqlUrl().split("/");
+        GraphqlClient graphqlClient = GraphqlClient.buildGraphqlClient(dataUrl);
+        String methodName = type[5];
+        Map<String, Object> result = null;
+        JSONArray objects = new JSONArray();
+            if ("query".equals(type[4])) {
+                GraphqlQuery query = new DefaultGraphqlQuery(upstreamType.getSynType() + ":" + methodName);
+                if(null!=offset){
+                    query.addParameter("offset",offset);
+                }
+                if(null!=first){
+                    query.addParameter("first",first);
+                }
+                ResultAttributtes edges = new ResultAttributtes("edges");
+                ResultAttributtes node = new ResultAttributtes("node");
+                ArrayList<UpstreamTypeField> upstreamTypeFields = new ArrayList<>();
+                for (UpstreamTypeField field : fields) {
+                    //   修改常量
+                    if (field.getTargetField().contains("$")) {
+                        node.addResultAttributes(field.getSourceField() + ":" + field.getTargetField().substring(2, field.getTargetField().length() - 1));
+                    } else {
+                        upstreamTypeFields.add(field);
+                    }
+                }
+
+                edges.addResultAttributes(node);
+                query.addResultAttributes(edges);
+                query.addResultAttributes("totalCount");
+
+
+
+                logger.info("body " + query);
+                GraphqlResponse response = null;
+                try {
+                    response = graphqlClient.doQuery(query);
+                } catch (IOException e) {
+                    logger.info("response :  ->" + e.getMessage());
+                    e.printStackTrace();
+                }
+
+                //获取数据，数据为map类型
+                assert response != null;
+                result = response.getData();
+                for (Map.Entry<String, Object> entry : result.entrySet()) {
+                    logger.info("result  data --" + entry.getKey() + "------" + entry.getValue());
+                }
+
+                if (null == result || null == result.get("data")) {
+                    try {
+                        throw new Exception("数据获取失败");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+
+
+            }
+        return  (Map) result.get("data");
+
+
+    }
+
 
 }

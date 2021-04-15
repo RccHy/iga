@@ -5,7 +5,7 @@ extend type Query {
     #查询岗位
     posts(status:Int):[Dept]
     #查询人员  offset:跳过几条  first:取几条
-    persons(upstreamTypeId:String,offset:Int,first:Int):[Person]
+    persons(upstreamTypeId:String,offset:Int,first:Int):PersonConnection
 }
 
 
@@ -30,6 +30,17 @@ type Dept{
 
 }
 
+
+#分页结构###
+type PersonConnection{
+    edges: [PersonEdge]
+    totalCount: Int
+}
+
+type PersonEdge{
+    node: Person
+}
+
 type Person{
 
     name:String
@@ -40,7 +51,6 @@ type Person{
     tenantId:String
     cellphone:String
     email:String
-    totalCount:Int
 #    source:String
 #    dataSource:String
 #    active:String

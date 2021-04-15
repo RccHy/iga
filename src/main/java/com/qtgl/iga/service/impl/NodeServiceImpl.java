@@ -35,13 +35,12 @@ public class NodeServiceImpl implements NodeService {
 
     @Override
     public NodeDto saveNode(NodeDto node, String domain) throws Exception {
-        NodeDto nodeDto = null;
         //删除原有数据
         if (null != node.getId()) {
             HashMap<String, Object> hashMap = new HashMap<>();
             hashMap.put("id", node.getId());
             hashMap.put("type", node.getType());
-            nodeDto = deleteNode(hashMap, domain);
+            deleteNode(hashMap, domain);
         }
         //保留版本号
 
@@ -52,13 +51,14 @@ public class NodeServiceImpl implements NodeService {
             }
         }
 
+        //添加节点规则
+        node.setDomain(domain);
+        NodeDto save = nodeDao.save(node);
+        if (null == save) {
+            throw new Exception("添加节点失败");
+        }
         if (null != node.getNodeRules() && node.getNodeRules().size() > 0) {
-            //添加节点规则
-            node.setDomain(domain);
-            NodeDto save = nodeDao.save(node);
-            if (null == save) {
-                throw new Exception("添加节点失败");
-            }
+
             //添加节点规则明细
             NodeDto nodeRule = nodeRulesDao.saveNodeRules(save);
             if (null == nodeRule) {
@@ -72,7 +72,7 @@ public class NodeServiceImpl implements NodeService {
             return range;
         }
 
-        return new NodeDto();
+        return save;
 
     }
 
