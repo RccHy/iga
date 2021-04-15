@@ -4,7 +4,9 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.DomainInfo;
+import com.qtgl.iga.bo.Person;
 import com.qtgl.iga.service.DeptService;
+import com.qtgl.iga.service.PersonService;
 import com.qtgl.iga.service.PostService;
 import com.qtgl.iga.utils.CertifiedConnector;
 import com.qtgl.iga.utils.GraphqlError;
@@ -31,6 +33,9 @@ public class DeptDataFetcher {
     @Autowired
     PostService postService;
 
+    @Autowired
+    PersonService personService;
+
 
     public DataFetcher findDept() {
         return dataFetchingEvn -> {
@@ -44,7 +49,7 @@ public class DeptDataFetcher {
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.error(domain.getDomainName() + e.getMessage());
-                List<TreeBean> treeBeans = deptService.findDeptByDomainName(domain.getDomainName(), (String) arguments.get("treeType"),0);
+                List<TreeBean> treeBeans = deptService.findDeptByDomainName(domain.getDomainName(), (String) arguments.get("treeType"), 0);
 
                 return getObject(e, treeBeans);
 
@@ -61,7 +66,7 @@ public class DeptDataFetcher {
             // 获取传入参数
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
             try {
-                List<TreeBean> posts = postService.findPosts(arguments,domain);
+                List<TreeBean> posts = postService.findPosts(arguments, domain);
                 return posts;
             } catch (Exception e) {
                 e.printStackTrace();
@@ -90,5 +95,20 @@ public class DeptDataFetcher {
         errorsList.add(new GraphqlError(e.getLocalizedMessage()));
 
         return new DataFetcherResult(treeBeans, errorsList);
+    }
+
+    public DataFetcher findPersons() {
+        return dataFetchingEvn -> {
+            //1。更具token信息验证是否合法，并判断其租户
+            DomainInfo domain = CertifiedConnector.getDomain();
+            // 获取传入参数
+            Map<String, Object> arguments = dataFetchingEvn.getArguments();
+
+
+            List<Person> persons = personService.findPersons(arguments, domain);
+            return persons;
+
+
+        };
     }
 }

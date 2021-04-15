@@ -118,8 +118,14 @@ public class DataBusUtil {
 
     }
 
-
-    public JSONArray getDataByBus(UpstreamType upstreamType) {
+    /**
+     * @Description:
+     * @param upstreamType
+     * @param offset 跳过几条
+     * @param first 取几条
+     * @return: com.alibaba.fastjson.JSONArray
+     */
+    public JSONArray getDataByBus(UpstreamType upstreamType,Integer offset,Integer first) {
         //获取token
         String key = getToken();
         String[] split = upstreamType.getGraphqlUrl().split("/");
@@ -137,7 +143,7 @@ public class DataBusUtil {
         //请求获取资源
         String u = dataUrl + "/" + "?access_token=" + key;
 
-        return invokeForData(UrlUtil.getUrl(u), upstreamType);
+        return invokeForData(UrlUtil.getUrl(u), upstreamType,offset,first);
     }
 
     private String getToken() {
@@ -238,7 +244,7 @@ public class DataBusUtil {
 
     }
 
-    private JSONArray invokeForData(String dataUrl, UpstreamType upstreamType) {
+    private JSONArray invokeForData(String dataUrl, UpstreamType upstreamType,Integer offset,Integer first) {
         logger.info("source url " + dataUrl);
         //获取字段映射
         List<UpstreamTypeField> fields = upstreamTypeService.findFields(upstreamType.getId());
@@ -250,6 +256,12 @@ public class DataBusUtil {
         if (upstreamType.getIsPage()) {
             if ("query".equals(type[4])) {
                 GraphqlQuery query = new DefaultGraphqlQuery(upstreamType.getSynType() + ":" + methodName);
+                if(null!=offset){
+                    query.addParameter("offset",offset);
+                }
+                if(null!=first){
+                    query.addParameter("first",first);
+                }
                 ResultAttributtes edges = new ResultAttributtes("edges");
                 ResultAttributtes node = new ResultAttributtes("node");
                 ArrayList<UpstreamTypeField> upstreamTypeFields = new ArrayList<>();
@@ -264,6 +276,8 @@ public class DataBusUtil {
 
                 edges.addResultAttributes(node);
                 query.addResultAttributes(edges);
+                // todo 总条数
+                query.addResultAttributes("totalCount");
 
 
                 logger.info("body " + query);
@@ -293,6 +307,7 @@ public class DataBusUtil {
 
                 Map deptMap = (Map) dataMap.get(upstreamType.getSynType());
                 JSONArray deptArray = (JSONArray) JSONArray.toJSON(deptMap.get("edges"));
+                Object totalCount = deptMap.get("totalCount");
                 if (null != deptArray) {
                     for (Object deptOb : deptArray) {
                         JSONObject nodeJson = (JSONObject) deptOb;
@@ -301,6 +316,9 @@ public class DataBusUtil {
                             for (UpstreamTypeField field : upstreamTypeFields) {
                                 node1.put(field.getSourceField(), field.getTargetField());
                             }
+                        }
+                        if (null != offset && null != first) {
+                            node1.put("totalCount",totalCount);
                         }
                         objects.add(node1);
                     }
@@ -312,6 +330,12 @@ public class DataBusUtil {
         }
         if ("query".equals(type[4])) {
             GraphqlQuery query = new DefaultGraphqlQuery(methodName);
+            if(null!=offset){
+                query.addParameter("offset",offset);
+            }
+            if(null!=first){
+                query.addParameter("first",first);
+            }
             ArrayList<UpstreamTypeField> upstreamTypeFields = new ArrayList<>();
             for (UpstreamTypeField field : fields) {
                 if (field.getTargetField().contains("$")) {

@@ -99,10 +99,10 @@ public class DeptServiceImpl implements DeptService {
     }
 
     /**
-     * @Description: 通过租户获取sso库的数据
      * @param domainName
      * @param treeType
      * @param delMark
+     * @Description: 通过租户获取sso库的数据
      * @return: java.util.List<com.qtgl.iga.bean.DeptBean>
      */
     @Override
@@ -129,7 +129,7 @@ public class DeptServiceImpl implements DeptService {
             throw new Exception("租户不存在");
         }
         //通过tenantId查询ssoApis库中的数据
-        List<TreeBean> beans = deptDao.findByTenantId(tenant.getId(), null,null);
+        List<TreeBean> beans = deptDao.findByTenantId(tenant.getId(), null, null);
         if (null != beans && beans.size() > 0) {
             //将null赋为""
             for (TreeBean bean : beans) {
@@ -232,7 +232,7 @@ public class DeptServiceImpl implements DeptService {
             if (null != depts && depts.size() > 0) {
                 logger.info("插入" + list.size() + "条数据{}", depts.toString());
             } else {
-                throw new Exception("插入失败");
+                throw new RuntimeException("插入失败");
             }
 
 
@@ -258,7 +258,7 @@ public class DeptServiceImpl implements DeptService {
             if (null != depts && depts.size() > 0) {
                 logger.info("更新" + list.size() + "条数据{}", depts.toString());
             } else {
-                throw new Exception("更新失败");
+                throw new RuntimeException("更新失败");
             }
 
         }
@@ -273,7 +273,7 @@ public class DeptServiceImpl implements DeptService {
             if (null != depts && depts.size() > 0) {
                 logger.info("删除" + list.size() + "条数据{}", depts.toString());
             } else {
-                throw new Exception("删除失败");
+                throw new RuntimeException("删除失败");
             }
         }
     }

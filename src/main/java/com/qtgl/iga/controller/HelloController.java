@@ -44,6 +44,6 @@ public class HelloController {
     @RequestMapping("/url")
     @ResponseBody
     public Object getUrl(@RequestBody UpstreamType upstreamType) {
-        return busUtil.getDataByBus(upstreamType);
+        return busUtil.getDataByBus(upstreamType,null,null);
     }
 }

@@ -4,6 +4,8 @@ extend type Query {
     depts(status:Int):[Dept]
     #查询岗位
     posts(status:Int):[Dept]
+    #查询人员  offset:跳过几条  first:取几条
+    persons(upstreamTypeId:String,offset:Int,first:Int):[Person]
 }
 
 
@@ -25,6 +27,27 @@ type Dept{
     type:String
     #标签
     tags:String
+
+}
+
+type Person{
+
+    name:String
+    accountNo:String
+    cardType:String
+    cardNo:String
+    tags:String
+    tenantId:String
+    cellphone:String
+    email:String
+    totalCount:Int
+#    source:String
+#    dataSource:String
+#    active:String
+#    activeTime:Timestamp
+#    createTime:Timestamp
+#    updateTime:Timestamp
+#    openId:String
 
 }
 

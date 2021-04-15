@@ -3,10 +3,14 @@ package com.qtgl.iga.service.impl;
 
 import com.alibaba.druid.util.StringUtils;
 import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.qtgl.iga.bean.PersonBean;
+import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.PersonService;
 import com.qtgl.iga.utils.DataBusUtil;
+import com.qtgl.iga.utils.TreeEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,7 +78,7 @@ public class PersonServiceImpl implements PersonService {
             // 通过规则获取数据
             UpstreamType upstreamType = upstreamTypeDao.findById(rules.getUpstreamTypesId());
             ArrayList<Upstream> upstreams = upstreamDao.getUpstreams(upstreamType.getUpstreamId(), domain.getDomainId());
-            JSONArray dataByBus = dataBusUtil.getDataByBus(upstreamType);
+            JSONArray dataByBus = dataBusUtil.getDataByBus(upstreamType, null, null);
             List<Person> personBeanList = dataByBus.toJavaList(Person.class);
             if (null != personBeanList) {
                 for (Person personBean : personBeanList) {
@@ -175,7 +179,7 @@ public class PersonServiceImpl implements PersonService {
             personDao.deletePerson(personList, tenant.getId());
             List<String> ids = personList.stream().map(Person::getId).collect(Collectors.toList());
             // 查IdentityAccount关联表
-             List<String> accounts = personDao.getAccountByIdentityId(ids);
+            List<String> accounts = personDao.getAccountByIdentityId(ids);
             // 根据关联关系 删除 account表
             personDao.deleteAccount(accounts);
             // 查IdentityUser关联表
@@ -185,6 +189,29 @@ public class PersonServiceImpl implements PersonService {
 
         }
 
-        return  result;
+        return result;
+    }
+
+    @Override
+    public List<Person> findPersons(Map<String, Object> arguments, DomainInfo domain) {
+        String upstreamTypeId = (String) arguments.get("upstreamTypeId");
+        Integer offset = (Integer) arguments.get("offset");
+        Integer first = (Integer) arguments.get("first");
+        UpstreamType byId = upstreamTypeDao.findById(upstreamTypeId);
+        JSONArray dataByBus = dataBusUtil.getDataByBus(byId, offset, first);
+        //验证树的合法性
+        if (dataByBus.size() <= 0) {
+            log.warn("上游源类型:{},获取数据为空", byId.getDescription());
+            return null;
+        }
+        List<Person> upstreamDept = new ArrayList<>();
+        //
+        for (Object o : dataByBus) {
+            JSONObject dept = (JSONObject) o;
+
+            upstreamDept.add(dept.toJavaObject(PersonBean.class));
+
+        }
+        return upstreamDept;
     }
 }

@@ -1,9 +1,9 @@
 extend type Query {
     #查询节点规则列表
-    nodes(id:ID,status:Int!,filter:NodeFilter,type:String!):[Node]
+    nodes(id:ID,status:Int,filter:NodeFilter,type:String!):[Node]
 
     #查询plus
-    nodesPlus(codes:[String]!,status:Int!,treeType:String!,type:String!):[Node]
+    nodesPlus(codes:[String]!,status:Int,treeType:String!,type:String!):[Node]
 }
 extend type Mutation {
     #新增节点规则
@@ -13,7 +13,7 @@ extend type Mutation {
     #更新节点规则
     updateNode(entity:InputNode!):Node
     #应用规则     mark为true 则为回滚  false为应用
-    applyNode(version:Timestamp!,mark:Boolean,type:String!):Node
+    applyNode(version:Timestamp,mark:Boolean,type:String!):Node
 #    #回滚规则
 #    rollbackNode(version:Timestamp!):Node
 }

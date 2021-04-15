@@ -15,5 +15,5 @@ public interface DeptService {
 
     List<TreeBean> findDeptByDomainName(String domainName, String treeType, Integer delMark);
 
-     Map<TreeBean, String> buildDeptUpdateResult(DomainInfo domain);
+    Map<TreeBean, String> buildDeptUpdateResult(DomainInfo domain);
 }
