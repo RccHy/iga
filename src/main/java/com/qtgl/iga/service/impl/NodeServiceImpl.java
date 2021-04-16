@@ -45,7 +45,7 @@ public class NodeServiceImpl implements NodeService {
         //保留版本号
 
         if (null == node.getCreateTime()) {
-            List<Node> nodesByStatusAndType = nodeDao.findNodesByStatusAndType(null, node.getType(), domain, null);
+            List<Node> nodesByStatusAndType = nodeDao.findNodesByStatusAndType(node.getStatus(), node.getType(), domain, null);
             if (null != nodesByStatusAndType) {
                 node.setCreateTime(nodesByStatusAndType.get(0).getCreateTime());
             }
@@ -260,19 +260,23 @@ public class NodeServiceImpl implements NodeService {
         if (null != nodes && nodes.size() > 0) {
             for (Node node : nodes) {
                 List<NodeRulesVo> rules = nodeRulesDao.findNodeRulesByNodeId(node.getId(), null);
-                for (NodeRulesVo rule : rules) {
-                    List<NodeRulesRange> ranges = nodeRulesRangeDao.getByRulesId(rule.getId(), null);
-                    for (NodeRulesRange range : ranges) {
-                        Integer rangeHistory = nodeRulesRangeDao.makeNodeRulesRangesToHistory(range.getId(), null == version ? 2 : 0);
-                        if (rangeHistory < 0) {
-                            logger.error("应用失败 range {}", range);
+                if (null != rules && rules.size() > 0) {
+                    for (NodeRulesVo rule : rules) {
+                        List<NodeRulesRange> ranges = nodeRulesRangeDao.getByRulesId(rule.getId(), null);
+                        if (null != ranges && ranges.size() > 0) {
+                            for (NodeRulesRange range : ranges) {
+                                Integer rangeHistory = nodeRulesRangeDao.makeNodeRulesRangesToHistory(range.getId(), null == version ? 2 : 0);
+                                if (rangeHistory < 0) {
+                                    logger.error("应用失败 range {}", range);
+                                    throw new RuntimeException("应用失败");
+                                }
+                            }
+                        }
+                        Integer ruleHistory = nodeRulesDao.makeNodeRulesToHistory(rule.getId(), null == version ? 2 : 0);
+                        if (ruleHistory < 0) {
+                            logger.error("应用失败rule  {}", rule);
                             throw new RuntimeException("应用失败");
                         }
-                    }
-                    Integer ruleHistory = nodeRulesDao.makeNodeRulesToHistory(rule.getId(), null == version ? 2 : 0);
-                    if (ruleHistory < 0) {
-                        logger.error("应用失败rule  {}", rule);
-                        throw new RuntimeException("应用失败");
                     }
                 }
                 Integer nodeHistory = nodeDao.makeNodeToHistory(domain, null == version ? 2 : 0, node.getId());

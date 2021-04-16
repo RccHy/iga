@@ -80,7 +80,7 @@ public class DataBusUtil {
     }
 
 
-    public JSONArray getDataByBus(UpstreamType upstreamType,String serverName) {
+    public JSONArray getDataByBus(UpstreamType upstreamType, String serverName) {
         //获取token
         String key = getToken(serverName);
         String[] split = upstreamType.getGraphqlUrl().split("/");

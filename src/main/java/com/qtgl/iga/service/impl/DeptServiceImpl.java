@@ -78,19 +78,23 @@ public class DeptServiceImpl implements DeptService {
         }
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
+        ArrayList<TreeBean> insert = new ArrayList<>();
         // 获取租户下开启的部门类型
         List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
         for (DeptTreeType deptType : deptTreeTypes) {
             Map<String, TreeBean> mainTreeMap = new ConcurrentHashMap<>();
             // id 改为code
-            calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeMap, status, TYPE,"system");
+            calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeMap, status, TYPE, "system");
             //  数据合法性
             Collection<TreeBean> mainDept = mainTreeMap.values();
             ArrayList<TreeBean> mainList = new ArrayList<>(mainDept);
             // 判断重复(code)
             calculationService.groupByCode(mainList);
 //            //同步到sso
-            beans = saveToSso(mainTreeMap, domain, deptType.getCode(), beans, result);
+            beans = saveToSso(mainTreeMap, domain, deptType.getCode(), beans, result,insert);
+        }
+        if(null!=beans){
+            beans.addAll(insert);
         }
         calculationService.groupByCode(beans);
 
@@ -140,19 +144,23 @@ public class DeptServiceImpl implements DeptService {
         }
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
+        ArrayList<TreeBean> treeBeans = new ArrayList<>();
         // 获取租户下开启的部门类型
         List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
         for (DeptTreeType deptType : deptTreeTypes) {
             Map<String, TreeBean> mainTreeMap = new ConcurrentHashMap<>();
             //  id 改为code
-            calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeMap, 0, TYPE,"task");
+            calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeMap, 0, TYPE, "task");
             //  数据合法性
             Collection<TreeBean> mainDept = mainTreeMap.values();
             ArrayList<TreeBean> mainList = new ArrayList<>(mainDept);
             // 判断重复(code)
             calculationService.groupByCode(mainList);
             //同步到sso
-            beans = saveToSso(mainTreeMap, domain, deptType.getCode(), beans, result);
+            beans = saveToSso(mainTreeMap, domain, deptType.getCode(), beans, result,treeBeans);
+        }
+        if(null!=treeBeans&&treeBeans.size()>0){
+            beans.addAll(treeBeans);
         }
         calculationService.groupByCode(beans);
         saveToSso(result, tenant.getId());
@@ -285,7 +293,7 @@ public class DeptServiceImpl implements DeptService {
      * @Description: 处理数据
      * @return: void
      */
-    private List<TreeBean> saveToSso(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> beans, Map<TreeBean, String> result) {
+    private List<TreeBean> saveToSso(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> beans, Map<TreeBean, String> result,ArrayList<TreeBean> insert) {
         Map<String, TreeBean> collect = new HashMap<>();
         if (null != beans && beans.size() > 0) {
             collect = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
@@ -330,11 +338,13 @@ public class DeptServiceImpl implements DeptService {
                 //没有相等的应该是新增
                 if (flag) {
                     //新增
-                    collect.put(treeBean.getCode(), treeBean);
+//                    collect.put(treeBean.getCode(), treeBean);
+                    insert.add(treeBean);
                     result.put(treeBean, "insert");
                 }
             } else {
-                collect.put(treeBean.getCode(), treeBean);
+//                collect.put(treeBean.getCode(), treeBean);
+                insert.add(treeBean);
                 result.put(treeBean, "insert");
             }
         }
@@ -344,7 +354,7 @@ public class DeptServiceImpl implements DeptService {
                 if (null != bean.getTreeType() && bean.getTreeType().equals(treeTypeId)) {
                     boolean flag = true;
                     for (TreeBean treeBean : result.keySet()) {
-                        if (bean.getCode().equals(treeBean.getCode())) {
+                        if (bean.getCode().equals(treeBean.getCode()) || "pull".equals(bean.getDataSource())) {
                             flag = false;
                             break;
                         }

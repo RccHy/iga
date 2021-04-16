@@ -56,7 +56,7 @@ public class PersonServiceImpl implements PersonService {
      */
     @SneakyThrows
     @Override
-    public Map<String, List<Person>> buildPerson(DomainInfo domain)  {
+    public Map<String, List<Person>> buildPerson(DomainInfo domain) {
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
             throw new Exception("租户不存在");
@@ -79,7 +79,7 @@ public class PersonServiceImpl implements PersonService {
             // 通过规则获取数据
             UpstreamType upstreamType = upstreamTypeDao.findById(rules.getUpstreamTypesId());
             ArrayList<Upstream> upstreams = upstreamDao.getUpstreams(upstreamType.getUpstreamId(), domain.getDomainId());
-            JSONArray dataByBus = dataBusUtil.getDataByBus(upstreamType,domain.getDomainName());
+            JSONArray dataByBus = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
             List<Person> personBeanList = dataByBus.toJavaList(Person.class);
             if (null != personBeanList) {
                 for (Person personBean : personBeanList) {

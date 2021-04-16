@@ -45,7 +45,6 @@ public class PostServiceImpl implements PostService {
     final String TYPE = "post";
 
 
-
     @Override
     public Map<TreeBean, String> buildPostUpdateResult(DomainInfo domain) throws Exception {
         //获取默认数据
@@ -71,7 +70,7 @@ public class PostServiceImpl implements PostService {
         Map<String, TreeBean> mainTreeMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
         // 将本次 add 进的 节点 进行 规则运算
         for (Map.Entry<String, TreeBean> entry : rootMap.entrySet()) {
-            calculationService.nodeRules(domain, null, entry.getKey(), mainTreeMap, 0, TYPE,"task");
+            calculationService.nodeRules(domain, null, entry.getKey(), mainTreeMap, 0, TYPE, "task");
         }
         Collection<TreeBean> mainDept = mainTreeMap.values();
         ArrayList<TreeBean> mainList = new ArrayList<>(mainDept);
@@ -134,7 +133,7 @@ public class PostServiceImpl implements PostService {
         Map<String, TreeBean> mainTreeMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
         // 将本次 add 进的 节点 进行 规则运算
         for (Map.Entry<String, TreeBean> entry : rootMap.entrySet()) {
-            calculationService.nodeRules(domain, null, entry.getKey(), mainTreeMap, status, TYPE,"system");
+            calculationService.nodeRules(domain, null, entry.getKey(), mainTreeMap, status, TYPE, "system");
         }
         System.out.println("==");
 
@@ -341,7 +340,7 @@ public class PostServiceImpl implements PostService {
             //查询数据库需要删除的数据
             for (TreeBean bean : beans) {
 
-                if (!"builtin".equals(bean.getDataSource())) {
+                if (!"builtin".equals(bean.getDataSource())||"pull".equals(bean.getDataSource())) {
                     boolean flag = true;
                     for (TreeBean treeBean : result.keySet()) {
                         if (bean.getCode().equals(treeBean.getCode())) {

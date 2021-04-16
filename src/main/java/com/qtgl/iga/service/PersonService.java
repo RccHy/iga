@@ -1,7 +1,6 @@
 package com.qtgl.iga.service;
 
 import com.qtgl.iga.bean.PersonConnection;
-import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.Person;
 
