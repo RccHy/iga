@@ -238,19 +238,19 @@ public class NodeRulesCalculationServiceImpl {
     }
 
     /**
-     * @Description: 规则运算
-     * @param domain  租户
+     * @param domain       租户
      * @param deptTreeType 组织机构树类型
-     * @param nodeCode 节点
+     * @param nodeCode     节点
      * @param mainTree
-     * @param status 状态(0:正式,1:编辑,2:历史)
-     * @param type 来源类型 person,post,dept,occupy
-     * @param operator 操作:task定时任务,system:系统操作
-     * @return: java.util.Map<java.lang.String,com.qtgl.iga.bean.TreeBean>
+     * @param status       状态(0:正式,1:编辑,2:历史)
+     * @param type         来源类型 person,post,dept,occupy
+     * @param operator     操作:task定时任务,system:系统操作
+     * @Description: 规则运算
+     * @return: java.util.Map<java.lang.String, com.qtgl.iga.bean.TreeBean>
      */
-    public Map<String, TreeBean> nodeRules(DomainInfo domain, String deptTreeType, String nodeCode, Map<String, TreeBean> mainTree, Integer status, String type,String operator) throws Exception {
+    public List<TreeBean> nodeRules(DomainInfo domain, String deptTreeType, String nodeCode, List<TreeBean> mainTree, Integer status, String type, String operator) throws Exception {
         //获取根节点的规则
-        List<Node> nodes = nodeDao.getByCode(domain.getId(), deptTreeType, nodeCode, status,type);
+        List<Node> nodes = nodeDao.getByCode(domain.getId(), deptTreeType, nodeCode, status, type);
         for (Node node : nodes) {
             if (null == node) {
                 return mainTree;
@@ -261,7 +261,9 @@ public class NodeRulesCalculationServiceImpl {
             List<NodeRules> nodeRules = rulesDao.getByNodeAndType(node.getId(), 1, true, status);
 
             //将主树进行 分组
-            final Collection<TreeBean> mainDept = mainTree.values();
+            Map<String, TreeBean> mainTreeMap = mainTree.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+
+            final Collection<TreeBean> mainDept = mainTreeMap.values();
             final Map<String, List<TreeBean>> mainTreeChildren = TreeUtil.groupChildren(new ArrayList<>(mainDept));
 
 
@@ -289,7 +291,7 @@ public class NodeRulesCalculationServiceImpl {
                 JSONArray upstreamTree = new JSONArray();
                 //   请求graphql查询，获得部门树
                 LocalDateTime timestamp = LocalDateTime.now();
-                upstreamTree = dataBusUtil.getDataByBus(upstreamType,domain.getDomainName());
+                upstreamTree = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
 //                if (null == dataByBus || null == dataByBus.get("data")) {
 //                    throw new Exception("数据获取失败");
 //                }
@@ -329,14 +331,14 @@ public class NodeRulesCalculationServiceImpl {
                     upstreamDept.add(dept.toJavaObject(TreeBean.class));
 
                 }
-               if("task".equals(operator)){
-                   //   待优化
-                   Integer flag = saveDataToDb(upstreamTree, upstreamType.getId());
-                   if (!(flag > 0)) {
-                       throw new Exception("数据插入 iga 失败");
-                   }
-                   logger.error("节点'{}'数据入库完成", code);
-               }
+                if ("task".equals(operator)) {
+                    //   待优化
+                    Integer flag = saveDataToDb(upstreamTree, upstreamType.getId());
+                    if (!(flag > 0)) {
+                        throw new Exception("数据插入 iga 失败");
+                    }
+                    logger.error("节点'{}'数据入库完成", code);
+                }
                 //对树 json 转为 map
                 Map<String, TreeBean> upstreamMap = TreeUtil.toMap(upstreamDept);
 
@@ -347,7 +349,7 @@ public class NodeRulesCalculationServiceImpl {
                 Map<String, TreeBean> mergeDeptMap = new ConcurrentHashMap<>();
                 logger.error("节点'{}'开始运行挂载", code);
                 //获取并检测 需要挂载的树， add 进入 待合并的树集合 mergeDept
-                mountRules(nodeCode, mainTree, upstreamMap, childrenMap, nodeRulesRanges, mergeDeptMap, upstream.getAppCode());
+                mountRules(nodeCode, mainTreeMap, upstreamMap, childrenMap, nodeRulesRanges, mergeDeptMap, upstream.getAppCode());
                 //在挂载基础上进行排除
                 excludeRules(mergeDeptMap, childrenMap, nodeRulesRanges);
                 logger.error("节点'{}'开始运行排除", code);
@@ -377,14 +379,14 @@ public class NodeRulesCalculationServiceImpl {
                         // 当前权重大于 继承来源
                         if (nodeRule.getSort() < nodeRulesEntry.getValue().getSort()) {
                             Map<String, TreeBean> mainTreeMap2 = new ConcurrentHashMap<>();
-                            mainTreeMap2.putAll(mainTree);
+                            mainTreeMap2.putAll(mainTreeMap);
                             for (Map.Entry<String, TreeBean> deptEntry : mainTreeMap2.entrySet()) {
                                 String key = deptEntry.getKey();
                                 TreeBean value = deptEntry.getValue();
-                                if (mainTree.containsKey(key) &&
-                                        mainTree.get(key).getParentCode().equals(value.getParentCode())
+                                if (mainTreeMap.containsKey(key) &&
+                                        mergeDeptMap.get(key).getParentCode().equals(value.getParentCode())
                                 ) {
-                                    mainTree.remove(key);
+                                    mainTreeMap.remove(key);
                                 }
                             }
                         } else {
@@ -394,7 +396,7 @@ public class NodeRulesCalculationServiceImpl {
                             for (Map.Entry<String, TreeBean> deptEntry : mergeDeptMap2.entrySet()) {
                                 String key = deptEntry.getKey();
                                 TreeBean value = deptEntry.getValue();
-                                if (mainTree.containsKey(key) && mainTree.get(key).getParentCode().equals(value.getParentCode())) {
+                                if (mainTreeMap.containsKey(key) && mainTreeMap.get(key).getParentCode().equals(value.getParentCode())) {
                                     mergeDeptMap.remove(key);
                                 }
                             }
@@ -405,7 +407,7 @@ public class NodeRulesCalculationServiceImpl {
                     // 完全没有继承
                     if (nodeRule.getSort() == 0) {
                         // 完全不继承 第一个数据源， 需处理掉 主树当前节点下所有的子集
-                        TreeUtil.removeMainTree(nodeCode, mainTreeChildren, mainTree);
+                        TreeUtil.removeMainTree(nodeCode, mainTreeChildren, mainTreeMap);
                     } else {
                         //完全不继承 非一个数据源， 直接去重 向主树合并
                         Map<String, TreeBean> mergeDeptMap2 = new ConcurrentHashMap<>();
@@ -413,7 +415,7 @@ public class NodeRulesCalculationServiceImpl {
                         for (Map.Entry<String, TreeBean> deptEntry : mergeDeptMap2.entrySet()) {
                             String key = deptEntry.getKey();
                             TreeBean value = deptEntry.getValue();
-                            if (mainTree.containsKey(key) && mainTree.get(key).getParentCode().equals(value.getParentCode())) {
+                            if (mainTreeMap.containsKey(key) && mainTreeMap.get(key).getParentCode().equals(value.getParentCode())) {
                                 mergeDeptMap.remove(key);
                             }
                         }
@@ -422,11 +424,14 @@ public class NodeRulesCalculationServiceImpl {
 
                 }
 
+                if (null != mergeDeptMap) {
+                    Collection<TreeBean> values = mergeDeptMap.values();
 
-                mainTree.putAll(mergeDeptMap);
+                    mainTree.addAll(new ArrayList<>(values));
+                }
                 // 将本次 add 进的 节点 进行 规则运算
                 for (Map.Entry<String, TreeBean> entry : mergeDeptMap.entrySet()) {
-                    nodeRules(domain, deptTreeType, entry.getValue().getCode(), mainTree, status,type,operator);
+                    nodeRules(domain, deptTreeType, entry.getValue().getCode(), mainTree, status, type, operator);
                 }
 
                 /*========================规则运算完成=============================*/
@@ -498,7 +503,7 @@ public class NodeRulesCalculationServiceImpl {
                 num = (num == null ? 0 : num) + 1;
                 map.put(treeBean.getCode(), num);
                 if (num > 1) {
-                    result.put(treeBean.getCode(), num);
+                    result.put(treeBean.getName(), num);
                 }
             }
         }
@@ -515,7 +520,7 @@ public class NodeRulesCalculationServiceImpl {
      * @return: java.lang.Integer
      */
     @Transactional
-     Integer saveDataToDb(JSONArray upstreamTree, String id) {
+    Integer saveDataToDb(JSONArray upstreamTree, String id) {
         //上游数据已有时间戳的情况
         UpstreamDept upstreamDept = new UpstreamDept();
         upstreamDept.setDept(upstreamTree.toJSONString());

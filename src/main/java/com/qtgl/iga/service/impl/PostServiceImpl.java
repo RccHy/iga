@@ -46,6 +46,7 @@ public class PostServiceImpl implements PostService {
 
 
     @Override
+    @Transactional
     public Map<TreeBean, String> buildPostUpdateResult(DomainInfo domain) throws Exception {
         //获取默认数据
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
@@ -65,17 +66,23 @@ public class PostServiceImpl implements PostService {
         }
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
+        ArrayList<TreeBean> treeBeans = new ArrayList<>();
+
         //转化为map
-        Map<String, TreeBean> rootMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-        Map<String, TreeBean> mainTreeMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+//        Map<String, TreeBean> rootMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+//        Map<String, TreeBean> mainTreeMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+        List<TreeBean> mainTreeBeans = new ArrayList<>();
         // 将本次 add 进的 节点 进行 规则运算
-        for (Map.Entry<String, TreeBean> entry : rootMap.entrySet()) {
-            calculationService.nodeRules(domain, null, entry.getKey(), mainTreeMap, 0, TYPE, "task");
+//        for (Map.Entry<String, TreeBean> entry : rootMap.entrySet()) {
+//            calculationService.nodeRules(domain, null, entry.getKey(), mainTreeMap, status, TYPE, "system");
+//        }
+        for (TreeBean rootBean : rootBeans) {
+            calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, "system");
         }
-        Collection<TreeBean> mainDept = mainTreeMap.values();
-        ArrayList<TreeBean> mainList = new ArrayList<>(mainDept);
+//        Collection<TreeBean> mainDept = mainTreeMap.values();
+//        ArrayList<TreeBean> mainList = new ArrayList<>(mainDept);
         // 判断重复(code)
-        calculationService.groupByCode(mainList);
+        calculationService.groupByCode(mainTreeBeans);
 
         //通过tenantId查询ssoApis库中的数据
         List<TreeBean> beans = postDao.findByTenantId(tenant.getId());
@@ -87,8 +94,13 @@ public class PostServiceImpl implements PostService {
                 }
             }
         }
+        Map<String, TreeBean> collect = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+
         //同步到sso
-        beans = saveToSso(mainTreeMap, domain, "", beans, result);
+        beans = saveToSso(collect, domain, "", beans, result, treeBeans);
+        if (null != beans) {
+            beans.addAll(treeBeans);
+        }
 
         // 判断重复(code)
         calculationService.groupByCode(beans);
@@ -96,17 +108,21 @@ public class PostServiceImpl implements PostService {
         saveToSso(result, tenant.getId());
 
         return result;
+
     }
 
     @Override
     public List<TreeBean> findPosts(Map<String, Object> arguments, DomainInfo domain) throws Exception {
         Integer status = nodeService.judgeEdit(arguments, domain, TYPE);
+        if (status == null) {
+            return null;
+        }
         //获取默认数据
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
             throw new Exception("租户不存在");
         }
-        //  置空mainTree
+        //  置空 mainTree
         List<TreeBean> rootBeans = postDao.findRootData(tenant.getId());
         if (null != rootBeans && rootBeans.size() > 0) {
             for (TreeBean rootBean : rootBeans) {
@@ -117,9 +133,6 @@ public class PostServiceImpl implements PostService {
         } else {
             throw new Exception("请检查根树是否合法");
         }
-        if (status == null) {
-            return rootBeans;
-        }
 
         //sso dept库的数据(通过domain 关联tenant查询)
         if (null == tenant) {
@@ -128,20 +141,27 @@ public class PostServiceImpl implements PostService {
 
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
+        ArrayList<TreeBean> treeBeans = new ArrayList<>();
+
         //转化为map
-        Map<String, TreeBean> rootMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-        Map<String, TreeBean> mainTreeMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+//        Map<String, TreeBean> rootMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+//        Map<String, TreeBean> mainTreeMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+        List<TreeBean> mainTreeBeans = new ArrayList<>();
         // 将本次 add 进的 节点 进行 规则运算
-        for (Map.Entry<String, TreeBean> entry : rootMap.entrySet()) {
-            calculationService.nodeRules(domain, null, entry.getKey(), mainTreeMap, status, TYPE, "system");
+//        for (Map.Entry<String, TreeBean> entry : rootMap.entrySet()) {
+//            calculationService.nodeRules(domain, null, entry.getKey(), mainTreeMap, status, TYPE, "system");
+//        }
+        for (TreeBean rootBean : rootBeans) {
+            calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, "system");
         }
         System.out.println("==");
 
-        Collection<TreeBean> mainDept = mainTreeMap.values();
-        ArrayList<TreeBean> mainList = new ArrayList<>(mainDept);
+//        Collection<TreeBean> mainDept = mainTreeMap.values();
+//        ArrayList<TreeBean> mainList = new ArrayList<>(mainDept);
 
         // 判断重复(code)
-        calculationService.groupByCode(mainList);
+        calculationService.groupByCode(mainTreeBeans);
+
 
         //通过tenantId查询ssoApis库中的数据
         List<TreeBean> beans = postDao.findByTenantId(tenant.getId());
@@ -154,8 +174,12 @@ public class PostServiceImpl implements PostService {
             }
         }
         //同步到sso
-        beans = saveToSso(mainTreeMap, domain, "", beans, result);
+        Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+        beans = saveToSso(mainTreeMap, domain, "", beans, result, treeBeans);
 
+        if (null != beans) {
+            beans.addAll(treeBeans);
+        }
         // 判断重复(code)
         calculationService.groupByCode(beans);
 
@@ -245,31 +269,12 @@ public class PostServiceImpl implements PostService {
     }
 
 
-//    private void groupByCode(List<DeptBean> deptBeans) throws Exception {
-//        HashMap<String, Integer> map = new HashMap<>();
-//        HashMap<String, Integer> result = new HashMap<>();
-//        if (null != deptBeans && deptBeans.size() > 0) {
-//            for (DeptBean deptBean : deptBeans) {
-//                Integer num = map.get(deptBean.getCode());
-//                num = (num == null ? 0 : num) + 1;
-//                map.put(deptBean.getCode(), num);
-//                if (num > 1) {
-//                    result.put(deptBean.getCode(), num);
-//                }
-//            }
-//        }
-//
-//        if (result != null && result.size() > 0) {
-//            throw new Exception("有重复code" + result.toString());
-//        }
-//    }
-
     /**
      * @param mainTree
      * @Description: 处理数据
      * @return: void
      */
-    private List<TreeBean> saveToSso(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> beans, Map<TreeBean, String> result) throws Exception {
+    private List<TreeBean> saveToSso(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> beans, Map<TreeBean, String> result, ArrayList<TreeBean> insert) {
         Map<String, TreeBean> collect = new HashMap<>();
         if (null != beans && beans.size() > 0) {
             collect = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
@@ -327,11 +332,13 @@ public class PostServiceImpl implements PostService {
                     //没有相等的应该是新增
                     if (flag) {
                         //新增
-                        collect.put(treeBean.getCode(), treeBean);
+//                        collect.put(treeBean.getCode(), treeBean);
+                        insert.add(treeBean);
                         result.put(treeBean, "insert");
                     }
                 } else {
-                    collect.put(treeBean.getCode(), treeBean);
+//                    collect.put(treeBean.getCode(), treeBean);
+                    insert.add(treeBean);
                     result.put(treeBean, "insert");
                 }
             }
@@ -340,7 +347,7 @@ public class PostServiceImpl implements PostService {
             //查询数据库需要删除的数据
             for (TreeBean bean : beans) {
 
-                if (!"builtin".equals(bean.getDataSource())||"pull".equals(bean.getDataSource())) {
+                if (!"builtin".equals(bean.getDataSource()) || "pull".equals(bean.getDataSource())) {
                     boolean flag = true;
                     for (TreeBean treeBean : result.keySet()) {
                         if (bean.getCode().equals(treeBean.getCode())) {

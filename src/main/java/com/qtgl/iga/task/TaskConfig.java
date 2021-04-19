@@ -28,9 +28,8 @@ public class TaskConfig {
     DomainInfoService domainInfoService;
 
 
-
-     @Autowired
-     DeptService deptService;
+    @Autowired
+    DeptService deptService;
 
     @Autowired
     PersonService personService;

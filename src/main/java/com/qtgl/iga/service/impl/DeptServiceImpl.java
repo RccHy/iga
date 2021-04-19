@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -82,22 +81,23 @@ public class DeptServiceImpl implements DeptService {
         // 获取租户下开启的部门类型
         List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
         for (DeptTreeType deptType : deptTreeTypes) {
-            Map<String, TreeBean> mainTreeMap = new ConcurrentHashMap<>();
+//            Map<String, TreeBean> mainTreeMap = new ConcurrentHashMap<>();
+            List<TreeBean> mainTreeBeans = new ArrayList<>();
             // id 改为code
-            calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeMap, status, TYPE, "system");
+            calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE, "system");
             //  数据合法性
-            Collection<TreeBean> mainDept = mainTreeMap.values();
-            ArrayList<TreeBean> mainList = new ArrayList<>(mainDept);
+//            Collection<TreeBean> mainDept = mainTreeMap.values();
+//            ArrayList<TreeBean> mainList = new ArrayList<>(mainDept);
             // 判断重复(code)
-            calculationService.groupByCode(mainList);
+            calculationService.groupByCode(mainTreeBeans);
 //            //同步到sso
-            beans = saveToSso(mainTreeMap, domain, deptType.getCode(), beans, result,insert);
+            Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+            beans = saveToSso(mainTreeMap, domain, deptType.getCode(), beans, result, insert);
         }
-        if(null!=beans){
+        if (null != beans) {
             beans.addAll(insert);
         }
         calculationService.groupByCode(beans);
-
         return beans;
 
     }
@@ -148,18 +148,20 @@ public class DeptServiceImpl implements DeptService {
         // 获取租户下开启的部门类型
         List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
         for (DeptTreeType deptType : deptTreeTypes) {
-            Map<String, TreeBean> mainTreeMap = new ConcurrentHashMap<>();
+//            Map<String, TreeBean> mainTreeMap = new ConcurrentHashMap<>();
+            List<TreeBean> mainTreeBeans = new ArrayList<>();
             //  id 改为code
-            calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeMap, 0, TYPE, "task");
+            calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE, "task");
             //  数据合法性
-            Collection<TreeBean> mainDept = mainTreeMap.values();
-            ArrayList<TreeBean> mainList = new ArrayList<>(mainDept);
+//            Collection<TreeBean> mainDept = mainTreeMap.values();
+//            ArrayList<TreeBean> mainList = new ArrayList<>(mainDept);
             // 判断重复(code)
-            calculationService.groupByCode(mainList);
+            calculationService.groupByCode(mainTreeBeans);
             //同步到sso
-            beans = saveToSso(mainTreeMap, domain, deptType.getCode(), beans, result,treeBeans);
+            Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+            beans = saveToSso(mainTreeMap, domain, deptType.getCode(), beans, result, treeBeans);
         }
-        if(null!=treeBeans&&treeBeans.size()>0){
+        if (null != treeBeans && treeBeans.size() > 0) {
             beans.addAll(treeBeans);
         }
         calculationService.groupByCode(beans);
@@ -226,8 +228,8 @@ public class DeptServiceImpl implements DeptService {
      * @Description: 插入sso数据库
      * @return: void
      */
-    @Transactional
-    void saveToSso(Map<TreeBean, String> result, String tenantId) throws Exception {
+    @Transactional(rollbackFor = Exception.class)
+    void saveToSso(Map<TreeBean, String> result, String tenantId) {
         //插入数据
         Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
         List<Map.Entry<TreeBean, String>> insert = collect.get("insert");
@@ -293,7 +295,7 @@ public class DeptServiceImpl implements DeptService {
      * @Description: 处理数据
      * @return: void
      */
-    private List<TreeBean> saveToSso(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> beans, Map<TreeBean, String> result,ArrayList<TreeBean> insert) {
+    private List<TreeBean> saveToSso(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> beans, Map<TreeBean, String> result, ArrayList<TreeBean> insert) {
         Map<String, TreeBean> collect = new HashMap<>();
         if (null != beans && beans.size() > 0) {
             collect = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
@@ -315,7 +317,7 @@ public class DeptServiceImpl implements DeptService {
                 for (TreeBean bean : beans) {
                     if (treeBean.getCode().equals(bean.getCode())) {
                         //
-                        if (treeBean.getTreeType().equals(bean.getTreeType())) {
+//                        if (treeBean.getTreeType().equals(bean.getTreeType())) {
                             if (null != treeBean.getCreateTime()) {
                                 //修改
                                 if (null == bean.getCreateTime() || treeBean.getCreateTime().isAfter(bean.getCreateTime())) {
@@ -333,7 +335,7 @@ public class DeptServiceImpl implements DeptService {
 //                        else {
 //                            throw new RuntimeException(deptBean + "与" + bean + "code重复");
 //                        }
-                    }
+//                    }
                 }
                 //没有相等的应该是新增
                 if (flag) {
@@ -354,7 +356,7 @@ public class DeptServiceImpl implements DeptService {
                 if (null != bean.getTreeType() && bean.getTreeType().equals(treeTypeId)) {
                     boolean flag = true;
                     for (TreeBean treeBean : result.keySet()) {
-                        if (bean.getCode().equals(treeBean.getCode()) || "pull".equals(bean.getDataSource())) {
+                        if (bean.getCode().equals(treeBean.getCode()) || (!"pull".equals(bean.getDataSource()))) {
                             flag = false;
                             break;
                         }
