@@ -55,7 +55,7 @@ public class TaskConfig {
                                 executorService.execute(new Runnable() {
                                     @Override
                                     public void run() {
-                                        try {
+                                     //   try {
                                             //部门数据同步至sso
                                             final Map<TreeBean, String> deptResult = deptService.buildDeptUpdateResult(domainInfo);
                                             log.info(Thread.currentThread().getName() + ": 部门同步完成：{}==={}", deptResult.size(), System.currentTimeMillis());
@@ -70,9 +70,9 @@ public class TaskConfig {
 
                                             // todo 人员身份同步
 
-                                        } catch (Exception e) {
+                                       /* } catch (Exception e) {
                                             e.printStackTrace();
-                                        }
+                                        }*/
                                     }
                                 });
 

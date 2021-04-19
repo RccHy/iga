@@ -19,7 +19,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-//@Transactional
+@Transactional(rollbackFor = Exception.class)
 public class DeptServiceImpl implements DeptService {
 
 
@@ -228,8 +228,7 @@ public class DeptServiceImpl implements DeptService {
      * @Description: 插入sso数据库
      * @return: void
      */
-    @Transactional(rollbackFor = Exception.class)
-    void saveToSso(Map<TreeBean, String> result, String tenantId) {
+    public void saveToSso(Map<TreeBean, String> result, String tenantId)  {
         //插入数据
         Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
         List<Map.Entry<TreeBean, String>> insert = collect.get("insert");

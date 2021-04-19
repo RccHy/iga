@@ -10,7 +10,7 @@ import java.util.Map;
 public interface PersonService {
 
 
-    Map<String, List<Person>> buildPerson(DomainInfo domain) throws Exception;
+    Map<String, List<Person>> buildPerson(DomainInfo domain);
 
     PersonConnection findPersons(Map<String, Object> arguments, DomainInfo domain);
 }

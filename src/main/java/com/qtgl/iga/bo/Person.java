@@ -2,6 +2,8 @@ package com.qtgl.iga.bo;
 
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 @Data
 public class Person {
 
@@ -18,9 +20,9 @@ public class Person {
     private String source;
     private String dataSource;
     private String active;
-    private Long activeTime;
-    private Long createTime;
-    private Long updateTime;
+    private String activeTime;
+    private LocalDateTime createTime;
+    private LocalDateTime updateTime;
     private Integer delMark;
 
     private String openId;

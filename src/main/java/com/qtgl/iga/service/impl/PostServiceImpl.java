@@ -10,6 +10,7 @@ import com.qtgl.iga.dao.TenantDao;
 import com.qtgl.iga.service.NodeService;
 import com.qtgl.iga.service.PostService;
 
+import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,9 +46,11 @@ public class PostServiceImpl implements PostService {
     final String TYPE = "post";
 
 
+
+    @SneakyThrows
     @Override
     @Transactional
-    public Map<TreeBean, String> buildPostUpdateResult(DomainInfo domain) throws Exception {
+    public Map<TreeBean, String> buildPostUpdateResult(DomainInfo domain) {
         //获取默认数据
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {

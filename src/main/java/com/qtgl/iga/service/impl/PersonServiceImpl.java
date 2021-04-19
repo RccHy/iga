@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,7 +27,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional
 @Slf4j
 public class PersonServiceImpl implements PersonService {
 
@@ -54,12 +54,13 @@ public class PersonServiceImpl implements PersonService {
      * 2： 拉取上游源数据并根据 证件类型+证件 号码进行和重，并验证证件类型对应的号码是否符合 正则表达式
      * 3： 如果有手动合重规则，运算手动合重规则【待确认】
      */
-    @SneakyThrows
+
     @Override
+    @Transactional(rollbackFor = RuntimeException.class)
     public Map<String, List<Person>> buildPerson(DomainInfo domain) {
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
-            throw new Exception("租户不存在");
+            throw new RuntimeException("租户不存在");
         }
         // 所有证件类型
         List<CardType> cardTypes = cardTypeDao.findAll(tenant.getId());
@@ -69,7 +70,11 @@ public class PersonServiceImpl implements PersonService {
         // 获取规则
         Map arguments = new ConcurrentHashMap();
         arguments.put("type", "person");
-        List<Node> nodes = nodeDao.findNodes(arguments, domain.getDomainId());
+        arguments.put("status", 0);
+        List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
+        if (null == nodes || nodes.size() <= 0) {
+            throw new RuntimeException("无人员管理规则信息");
+        }
         String nodeId = nodes.get(0).getId();
         //
         List<NodeRules> userRules = rulesDao.getByNodeAndType(nodeId, 1, true, 0);
@@ -78,7 +83,7 @@ public class PersonServiceImpl implements PersonService {
         userRules.forEach(rules -> {
             // 通过规则获取数据
             UpstreamType upstreamType = upstreamTypeDao.findById(rules.getUpstreamTypesId());
-            ArrayList<Upstream> upstreams = upstreamDao.getUpstreams(upstreamType.getUpstreamId(), domain.getDomainId());
+            ArrayList<Upstream> upstreams = upstreamDao.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
             JSONArray dataByBus = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
             List<Person> personBeanList = dataByBus.toJavaList(Person.class);
             if (null != personBeanList) {
@@ -105,34 +110,41 @@ public class PersonServiceImpl implements PersonService {
                         //throw new Exception(userBean.getName() + "证件类型无效");
                     }
                     personBean.setDataSource(upstreams.get(0).getAppCode());
+                    if (null == personBean.getCreateTime()) {
+                        personBean.setCreateTime(LocalDateTime.now());
+                    }
+                    if (null == personBean.getUpdateTime()) {
+                        personBean.setUpdateTime(LocalDateTime.now());
+                    }
+
                     personFromUpstream.put(personBean.getCardType() + ":" + personBean.getCardNo(), personBean);
                 }
             }
         });
-
-
         /*
           将合重后的数据插入进数据库
         */
-
         // 获取 sso数据
         List<Person> personFromSSO = personDao.getAll(tenant.getId());
-        Map<String, Person> personFromSSOMap = personFromSSO.stream().collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person));
+        Map<String, Person> personFromSSOMap = personFromSSO.stream().filter(person -> !StringUtils.isEmpty(person.getCardType()) && !StringUtils.isEmpty(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person));
         // 存储最终需要操作的数据
         Map<String, List<Person>> result = new HashMap<>();
         personFromSSOMap.forEach((key, val) -> {
             // 对比出需要修改的person
             if (personFromUpstream.containsKey(key) &&
-                    personFromUpstream.get(key).getCreateTime() > val.getUpdateTime()) {
+                    personFromUpstream.get(key).getCreateTime().isAfter(val.getUpdateTime())) {
                 if (result.containsKey("update")) {
+
+                    personFromUpstream.get(key).setUpdateTime(LocalDateTime.now());
                     result.get("update").add(personFromUpstream.get(key));
                 } else {
                     result.put("update", new ArrayList<Person>() {{
+                        personFromUpstream.get(key).setUpdateTime(LocalDateTime.now());
                         this.add(personFromUpstream.get(key));
                     }});
                 }
                 log.debug("对比后需要修改{}", val.toString());
-            } else if (!personFromUpstream.containsKey(key) && 1 != val.getDelMark()) {
+            } else if (!personFromUpstream.containsKey(key) && 1 != val.getDelMark() && "pull".equals(val.getDataSource())) {
                 if (result.containsKey("delete")) {
                     result.get("delete").add(val);
                 } else {
@@ -147,7 +159,6 @@ public class PersonServiceImpl implements PersonService {
 
         personFromUpstream.forEach((key, val) -> {
             if (!personFromSSOMap.containsKey(key)) {
-                val.setCreateTime(System.currentTimeMillis());
                 val.setOpenId(RandomStringUtils.randomAlphanumeric(20));
                 if (result.containsKey("install")) {
                     result.get("install").add(val);
@@ -168,6 +179,7 @@ public class PersonServiceImpl implements PersonService {
         // sso 修改
         if (result.containsKey("update")) {
             personDao.updatePerson(result.get("update"), tenant.getId());
+            throw new RuntimeException("1");
         }
 
         /* sso 批量删除
@@ -189,6 +201,7 @@ public class PersonServiceImpl implements PersonService {
             personDao.deleteOccupy(occupies);
 
         }
+
 
         return result;
     }
