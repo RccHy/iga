@@ -243,6 +243,7 @@ public class PostServiceImpl implements PostService {
                     for (Map.Entry<String, Map<String, Object>> stringMapEntry : stringMapMap.entrySet()) {
                         System.out.println(treeBean.getCode()+"-----------"+stringMapEntry.getKey()+"-------------"+stringMapEntry.getValue());
                     }
+
                 }
                 list.add(key.getKey());
             }

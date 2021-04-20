@@ -237,24 +237,22 @@ public class DeptServiceImpl implements DeptService {
         //插入数据
         Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
         Map<String, TreeBean> logCollect = null;
+
+        ArrayList<TreeBean> insertList = new ArrayList<>();
+        ArrayList<TreeBean> updateList = new ArrayList<>();
+        ArrayList<TreeBean> deleteList = new ArrayList<>();
+
+
+
         if (null != logBeans && logBeans.size() > 0) {
             logCollect = logBeans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
         }
         List<Map.Entry<TreeBean, String>> insert = collect.get("insert");
         if (null != insert && insert.size() > 0) {
-            ArrayList<TreeBean> list = new ArrayList<>();
             for (Map.Entry<TreeBean, String> key : insert) {
 
-                list.add(key.getKey());
+                insertList.add(key.getKey());
             }
-            ArrayList<TreeBean> depts = deptDao.saveDept(list, tenantId);
-            if (null != depts && depts.size() > 0) {
-                logger.info("插入" + list.size() + "条数据{}", depts.toString());
-            } else {
-                throw new RuntimeException("插入失败");
-            }
-
-
         }
         List<Map.Entry<TreeBean, String>> obsolete = collect.get("obsolete");
         if (null != obsolete && obsolete.size() > 0) {
@@ -268,7 +266,6 @@ public class DeptServiceImpl implements DeptService {
         List<Map.Entry<TreeBean, String>> update = collect.get("update");
         //修改数据
         if (null != update && update.size() > 0) {
-            ArrayList<TreeBean> list = new ArrayList<>();
             for (Map.Entry<TreeBean, String> key : update) {
                 key.getKey().setDataSource("pull");
                 //统计修改字段
@@ -279,31 +276,37 @@ public class DeptServiceImpl implements DeptService {
                         System.out.println(treeBean.getCode() + "-----------" + stringMapEntry.getKey() + "-------------" + stringMapEntry.getValue());
                     }
                 }
-                list.add(key.getKey());
+                updateList.add(key.getKey());
             }
-            // 修改同时要比对是否时间戳比数据库中更新
-            ArrayList<TreeBean> depts = deptDao.updateDept(list, tenantId);
-            if (null != depts && depts.size() > 0) {
-                logger.info("更新" + list.size() + "条数据{}", depts.toString());
-            } else {
-                throw new RuntimeException("更新失败");
-            }
-
         }
         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
         //删除数据
         if (null != delete && delete.size() > 0) {
-            ArrayList<TreeBean> list = new ArrayList<>();
             for (Map.Entry<TreeBean, String> key : delete) {
-                list.add(key.getKey());
-            }
-            ArrayList<TreeBean> depts = deptDao.deleteDept(list);
-            if (null != depts && depts.size() > 0) {
-                logger.info("删除" + list.size() + "条数据{}", depts.toString());
-            } else {
-                throw new RuntimeException("删除失败");
+                deleteList.add(key.getKey());
             }
         }
+
+
+        Integer flag = deptDao.renewData(insertList,updateList,deleteList,tenantId);
+        if(flag>0){
+
+
+
+            logger.info("插入" + insertList.size() + "条数据");
+
+
+
+            logger.info("更新" + updateList.size() + "条数据");
+
+
+
+            logger.info("删除" + deleteList.size() + "条数据");
+        }else {
+
+        }
+
+
     }
 
 

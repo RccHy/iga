@@ -20,4 +20,6 @@ public interface DeptDao {
     ArrayList<TreeBean> saveDept(ArrayList<TreeBean> list, String tenantId);
 
     ArrayList<TreeBean> deleteDept(ArrayList<TreeBean> list);
+
+    Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList,String tenantId);
 }
