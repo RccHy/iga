@@ -21,7 +21,7 @@ public class ClassCompareUtil {
      * 比较两个实体属性值，返回一个boolean,true则表时两个对象中的属性值无差异
      * @param oldObject 进行属性比较的对象1
      * @param newObject 进行属性比较的对象2
-     * @return 属性差异比较结果boolean
+     * @return 属性差异比较结果
      */
     public static Map<String, Map<String,Object>> compareObject(Object oldObject, Object newObject) {
         Map<String, Map<String,Object>> resultMap=compareFields(oldObject,newObject);
