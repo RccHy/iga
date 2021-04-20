@@ -33,8 +33,8 @@ public class JdbcTemplateConfig {
      * 装配事务管理器
      */
     @Bean(name="transactionManager")
-    public DataSourceTransactionManager transactionManager(@Autowired DataSource dsSSO) {
-        return new DataSourceTransactionManager(dsSSO);
+    public DataSourceTransactionManager transactionManager(@Qualifier("dsSSOAPI") DataSource dsSSOAPI) {
+        return new DataSourceTransactionManager(dsSSOAPI);
     }
 
     /**
