@@ -54,7 +54,7 @@ public class DeptDaoImpl implements DeptDao {
     @Override
     public List<TreeBean> findByTenantId(String id, String treeType, Integer delMark) {
         String sql = "select dept_code as code , dept_name as name , parent_code as parentCode , " +
-                " update_time as createTime , source, tree_type as treeType,abbreviation,tags,type  from dept where tenant_id = ? ";
+                " update_time as createTime , source, tree_type as treeType,data_source as dataSource, abbreviation,tags,type  from dept where tenant_id = ? ";
         List<Object> param = new ArrayList<>();
         param.add(id);
         if (null != treeType) {
