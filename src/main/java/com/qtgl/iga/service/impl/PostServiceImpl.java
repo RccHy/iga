@@ -10,6 +10,7 @@ import com.qtgl.iga.dao.TenantDao;
 import com.qtgl.iga.service.NodeService;
 import com.qtgl.iga.service.PostService;
 
+import com.qtgl.iga.utils.ClassCompareUtil;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -89,6 +90,8 @@ public class PostServiceImpl implements PostService {
 
         //通过tenantId查询ssoApis库中的数据
         List<TreeBean> beans = postDao.findByTenantId(tenant.getId());
+        ArrayList<TreeBean> logBeans = new ArrayList<>();
+
         //将null赋为""
         if (null != beans && beans.size() > 0) {
             for (TreeBean bean : beans) {
@@ -96,6 +99,7 @@ public class PostServiceImpl implements PostService {
                     bean.setParentCode("");
                 }
             }
+            logBeans.addAll(beans);
         }
         Map<String, TreeBean> collect = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
 
@@ -108,7 +112,7 @@ public class PostServiceImpl implements PostService {
         // 判断重复(code)
         calculationService.groupByCode(beans);
 
-        saveToSso(result, tenant.getId());
+        saveToSso(result, tenant.getId(), logBeans);
 
         return result;
 
@@ -197,9 +201,12 @@ public class PostServiceImpl implements PostService {
      * @Description: 增量插入sso数据库
      * @return: void
      */
-    private void saveToSso(Map<TreeBean, String> result, String id) throws Exception {
+    private void saveToSso(Map<TreeBean, String> result, String id, List<TreeBean> logBeans) throws Exception {
         Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
-
+        Map<String, TreeBean> logCollect=null;
+        if (null != logBeans && logBeans.size() > 0) {
+            logCollect = logBeans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
+        }
         List<Map.Entry<TreeBean, String>> insert = collect.get("insert");
         //插入数据
         if (null != insert && insert.size() > 0) {
@@ -228,6 +235,15 @@ public class PostServiceImpl implements PostService {
         if (null != update && update.size() > 0) {
             ArrayList<TreeBean> list = new ArrayList<>();
             for (Map.Entry<TreeBean, String> key : update) {
+                key.getKey().setDataSource("pull");
+                //统计修改字段
+                if (null != logBeans && logBeans.size() > 0) {
+                    TreeBean treeBean = logCollect.get(key.getKey().getCode());
+                    Map<String, Map<String, Object>> stringMapMap = ClassCompareUtil.compareObject(treeBean, key.getKey());
+                    for (Map.Entry<String, Map<String, Object>> stringMapEntry : stringMapMap.entrySet()) {
+                        System.out.println(treeBean.getCode()+"-----------"+stringMapEntry.getKey()+"-------------"+stringMapEntry.getValue());
+                    }
+                }
                 list.add(key.getKey());
             }
             ArrayList<TreeBean> depts = postDao.updateDept(list, id);

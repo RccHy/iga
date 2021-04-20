@@ -7,6 +7,7 @@ import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.service.NodeService;
 
+import com.qtgl.iga.utils.ClassCompareUtil;
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -134,6 +135,7 @@ public class DeptServiceImpl implements DeptService {
         }
         //通过tenantId查询ssoApis库中的数据
         List<TreeBean> beans = deptDao.findByTenantId(tenant.getId(), null, null);
+        ArrayList<TreeBean> logBeans = new ArrayList<>();
         if (null != beans && beans.size() > 0) {
             //将null赋为""
             for (TreeBean bean : beans) {
@@ -141,7 +143,10 @@ public class DeptServiceImpl implements DeptService {
                     bean.setParentCode("");
                 }
             }
+            logBeans.addAll(beans);
         }
+
+
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
         ArrayList<TreeBean> treeBeans = new ArrayList<>();
@@ -165,7 +170,7 @@ public class DeptServiceImpl implements DeptService {
             beans.addAll(treeBeans);
         }
         calculationService.groupByCode(beans);
-        saveToSso(result, tenant.getId());
+        saveToSso(result, tenant.getId(), logBeans);
         return result;
     }
 
@@ -228,9 +233,13 @@ public class DeptServiceImpl implements DeptService {
      * @Description: 插入sso数据库
      * @return: void
      */
-    public void saveToSso(Map<TreeBean, String> result, String tenantId)  {
+    public void saveToSso(Map<TreeBean, String> result, String tenantId, List<TreeBean> logBeans) {
         //插入数据
         Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
+        Map<String, TreeBean> logCollect = null;
+        if (null != logBeans && logBeans.size() > 0) {
+            logCollect = logBeans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
+        }
         List<Map.Entry<TreeBean, String>> insert = collect.get("insert");
         if (null != insert && insert.size() > 0) {
             ArrayList<TreeBean> list = new ArrayList<>();
@@ -261,6 +270,15 @@ public class DeptServiceImpl implements DeptService {
         if (null != update && update.size() > 0) {
             ArrayList<TreeBean> list = new ArrayList<>();
             for (Map.Entry<TreeBean, String> key : update) {
+                key.getKey().setDataSource("pull");
+                //统计修改字段
+                if (null != logBeans && logBeans.size() > 0) {
+                    TreeBean treeBean = logCollect.get(key.getKey().getCode());
+                    Map<String, Map<String, Object>> stringMapMap = ClassCompareUtil.compareObject(treeBean, key.getKey());
+                    for (Map.Entry<String, Map<String, Object>> stringMapEntry : stringMapMap.entrySet()) {
+                        System.out.println(treeBean.getCode() + "-----------" + stringMapEntry.getKey() + "-------------" + stringMapEntry.getValue());
+                    }
+                }
                 list.add(key.getKey());
             }
             // 修改同时要比对是否时间戳比数据库中更新
@@ -317,20 +335,20 @@ public class DeptServiceImpl implements DeptService {
                     if (treeBean.getCode().equals(bean.getCode())) {
                         //
 //                        if (treeBean.getTreeType().equals(bean.getTreeType())) {
-                            if (null != treeBean.getCreateTime()) {
-                                //修改
-                                if (null == bean.getCreateTime() || treeBean.getCreateTime().isAfter(bean.getCreateTime())) {
-                                    //新来的数据更实时
-                                    collect.put(treeBean.getCode(), treeBean);
-                                    result.put(treeBean, "update");
-                                } else {
-                                    result.put(treeBean, "obsolete");
-                                }
+                        if (null != treeBean.getCreateTime()) {
+                            //修改
+                            if (null == bean.getCreateTime() || treeBean.getCreateTime().isAfter(bean.getCreateTime())) {
+                                //新来的数据更实时
+                                collect.put(treeBean.getCode(), treeBean);
+                                result.put(treeBean, "update");
                             } else {
                                 result.put(treeBean, "obsolete");
                             }
-                            flag = false;
+                        } else {
+                            result.put(treeBean, "obsolete");
                         }
+                        flag = false;
+                    }
 //                        else {
 //                            throw new RuntimeException(deptBean + "与" + bean + "code重复");
 //                        }
