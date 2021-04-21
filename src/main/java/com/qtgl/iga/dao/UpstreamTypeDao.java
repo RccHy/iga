@@ -22,7 +22,7 @@ public interface UpstreamTypeDao {
 
     UpstreamType findById(String id);
 
-    List<UpstreamTypeField> findFields(String url);
+    List<UpstreamTypeField> findFields(String upstreamId);
 
     Integer deleteByUpstreamId(String id ,String domain);
 }

@@ -34,6 +34,11 @@ public class TreeBean {
 
     private LocalDateTime createTime;
 
+
+    private LocalDateTime updateTime;
+
+    //对比字段
+    private String upstreamTypeId;
     /**
      * todo 部门排序 暂不考虑
      */

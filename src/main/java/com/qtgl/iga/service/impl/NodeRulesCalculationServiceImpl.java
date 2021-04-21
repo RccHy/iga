@@ -46,6 +46,11 @@ public class NodeRulesCalculationServiceImpl {
     NodeRulesRangeDao rangeDao;
 
     public static Logger logger = LoggerFactory.getLogger(NodeRulesCalculationServiceImpl.class);
+    //岗位重命名数据
+    public static ConcurrentHashMap<String, String> postRename;
+    //部门重命名数据
+    public static ConcurrentHashMap<String, String> deptRename;
+
 
 
     /**
@@ -55,7 +60,7 @@ public class NodeRulesCalculationServiceImpl {
      * @param nodeRulesRanges
      * @param childrenMap
      */
-    public void renameRules(Map<String, TreeBean> mergeDeptMap, List<NodeRulesRange> nodeRulesRanges, Map<String, List<TreeBean>> childrenMap) {
+    public void renameRules(Map<String, TreeBean> mergeDeptMap, List<NodeRulesRange> nodeRulesRanges, Map<String, List<TreeBean>> childrenMap, String type) {
         for (NodeRulesRange nodeRulesRange : nodeRulesRanges) {
             // 重命名
             if (2 == nodeRulesRange.getType()) {
@@ -64,6 +69,12 @@ public class NodeRulesCalculationServiceImpl {
                     if (rename.contains("${code}")) {
                         String oldCode = treeBean.getCode();
                         String newCode = rename.replace("${code}", treeBean.getCode());
+                        if ("post".equals(type)) {
+                            postRename.put(oldCode, newCode);
+                        }
+                        if ("dept".equals(type)) {
+                            deptRename.put(oldCode, newCode);
+                        }
                         treeBean.setCode(newCode);
                         // 如果当前节点有子集，则同时修改子集的parentCode指向. 而原本就为"" 的顶级部门不应修改
                         if (childrenMap.containsKey(oldCode)) {
@@ -75,6 +86,12 @@ public class NodeRulesCalculationServiceImpl {
                     }
                     if (rename.contains("${name}")) {
                         String newName = rename.replace("${name}", treeBean.getName());
+                        if ("post".equals(type)) {
+                            postRename.put(treeBean.getName(), newName);
+                        }
+                        if ("dept".equals(type)) {
+                            deptRename.put(treeBean.getName(), newName);
+                        }
                         treeBean.setName(newName);
                     }
                 }
@@ -328,13 +345,15 @@ public class NodeRulesCalculationServiceImpl {
                     if (null == dept.getString(TreeEnum.PARENTCODE.getCode())) {
                         dept.put(TreeEnum.PARENTCODE.getCode(), "");
                     }
+                    dept.put("upstreamTypeId",upstreamType.getId());
                     upstreamDept.add(dept.toJavaObject(TreeBean.class));
 
                 }
+//                fileds.put(upstreamType,upstreamDept);
                 if ("task".equals(operator)) {
                     //   待优化
                     Integer flag = saveDataToDb(upstreamTree, upstreamType.getId());
-                    if (!(flag > 0)) {
+                    if (flag <= 0) {
                         throw new Exception("数据插入 iga 失败");
                     }
                     logger.error("节点'{}'数据入库完成", code);
@@ -354,7 +373,7 @@ public class NodeRulesCalculationServiceImpl {
                 excludeRules(mergeDeptMap, childrenMap, nodeRulesRanges);
                 logger.error("节点'{}'开始运行排除", code);
                 // 对最终要挂载的树进行重命名
-                renameRules(mergeDeptMap, nodeRulesRanges, childrenMap);
+                renameRules(mergeDeptMap, nodeRulesRanges, childrenMap, type);
                 logger.error("节点'{}'开始运行重命名", code);
                 logger.info("节点'{}'的规则运算完成：{}", nodeCode, mergeDeptMap);
 

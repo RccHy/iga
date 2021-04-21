@@ -47,7 +47,6 @@ public class PostServiceImpl implements PostService {
     final String TYPE = "post";
 
 
-
     @SneakyThrows
     @Override
     @Transactional
@@ -197,28 +196,27 @@ public class PostServiceImpl implements PostService {
 
     /**
      * @param result
-     * @param id
+     * @param tenantId
      * @Description: 增量插入sso数据库
      * @return: void
      */
-    private void saveToSso(Map<TreeBean, String> result, String id, List<TreeBean> logBeans) throws Exception {
+    private void saveToSso(Map<TreeBean, String> result, String tenantId, List<TreeBean> logBeans) throws Exception {
         Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
-        Map<String, TreeBean> logCollect=null;
+        Map<String, TreeBean> logCollect = null;
+
+        ArrayList<TreeBean> insertList = new ArrayList<>();
+        ArrayList<TreeBean> updateList = new ArrayList<>();
+        ArrayList<TreeBean> deleteList = new ArrayList<>();
+
         if (null != logBeans && logBeans.size() > 0) {
             logCollect = logBeans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
         }
+
         List<Map.Entry<TreeBean, String>> insert = collect.get("insert");
-        //插入数据
         if (null != insert && insert.size() > 0) {
-            ArrayList<TreeBean> list = new ArrayList<>();
             for (Map.Entry<TreeBean, String> key : insert) {
-                list.add(key.getKey());
-            }
-            ArrayList<TreeBean> depts = postDao.saveDept(list, id);
-            if (null != depts && depts.size() > 0) {
-                logger.info("插入" + list.size() + "条数据{}", depts.toString());
-            } else {
-                throw new Exception("插入失败");
+
+                insertList.add(key.getKey());
             }
         }
         List<Map.Entry<TreeBean, String>> obsolete = collect.get("obsolete");
@@ -233,7 +231,6 @@ public class PostServiceImpl implements PostService {
         List<Map.Entry<TreeBean, String>> update = collect.get("update");
         //修改数据
         if (null != update && update.size() > 0) {
-            ArrayList<TreeBean> list = new ArrayList<>();
             for (Map.Entry<TreeBean, String> key : update) {
                 key.getKey().setDataSource("pull");
                 //统计修改字段
@@ -241,33 +238,37 @@ public class PostServiceImpl implements PostService {
                     TreeBean treeBean = logCollect.get(key.getKey().getCode());
                     Map<String, Map<String, Object>> stringMapMap = ClassCompareUtil.compareObject(treeBean, key.getKey());
                     for (Map.Entry<String, Map<String, Object>> stringMapEntry : stringMapMap.entrySet()) {
-                        System.out.println(treeBean.getCode()+"-----------"+stringMapEntry.getKey()+"-------------"+stringMapEntry.getValue());
+                        System.out.println(treeBean.getCode() + "-----------" + stringMapEntry.getKey() + "-------------" + stringMapEntry.getValue());
                     }
-
                 }
-                list.add(key.getKey());
-            }
-            ArrayList<TreeBean> depts = postDao.updateDept(list, id);
-            if (null != depts && depts.size() > 0) {
-                logger.info("更新" + list.size() + "条数据{}", depts.toString());
-            } else {
-                throw new Exception("更新失败");
+                updateList.add(key.getKey());
             }
         }
         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
         //删除数据
         if (null != delete && delete.size() > 0) {
-            ArrayList<TreeBean> list = new ArrayList<>();
             for (Map.Entry<TreeBean, String> key : delete) {
-                list.add(key.getKey());
-            }
-            ArrayList<TreeBean> depts = postDao.deleteDept(list);
-            if (null != depts && depts.size() > 0) {
-                logger.info("删除" + list.size() + "条数据{}", depts.toString());
-            } else {
-                throw new Exception("删除失败");
+                deleteList.add(key.getKey());
             }
         }
+
+
+        Integer flag = postDao.renewData(insertList, updateList, deleteList, tenantId);
+        if (null != flag && flag > 0) {
+
+
+            logger.info("post插入" + insertList.size() + "条数据  {}", System.currentTimeMillis());
+
+
+            logger.info("post更新" + updateList.size() + "条数据  {}", System.currentTimeMillis());
+
+
+            logger.info("post删除" + deleteList.size() + "条数据  {}", System.currentTimeMillis());
+        } else {
+
+            logger.error("数据更新sso数据库失败{}", System.currentTimeMillis());
+        }
+
     }
 
     /**

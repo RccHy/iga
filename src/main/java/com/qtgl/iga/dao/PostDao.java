@@ -9,7 +9,6 @@ import java.util.List;
 public interface PostDao {
 
 
-
     List<TreeBean> findByTenantId(String id);
 
     ArrayList<TreeBean> updateDept(ArrayList<TreeBean> list, String tenantId);
@@ -21,4 +20,6 @@ public interface PostDao {
     List<TreeBean> findRootData(String tenantId);
 
     List<TreeBean> findPostType(String id);
+
+    Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, String tenantId);
 }

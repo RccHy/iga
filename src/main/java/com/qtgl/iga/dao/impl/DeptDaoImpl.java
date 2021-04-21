@@ -60,7 +60,7 @@ public class DeptDaoImpl implements DeptDao {
     @Override
     public List<TreeBean> findByTenantId(String id, String treeType, Integer delMark) {
         String sql = "select dept_code as code , dept_name as name , parent_code as parentCode , " +
-                " update_time as createTime , source, tree_type as treeType,data_source as dataSource, abbreviation,tags,type  from dept where tenant_id = ? ";
+                " update_time as createTime , source, tree_type as treeType,data_source as dataSource, abbreviation,tags,type,independent,update_time as updateTime  from dept where tenant_id = ? ";
         List<Object> param = new ArrayList<>();
         param.add(id);
         if (null != treeType) {
@@ -219,99 +219,105 @@ public class DeptDaoImpl implements DeptDao {
     }
 
     @Override
-    public Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList,String tenantId) {
+    public Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, String tenantId) {
         String insertStr = "insert into dept (id,dept_code, dept_name, parent_code, del_mark ,tenant_id ,source, data_source, description, meta,create_time,tags,independent,active,active_time,tree_type,dept_index,abbreviation,update_time,type) values" +
                 "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         String updateStr = "update dept set  dept_name=?, parent_code=?, del_mark=? ,tenant_id =?" +
-        ",source =?, data_source=?, description=?, meta=?,update_time=?,tags=?,independent=?,tree_type= ?,active=? ,abbreviation=?,del_mark=0 ,type = ? " +
+                ",source =?, data_source=?, description=?, meta=?,update_time=?,tags=?,independent=?,tree_type= ?,active=? ,abbreviation=?,del_mark=0 ,type = ? " +
                 "where dept_code =? and update_time< ?";
         String deleteStr = "update dept set   del_mark= ? , active = ?,active_time= ?  " +
                 "where dept_code =? and update_time< ? ";
-        txTemplate.execute(transactionStatus -> {
-            Object savepoint = transactionStatus.createSavepoint();
+        return txTemplate.execute(transactionStatus -> {
+//            Object savepoint = transactionStatus.createSavepoint();
 
             try {
-                int[] ints = jdbcSSOAPI.batchUpdate(insertStr, new BatchPreparedStatementSetter() {
-                    @Override
-                    public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                        preparedStatement.setObject(1, UUID.randomUUID().toString().replace("-", ""));
-                        preparedStatement.setObject(2, insertList.get(i).getCode());
-                        preparedStatement.setObject(3, insertList.get(i).getName());
-                        preparedStatement.setObject(4, insertList.get(i).getParentCode());
-                        preparedStatement.setObject(5, 0);
-                        preparedStatement.setObject(6, tenantId);
-                        preparedStatement.setObject(7, insertList.get(i).getSource());
-                        preparedStatement.setObject(8, "pull");
-                        preparedStatement.setObject(9, insertList.get(i).getDescription());
-                        preparedStatement.setObject(10, insertList.get(i).getMeta());
-                        preparedStatement.setObject(11, insertList.get(i).getCreateTime() == null ? LocalDateTime.now() : insertList.get(i).getCreateTime());
-                        preparedStatement.setObject(12, insertList.get(i).getTags());
-                        preparedStatement.setObject(13, insertList.get(i).getIndependent());
-                        preparedStatement.setObject(14, 0);
-                        preparedStatement.setObject(15, LocalDateTime.now());
-                        preparedStatement.setObject(16, insertList.get(i).getTreeType());
-                        preparedStatement.setObject(17, null == insertList.get(i).getDeptIndex() ? null : insertList.get(i).getDeptIndex());
-                        preparedStatement.setObject(18, null == insertList.get(i).getAbbreviation() ? null : insertList.get(i).getAbbreviation());
-                        preparedStatement.setObject(19, LocalDateTime.now());
-                        preparedStatement.setObject(20, insertList.get(i).getType());
-                    }
+                if (null != insertList && insertList.size() > 0) {
+                    jdbcSSOAPI.batchUpdate(insertStr, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, UUID.randomUUID().toString().replace("-", ""));
+                            preparedStatement.setObject(2, insertList.get(i).getCode());
+                            preparedStatement.setObject(3, insertList.get(i).getName());
+                            preparedStatement.setObject(4, insertList.get(i).getParentCode());
+                            preparedStatement.setObject(5, 0);
+                            preparedStatement.setObject(6, tenantId);
+                            preparedStatement.setObject(7, insertList.get(i).getSource());
+                            preparedStatement.setObject(8, "pull");
+                            preparedStatement.setObject(9, insertList.get(i).getDescription());
+                            preparedStatement.setObject(10, insertList.get(i).getMeta());
+                            preparedStatement.setObject(11, insertList.get(i).getCreateTime() == null ? LocalDateTime.now() : insertList.get(i).getCreateTime());
+                            preparedStatement.setObject(12, insertList.get(i).getTags());
+                            preparedStatement.setObject(13, insertList.get(i).getIndependent());
+                            preparedStatement.setObject(14, 0);
+                            preparedStatement.setObject(15, LocalDateTime.now());
+                            preparedStatement.setObject(16, insertList.get(i).getTreeType());
+                            preparedStatement.setObject(17, null == insertList.get(i).getDeptIndex() ? null : insertList.get(i).getDeptIndex());
+                            preparedStatement.setObject(18, null == insertList.get(i).getAbbreviation() ? null : insertList.get(i).getAbbreviation());
+                            preparedStatement.setObject(19, LocalDateTime.now());
+                            preparedStatement.setObject(20, insertList.get(i).getType());
+                        }
 
-                    @Override
-                    public int getBatchSize() {
-                        return insertList.size();
-                    }
-                });
-                int[] i = jdbcSSOAPI.batchUpdate(updateStr, new BatchPreparedStatementSetter() {
-                    @Override
-                    public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                        preparedStatement.setObject(1, updateList.get(i).getName());
-                        preparedStatement.setObject(2, updateList.get(i).getParentCode());
-                        preparedStatement.setObject(3, 0);
-                        preparedStatement.setObject(4, tenantId);
-                        preparedStatement.setObject(5, updateList.get(i).getSource());
-                        preparedStatement.setObject(6, "pull");
-                        preparedStatement.setObject(7, updateList.get(i).getDescription());
-                        preparedStatement.setObject(8, updateList.get(i).getMeta());
-                        preparedStatement.setObject(9, updateList.get(i).getCreateTime() == null ? LocalDateTime.now() : updateList.get(i).getCreateTime());
-                        preparedStatement.setObject(10, updateList.get(i).getTags());
-                        preparedStatement.setObject(11, updateList.get(i).getIndependent());
-                        preparedStatement.setObject(12, updateList.get(i).getTreeType());
-                        preparedStatement.setObject(13, 0);
-                        preparedStatement.setObject(14, null == updateList.get(i).getAbbreviation() ? null : updateList.get(i).getAbbreviation());
-                        preparedStatement.setObject(15, null == updateList.get(i).getType() ? null : updateList.get(i).getType());
-                        preparedStatement.setObject(16, updateList.get(i).getCode());
-                        preparedStatement.setObject(17, updateList.get(i).getCreateTime() == null ? LocalDateTime.now() : updateList.get(i).getCreateTime());
+                        @Override
+                        public int getBatchSize() {
+                            return insertList.size();
+                        }
+                    });
+                }
+                if (null != updateList && updateList.size() > 0) {
+                    int[] i = jdbcSSOAPI.batchUpdate(updateStr, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, updateList.get(i).getName());
+                            preparedStatement.setObject(2, updateList.get(i).getParentCode());
+                            preparedStatement.setObject(3, 0);
+                            preparedStatement.setObject(4, tenantId);
+                            preparedStatement.setObject(5, updateList.get(i).getSource());
+                            preparedStatement.setObject(6, "pull");
+                            preparedStatement.setObject(7, updateList.get(i).getDescription());
+                            preparedStatement.setObject(8, updateList.get(i).getMeta());
+                            preparedStatement.setObject(9, updateList.get(i).getCreateTime() == null ? LocalDateTime.now() : updateList.get(i).getCreateTime());
+                            preparedStatement.setObject(10, updateList.get(i).getTags());
+                            preparedStatement.setObject(11, updateList.get(i).getIndependent());
+                            preparedStatement.setObject(12, updateList.get(i).getTreeType());
+                            preparedStatement.setObject(13, 0);
+                            preparedStatement.setObject(14, null == updateList.get(i).getAbbreviation() ? null : updateList.get(i).getAbbreviation());
+                            preparedStatement.setObject(15, null == updateList.get(i).getType() ? null : updateList.get(i).getType());
+                            preparedStatement.setObject(16, updateList.get(i).getCode());
+                            preparedStatement.setObject(17, updateList.get(i).getCreateTime() == null ? LocalDateTime.now() : updateList.get(i).getCreateTime());
 
-                    }
+                        }
 
-                    @Override
-                    public int getBatchSize() {
-                        return updateList.size();
-                    }
-                });
-                jdbcSSOAPI.batchUpdate(deleteStr, new BatchPreparedStatementSetter() {
-                    @Override
-                    public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                        preparedStatement.setObject(1, 1);
-                        preparedStatement.setObject(2, 1);
-                        preparedStatement.setObject(3, LocalDateTime.now());
-                        preparedStatement.setObject(4, deleteList.get(i).getCode());
-                        preparedStatement.setObject(5, deleteList.get(i).getCreateTime());
-                    }
+                        @Override
+                        public int getBatchSize() {
+                            return updateList.size();
+                        }
+                    });
+                }
+                if (null != deleteList && deleteList.size() > 0) {
+                    jdbcSSOAPI.batchUpdate(deleteStr, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, 1);
+                            preparedStatement.setObject(2, 1);
+                            preparedStatement.setObject(3, LocalDateTime.now());
+                            preparedStatement.setObject(4, deleteList.get(i).getCode());
+                            preparedStatement.setObject(5, deleteList.get(i).getCreateTime());
+                        }
 
-                    @Override
-                    public int getBatchSize() {
-                        return deleteList.size();
-                    }
-                });
-                int  a = 1/0;
+                        @Override
+                        public int getBatchSize() {
+                            return deleteList.size();
+                        }
+                    });
+                }
+                return 1;
             } catch (Exception e) {
                 transactionStatus.setRollbackOnly();
                 // transactionStatus.rollbackToSavepoint(savepoint);
+                return null;
             }
-            return null;
+
         });
 
-        return 1;
     }
 }

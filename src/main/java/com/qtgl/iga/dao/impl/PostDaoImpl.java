@@ -5,10 +5,14 @@ import com.qtgl.iga.dao.PostDao;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.cglib.beans.BeanMap;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.annotation.Resource;
 import java.lang.reflect.InvocationTargetException;
@@ -25,6 +29,9 @@ public class PostDaoImpl implements PostDao {
 
     @Resource(name = "jdbcSSO")
     JdbcTemplate jdbcSSO;
+
+    @Resource(name = "txTemplate2")
+    TransactionTemplate txTemplate2;
 
 
     @Override
@@ -208,5 +215,98 @@ public class PostDaoImpl implements PostDao {
         }
 
         return null;
+    }
+
+    @Override
+    public Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, String tenantId) {
+        String insertStr = "insert into user_type (id,user_type, name, parent_code, can_login ,tenant_id ,tags, data_source, description, meta,create_time,del_mark,active,active_time,update_time,source,user_type_index) values" +
+                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+
+        String updateStr = "update user_type set  name=?, parent_code=?, del_mark=? ,tenant_id =?" +
+                ", data_source=?, description=?, meta=?,update_time=?,tags=?,source=?" +
+                ", user_type_index = ?,del_mark =0  where user_type =?";
+
+        String deleteStr = "update user_type set   del_mark= ? , active = ?,active_time= ?  " +
+                "where user_type =?  and update_time< ? ";
+        return txTemplate2.execute(transactionStatus -> {
+            try {
+                if (null != insertList && insertList.size() > 0) {
+                    jdbcSSO.batchUpdate(insertStr, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, UUID.randomUUID().toString().replace("-", ""));
+                            preparedStatement.setObject(2, insertList.get(i).getCode());
+                            preparedStatement.setObject(3, insertList.get(i).getName());
+                            preparedStatement.setObject(4, insertList.get(i).getParentCode());
+                            preparedStatement.setObject(5, 0);
+                            preparedStatement.setObject(6, tenantId);
+                            preparedStatement.setObject(7, insertList.get(i).getTags());
+                            preparedStatement.setObject(8, "pull");
+                            preparedStatement.setObject(9, insertList.get(i).getDescription());
+                            preparedStatement.setObject(10, insertList.get(i).getMeta());
+                            preparedStatement.setObject(11, insertList.get(i).getCreateTime() == null ? LocalDateTime.now() : insertList.get(i).getCreateTime());
+                            preparedStatement.setObject(12, 0);
+                            preparedStatement.setObject(13, 0);
+                            preparedStatement.setObject(14, LocalDateTime.now());
+                            preparedStatement.setObject(15, LocalDateTime.now());
+                            preparedStatement.setObject(16, insertList.get(i).getSource());
+                            preparedStatement.setObject(17, null == insertList.get(i).getDeptIndex() ? null : insertList.get(i).getDeptIndex());
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return insertList.size();
+                        }
+                    });
+                }
+                if (null != updateList && updateList.size() > 0) {
+                    jdbcSSO.batchUpdate(updateStr, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, updateList.get(i).getName());
+                            preparedStatement.setObject(2, updateList.get(i).getParentCode());
+                            preparedStatement.setObject(3, 0);
+                            preparedStatement.setObject(4, tenantId);
+                            preparedStatement.setObject(5, "pull");
+                            preparedStatement.setObject(6, updateList.get(i).getDescription());
+                            preparedStatement.setObject(7, updateList.get(i).getMeta());
+                            preparedStatement.setObject(8, updateList.get(i).getCreateTime() == null ? LocalDateTime.now() : updateList.get(i).getCreateTime());
+                            preparedStatement.setObject(9, updateList.get(i).getTags());
+                            preparedStatement.setObject(10, updateList.get(i).getSource());
+                            preparedStatement.setObject(11, null == updateList.get(i).getDeptIndex() ? null : updateList.get(i).getDeptIndex());
+                            preparedStatement.setObject(12, updateList.get(i).getCode());
+
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return updateList.size();
+                        }
+                    });
+                }
+                if (null != deleteList && deleteList.size() > 0) {
+                    jdbcSSO.batchUpdate(deleteStr, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, 1);
+                            preparedStatement.setObject(2, 1);
+                            preparedStatement.setObject(3, LocalDateTime.now());
+                            preparedStatement.setObject(4, deleteList.get(i).getCode());
+                            preparedStatement.setObject(5, deleteList.get(i).getCreateTime());
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return deleteList.size();
+                        }
+                    });
+                }
+                return 1;
+            } catch (Exception e) {
+                transactionStatus.setRollbackOnly();
+                // transactionStatus.rollbackToSavepoint(savepoint);
+                return null;
+            }
+        });
     }
 }

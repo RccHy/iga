@@ -5,6 +5,7 @@ import com.qtgl.iga.bo.UpstreamType;
 import com.qtgl.iga.config.TaskThreadPool;
 import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.service.DomainInfoService;
+import com.qtgl.iga.service.PostService;
 import com.qtgl.iga.utils.DataBusUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -25,6 +26,8 @@ public class HelloController {
 
     @Autowired
     DeptService deptService;
+    @Autowired
+    PostService postService;
 
 
     @Autowired
@@ -32,7 +35,6 @@ public class HelloController {
 
     @Autowired
     DomainInfoService domainInfoService;
-
 
 
     @RequestMapping("/xc")
@@ -46,7 +48,7 @@ public class HelloController {
         int activeCount = tpe.getActiveCount();
         System.out.println(Thread.currentThread().getName() + "当前活动线程数：" + activeCount);
 
-        return Thread.currentThread().getName() + "当前排队线程数：" + queueSize+"；当前活动线程数：" + activeCount;
+        return Thread.currentThread().getName() + "当前排队线程数：" + queueSize + "；当前活动线程数：" + activeCount;
 
     }
 
@@ -60,8 +62,15 @@ public class HelloController {
 
     }
 
+    @RequestMapping("/post")
+    @ResponseBody
+    public void testPost() {
+        HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
+        DomainInfo byDomainName = domainInfoService.getByDomainName(request.getServerName());
 
+        postService.buildPostUpdateResult(byDomainName);
 
+    }
 
 
 }

@@ -4,6 +4,7 @@ package com.qtgl.iga.service.impl;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
+import com.qtgl.iga.dao.impl.UpstreamTypeDaoImpl;
 import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.service.NodeService;
 
@@ -41,6 +42,8 @@ public class DeptServiceImpl implements DeptService {
     NodeService nodeService;
     @Autowired
     NodeRulesCalculationServiceImpl calculationService;
+    @Autowired
+    UpstreamTypeDao upstreamTypeDao;
 
     @Value("${iga.hostname}")
     String hostname;
@@ -243,7 +246,6 @@ public class DeptServiceImpl implements DeptService {
         ArrayList<TreeBean> deleteList = new ArrayList<>();
 
 
-
         if (null != logBeans && logBeans.size() > 0) {
             logCollect = logBeans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
         }
@@ -268,42 +270,72 @@ public class DeptServiceImpl implements DeptService {
         if (null != update && update.size() > 0) {
             for (Map.Entry<TreeBean, String> key : update) {
                 key.getKey().setDataSource("pull");
-                //统计修改字段
-                if (null != logBeans && logBeans.size() > 0) {
-                    TreeBean treeBean = logCollect.get(key.getKey().getCode());
-                    Map<String, Map<String, Object>> stringMapMap = ClassCompareUtil.compareObject(treeBean, key.getKey());
-                    for (Map.Entry<String, Map<String, Object>> stringMapEntry : stringMapMap.entrySet()) {
-                        System.out.println(treeBean.getCode() + "-----------" + stringMapEntry.getKey() + "-------------" + stringMapEntry.getValue());
+//                //统计修改字段
+//                if (null != logBeans && logBeans.size() > 0) {
+//                    TreeBean treeBean = logCollect.get(key.getKey().getCode());
+//                    Map<String, Map<String, Object>> stringMapMap = ClassCompareUtil.compareObject(treeBean, key.getKey());
+//                    for (Map.Entry<String, Map<String, Object>> stringMapEntry : stringMapMap.entrySet()) {
+//                        System.out.println(treeBean.getCode() + "-----------" + stringMapEntry.getKey() + "-------------" + stringMapEntry.getValue());
+//                    }
+//                }
+                TreeBean newTreeBean = key.getKey();
+                TreeBean oldTreeBean = logCollect.get(newTreeBean.getCode());
+                //根据upstreamTypeId查询fileds
+                boolean flag = false;
+
+                try {
+                    List<UpstreamTypeField> fields = upstreamTypeDao.findFields(newTreeBean.getUpstreamTypeId());
+                    if (null != fields && fields.size() > 0) {
+                        for (UpstreamTypeField field : fields) {
+                            String sourceField = field.getSourceField();
+                            Object newValue = ClassCompareUtil.getGetMethod(newTreeBean, sourceField);
+                            Object oldValue = ClassCompareUtil.getGetMethod(oldTreeBean, sourceField);
+                            if (null == oldValue && null == newValue) {
+                                continue;
+                            }
+                            if (null != oldValue && oldValue.equals(newValue)) {
+                                continue;
+                            }
+                            flag = true;
+                            System.out.println(newTreeBean.getCode() +"字段"+  sourceField+ "-----------" + oldValue + "-------------" + newValue);
+                        }
                     }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-                updateList.add(key.getKey());
+
+                if (flag) {
+                    updateList.add(newTreeBean);
+                }
             }
         }
         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
         //删除数据
         if (null != delete && delete.size() > 0) {
             for (Map.Entry<TreeBean, String> key : delete) {
-                deleteList.add(key.getKey());
+                TreeBean newTreeBean = key.getKey();
+                TreeBean oldTreeBean = logCollect.get(newTreeBean.getCode());
+                if(null!=oldTreeBean.getUpdateTime()&&newTreeBean.getCreateTime().isAfter(oldTreeBean.getUpdateTime())){
+                    deleteList.add(key.getKey());
+                }
             }
         }
 
 
-        Integer flag = deptDao.renewData(insertList,updateList,deleteList,tenantId);
-        if(flag>0){
+        Integer flag = deptDao.renewData(insertList, updateList, deleteList, tenantId);
+        if (null != flag && flag > 0) {
 
 
-
-            logger.info("插入" + insertList.size() + "条数据");
-
+            logger.info("dept插入" + insertList.size() + "条数据  {}", System.currentTimeMillis());
 
 
-            logger.info("更新" + updateList.size() + "条数据");
+            logger.info("dept更新" + updateList.size() + "条数据  {}", System.currentTimeMillis());
 
 
+            logger.info("dept删除" + deleteList.size() + "条数据  {}", System.currentTimeMillis());
+        } else {
 
-            logger.info("删除" + deleteList.size() + "条数据");
-        }else {
-
+            logger.error("数据更新ssoApi数据库失败{}", System.currentTimeMillis());
         }
 
 
@@ -385,7 +417,7 @@ public class DeptServiceImpl implements DeptService {
                         TreeBean treeBean = new TreeBean();
                         treeBean.setCode(bean.getCode());
                         collect.remove(treeBean.getCode());
-                        result.put(treeBean, "delete");
+                        result.put(bean, "delete");
                     }
                 }
             }

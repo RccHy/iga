@@ -55,20 +55,20 @@ public class TaskConfig {
                                 executorService.execute(new Runnable() {
                                     @Override
                                     public void run() {
-                                     //   try {
-                                            //部门数据同步至sso
-                                            final Map<TreeBean, String> deptResult = deptService.buildDeptUpdateResult(domainInfo);
-                                            log.info(Thread.currentThread().getName() + ": 部门同步完成：{}==={}", deptResult.size(), System.currentTimeMillis());
+                                        //   try {
+                                        //部门数据同步至sso
+                                        final Map<TreeBean, String> deptResult = deptService.buildDeptUpdateResult(domainInfo);
+                                        log.info(Thread.currentThread().getName() + ": 部门同步完成：{}==={}", deptResult.size(), System.currentTimeMillis());
 
-                                            //岗位数据同步至sso
-                                            final Map<TreeBean, String> treeBeanStringMap = postService.buildPostUpdateResult(domainInfo);
-                                            log.info(Thread.currentThread().getName() + ": 岗位同步完成：{}==={}", treeBeanStringMap.size(), System.currentTimeMillis());
+                                        //岗位数据同步至sso
+                                        final Map<TreeBean, String> treeBeanStringMap = postService.buildPostUpdateResult(domainInfo);
+                                        log.info(Thread.currentThread().getName() + ": 岗位同步完成：{}==={}", treeBeanStringMap.size(), System.currentTimeMillis());
 
-                                            //人员数据同步至sso
-                                            Map<String, List<Person>> personResult = personService.buildPerson(domainInfo);
-                                            log.info(Thread.currentThread().getName() + ": 人员同步完成{}==={}", personResult.size(), System.currentTimeMillis());
+                                        //人员数据同步至sso
+                                        Map<String, List<Person>> personResult = personService.buildPerson(domainInfo);
+                                        log.info(Thread.currentThread().getName() + ": 人员同步完成{}==={}", personResult.size(), System.currentTimeMillis());
 
-                                            // todo 人员身份同步
+                                        // todo 人员身份同步
 
                                        /* } catch (Exception e) {
                                             e.printStackTrace();
