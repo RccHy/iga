@@ -297,11 +297,15 @@ public class DeptServiceImpl implements DeptService {
                                 continue;
                             }
                             flag = true;
-                            System.out.println(newTreeBean.getCode() +"字段"+  sourceField+ "-----------" + oldValue + "-------------" + newValue);
+                            logger.info(newTreeBean.getCode() +"字段"+  sourceField+ "-----------" + oldValue + "-------------" + newValue);
                         }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
+                }
+                if(oldTreeBean.getDelMark().equals(1)){
+                    flag=true;
+                    logger.info(newTreeBean.getCode()+"重新启用");
                 }
 
                 if (flag) {
@@ -315,8 +319,10 @@ public class DeptServiceImpl implements DeptService {
             for (Map.Entry<TreeBean, String> key : delete) {
                 TreeBean newTreeBean = key.getKey();
                 TreeBean oldTreeBean = logCollect.get(newTreeBean.getCode());
-                if(null!=oldTreeBean.getUpdateTime()&&newTreeBean.getCreateTime().isAfter(oldTreeBean.getUpdateTime())){
-                    deleteList.add(key.getKey());
+                if(oldTreeBean.getDelMark()==0){
+                    if(null!=oldTreeBean.getUpdateTime()&&(newTreeBean.getCreateTime().isAfter(oldTreeBean.getUpdateTime())||newTreeBean.getCreateTime().isEqual(oldTreeBean.getUpdateTime()))){
+                        deleteList.add(key.getKey());
+                    }
                 }
             }
         }

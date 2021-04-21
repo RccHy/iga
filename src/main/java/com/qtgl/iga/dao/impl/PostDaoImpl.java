@@ -39,7 +39,7 @@ public class PostDaoImpl implements PostDao {
         //
         String sql = "select  user_type as code , name, parent_code as parentCode , " +
                 " update_time as createTime," +
-                "source,data_source as dataSource,user_type_index as deptIndex from user_type where tenant_id = ? ";
+                "source,data_source as dataSource,user_type_index as deptIndex,del_mark as delMark,update_time as updateTime,post_type as type from user_type where tenant_id = ? ";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, id);
         return getUserTypes(mapList);
@@ -49,10 +49,13 @@ public class PostDaoImpl implements PostDao {
         ArrayList<TreeBean> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {
-                TreeBean post = new TreeBean();
-                BeanMap beanMap = BeanMap.create(post);
-                beanMap.putAll(map);
-                list.add(post);
+                TreeBean dept = new TreeBean();
+                try {
+                    BeanUtils.populate(dept, map);
+                } catch (IllegalAccessException | InvocationTargetException e) {
+                    e.printStackTrace();
+                }
+                list.add(dept);
             }
             return list;
         }
@@ -219,15 +222,15 @@ public class PostDaoImpl implements PostDao {
 
     @Override
     public Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, String tenantId) {
-        String insertStr = "insert into user_type (id,user_type, name, parent_code, can_login ,tenant_id ,tags, data_source, description, meta,create_time,del_mark,active,active_time,update_time,source,user_type_index) values" +
+        String insertStr = "insert into user_type (id,user_type, name, parent_code, can_login ,tenant_id ,tags, data_source, description, meta,create_time,del_mark,active,active_time,update_time,source,user_type_index,post_type) values" +
                 "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
         String updateStr = "update user_type set  name=?, parent_code=?, del_mark=? ,tenant_id =?" +
                 ", data_source=?, description=?, meta=?,update_time=?,tags=?,source=?" +
-                ", user_type_index = ?,del_mark =0  where user_type =?";
+                ", user_type_index = ?,del_mark =0,post_type=?  where user_type =?";
 
         String deleteStr = "update user_type set   del_mark= ? , active = ?,active_time= ?  " +
-                "where user_type =?  and update_time< ? ";
+                "where user_type =?  and update_time<= ? ";
         return txTemplate2.execute(transactionStatus -> {
             try {
                 if (null != insertList && insertList.size() > 0) {
@@ -251,6 +254,7 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(15, LocalDateTime.now());
                             preparedStatement.setObject(16, insertList.get(i).getSource());
                             preparedStatement.setObject(17, null == insertList.get(i).getDeptIndex() ? null : insertList.get(i).getDeptIndex());
+                            preparedStatement.setObject(18, null == insertList.get(i).getType() ? null : insertList.get(i).getType());
                         }
 
                         @Override
@@ -274,7 +278,8 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(9, updateList.get(i).getTags());
                             preparedStatement.setObject(10, updateList.get(i).getSource());
                             preparedStatement.setObject(11, null == updateList.get(i).getDeptIndex() ? null : updateList.get(i).getDeptIndex());
-                            preparedStatement.setObject(12, updateList.get(i).getCode());
+                            preparedStatement.setObject(12, null == updateList.get(i).getType() ? null : updateList.get(i).getType());
+                            preparedStatement.setObject(13, updateList.get(i).getCode());
 
                         }
 

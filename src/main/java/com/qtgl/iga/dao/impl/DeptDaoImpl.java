@@ -60,7 +60,7 @@ public class DeptDaoImpl implements DeptDao {
     @Override
     public List<TreeBean> findByTenantId(String id, String treeType, Integer delMark) {
         String sql = "select dept_code as code , dept_name as name , parent_code as parentCode , " +
-                " update_time as createTime , source, tree_type as treeType,data_source as dataSource, abbreviation,tags,type,independent,update_time as updateTime  from dept where tenant_id = ? ";
+                " update_time as createTime , source, tree_type as treeType,data_source as dataSource, abbreviation,tags,type,independent,update_time as updateTime,del_mark as delMark  from dept where tenant_id = ? ";
         List<Object> param = new ArrayList<>();
         param.add(id);
         if (null != treeType) {
@@ -226,7 +226,7 @@ public class DeptDaoImpl implements DeptDao {
                 ",source =?, data_source=?, description=?, meta=?,update_time=?,tags=?,independent=?,tree_type= ?,active=? ,abbreviation=?,del_mark=0 ,type = ? " +
                 "where dept_code =? and update_time< ?";
         String deleteStr = "update dept set   del_mark= ? , active = ?,active_time= ?  " +
-                "where dept_code =? and update_time< ? ";
+                "where dept_code =? and update_time<= ? ";
         return txTemplate.execute(transactionStatus -> {
 //            Object savepoint = transactionStatus.createSavepoint();
 

@@ -5,8 +5,10 @@ import com.qtgl.iga.bean.TreeBean;
 
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.Tenant;
+import com.qtgl.iga.bo.UpstreamTypeField;
 import com.qtgl.iga.dao.PostDao;
 import com.qtgl.iga.dao.TenantDao;
+import com.qtgl.iga.dao.UpstreamTypeDao;
 import com.qtgl.iga.service.NodeService;
 import com.qtgl.iga.service.PostService;
 
@@ -40,6 +42,9 @@ public class PostServiceImpl implements PostService {
     TenantDao tenantDao;
     @Autowired
     NodeService nodeService;
+    @Autowired
+    UpstreamTypeDao upstreamTypeDao;
+
 
     @Value("${iga.hostname}")
     String hostname;
@@ -234,21 +239,52 @@ public class PostServiceImpl implements PostService {
             for (Map.Entry<TreeBean, String> key : update) {
                 key.getKey().setDataSource("pull");
                 //统计修改字段
-                if (null != logBeans && logBeans.size() > 0) {
-                    TreeBean treeBean = logCollect.get(key.getKey().getCode());
-                    Map<String, Map<String, Object>> stringMapMap = ClassCompareUtil.compareObject(treeBean, key.getKey());
-                    for (Map.Entry<String, Map<String, Object>> stringMapEntry : stringMapMap.entrySet()) {
-                        System.out.println(treeBean.getCode() + "-----------" + stringMapEntry.getKey() + "-------------" + stringMapEntry.getValue());
+                TreeBean newTreeBean = key.getKey();
+                TreeBean oldTreeBean = logCollect.get(newTreeBean.getCode());
+                //根据upstreamTypeId查询fileds
+                boolean flag = false;
+
+                try {
+                    List<UpstreamTypeField> fields = upstreamTypeDao.findFields(newTreeBean.getUpstreamTypeId());
+                    if (null != fields && fields.size() > 0) {
+                        for (UpstreamTypeField field : fields) {
+                            String sourceField = field.getSourceField();
+                            Object newValue = ClassCompareUtil.getGetMethod(newTreeBean, sourceField);
+                            Object oldValue = ClassCompareUtil.getGetMethod(oldTreeBean, sourceField);
+                            if (null == oldValue && null == newValue) {
+                                continue;
+                            }
+                            if (null != oldValue && oldValue.equals(newValue)) {
+                                continue;
+                            }
+                            flag = true;
+                            logger.info(newTreeBean.getCode() + "字段" + sourceField + "-----------" + oldValue + "-------------" + newValue);
+                        }
                     }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-                updateList.add(key.getKey());
+                if (oldTreeBean.getDelMark().equals(1)) {
+                    flag = true;
+                    logger.info(newTreeBean.getCode() + "重新启用");
+                }
+
+                if (flag) {
+                    updateList.add(newTreeBean);
+                }
             }
         }
         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
         //删除数据
         if (null != delete && delete.size() > 0) {
             for (Map.Entry<TreeBean, String> key : delete) {
-                deleteList.add(key.getKey());
+                TreeBean newTreeBean = key.getKey();
+                TreeBean oldTreeBean = logCollect.get(newTreeBean.getCode());
+                if (oldTreeBean.getDelMark() == 0) {
+                    if (null != oldTreeBean.getUpdateTime() && (newTreeBean.getCreateTime().isAfter(oldTreeBean.getUpdateTime()) || newTreeBean.getCreateTime().isEqual(oldTreeBean.getUpdateTime()))) {
+                        deleteList.add(key.getKey());
+                    }
+                }
             }
         }
 

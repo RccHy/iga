@@ -48,6 +48,8 @@ public class TreeBean {
 
     private String abbreviation;
 
+    private Integer delMark;
+
     private String type;
 //    public DeptBean(Dept dept) {
 //        this.setCode(dept.getDeptCode());

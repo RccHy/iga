@@ -52,7 +52,6 @@ public class NodeRulesCalculationServiceImpl {
     public static ConcurrentHashMap<String, String> deptRename;
 
 
-
     /**
      * 重命名规则
      *
@@ -345,7 +344,7 @@ public class NodeRulesCalculationServiceImpl {
                     if (null == dept.getString(TreeEnum.PARENTCODE.getCode())) {
                         dept.put(TreeEnum.PARENTCODE.getCode(), "");
                     }
-                    dept.put("upstreamTypeId",upstreamType.getId());
+                    dept.put("upstreamTypeId", upstreamType.getId());
                     upstreamDept.add(dept.toJavaObject(TreeBean.class));
 
                 }
@@ -368,7 +367,7 @@ public class NodeRulesCalculationServiceImpl {
                 Map<String, TreeBean> mergeDeptMap = new ConcurrentHashMap<>();
                 logger.error("节点'{}'开始运行挂载", code);
                 //获取并检测 需要挂载的树， add 进入 待合并的树集合 mergeDept
-                mountRules(nodeCode, mainTreeMap, upstreamMap, childrenMap, nodeRulesRanges, mergeDeptMap, upstream.getAppCode());
+                mountRules(nodeCode, mainTreeMap, upstreamMap, childrenMap, nodeRulesRanges, mergeDeptMap, upstream.getAppName() + "(" + upstream.getAppCode() + ")");
                 //在挂载基础上进行排除
                 excludeRules(mergeDeptMap, childrenMap, nodeRulesRanges);
                 logger.error("节点'{}'开始运行排除", code);
