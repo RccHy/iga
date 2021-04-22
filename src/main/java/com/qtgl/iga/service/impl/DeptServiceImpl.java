@@ -2,11 +2,13 @@ package com.qtgl.iga.service.impl;
 
 
 import com.qtgl.iga.bean.TreeBean;
-import com.qtgl.iga.bo.*;
+import com.qtgl.iga.bo.DeptTreeType;
+import com.qtgl.iga.bo.DomainInfo;
+import com.qtgl.iga.bo.Tenant;
+import com.qtgl.iga.bo.UpstreamTypeField;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.service.NodeService;
-
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
 import lombok.SneakyThrows;
@@ -232,27 +234,24 @@ public class DeptServiceImpl implements DeptService {
                 //根据upstreamTypeId查询fileds
                 boolean flag = false;
 
-                try {
-                    List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(newTreeBean.getUpstreamTypeId());
-                    if (null != fields && fields.size() > 0) {
-                        for (UpstreamTypeField field : fields) {
-                            String sourceField = field.getSourceField();
-                            Object newValue = ClassCompareUtil.getGetMethod(newTreeBean, sourceField);
-                            Object oldValue = ClassCompareUtil.getGetMethod(oldTreeBean, sourceField);
-                            if (null == oldValue && null == newValue) {
-                                continue;
-                            }
-                            if (null != oldValue && oldValue.equals(newValue)) {
-                                continue;
-                            }
-                            flag = true;
-                            ClassCompareUtil.setValue(oldTreeBean,oldTreeBean.getClass(),sourceField,oldValue.getClass(),newValue);
-                            logger.info(newTreeBean.getCode() + "字段" + sourceField + "-----------" + oldValue + "-------------" + newValue);
+                List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(newTreeBean.getUpstreamTypeId());
+                if (null != fields && fields.size() > 0) {
+                    for (UpstreamTypeField field : fields) {
+                        String sourceField = field.getSourceField();
+                        Object newValue = ClassCompareUtil.getGetMethod(newTreeBean, sourceField);
+                        Object oldValue = ClassCompareUtil.getGetMethod(oldTreeBean, sourceField);
+                        if (null == oldValue && null == newValue) {
+                            continue;
                         }
+                        if (null != oldValue && oldValue.equals(newValue)) {
+                            continue;
+                        }
+                        flag = true;
+                        ClassCompareUtil.setValue(oldTreeBean, oldTreeBean.getClass(), sourceField, oldValue.getClass(), newValue);
+                        logger.info(newTreeBean.getCode() + "字段" + sourceField + "-----------" + oldValue + "-------------" + newValue);
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
                 }
+
                 if (oldTreeBean.getDelMark().equals(1)) {
                     flag = true;
                     logger.info(newTreeBean.getCode() + "重新启用");

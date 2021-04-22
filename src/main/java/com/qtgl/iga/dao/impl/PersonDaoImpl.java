@@ -149,8 +149,8 @@ public class PersonDaoImpl implements PersonDao {
             try {
                 if (personMap.containsKey("install")) {
                     final List<Person> list = personMap.get("install");
-                    String str = "insert into identity (id, name, account_no,open_id,  del_mark, create_time, update_time, tenant_id, card_type, card_no, cellphone, email, data_source, tags,  active, active_time,source)" +
-                            "values  (?, ?, ?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
+                    String str = "insert into identity (id, `name`, account_no,open_id,  del_mark, create_time, update_time, tenant_id, card_type, card_no, cellphone, email, data_source, tags,  active, active_time,source)" +
+                            "values  (?, ?, ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
 
                     int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
                         @Override
@@ -159,9 +159,9 @@ public class PersonDaoImpl implements PersonDao {
                             preparedStatement.setObject(2, list.get(i).getName());
                             preparedStatement.setObject(3, list.get(i).getAccountNo());
                             preparedStatement.setObject(4, list.get(i).getOpenId());
-                            preparedStatement.setObject(5, list.get(i).getDelMark() == null ? 0 : list.get(i).getDelMark());
+                            preparedStatement.setObject(5, list.get(i).getDelMark());
                             preparedStatement.setObject(6, list.get(i).getCreateTime());
-                            preparedStatement.setObject(7, list.get(i).getCreateTime());
+                            preparedStatement.setObject(7, list.get(i).getUpdateTime());
                             preparedStatement.setObject(8, tenantId);
                             preparedStatement.setObject(9, list.get(i).getCardType());
                             preparedStatement.setObject(10, list.get(i).getCardNo());

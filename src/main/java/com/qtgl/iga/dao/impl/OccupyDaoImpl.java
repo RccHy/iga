@@ -1,7 +1,6 @@
 package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bean.OccupyDto;
-import com.qtgl.iga.bo.Occupy;
 import com.qtgl.iga.dao.OccupyDao;
 import org.apache.commons.beanutils.BeanUtils;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
@@ -33,17 +32,20 @@ public class OccupyDaoImpl implements OccupyDao {
 
 
     @Override
-    public List<Occupy> findAll(String tenantId) {
+    public List<OccupyDto> findAll(String tenantId) {
         // 以人（identity）为主查询 人和身份的关联关系（identity_user）数据。再通过关联数据 查询身份信息详情。过滤掉 关键属性为空的数据行
         String sql = "select" +
                 "       iu.identity_id as personId," +
                 "       iu.user_id     as occupyId," +
                 "       u.user_type               as postCode," +
                 "       u.dept_code               as deptCode," +
-                "       u.card_type               as occupyCardType," +
-                "       u.card_no                 as occupyCardNo," +
+                "       u.card_type               as identityCardType," +
+                "       u.card_no                 as identityCardNo," +
                 "       u.del_mark                  as delMark," +
-                "       u.source," +
+                "       u.start_time                  as startTime," +
+                "       u.end_time                  as endTime," +
+                "       u.user_index                  as `index`," +
+                "       u.source                                ," +
                 "       u.data_source               as dataSource," +
                 "       u.create_time               as createTime," +
                 "       u.update_time               as updateTime" +
@@ -56,9 +58,9 @@ public class OccupyDaoImpl implements OccupyDao {
 
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId);
-        List<Occupy> occupies = new ArrayList<>();
+        List<OccupyDto> occupies = new ArrayList<>();
         mapList.forEach(map -> {
-            Occupy occupy = new Occupy();
+            OccupyDto occupy = new OccupyDto();
             try {
                 BeanUtils.populate(occupy, map);
             } catch (Exception e) {
@@ -100,7 +102,7 @@ public class OccupyDaoImpl implements OccupyDao {
                             preparedStatement.setObject(15, list.get(i).getIndex());
 
                             preparedStatement.setObject(16, UUID.randomUUID().toString());
-                            preparedStatement.setObject(17, list.get(i).getUserId());
+                            preparedStatement.setObject(17, list.get(i).getPersonId());
                             preparedStatement.setObject(18, list.get(i).getOccupyId());
 
                         }
@@ -114,7 +116,7 @@ public class OccupyDaoImpl implements OccupyDao {
 
                 if (occupyMap.containsKey("update")) {
                     List<OccupyDto> list = occupyMap.get("update");
-                    String sql = "UPDATE user SET user_type = ?, card_type = ?, card_no = ?, del_mark = 0, start_time = ?, end_time = ?, update_time = ?,dept_code = ?,  " +
+                    String sql = "UPDATE `user` SET user_type = ?, card_type = ?, card_no = ?, del_mark = ?, start_time = ?, end_time = ?, update_time = ?,dept_code = ?,  " +
                             " source = ?, data_source = 'PULL',  user_index = ?" +
                             " WHERE id = ? and update_time < ? ; ";
 
@@ -124,17 +126,38 @@ public class OccupyDaoImpl implements OccupyDao {
                             preparedStatement.setObject(1, list.get(i).getPostCode());
                             preparedStatement.setObject(2, list.get(i).getIdentityCardType());
                             preparedStatement.setObject(3, list.get(i).getIdentityCardNo());
-                            preparedStatement.setObject(4, list.get(i).getStartTime());
-                            preparedStatement.setObject(5, list.get(i).getEndTime());
+                            preparedStatement.setObject(4, list.get(i).getDelMark());
+                            preparedStatement.setObject(5, list.get(i).getStartTime());
                             preparedStatement.setObject(6, list.get(i).getEndTime());
-                            preparedStatement.setObject(7, list.get(i).getUpdateTime());
-                            preparedStatement.setObject(8, list.get(i).getDeptCode());
-                            preparedStatement.setObject(9, list.get(i).getSource());
-                            preparedStatement.setObject(10, list.get(i).getIndex());
-                            preparedStatement.setObject(11, list.get(i).getOccupyId());
-                            preparedStatement.setObject(7, list.get(i).getUpdateTime());
+                            preparedStatement.setObject(7, list.get(i).getEndTime());
+                            preparedStatement.setObject(8, list.get(i).getUpdateTime());
+                            preparedStatement.setObject(9, list.get(i).getDeptCode());
+                            preparedStatement.setObject(10, list.get(i).getSource());
+                            preparedStatement.setObject(11, list.get(i).getIndex());
+                            preparedStatement.setObject(12, list.get(i).getOccupyId());
+                            preparedStatement.setObject(13, list.get(i).getUpdateTime());
 
 
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return list.size();
+                        }
+                    });
+                }
+
+
+                if (occupyMap.containsKey("delete")) {
+                    List<OccupyDto> list = occupyMap.get("delete");
+                    String sql = "UPDATE `user` SET  del_mark = 1, update_time = ?" +
+                            " WHERE id = ? and update_time < ? ; ";
+                    int[] ints = jdbcSSO.batchUpdate(sql, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, list.get(i).getPostCode());
+                            preparedStatement.setObject(2, list.get(i).getUpdateTime());
+                            preparedStatement.setObject(3, list.get(i).getUpdateTime());
                         }
 
                         @Override

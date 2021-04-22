@@ -9,6 +9,7 @@ import com.qtgl.iga.bean.OccupyEdge;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.OccupyService;
+import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,9 +80,11 @@ public class OccupyServiceImpl implements OccupyService {
 
         List<NodeRules> occupyRules = rulesDao.getByNodeAndType(nodeId, 1, true, 0);
 
+        // 获取sso中所有人员，用于验证 身份信息是否合法
         List<Person> personFromSSO = personDao.getAll(tenant.getId());
         Map<String, Person> personFromSSOMap = personFromSSO.stream().filter(person -> !StringUtils.isEmpty(person.getCardType()) && !StringUtils.isEmpty(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
 
+        // 获取所有规则 字段，用于更新验证
         Map<String, OccupyDto> occupyDtoFromUpstream = new HashMap<>();
         occupyRules.forEach(rules -> {
             UpstreamType upstreamType = upstreamTypeDao.findById(rules.getUpstreamTypesId());
@@ -111,10 +114,14 @@ public class OccupyServiceImpl implements OccupyService {
                     continue;
                 }
                 final String personId = personFromSSOMap.get(personKey).getId();
-                occupyDto.setUserId(personId);
+                occupyDto.setPersonId(personId);
                 occupyDto.setCreateTime(now);
+                occupyDto.setUpstreamType(upstreamType.getId());
                 if (null == occupyDto.getUpdateTime()) {
                     occupyDto.setUpdateTime(now);
+                }
+                if (null == occupyDto.getDelMark()) {
+                    occupyDto.setDelMark(0);
                 }
                 String key = personId + ":" + occupyDto.getPostCode() + ":" + occupyDto.getDeptCode();
                 if (occupyDtoFromUpstream.containsKey(key)) {
@@ -125,26 +132,65 @@ public class OccupyServiceImpl implements OccupyService {
 
         });
         log.info("所有人员身份数据获取完成:{}", occupyDtoFromUpstream.size());
-        final List<OccupyDto> occupyDtos = (List<OccupyDto>) occupyDtoFromUpstream.values();
+        //final List<OccupyDto> occupyDtos = (List<OccupyDto>) occupyDtoFromUpstream.values();
         // 获取sso中人员身份信息
-        final List<Occupy> occupiesFromSSO = occupyDao.findAll(tenant.getId());
+        final List<OccupyDto> occupiesFromSSO = occupyDao.findAll(tenant.getId());
         log.info("数据库中人员身份数据获取完成:{}", occupiesFromSSO.size());
-        Map<String, Occupy> occupiesFromSSOMap = occupiesFromSSO.stream().
+        Map<String, OccupyDto> occupiesFromSSOMap = occupiesFromSSO.stream().
                 collect(Collectors.toMap(occupy -> (occupy.getPersonId() + ":" + occupy.getPostCode() + ":" + occupy.getDeptCode()), occupy -> occupy, (v1, v2) -> v2));
         Map<String, List<OccupyDto>> result = new HashMap<>();
         occupiesFromSSOMap.forEach((key, val) -> {
             // 对比出需要修改的occupy
             if (occupyDtoFromUpstream.containsKey(key) &&
                     occupyDtoFromUpstream.get(key).getCreateTime().isAfter(val.getUpdateTime())) {
-                if (result.containsKey("update")) {
-                    result.get("update").add(occupyDtoFromUpstream.get(key));
-                } else {
-                    result.put("update", new ArrayList<OccupyDto>() {{
-                        this.add(occupyDtoFromUpstream.get(key));
-                    }});
+                //
+                boolean flag = false;
+                boolean delFlag=true;
+                OccupyDto newOccupy = occupyDtoFromUpstream.get(key);
+                List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(newOccupy.getUpstreamType());
+
+                // 如果字段上游不提供，则不进行更新
+                //    字段值没有发生改变，不进行更新
+                if (null != fields && fields.size() > 0) {
+                    for (UpstreamTypeField field : fields) {
+                        String sourceField = field.getSourceField();
+                        Object newValue = ClassCompareUtil.getGetMethod(newOccupy, sourceField);
+                        Object oldValue = ClassCompareUtil.getGetMethod(val, sourceField);
+                        if (null == oldValue && null == newValue) {
+                            continue;
+                        }
+                        if (null != oldValue && oldValue.equals(newValue)) {
+                            continue;
+                        }
+                        flag = true;
+                        if (sourceField.equals("delMark") && (Integer) oldValue==1&&(Integer)newValue==0) {
+                            delFlag=false;
+                            log.info("人员身份信息{}从删除恢复", val.getOccupyId());
+                        }
+                        if (sourceField.equals("delMark") && (Integer) oldValue==0&&(Integer)newValue==1) {
+                            log.info("人员身份信息{}删除", val.getOccupyId());
+                        }
+                        ClassCompareUtil.setValue(oldValue, oldValue.getClass(), sourceField, oldValue.getClass(), newValue);
+                        log.info("人员身份信息更新{}:字段{}：{} -> {}", val.getOccupyId(), sourceField, oldValue, newValue);
+
+                    }
+                }
+                if (val.getDelMark().equals(1)&&delFlag) {
+                    flag = true;
+                    newOccupy.setDelMark(0);
+                    log.info("人员身份信息{}从删除恢复", val.getOccupyId());
+                }
+                if (flag) {
+                    if (result.containsKey("update")) {
+                        result.get("update").add(val);
+                    } else {
+                        result.put("update", new ArrayList<OccupyDto>() {{
+                            this.add(val);
+                        }});
+                    }
                 }
                 log.debug("人员身份对比后需要修改{}-{}", val, occupyDtoFromUpstream.get(key));
-            } else if (!occupyDtoFromUpstream.containsKey(key) && 1 != val.getDelMark() && "pull".equals(val.getDataSource())) {
+            } else if (!occupyDtoFromUpstream.containsKey(key) && 1 != val.getDelMark() && "PULL".equals(val.getDataSource())) {
                 OccupyDto occupyDto = new OccupyDto();
                 occupyDto.setOccupyId(val.getOccupyId());
                 if (result.containsKey("delete")) {
@@ -174,8 +220,9 @@ public class OccupyServiceImpl implements OccupyService {
             }
         });
 
+        occupyDao.saveToSso(result,tenant.getId());
 
-        return null;
+        return result;
     }
 
 

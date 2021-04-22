@@ -4,10 +4,12 @@ package com.qtgl.iga.service.impl;
 import com.alibaba.druid.util.StringUtils;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.qtgl.iga.bean.*;
+import com.qtgl.iga.bean.PersonConnection;
+import com.qtgl.iga.bean.PersonEdge;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.PersonService;
+import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -86,30 +88,34 @@ public class PersonServiceImpl implements PersonService {
             if (null != personBeanList) {
                 for (Person personBean : personBeanList) {
                     if (StringUtils.isEmpty(personBean.getName())) {
-                        log.error("姓名为空");
+                        log.warn("姓名为空");
                         continue;
                     }
                     if (StringUtils.isEmpty(personBean.getCardNo()) && StringUtils.isEmpty(personBean.getCardType())) {
-                        log.error(personBean.getName() + "证件类型、号码为空");
+                        log.warn(personBean.getName() + "证件类型、号码为空");
                         continue;
                         //throw new Exception(userBean.getName() + "证件类型、号码为空");
                     }
                     if (cardTypeMap.containsKey(personBean.getCardType())) {
                         String cardTypeReg = cardTypeMap.get(personBean.getCardType()).getCardTypeReg();
                         if (!Pattern.matches(cardTypeReg, personBean.getCardNo())) {
-                            log.error(personBean.getName() + "证件号码不符合规则");
+                            log.warn(personBean.getName() + "证件号码不符合规则");
                             continue;
                             //throw new Exception(userBean.getName() + "证件号码不符合规则");
                         }
                     } else {
-                        log.error(personBean.getName() + "证件类型无效");
+                        log.warn(personBean.getName() + "证件类型无效");
                         continue;
                         //throw new Exception(userBean.getName() + "证件类型无效");
                     }
                     personBean.setSource(upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")");
+                    personBean.setUpstreamType(upstreamType.getId());
                     personBean.setCreateTime(now);
                     if (null == personBean.getUpdateTime()) {
                         personBean.setUpdateTime(now);
+                    }
+                    if (null == personBean.getDelMark()) {
+                        personBean.setDelMark(0);
                     }
                     personFromUpstream.put(personBean.getCardType() + ":" + personBean.getCardNo(), personBean);
                 }
@@ -130,14 +136,53 @@ public class PersonServiceImpl implements PersonService {
             if (personFromUpstream.containsKey(key) &&
                     personFromUpstream.get(key).getCreateTime().isAfter(val.getUpdateTime())) {
                 // todo 增加对比出具体变更的字段。 明确描述出从删除恢复的对象
-                if (result.containsKey("update")) {
-                    result.get("update").add(personFromUpstream.get(key));
-                } else {
-                    result.put("update", new ArrayList<Person>() {{
-                        this.add(personFromUpstream.get(key));
-                    }});
+
+                boolean flag = false;
+                boolean delFlag = true;
+                Person newPerson = personFromUpstream.get(key);
+                List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(newPerson.getUpstreamType());
+                // 如果字段上游不提供，则不进行更新
+                //    字段值没有发生改变，不进行更新
+                if (null != fields && fields.size() > 0) {
+                    for (UpstreamTypeField field : fields) {
+                        String sourceField = field.getSourceField();
+                        Object newValue = ClassCompareUtil.getGetMethod(newPerson, sourceField);
+                        Object oldValue = ClassCompareUtil.getGetMethod(val, sourceField);
+                        if (null == oldValue && null == newValue) {
+                            continue;
+                        }
+                        if (null != oldValue && oldValue.equals(newValue)) {
+                            continue;
+                        }
+                        if (sourceField.equals("delMark") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
+                            delFlag = false;
+                            log.info("人员信息{}从删除恢复", val.getId());
+                        }
+                        if (sourceField.equals("delMark") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
+                            log.info("人员信息{}删除", val.getId());
+                        }
+                        flag = true;
+                        ClassCompareUtil.setValue(val, val.getClass(), sourceField, oldValue.getClass(), newValue);
+                        log.debug("人员信息更新{}:字段{}：{} -> {}", val.getId(), sourceField, oldValue, newValue);
+                    }
                 }
-                log.debug("对比后需要修改{}", val.toString());
+
+                if (val.getDelMark().equals(1) && delFlag) {
+                    flag = true;
+                    newPerson.setDelMark(0);
+                    log.info("人员身份信息{}从删除恢复", val.getId());
+                }
+
+                if (flag) {
+                    if (result.containsKey("update")) {
+                        result.get("update").add(val);
+                    } else {
+                        result.put("update", new ArrayList<Person>() {{
+                            this.add(val);
+                        }});
+                    }
+                }
+                log.info("对比后需要修改{}", val.toString());
             } else if (!personFromUpstream.containsKey(key) && 1 != val.getDelMark() && "PULL".equals(val.getDataSource())) {
                 if (result.containsKey("delete")) {
                     result.get("delete").add(val);
@@ -147,7 +192,7 @@ public class PersonServiceImpl implements PersonService {
                     }});
                 }
 
-                log.debug("人员对比后删除{}", val.toString());
+                log.info("人员对比后删除{}", val.toString());
             }
         });
 

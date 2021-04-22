@@ -36,9 +36,7 @@ public class TreeBean {
     private LocalDateTime updateTime;
 
     private String upstreamTypeId;
-    /**
-     * todo 部门排序 暂不考虑
-     */
+
     private Integer deptIndex;
 
     private String treeType;
