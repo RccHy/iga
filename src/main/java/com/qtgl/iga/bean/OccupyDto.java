@@ -2,6 +2,8 @@ package com.qtgl.iga.bean;
 
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 @Data
 public class OccupyDto {
 
@@ -13,14 +15,25 @@ public class OccupyDto {
 
     private String personCardNo;
 
+    // 身份证件类型
     private String identityCardType;
 
+    // 身份证件编号
     private String identityCardNo;
 
-    private Long startTime;
+    private LocalDateTime startTime;
 
-    private Long endTime;
+    private LocalDateTime endTime;
 
     private Integer index;
+
+    private String source;
+
+
+    private LocalDateTime createTime;
+    private LocalDateTime updateTime;
+
+    private String userId;
+    private String occupyId;
 
 }

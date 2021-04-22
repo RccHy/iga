@@ -26,7 +26,7 @@ public class TreeBean {
     private String source;
 
     /**
-     * push  pull  builtin
+     * push  PULL  builtin
      */
     private String dataSource;
 

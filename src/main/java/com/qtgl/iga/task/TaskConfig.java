@@ -42,7 +42,7 @@ public class TaskConfig {
      * 串行执行 部门、岗位、人员、三元组 同步
      */
 
-    @Scheduled(cron = "${dept.task.cron}")
+   // @Scheduled(cron = "${dept.task.cron}")
     public void deptTask() {
         try {
             log.info("hostname{}", hostname);

@@ -269,7 +269,7 @@ public class DeptServiceImpl implements DeptService {
         //修改数据
         if (null != update && update.size() > 0) {
             for (Map.Entry<TreeBean, String> key : update) {
-                key.getKey().setDataSource("pull");
+                key.getKey().setDataSource("PULL");
 //                //统计修改字段
 //                if (null != logBeans && logBeans.size() > 0) {
 //                    TreeBean treeBean = logCollect.get(key.getKey().getCode());
@@ -414,7 +414,7 @@ public class DeptServiceImpl implements DeptService {
                 if (null != bean.getTreeType() && bean.getTreeType().equals(treeTypeId)) {
                     boolean flag = true;
                     for (TreeBean treeBean : result.keySet()) {
-                        if (bean.getCode().equals(treeBean.getCode()) || (!"pull".equals(bean.getDataSource()))) {
+                        if (bean.getCode().equals(treeBean.getCode()) || (!"PULL".equals(bean.getDataSource()))) {
                             flag = false;
                             break;
                         }

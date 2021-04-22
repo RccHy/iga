@@ -30,7 +30,7 @@ public class PostDaoImpl implements PostDao {
     @Resource(name = "jdbcSSO")
     JdbcTemplate jdbcSSO;
 
-    @Resource(name = "txTemplate2")
+    @Resource(name = "sso-txTemplate")
     TransactionTemplate txTemplate2;
 
 
@@ -78,7 +78,7 @@ public class PostDaoImpl implements PostDao {
                 preparedStatement.setObject(2, list.get(i).getParentCode());
                 preparedStatement.setObject(3, 0);
                 preparedStatement.setObject(4, tenantId);
-                preparedStatement.setObject(5, "pull");
+                preparedStatement.setObject(5, "PULL");
                 preparedStatement.setObject(6, list.get(i).getDescription());
                 preparedStatement.setObject(7, list.get(i).getMeta());
                 preparedStatement.setObject(8, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
@@ -117,7 +117,7 @@ public class PostDaoImpl implements PostDao {
                 preparedStatement.setObject(5, 0);
                 preparedStatement.setObject(6, tenantId);
                 preparedStatement.setObject(7, list.get(i).getTags());
-                preparedStatement.setObject(8, "pull");
+                preparedStatement.setObject(8, "PULL");
                 preparedStatement.setObject(9, list.get(i).getDescription());
                 preparedStatement.setObject(10, list.get(i).getMeta());
                 preparedStatement.setObject(11, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
@@ -244,7 +244,7 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(5, 0);
                             preparedStatement.setObject(6, tenantId);
                             preparedStatement.setObject(7, insertList.get(i).getTags());
-                            preparedStatement.setObject(8, "pull");
+                            preparedStatement.setObject(8, "PULL");
                             preparedStatement.setObject(9, insertList.get(i).getDescription());
                             preparedStatement.setObject(10, insertList.get(i).getMeta());
                             preparedStatement.setObject(11, insertList.get(i).getCreateTime() == null ? LocalDateTime.now() : insertList.get(i).getCreateTime());
@@ -271,7 +271,7 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(2, updateList.get(i).getParentCode());
                             preparedStatement.setObject(3, 0);
                             preparedStatement.setObject(4, tenantId);
-                            preparedStatement.setObject(5, "pull");
+                            preparedStatement.setObject(5, "PULL");
                             preparedStatement.setObject(6, updateList.get(i).getDescription());
                             preparedStatement.setObject(7, updateList.get(i).getMeta());
                             preparedStatement.setObject(8, updateList.get(i).getCreateTime() == null ? LocalDateTime.now() : updateList.get(i).getCreateTime());

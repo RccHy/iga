@@ -3,6 +3,7 @@ package com.qtgl.iga.dao;
 import com.qtgl.iga.bo.Person;
 
 import java.util.List;
+import java.util.Map;
 
 public interface PersonDao {
 
@@ -23,5 +24,8 @@ public interface PersonDao {
     Integer deleteAccount(List<String> ids);
 
     Integer deleteOccupy(List<String> ids);
+
+         Integer saveToSso(Map<String, List<Person>> personMap, String tenantId) ;
+
 
 }

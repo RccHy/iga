@@ -31,7 +31,7 @@ public class JdbcTemplateConfig {
     /**
      * 装配事务管理器
      */
-    @Bean(name = "transactionManager")
+    @Bean(name = "api-transactionManager")
     public DataSourceTransactionManager transactionManager(@Qualifier("dsSSOAPI") DataSource dsSSOAPI) {
         return new DataSourceTransactionManager(dsSSOAPI);
     }
@@ -39,15 +39,15 @@ public class JdbcTemplateConfig {
     /**
      * JDBC事务操作配置
      */
-    @Bean(name = "txTemplate")
-    public TransactionTemplate transactionTemplate(@Qualifier("transactionManager") DataSourceTransactionManager transactionManager) {
+    @Bean(name = "api-txTemplate")
+    public TransactionTemplate transactionTemplate(@Qualifier("api-transactionManager") DataSourceTransactionManager transactionManager) {
         return new TransactionTemplate(transactionManager);
     }
 
     /**
      * 装配事务管理器
      */
-    @Bean(name = "transactionManager2")
+    @Bean(name = "sso-transactionManager")
     @Primary
     public DataSourceTransactionManager transactionManager2(@Qualifier("dsSSO") DataSource dsSSO) {
         return new DataSourceTransactionManager(dsSSO);
@@ -56,8 +56,8 @@ public class JdbcTemplateConfig {
     /**
      * JDBC事务操作配置
      */
-    @Bean(name = "txTemplate2")
-    public TransactionTemplate transactionTemplate2(@Qualifier("transactionManager2") DataSourceTransactionManager transactionManager2) {
+    @Bean(name = "sso-txTemplate")
+    public TransactionTemplate transactionTemplate2(@Qualifier("sso-transactionManager") DataSourceTransactionManager transactionManager2) {
         return new TransactionTemplate(transactionManager2);
     }
 

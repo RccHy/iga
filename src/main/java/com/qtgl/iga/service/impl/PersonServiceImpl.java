@@ -9,12 +9,10 @@ import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.PersonService;
 import com.qtgl.iga.utils.DataBusUtil;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -55,7 +53,6 @@ public class PersonServiceImpl implements PersonService {
      */
 
     @Override
-    @Transactional(rollbackFor = RuntimeException.class)
     public Map<String, List<Person>> buildPerson(DomainInfo domain) {
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
@@ -84,6 +81,7 @@ public class PersonServiceImpl implements PersonService {
             UpstreamType upstreamType = upstreamTypeDao.findById(rules.getUpstreamTypesId());
             ArrayList<Upstream> upstreams = upstreamDao.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
             JSONArray dataByBus = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
+            final LocalDateTime now = LocalDateTime.now();
             List<Person> personBeanList = dataByBus.toJavaList(Person.class);
             if (null != personBeanList) {
                 for (Person personBean : personBeanList) {
@@ -108,42 +106,39 @@ public class PersonServiceImpl implements PersonService {
                         continue;
                         //throw new Exception(userBean.getName() + "证件类型无效");
                     }
-                    personBean.setDataSource(upstreams.get(0).getAppCode());
-                    if (null == personBean.getCreateTime()) {
-                        personBean.setCreateTime(LocalDateTime.now());
-                    }
+                    personBean.setSource(upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")");
+                    personBean.setCreateTime(now);
                     if (null == personBean.getUpdateTime()) {
-                        personBean.setUpdateTime(LocalDateTime.now());
+                        personBean.setUpdateTime(now);
                     }
-
                     personFromUpstream.put(personBean.getCardType() + ":" + personBean.getCardNo(), personBean);
                 }
             }
         });
+
+        log.info("所有人员数据获取完成:{}", personFromUpstream.size());
         /*
           将合重后的数据插入进数据库
         */
         // 获取 sso数据
         List<Person> personFromSSO = personDao.getAll(tenant.getId());
-        Map<String, Person> personFromSSOMap = personFromSSO.stream().filter(person -> !StringUtils.isEmpty(person.getCardType()) && !StringUtils.isEmpty(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person));
+        Map<String, Person> personFromSSOMap = personFromSSO.stream().filter(person -> !StringUtils.isEmpty(person.getCardType()) && !StringUtils.isEmpty(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
         // 存储最终需要操作的数据
         Map<String, List<Person>> result = new HashMap<>();
         personFromSSOMap.forEach((key, val) -> {
             // 对比出需要修改的person
             if (personFromUpstream.containsKey(key) &&
                     personFromUpstream.get(key).getCreateTime().isAfter(val.getUpdateTime())) {
+                // todo 增加对比出具体变更的字段。 明确描述出从删除恢复的对象
                 if (result.containsKey("update")) {
-
-                    personFromUpstream.get(key).setUpdateTime(LocalDateTime.now());
                     result.get("update").add(personFromUpstream.get(key));
                 } else {
                     result.put("update", new ArrayList<Person>() {{
-                        personFromUpstream.get(key).setUpdateTime(LocalDateTime.now());
                         this.add(personFromUpstream.get(key));
                     }});
                 }
                 log.debug("对比后需要修改{}", val.toString());
-            } else if (!personFromUpstream.containsKey(key) && 1 != val.getDelMark() && "pull".equals(val.getDataSource())) {
+            } else if (!personFromUpstream.containsKey(key) && 1 != val.getDelMark() && "PULL".equals(val.getDataSource())) {
                 if (result.containsKey("delete")) {
                     result.get("delete").add(val);
                 } else {
@@ -152,7 +147,7 @@ public class PersonServiceImpl implements PersonService {
                     }});
                 }
 
-                log.debug("对比后删除{}", val.toString());
+                log.debug("人员对比后删除{}", val.toString());
             }
         });
 
@@ -166,40 +161,12 @@ public class PersonServiceImpl implements PersonService {
                         this.add(val);
                     }});
                 }
-                log.debug("对比后新增{}", val.toString());
+                log.debug("人员对比后新增{}", val.toString());
             }
         });
 
         // sso 批量新增
-        if (result.containsKey("install")) {
-            personDao.savePerson(result.get("install"), tenant.getId());
-        }
-
-        // sso 修改
-        if (result.containsKey("update")) {
-            personDao.updatePerson(result.get("update"), tenant.getId());
-            throw new RuntimeException("1");
-        }
-
-        /* sso 批量删除
-         *  仅在 人 表中打上删除标记
-         *  不删除关联，删除人下面的所有身份及账号
-         *  关联表  IdentityAccount 人账号关联表 、 IdentityUser 人身份关联关系
-         */
-        if (result.containsKey("delete")) {
-            List<Person> personList = result.get("delete");
-            personDao.deletePerson(personList, tenant.getId());
-            List<String> ids = personList.stream().map(Person::getId).collect(Collectors.toList());
-            // 查IdentityAccount关联表
-            List<String> accounts = personDao.getAccountByIdentityId(ids);
-            // 根据关联关系 删除 account表
-            personDao.deleteAccount(accounts);
-            // 查IdentityUser关联表
-            List<String> occupies = personDao.getOccupyByIdentityId(ids);
-            // 根据关联关系 删除 account表
-            personDao.deleteOccupy(occupies);
-
-        }
+        personDao.saveToSso(result, tenant.getId());
 
 
         return result;

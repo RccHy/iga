@@ -8,6 +8,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.annotation.Resource;
 import java.sql.PreparedStatement;
@@ -24,12 +25,15 @@ public class PersonDaoImpl implements PersonDao {
     @Resource(name = "jdbcSSO")
     JdbcTemplate jdbcSSO;
 
+    @Resource(name = "sso-txTemplate")
+    TransactionTemplate txTemplate;
+
     @Override
     public List<Person> getAll(String tenantId) {
         String sql = "select id,name,tags,open_id as openId,account_no as accountNo,card_type as cardType," +
                 "card_no  as cardNo, cellphone,email,source,data_source as dataSource,active," +
                 "active_time as activeTime,create_time as createTime,update_time as updateTime,del_mark as delMark" +
-                "  from identity  where tenant_id=? and del_mark=0";
+                "  from identity  where tenant_id=?  order by update_time";
         List<Map<String, Object>> maps = jdbcSSO.queryForList(sql, tenantId);
         List<Person> personList = new ArrayList<>();
         maps.forEach(map -> {
@@ -57,7 +61,7 @@ public class PersonDaoImpl implements PersonDao {
                 preparedStatement.setObject(2, list.get(i).getName());
                 preparedStatement.setObject(3, list.get(i).getAccountNo());
                 preparedStatement.setObject(4, list.get(i).getOpenId());
-                preparedStatement.setObject(5, list.get(i).getDelMark());
+                preparedStatement.setObject(3, list.get(i).getDelMark() == null ? 0 : list.get(i).getDelMark());
                 preparedStatement.setObject(6, tenantId);
                 preparedStatement.setObject(7, list.get(i).getCardType());
                 preparedStatement.setObject(8, list.get(i).getCardNo());
@@ -67,7 +71,7 @@ public class PersonDaoImpl implements PersonDao {
                 preparedStatement.setObject(12, list.get(i).getTags());
                 preparedStatement.setObject(13, list.get(i).getActive());
                 preparedStatement.setObject(14, list.get(i).getActiveTime());
-                preparedStatement.setObject(15, "pull");
+                preparedStatement.setObject(15, "PULL");
             }
 
             @Override
@@ -98,7 +102,7 @@ public class PersonDaoImpl implements PersonDao {
                 preparedStatement.setObject(8, list.get(i).getTags());
                 preparedStatement.setObject(9, list.get(i).getActive());
                 preparedStatement.setObject(10, list.get(i).getActiveTime());
-                preparedStatement.setObject(11, "pull");
+                preparedStatement.setObject(11, "PULL");
                 preparedStatement.setObject(12, list.get(i).getDataSource());
                 preparedStatement.setObject(13, list.get(i).getCardType());
                 preparedStatement.setObject(14, list.get(i).getCardNo());
@@ -136,6 +140,120 @@ public class PersonDaoImpl implements PersonDao {
         });
         contains = Arrays.toString(ints).contains("-1");
         return contains ? null : list;
+    }
+
+    @Override
+    public Integer saveToSso(Map<String, List<Person>> personMap, String tenantId) {
+
+        return txTemplate.execute(transactionStatus -> {
+            try {
+                if (personMap.containsKey("install")) {
+                    final List<Person> list = personMap.get("install");
+                    String str = "insert into identity (id, name, account_no,open_id,  del_mark, create_time, update_time, tenant_id, card_type, card_no, cellphone, email, data_source, tags,  active, active_time,source)" +
+                            "values  (?, ?, ?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
+
+                    int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, UUID.randomUUID().toString().replace("-", ""));
+                            preparedStatement.setObject(2, list.get(i).getName());
+                            preparedStatement.setObject(3, list.get(i).getAccountNo());
+                            preparedStatement.setObject(4, list.get(i).getOpenId());
+                            preparedStatement.setObject(5, list.get(i).getDelMark() == null ? 0 : list.get(i).getDelMark());
+                            preparedStatement.setObject(6, list.get(i).getCreateTime());
+                            preparedStatement.setObject(7, list.get(i).getCreateTime());
+                            preparedStatement.setObject(8, tenantId);
+                            preparedStatement.setObject(9, list.get(i).getCardType());
+                            preparedStatement.setObject(10, list.get(i).getCardNo());
+                            preparedStatement.setObject(11, list.get(i).getCellphone());
+                            preparedStatement.setObject(12, list.get(i).getEmail());
+                            preparedStatement.setObject(13, list.get(i).getDataSource());
+                            preparedStatement.setObject(14, list.get(i).getTags());
+                            preparedStatement.setObject(15, list.get(i).getActive());
+                            preparedStatement.setObject(16, list.get(i).getActiveTime());
+                            preparedStatement.setObject(17, "PULL");
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return list.size();
+                        }
+                    });
+                }
+                if (personMap.containsKey("update")) {
+                    final List<Person> list = personMap.get("update");
+                    String str = "UPDATE identity set  name= ?, account_no=?,  del_mark=?, update_time=?, tenant_id=?,  cellphone=?, email=?, data_source=?, tags=?,  active=?, active_time=? ,source= ?,data_source=?" +
+                            " where card_type=? and  card_no= ? and update_time< ? and tenant_id=?";
+                    int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, list.get(i).getName());
+                            preparedStatement.setObject(2, list.get(i).getAccountNo());
+                            preparedStatement.setObject(3, list.get(i).getDelMark() == null ? 0 : list.get(i).getDelMark());
+                            preparedStatement.setObject(4, list.get(i).getUpdateTime());
+                            preparedStatement.setObject(5, tenantId);
+                            preparedStatement.setObject(6, list.get(i).getCellphone());
+                            preparedStatement.setObject(7, list.get(i).getEmail());
+                            preparedStatement.setObject(8, list.get(i).getDataSource());
+                            preparedStatement.setObject(9, list.get(i).getTags());
+                            preparedStatement.setObject(10, list.get(i).getActive());
+                            preparedStatement.setObject(11, list.get(i).getActiveTime());
+                            preparedStatement.setObject(12, "PULL");
+                            preparedStatement.setObject(13, list.get(i).getDataSource());
+                            preparedStatement.setObject(14, list.get(i).getCardType());
+                            preparedStatement.setObject(15, list.get(i).getCardNo());
+                            preparedStatement.setObject(16, list.get(i).getUpdateTime());
+                            preparedStatement.setObject(17, tenantId);
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return list.size();
+                        }
+                    });
+
+                }
+                if (personMap.containsKey("delete")) {
+                    final List<Person> list = personMap.get("delete");
+
+                    String str = "UPDATE identity set  del_mark= 1 and update_time=now()" +
+                            " where id=?  and tenant_id=?";
+
+                    int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, list.get(i).getCardType());
+                            preparedStatement.setObject(2, list.get(i).getCardNo());
+                            preparedStatement.setObject(3, list.get(i).getUpdateTime());
+                            preparedStatement.setObject(4, tenantId);
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return list.size();
+                        }
+                    });
+
+                    /*List<String> ids = personList.stream().map(Person::getId).collect(Collectors.toList());
+                    // 查IdentityAccount关联表
+                    List<String> accounts = personDao.getAccountByIdentityId(ids);
+                    // 根据关联关系 删除 account表
+                    personDao.deleteAccount(accounts);
+                    // 查IdentityUser关联表
+                    List<String> occupies = personDao.getOccupyByIdentityId(ids);
+                    // 根据关联关系 删除 account表
+                    personDao.deleteOccupy(occupies);*/
+
+                }
+                return 1;
+            } catch (Exception e) {
+                transactionStatus.setRollbackOnly();
+                // transactionStatus.rollbackToSavepoint(savepoint);
+                return null;
+            }
+        });
+
+
     }
 
 

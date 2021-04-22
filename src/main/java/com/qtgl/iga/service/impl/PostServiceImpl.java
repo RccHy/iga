@@ -237,7 +237,7 @@ public class PostServiceImpl implements PostService {
         //修改数据
         if (null != update && update.size() > 0) {
             for (Map.Entry<TreeBean, String> key : update) {
-                key.getKey().setDataSource("pull");
+                key.getKey().setDataSource("PULL");
                 //统计修改字段
                 TreeBean newTreeBean = key.getKey();
                 TreeBean oldTreeBean = logCollect.get(newTreeBean.getCode());
@@ -404,7 +404,7 @@ public class PostServiceImpl implements PostService {
             //查询数据库需要删除的数据
             for (TreeBean bean : beans) {
 
-                if (!"builtin".equals(bean.getDataSource()) || "pull".equals(bean.getDataSource())) {
+                if (!"builtin".equals(bean.getDataSource()) || "PULL".equals(bean.getDataSource())) {
                     boolean flag = true;
                     for (TreeBean treeBean : result.keySet()) {
                         if (bean.getCode().equals(treeBean.getCode())) {
