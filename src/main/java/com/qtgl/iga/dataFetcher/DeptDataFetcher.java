@@ -2,10 +2,10 @@ package com.qtgl.iga.dataFetcher;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.qtgl.iga.bean.OccupyConnection;
 import com.qtgl.iga.bean.PersonConnection;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.DomainInfo;
-import com.qtgl.iga.bo.Person;
 import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.service.PersonService;
 import com.qtgl.iga.service.PostService;
@@ -108,6 +108,21 @@ public class DeptDataFetcher {
 
             PersonConnection persons = personService.findPersons(arguments, domain);
             return persons;
+
+
+        };
+    }
+
+    public DataFetcher findOccupies() {
+        return dataFetchingEvn -> {
+            //1。更具token信息验证是否合法，并判断其租户
+            DomainInfo domain = CertifiedConnector.getDomain();
+            // 获取传入参数
+            Map<String, Object> arguments = dataFetchingEvn.getArguments();
+
+
+            OccupyConnection occupies = personService.findOccupies(arguments, domain);
+            return occupies;
 
 
         };

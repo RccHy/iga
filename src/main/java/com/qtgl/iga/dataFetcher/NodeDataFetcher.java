@@ -95,7 +95,7 @@ public class NodeDataFetcher {
             DomainInfo domain = CertifiedConnector.getDomain();
             // 获取传入参数
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
-            return nodeService.applyNode(arguments,domain.getId());
+            return nodeService.applyNode(arguments, domain.getId());
         };
     }
 
@@ -105,7 +105,7 @@ public class NodeDataFetcher {
             DomainInfo domain = CertifiedConnector.getDomain();
             // 获取传入参数
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
-            return nodeService.rollbackNode(arguments,domain.getId());
+            return nodeService.rollbackNode(arguments, domain.getId());
         };
     }
 }

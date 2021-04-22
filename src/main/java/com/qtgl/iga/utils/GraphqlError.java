@@ -11,12 +11,12 @@ import java.util.Map;
  * <FileName> GraphqlError
  * <Desc> graphql异常类
  **/
-public class GraphqlError  implements GraphQLError  {
-    private  List<SourceLocation> locations;
-    private  List<Object> absolutePath;
-    private  String message;
-    private  ErrorClassification errorType;
-    private  Map<String, Object> extensions;
+public class GraphqlError implements GraphQLError {
+    private List<SourceLocation> locations;
+    private List<Object> absolutePath;
+    private String message;
+    private ErrorClassification errorType;
+    private Map<String, Object> extensions;
 
     public GraphqlError(List<SourceLocation> locations, List<Object> absolutePath, String message, ErrorClassification errorType, Map<String, Object> extensions) {
         this.locations = locations;

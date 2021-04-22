@@ -2,7 +2,6 @@ package com.qtgl.iga.service.impl;
 
 
 import com.qtgl.iga.bo.NodeRules;
-import com.qtgl.iga.bo.Upstream;
 import com.qtgl.iga.bo.UpstreamType;
 import com.qtgl.iga.bo.UpstreamTypeField;
 import com.qtgl.iga.dao.NodeRulesDao;
@@ -14,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.print.DocFlavor;
 import java.util.List;
 import java.util.Map;
 
@@ -37,7 +35,7 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
     @Override
     public UpstreamType deleteUpstreamType(Map<String, Object> arguments, String domain) throws Exception {
         //查看是否有关联node_rules
-        List<NodeRules> nodeRules = nodeRulesDao.findNodeRulesByUpStreamTypeId((String) arguments.get("id"),null);
+        List<NodeRules> nodeRules = nodeRulesDao.findNodeRulesByUpStreamTypeId((String) arguments.get("id"), null);
         if (null != nodeRules && nodeRules.size() > 0) {
             throw new Exception("删除上游源类型失败,有绑定的node规则,请查看后再删除");
         }
@@ -46,8 +44,8 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
 
     @Override
     public UpstreamType saveUpstreamType(UpstreamType upstreamType, String domain) throws Exception {
-        if(null== upstreamType.getUpstreamId()){
-            throw  new Exception("请选择或先添加上游源");
+        if (null == upstreamType.getUpstreamId()) {
+            throw new Exception("请选择或先添加上游源");
         }
         return upstreamTypeDao.saveUpstreamType(upstreamType, domain);
     }
@@ -55,7 +53,7 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
     @Override
     public UpstreamType updateUpstreamType(UpstreamType upstreamType) throws Exception {
         //查看是否有关联node_rules
-        List<NodeRules> nodeRules = nodeRulesDao.findNodeRulesByUpStreamTypeId(upstreamType.getId(),null);
+        List<NodeRules> nodeRules = nodeRulesDao.findNodeRulesByUpStreamTypeId(upstreamType.getId(), null);
         if (null != nodeRules && nodeRules.size() > 0) {
             throw new Exception("操作上游源类型失败,有绑定的node规则,请查看后再操作");
         }

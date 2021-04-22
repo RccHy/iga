@@ -6,6 +6,8 @@ extend type Query {
     posts(status:Int):[Dept]
     #查询人员  offset:跳过几条  first:取几条
     persons(upstreamTypeId:String,offset:Int,first:Int):PersonConnection
+    #查询人员身份  offset:跳过几条  first:取几条
+    occupies(upstreamTypeId:String,offset:Int,first:Int):OccupyConnection
 }
 
 
@@ -51,16 +53,46 @@ type Person{
     tenantId:String
     cellphone:String
     email:String
-#    source:String
-#    dataSource:String
-#    active:String
-#    activeTime:Timestamp
-#    createTime:Timestamp
-#    updateTime:Timestamp
-#    openId:String
+    #    source:String
+    #    dataSource:String
+    #    active:String
+    #    activeTime:Timestamp
+    #    createTime:Timestamp
+    #    updateTime:Timestamp
+    #    openId:String
 
 }
 
+
+#分页结构###
+type OccupyConnection{
+    edges: [OccupyEdge]
+    totalCount: Int
+}
+
+type OccupyEdge{
+    node: Occupy
+}
+type Occupy{
+
+    postCode:String
+    deptCode:String
+    personCardType:String
+    personCardNo:String
+    identityCardType:String
+    identityCardNo:String
+    startTime:Timestamp
+    endTime:Timestamp
+    index:Int
+    #    source:String
+    #    dataSource:String
+    #    active:String
+    #    activeTime:Timestamp
+    #    createTime:Timestamp
+    #    updateTime:Timestamp
+    #    openId:String
+
+}
 
 
 

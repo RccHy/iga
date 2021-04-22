@@ -90,7 +90,7 @@ public class PersonDaoImpl implements PersonDao {
             public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
                 preparedStatement.setObject(1, list.get(i).getName());
                 preparedStatement.setObject(2, list.get(i).getAccountNo());
-                preparedStatement.setObject(3, list.get(i).getDelMark()==null?0:list.get(i).getDelMark());
+                preparedStatement.setObject(3, list.get(i).getDelMark() == null ? 0 : list.get(i).getDelMark());
                 preparedStatement.setObject(4, tenantId);
                 preparedStatement.setObject(5, list.get(i).getCellphone());
                 preparedStatement.setObject(6, list.get(i).getEmail());
@@ -182,7 +182,7 @@ public class PersonDaoImpl implements PersonDao {
     }
 
     @Override
-     public Integer deleteOccupy(List<String> ids) {
+    public Integer deleteOccupy(List<String> ids) {
         String str = "UPDATE user set  del_mark= 1 and update_time=now()" +
                 " where id in (?) ";
         final int count = jdbcSSO.update(str, ids);

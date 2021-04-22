@@ -13,42 +13,44 @@ import java.util.Map;
 
 /**
  * <FileName> ClassCompareUtil
- * <Desc>
+ * <Desc> 属性对比工具类
  **/
 public class ClassCompareUtil {
 
     /**
      * 比较两个实体属性值，返回一个boolean,true则表时两个对象中的属性值无差异
+     *
      * @param oldObject 进行属性比较的对象1
      * @param newObject 进行属性比较的对象2
      * @return 属性差异比较结果
      */
-    public static Map<String, Map<String,Object>> compareObject(Object oldObject, Object newObject) {
-        Map<String, Map<String,Object>> resultMap=compareFields(oldObject,newObject);
+    public static Map<String, Map<String, Object>> compareObject(Object oldObject, Object newObject) {
+        Map<String, Map<String, Object>> resultMap = compareFields(oldObject, newObject);
 
         return resultMap;
     }
 
     /**
      * 比较两个实体属性值，返回一个map以有差异的属性名为key，value为一个Map分别存oldObject,newObject此属性名的值
+     *
      * @param oldObject 进行属性比较的对象1
      * @param newObject 进行属性比较的对象2
      * @return 属性差异比较结果map
      */
     @SuppressWarnings("rawtypes")
-    public static Map<String, Map<String,Object>> compareFields(Object oldObject, Object newObject) {
+    public static Map<String, Map<String, Object>> compareFields(Object oldObject, Object newObject) {
         Map<String, Map<String, Object>> map = null;
 
-        try{
+        try {
             /**
              * 只有两个对象都是同一类型的才有可比性
              */
             if (oldObject.getClass() == newObject.getClass()) {
-                map = new HashMap<String, Map<String,Object>>();
+                map = new HashMap<String, Map<String, Object>>();
 
                 Class clazz = oldObject.getClass();
                 //获取object的所有属性
-                PropertyDescriptor[] pds = Introspector.getBeanInfo(clazz,Object.class).getPropertyDescriptors();
+                PropertyDescriptor[] pds = Introspector.getBeanInfo(clazz, Object.class).getPropertyDescriptors();
 
                 for (PropertyDescriptor pd : pds) {
                     //遍历获取属性名
@@ -62,28 +64,28 @@ public class ClassCompareUtil {
                     // 在newObject上调用get方法等同于获得newObject的属性值
                     Object newValue = readMethod.invoke(newObject);
 
-                    if(oldValue instanceof List){
+                    if (oldValue instanceof List) {
                         continue;
                     }
 
-                    if(newValue instanceof List){
+                    if (newValue instanceof List) {
                         continue;
                     }
 
-                    if(oldValue instanceof Timestamp){
+                    if (oldValue instanceof Timestamp) {
                         oldValue = new Date(((Timestamp) oldValue).getTime());
                     }
 
-                    if(newValue instanceof Timestamp){
+                    if (newValue instanceof Timestamp) {
                         newValue = new Date(((Timestamp) newValue).getTime());
                     }
 
-                    if(oldValue == null && newValue == null){
+                    if (oldValue == null && newValue == null) {
                         continue;
-                    }else if(oldValue == null && newValue != null){
-                        Map<String,Object> valueMap = new HashMap<String,Object>();
-                        valueMap.put("oldValue",oldValue);
-                        valueMap.put("newValue",newValue);
+                    } else if (oldValue == null && newValue != null) {
+                        Map<String, Object> valueMap = new HashMap<String, Object>();
+                        valueMap.put("oldValue", oldValue);
+                        valueMap.put("newValue", newValue);
 
                         map.put(name, valueMap);
 
@@ -91,15 +93,15 @@ public class ClassCompareUtil {
                     }
 
                     if (!oldValue.equals(newValue)) {// 比较这两个值是否相等,不等就可以放入map了
-                        Map<String,Object> valueMap = new HashMap<String,Object>();
-                        valueMap.put("oldValue",oldValue);
-                        valueMap.put("newValue",newValue);
+                        Map<String, Object> valueMap = new HashMap<String, Object>();
+                        valueMap.put("oldValue", oldValue);
+                        valueMap.put("newValue", newValue);
 
                         map.put(name, valueMap);
                     }
                 }
             }
-        }catch(Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -108,15 +110,16 @@ public class ClassCompareUtil {
 
     /**
      * 根据属性，获取get方法
-     * @param ob 对象
+     *
+     * @param ob   对象
      * @param name 属性名
      * @return
      * @throws Exception
      */
-    public static Object getGetMethod(Object ob , String name)throws Exception{
+    public static Object getGetMethod(Object ob, String name) throws Exception {
         Method[] m = ob.getClass().getMethods();
-        for(int i = 0;i < m.length;i++){
-            if(("get"+name).toLowerCase().equals(m[i].getName().toLowerCase())){
+        for (int i = 0; i < m.length; i++) {
+            if (("get" + name).toLowerCase().equals(m[i].getName().toLowerCase())) {
                 return m[i].invoke(ob);
             }
         }

@@ -5,12 +5,11 @@ import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.NodeRulesRange;
 
 import java.util.List;
-import java.util.Map;
 
 public interface NodeRulesRangeDao {
 
 
-    List<NodeRulesRange> getByRulesId(String rulesId,Integer status);
+    List<NodeRulesRange> getByRulesId(String rulesId, Integer status);
 
 
     NodeDto saveNodeRuleRange(NodeDto nodeRulesRanges);
@@ -22,5 +21,5 @@ public interface NodeRulesRangeDao {
 
     NodeRulesRange saveNodeRuleRange(NodeRulesRange rulesRange);
 
-    Integer makeNodeRulesRangesToHistory(String id,Integer status);
+    Integer makeNodeRulesRangesToHistory(String id, Integer status);
 }

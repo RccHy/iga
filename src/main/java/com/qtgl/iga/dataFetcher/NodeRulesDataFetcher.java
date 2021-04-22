@@ -3,7 +3,6 @@ package com.qtgl.iga.dataFetcher;
 
 import com.alibaba.fastjson.JSON;
 import com.qtgl.iga.bo.DomainInfo;
-import com.qtgl.iga.bo.NodeRules;
 import com.qtgl.iga.service.NodeRulesService;
 import com.qtgl.iga.utils.CertifiedConnector;
 import com.qtgl.iga.vo.NodeRulesVo;

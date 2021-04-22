@@ -24,5 +24,5 @@ public interface UpstreamTypeDao {
 
     List<UpstreamTypeField> findFields(String upstreamId);
 
-    Integer deleteByUpstreamId(String id ,String domain);
+    Integer deleteByUpstreamId(String id, String domain);
 }

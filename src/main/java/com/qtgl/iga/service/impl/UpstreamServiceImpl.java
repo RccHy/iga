@@ -48,7 +48,7 @@ public class UpstreamServiceImpl implements UpstreamService {
         List<UpstreamType> byUpstreamId = upstreamTypeDao.findByUpstreamId((String) arguments.get("id"));
         if (null != byUpstreamId && byUpstreamId.size() > 0) {
             for (UpstreamType upstreamType : byUpstreamId) {
-                List<NodeRules> nodeRules = nodeRulesDao.findNodeRulesByUpStreamTypeId(upstreamType.getId(),null);
+                List<NodeRules> nodeRules = nodeRulesDao.findNodeRulesByUpStreamTypeId(upstreamType.getId(), null);
                 if (null != nodeRules && nodeRules.size() > 0) {
                     throw new Exception("删除上游源类型失败,有绑定的nodeRules规则,请查看后再删除");
                 }
@@ -160,7 +160,7 @@ public class UpstreamServiceImpl implements UpstreamService {
         if (null != upstreamDto && null != upstreamDto.getUpstreamTypes() && upstreamDto.getUpstreamTypes().size() > 0) {
             for (UpstreamType upstreamType : upstreamDto.getUpstreamTypes()) {
                 //查看是否有关联node_rules
-                List<NodeRules> nodeRules = nodeRulesDao.findNodeRulesByUpStreamTypeId(upstreamType.getId(),0);
+                List<NodeRules> nodeRules = nodeRulesDao.findNodeRulesByUpStreamTypeId(upstreamType.getId(), 0);
                 if (null != nodeRules && nodeRules.size() > 0) {
                     throw new Exception("操作上游源类型失败,有绑定的node规则,请查看后再操作");
                 }

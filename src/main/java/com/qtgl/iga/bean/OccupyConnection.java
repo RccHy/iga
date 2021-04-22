@@ -5,12 +5,13 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * <FileName> PersonConnection
+ * <FileName> OccupyConnection
  * <Desc>
  **/
 @Data
-public class PersonConnection {
+public class OccupyConnection {
+
     private Integer totalCount;
 
-    private List<PersonEdge> edges;
+    private List<OccupyEdge> edges;
 }

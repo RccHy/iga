@@ -91,7 +91,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
                 preparedStatement.setObject(4, nodeRules.get(i).getActive());
                 preparedStatement.setObject(5, null);
                 preparedStatement.setObject(6, new Timestamp(nodeRules.get(i).getCreateTime()));
-                preparedStatement.setObject(7, null );
+                preparedStatement.setObject(7, null);
                 preparedStatement.setObject(8, nodeRules.get(i).getServiceKey());
                 preparedStatement.setObject(9, nodeRules.get(i).getUpstreamTypesId());
                 preparedStatement.setObject(10, nodeRules.get(i).getInheritId());
@@ -293,7 +293,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
     }
 
     @Override
-    public Integer makeNodeRulesToHistory(String id,Integer status) {
+    public Integer makeNodeRulesToHistory(String id, Integer status) {
         String str = "update t_mgr_node_rules set  status= ? " +
                 "where id = ?  ";
         int update = jdbcIGA.update(str, preparedStatement -> {

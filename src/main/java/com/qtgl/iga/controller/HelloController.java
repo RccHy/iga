@@ -1,7 +1,6 @@
 package com.qtgl.iga.controller;
 
 import com.qtgl.iga.bo.DomainInfo;
-import com.qtgl.iga.bo.UpstreamType;
 import com.qtgl.iga.config.TaskThreadPool;
 import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.service.DomainInfoService;
@@ -9,7 +8,6 @@ import com.qtgl.iga.service.PostService;
 import com.qtgl.iga.utils.DataBusUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.context.request.RequestContextHolder;

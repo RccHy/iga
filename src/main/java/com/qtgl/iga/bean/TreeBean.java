@@ -1,11 +1,9 @@
 package com.qtgl.iga.bean;
 
 
-import com.qtgl.iga.bo.Dept;
 import lombok.Data;
 
 
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
 @Data
@@ -37,7 +35,6 @@ public class TreeBean {
 
     private LocalDateTime updateTime;
 
-    //对比字段
     private String upstreamTypeId;
     /**
      * todo 部门排序 暂不考虑

@@ -8,21 +8,21 @@ import java.util.concurrent.*;
 public class TaskThreadPool {
 
 
-	public static ExecutorService taskThreadPool = null;
+    public static ExecutorService taskThreadPool = null;
 
 
-	public static ConcurrentHashMap<String,ExecutorService> executorServiceMap=new  ConcurrentHashMap();
+    public static ConcurrentHashMap<String, ExecutorService> executorServiceMap = new ConcurrentHashMap();
 
 
-	/**
-	 * 静态方法
-	 */
-	public static void builderExecutor(String domain){
-		//httpApiThreadPool = Executors.newSingleThreadExecutor();
-		 taskThreadPool =new ThreadPoolExecutor(1, 1,
-                    0L, TimeUnit.MILLISECONDS,
-                    new ArrayBlockingQueue<Runnable>(1, true));
-		executorServiceMap.put(domain, taskThreadPool);
-	}
+    /**
+     * 静态方法
+     */
+    public static void builderExecutor(String domain) {
+        //httpApiThreadPool = Executors.newSingleThreadExecutor();
+        taskThreadPool = new ThreadPoolExecutor(1, 1,
+                0L, TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<Runnable>(1, true));
+        executorServiceMap.put(domain, taskThreadPool);
+    }
 
 }

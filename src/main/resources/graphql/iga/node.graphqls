@@ -14,8 +14,8 @@ extend type Mutation {
     updateNode(entity:InputNode!):Node
     #应用规则     mark为true 则为回滚  false为应用
     applyNode(version:Timestamp,mark:Boolean,type:String!):Node
-#    #回滚规则
-#    rollbackNode(version:Timestamp!):Node
+    #    #回滚规则
+    #    rollbackNode(version:Timestamp!):Node
 }
 
 # 节点规则实体
