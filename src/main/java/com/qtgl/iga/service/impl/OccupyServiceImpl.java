@@ -2,7 +2,10 @@ package com.qtgl.iga.service.impl;
 
 import com.alibaba.druid.util.StringUtils;
 import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.qtgl.iga.bean.OccupyConnection;
 import com.qtgl.iga.bean.OccupyDto;
+import com.qtgl.iga.bean.OccupyEdge;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.OccupyService;
@@ -173,5 +176,41 @@ public class OccupyServiceImpl implements OccupyService {
 
 
         return null;
+    }
+
+
+    @Override
+    public OccupyConnection findOccupies(Map<String, Object> arguments, DomainInfo domain) throws Exception {
+        List<OccupyEdge> upstreamDept = new ArrayList<>();
+        String upstreamTypeId = (String) arguments.get("upstreamTypeId");
+        Integer offset = (Integer) arguments.get("offset");
+        Integer first = (Integer) arguments.get("first");
+        UpstreamType upstreamType = upstreamTypeDao.findById(upstreamTypeId);
+        if (null != upstreamType && upstreamType.getIsPage()) {
+            Map dataMap = dataBusUtil.getDataByBus(upstreamType, offset, first);
+
+            Map deptMap = (Map) dataMap.get(upstreamType.getSynType());
+            JSONArray deptArray = (JSONArray) JSONArray.toJSON(deptMap.get("edges"));
+            Integer totalCount = (Integer) deptMap.get("totalCount");
+            if (null != deptArray) {
+                for (Object deptOb : deptArray) {
+                    JSONObject nodeJson = (JSONObject) deptOb;
+                    JSONObject node1 = nodeJson.getJSONObject("node");
+                    OccupyDto occupy = node1.toJavaObject(OccupyDto.class);
+                    OccupyEdge occupyEdge = new OccupyEdge();
+                    occupyEdge.setNode(occupy);
+                    upstreamDept.add(occupyEdge);
+                }
+            }
+            OccupyConnection occupyConnection = new OccupyConnection();
+            occupyConnection.setEdges(upstreamDept);
+            occupyConnection.setTotalCount(totalCount);
+
+
+            return occupyConnection;
+        } else {
+            log.error("数据类型不合法,请检查");
+            throw new Exception("数据类型不合法,请检查");
+        }
     }
 }

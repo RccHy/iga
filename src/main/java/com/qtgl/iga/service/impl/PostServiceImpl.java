@@ -13,6 +13,7 @@ import com.qtgl.iga.service.NodeService;
 import com.qtgl.iga.service.PostService;
 
 import com.qtgl.iga.utils.ClassCompareUtil;
+import com.qtgl.iga.utils.DataBusUtil;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -76,19 +77,13 @@ public class PostServiceImpl implements PostService {
         Map<TreeBean, String> result = new HashMap<>();
         ArrayList<TreeBean> treeBeans = new ArrayList<>();
 
-        //转化为map
-//        Map<String, TreeBean> rootMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-//        Map<String, TreeBean> mainTreeMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+
         List<TreeBean> mainTreeBeans = new ArrayList<>();
-        // 将本次 add 进的 节点 进行 规则运算
-//        for (Map.Entry<String, TreeBean> entry : rootMap.entrySet()) {
-//            calculationService.nodeRules(domain, null, entry.getKey(), mainTreeMap, status, TYPE, "system");
-//        }
+
         for (TreeBean rootBean : rootBeans) {
             calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, "system");
         }
-//        Collection<TreeBean> mainDept = mainTreeMap.values();
-//        ArrayList<TreeBean> mainList = new ArrayList<>(mainDept);
+//
         // 判断重复(code)
         calculationService.groupByCode(mainTreeBeans);
 
@@ -108,7 +103,7 @@ public class PostServiceImpl implements PostService {
         Map<String, TreeBean> collect = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
 
         //同步到sso
-        beans = saveToSso(collect, domain, "", beans, result, treeBeans);
+        beans = dataProcessing(collect, domain, "", beans, result, treeBeans);
         if (null != beans) {
             beans.addAll(treeBeans);
         }
@@ -154,21 +149,12 @@ public class PostServiceImpl implements PostService {
         Map<TreeBean, String> result = new HashMap<>();
         ArrayList<TreeBean> treeBeans = new ArrayList<>();
 
-        //转化为map
-//        Map<String, TreeBean> rootMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-//        Map<String, TreeBean> mainTreeMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
         List<TreeBean> mainTreeBeans = new ArrayList<>();
-        // 将本次 add 进的 节点 进行 规则运算
-//        for (Map.Entry<String, TreeBean> entry : rootMap.entrySet()) {
-//            calculationService.nodeRules(domain, null, entry.getKey(), mainTreeMap, status, TYPE, "system");
-//        }
+
         for (TreeBean rootBean : rootBeans) {
             calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, "system");
         }
         System.out.println("==");
-
-//        Collection<TreeBean> mainDept = mainTreeMap.values();
-//        ArrayList<TreeBean> mainList = new ArrayList<>(mainDept);
 
         // 判断重复(code)
         calculationService.groupByCode(mainTreeBeans);
@@ -186,7 +172,7 @@ public class PostServiceImpl implements PostService {
         }
         //同步到sso
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-        beans = saveToSso(mainTreeMap, domain, "", beans, result, treeBeans);
+        beans = dataProcessing(mainTreeMap, domain, "", beans, result, treeBeans);
 
         if (null != beans) {
             beans.addAll(treeBeans);
@@ -241,11 +227,13 @@ public class PostServiceImpl implements PostService {
                 //统计修改字段
                 TreeBean newTreeBean = key.getKey();
                 TreeBean oldTreeBean = logCollect.get(newTreeBean.getCode());
+                oldTreeBean.setSource(newTreeBean.getSource());
+
                 //根据upstreamTypeId查询fileds
                 boolean flag = false;
 
                 try {
-                    List<UpstreamTypeField> fields = upstreamTypeDao.findFields(newTreeBean.getUpstreamTypeId());
+                    List<UpstreamTypeField> fields =  DataBusUtil.typeFields.get(newTreeBean.getUpstreamTypeId());
                     if (null != fields && fields.size() > 0) {
                         for (UpstreamTypeField field : fields) {
                             String sourceField = field.getSourceField();
@@ -258,6 +246,7 @@ public class PostServiceImpl implements PostService {
                                 continue;
                             }
                             flag = true;
+                            ClassCompareUtil.setValue(oldTreeBean, oldTreeBean.getClass(), sourceField, oldValue.getClass(), newValue);
                             logger.info(newTreeBean.getCode() + "字段" + sourceField + "-----------" + oldValue + "-------------" + newValue);
                         }
                     }
@@ -270,7 +259,7 @@ public class PostServiceImpl implements PostService {
                 }
 
                 if (flag) {
-                    updateList.add(newTreeBean);
+                    updateList.add(oldTreeBean);
                 }
             }
         }
@@ -331,7 +320,7 @@ public class PostServiceImpl implements PostService {
      * @Description: 处理数据
      * @return: void
      */
-    private List<TreeBean> saveToSso(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> beans, Map<TreeBean, String> result, ArrayList<TreeBean> insert) {
+    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> beans, Map<TreeBean, String> result, ArrayList<TreeBean> insert) {
         Map<String, TreeBean> collect = new HashMap<>();
         if (null != beans && beans.size() > 0) {
             collect = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
@@ -339,24 +328,6 @@ public class PostServiceImpl implements PostService {
         //拉取的数据
         Collection<TreeBean> mainDept = mainTree.values();
         ArrayList<TreeBean> treeBeans = new ArrayList<>(mainDept);
-//        //sso dept库的数据(通过domain 关联tenant查询)
-//        Tenant tenant = tenantDao.findByDomainName(domainInfo.getDomainName());
-//        if (null == tenant) {
-//            throw new Exception("租户不存在");
-//        }
-//        //通过tenantId查询ssoApis库中的数据
-//        List<Post> beans = postDao.findByTenantId(tenant.getId());
-//        //将null赋为""
-//        if (null != beans && beans.size() > 0) {
-//            for (Post bean : beans) {
-//                if (StringUtils.isBlank(bean.getParentCode())) {
-//                    bean.setParentCode("");
-//                }
-//            }
-//        }
-//        //轮训比对标记(是否有主键id)
-//        Map<DeptBean, String> result = new HashMap<>();
-
         //遍历拉取数据
         for (TreeBean treeBean : treeBeans) {
             if (!"builtin".equals(treeBean.getDataSource())) {

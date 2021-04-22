@@ -7,6 +7,7 @@ import com.qtgl.iga.bean.PersonConnection;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.service.DeptService;
+import com.qtgl.iga.service.OccupyService;
 import com.qtgl.iga.service.PersonService;
 import com.qtgl.iga.service.PostService;
 import com.qtgl.iga.utils.CertifiedConnector;
@@ -36,6 +37,9 @@ public class DeptDataFetcher {
 
     @Autowired
     PersonService personService;
+
+    @Autowired
+    OccupyService occupyService;
 
 
     public DataFetcher findDept() {
@@ -121,7 +125,7 @@ public class DeptDataFetcher {
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
 
 
-            OccupyConnection occupies = personService.findOccupies(arguments, domain);
+            OccupyConnection occupies = occupyService.findOccupies(arguments, domain);
             return occupies;
 
 

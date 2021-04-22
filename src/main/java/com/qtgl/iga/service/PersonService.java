@@ -1,6 +1,5 @@
 package com.qtgl.iga.service;
 
-import com.qtgl.iga.bean.OccupyConnection;
 import com.qtgl.iga.bean.PersonConnection;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.Person;
@@ -14,6 +13,4 @@ public interface PersonService {
     Map<String, List<Person>> buildPerson(DomainInfo domain);
 
     PersonConnection findPersons(Map<String, Object> arguments, DomainInfo domain) throws Exception;
-
-    OccupyConnection findOccupies(Map<String, Object> arguments, DomainInfo domain) throws Exception;
 }

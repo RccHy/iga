@@ -207,37 +207,5 @@ public class PersonServiceImpl implements PersonService {
 
     }
 
-    @Override
-    public OccupyConnection findOccupies(Map<String, Object> arguments, DomainInfo domain) throws Exception {
-        List<OccupyEdge> upstreamDept = new ArrayList<>();
-        String upstreamTypeId = (String) arguments.get("upstreamTypeId");
-        Integer offset = (Integer) arguments.get("offset");
-        Integer first = (Integer) arguments.get("first");
-        UpstreamType upstreamType = upstreamTypeDao.findById(upstreamTypeId);
-        if (null != upstreamType && upstreamType.getIsPage()) {
-            Map dataMap = dataBusUtil.getDataByBus(upstreamType, offset, first);
 
-            Map deptMap = (Map) dataMap.get(upstreamType.getSynType());
-            JSONArray deptArray = (JSONArray) JSONArray.toJSON(deptMap.get("edges"));
-            Integer totalCount = (Integer) deptMap.get("totalCount");
-            if (null != deptArray) {
-                for (Object deptOb : deptArray) {
-                    JSONObject nodeJson = (JSONObject) deptOb;
-                    JSONObject node1 = nodeJson.getJSONObject("node");
-                    OccupyDto occupy = node1.toJavaObject(OccupyDto.class);
-                    OccupyEdge occupyEdge = new OccupyEdge();
-                    occupyEdge.setNode(occupy);
-                    upstreamDept.add(occupyEdge);
-                }
-            }
-            OccupyConnection occupyConnection = new OccupyConnection();
-            occupyConnection.setEdges(upstreamDept);
-            occupyConnection.setTotalCount(totalCount);
-
-
-            return occupyConnection;
-        } else {
-            throw new Exception("数据类型不合法,请检查");
-        }
-    }
 }

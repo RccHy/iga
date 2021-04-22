@@ -4,11 +4,11 @@ package com.qtgl.iga.service.impl;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
-import com.qtgl.iga.dao.impl.UpstreamTypeDaoImpl;
 import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.service.NodeService;
 
 import com.qtgl.iga.utils.ClassCompareUtil;
+import com.qtgl.iga.utils.DataBusUtil;
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,7 +96,7 @@ public class DeptServiceImpl implements DeptService {
             calculationService.groupByCode(mainTreeBeans);
 //            //同步到sso
             Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-            beans = saveToSso(mainTreeMap, domain, deptType.getCode(), beans, result, insert);
+            beans = dataProcessing(mainTreeMap, domain, deptType.getCode(), beans, result, insert);
         }
         if (null != beans) {
             beans.addAll(insert);
@@ -167,7 +167,7 @@ public class DeptServiceImpl implements DeptService {
             calculationService.groupByCode(mainTreeBeans);
             //同步到sso
             Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-            beans = saveToSso(mainTreeMap, domain, deptType.getCode(), beans, result, treeBeans);
+            beans = dataProcessing(mainTreeMap, domain, deptType.getCode(), beans, result, treeBeans);
         }
         if (null != treeBeans && treeBeans.size() > 0) {
             beans.addAll(treeBeans);
@@ -177,58 +177,6 @@ public class DeptServiceImpl implements DeptService {
         return result;
     }
 
-//    @SneakyThrows
-//    @Override
-//    public List<DeptBean> buildDeptByDomain(DomainInfo domain) {
-//      /*  logger.info("hostname{}", hostname);
-//        //
-//        Map<String, List<DeptBean>> mainTreeMapGroupType = new ConcurrentHashMap<>();
-//        List<DomainInfo> domainInfos = domainInfoDao.findAll();
-//
-//        for (DomainInfo domain : domainInfos) {*/
-//
-//        //  获取sso整树
-//        //sso dept库的数据(通过domain 关联tenant查询)
-//        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
-//        if (null == tenant) {
-//            throw new Exception("租户不存在");
-//        }
-//        //通过tenantId查询ssoApis库中的数据
-//        List<DeptBean> beans = deptDao.findByTenantId(tenant.getId(), null, null);
-//        if (null != beans && beans.size() > 0) {
-//            //将null赋为""
-//            for (DeptBean bean : beans) {
-//                if (null == bean.getParentCode()) {
-//                    bean.setParentCode("");
-//                }
-//            }
-//        }
-//        //轮训比对标记(是否有主键id)
-//        Map<DeptBean, String> result = new HashMap<>();
-//        // 获取租户下开启的部门类型
-//        List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
-//        for (DeptTreeType deptType : deptTreeTypes) {
-//            Map<String, DeptBean> mainTreeMap = new ConcurrentHashMap<>();
-//            // id 改为code
-//            calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeMap, 0, TYPE);
-//            //  数据合法性
-//            Collection<DeptBean> mainDept = mainTreeMap.values();
-//            ArrayList<DeptBean> mainList = new ArrayList<>(mainDept);
-//            // 判断重复(code)
-//            calculationService.groupByCode(mainList);
-//            //同步到sso
-//            beans = saveToSso(mainTreeMap, domain, deptType.getCode(), beans, result);
-//        }
-//        //}
-//        calculationService.groupByCode(beans);
-//
-////        if (status) {
-////            saveToSso(result, tenant.getId());
-////        }
-//
-//
-//        return beans;
-//    }
 
     /**
      * @param result
@@ -280,11 +228,12 @@ public class DeptServiceImpl implements DeptService {
 //                }
                 TreeBean newTreeBean = key.getKey();
                 TreeBean oldTreeBean = logCollect.get(newTreeBean.getCode());
+                oldTreeBean.setSource(newTreeBean.getSource());
                 //根据upstreamTypeId查询fileds
                 boolean flag = false;
 
                 try {
-                    List<UpstreamTypeField> fields = upstreamTypeDao.findFields(newTreeBean.getUpstreamTypeId());
+                    List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(newTreeBean.getUpstreamTypeId());
                     if (null != fields && fields.size() > 0) {
                         for (UpstreamTypeField field : fields) {
                             String sourceField = field.getSourceField();
@@ -297,6 +246,7 @@ public class DeptServiceImpl implements DeptService {
                                 continue;
                             }
                             flag = true;
+                            ClassCompareUtil.setValue(oldTreeBean,oldTreeBean.getClass(),sourceField,oldValue.getClass(),newValue);
                             logger.info(newTreeBean.getCode() + "字段" + sourceField + "-----------" + oldValue + "-------------" + newValue);
                         }
                     }
@@ -309,7 +259,7 @@ public class DeptServiceImpl implements DeptService {
                 }
 
                 if (flag) {
-                    updateList.add(newTreeBean);
+                    updateList.add(oldTreeBean);
                 }
             }
         }
@@ -353,7 +303,7 @@ public class DeptServiceImpl implements DeptService {
      * @Description: 处理数据
      * @return: void
      */
-    private List<TreeBean> saveToSso(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> beans, Map<TreeBean, String> result, ArrayList<TreeBean> insert) {
+    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> beans, Map<TreeBean, String> result, ArrayList<TreeBean> insert) {
         Map<String, TreeBean> collect = new HashMap<>();
         if (null != beans && beans.size() > 0) {
             collect = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));

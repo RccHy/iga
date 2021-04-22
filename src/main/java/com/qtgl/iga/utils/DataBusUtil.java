@@ -62,6 +62,8 @@ public class DataBusUtil {
 
     private ConcurrentHashMap<String, Token> tokenMap = new ConcurrentHashMap<>();
 
+    public  static ConcurrentHashMap<String, List<UpstreamTypeField>> typeFields = new ConcurrentHashMap<>();
+
 
     private static String sendPostRequest(String url, JSONObject params) {
         url = UrlUtil.getUrl(url);
@@ -201,6 +203,7 @@ public class DataBusUtil {
         logger.info("source url " + dataUrl);
         //获取字段映射
         List<UpstreamTypeField> fields = upstreamTypeService.findFields(upstreamType.getId());
+        typeFields.put(upstreamType.getId(),fields);
         String[] type = upstreamType.getGraphqlUrl().split("/");
         GraphqlClient graphqlClient = GraphqlClient.buildGraphqlClient(dataUrl);
         String methodName = type[5];

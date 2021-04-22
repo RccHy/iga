@@ -344,6 +344,12 @@ public class NodeRulesCalculationServiceImpl {
                     if (null == dept.getString(TreeEnum.PARENTCODE.getCode())) {
                         dept.put(TreeEnum.PARENTCODE.getCode(), "");
                     }
+                    if (null == dept.getString(TreeEnum.CREATETIME.getCode())) {
+                        dept.put(TreeEnum.CREATETIME.getCode(), timestamp);
+                    }
+                    if (null == dept.getString(TreeEnum.UPDATETIME.getCode())) {
+                        dept.put(TreeEnum.UPDATETIME.getCode(), timestamp);
+                    }
                     dept.put("upstreamTypeId", upstreamType.getId());
                     upstreamDept.add(dept.toJavaObject(TreeBean.class));
 
@@ -462,11 +468,15 @@ public class NodeRulesCalculationServiceImpl {
     public JSONArray judgeTime(JSONArray upstreamTree, LocalDateTime timestamp) {
         String str = upstreamTree.toString();
         boolean flag = str.contains("createTime");
+        boolean upFlag = str.contains("updateTime");
         if (!flag) {
 
             List<TreeBean> mainList = JSON.parseArray(str, TreeBean.class);
             for (TreeBean treeBean : mainList) {
                 treeBean.setCreateTime(timestamp);
+                if (!upFlag) {
+                    treeBean.setUpdateTime(timestamp);
+                }
             }
             return JSONArray.parseArray(JSON.toJSONString(mainList));
         } else {

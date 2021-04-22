@@ -222,12 +222,13 @@ public class PostDaoImpl implements PostDao {
 
     @Override
     public Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, String tenantId) {
-        String insertStr = "insert into user_type (id,user_type, name, parent_code, can_login ,tenant_id ,tags, data_source, description, meta,create_time,del_mark,active,active_time,update_time,source,user_type_index,post_type) values" +
+        String insertStr = "insert into user_type (id,user_type, name, parent_code, can_login ,tenant_id ,tags," +
+                " data_source, description, meta,create_time,del_mark,active,active_time,update_time,source,user_type_index,post_type) values" +
                 "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
         String updateStr = "update user_type set  name=?, parent_code=?, del_mark=? ,tenant_id =?" +
                 ", data_source=?, description=?, meta=?,update_time=?,tags=?,source=?" +
-                ", user_type_index = ?,del_mark =0,post_type=?  where user_type =?";
+                ", user_type_index = ?,post_type=? where user_type =? and update_time<= ?";
 
         String deleteStr = "update user_type set   del_mark= ? , active = ?,active_time= ?  " +
                 "where user_type =?  and update_time<= ? ";
@@ -247,14 +248,14 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(8, "PULL");
                             preparedStatement.setObject(9, insertList.get(i).getDescription());
                             preparedStatement.setObject(10, insertList.get(i).getMeta());
-                            preparedStatement.setObject(11, insertList.get(i).getCreateTime() == null ? LocalDateTime.now() : insertList.get(i).getCreateTime());
+                            preparedStatement.setObject(11, insertList.get(i).getCreateTime());
                             preparedStatement.setObject(12, 0);
                             preparedStatement.setObject(13, 0);
                             preparedStatement.setObject(14, LocalDateTime.now());
-                            preparedStatement.setObject(15, LocalDateTime.now());
+                            preparedStatement.setObject(15, insertList.get(i).getUpdateTime());
                             preparedStatement.setObject(16, insertList.get(i).getSource());
-                            preparedStatement.setObject(17, null == insertList.get(i).getDeptIndex() ? null : insertList.get(i).getDeptIndex());
-                            preparedStatement.setObject(18, null == insertList.get(i).getType() ? null : insertList.get(i).getType());
+                            preparedStatement.setObject(17, insertList.get(i).getDeptIndex());
+                            preparedStatement.setObject(18, insertList.get(i).getType());
                         }
 
                         @Override
@@ -269,17 +270,18 @@ public class PostDaoImpl implements PostDao {
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
                             preparedStatement.setObject(1, updateList.get(i).getName());
                             preparedStatement.setObject(2, updateList.get(i).getParentCode());
-                            preparedStatement.setObject(3, 0);
+                            preparedStatement.setObject(3, null == updateList.get(i).getDelMark() ? 0 : updateList.get(i).getDelMark());
                             preparedStatement.setObject(4, tenantId);
                             preparedStatement.setObject(5, "PULL");
                             preparedStatement.setObject(6, updateList.get(i).getDescription());
                             preparedStatement.setObject(7, updateList.get(i).getMeta());
-                            preparedStatement.setObject(8, updateList.get(i).getCreateTime() == null ? LocalDateTime.now() : updateList.get(i).getCreateTime());
+                            preparedStatement.setObject(8, updateList.get(i).getUpdateTime());
                             preparedStatement.setObject(9, updateList.get(i).getTags());
                             preparedStatement.setObject(10, updateList.get(i).getSource());
-                            preparedStatement.setObject(11, null == updateList.get(i).getDeptIndex() ? null : updateList.get(i).getDeptIndex());
-                            preparedStatement.setObject(12, null == updateList.get(i).getType() ? null : updateList.get(i).getType());
+                            preparedStatement.setObject(11, updateList.get(i).getDeptIndex());
+                            preparedStatement.setObject(12, updateList.get(i).getType());
                             preparedStatement.setObject(13, updateList.get(i).getCode());
+                            preparedStatement.setObject(14, updateList.get(i).getUpdateTime());
 
                         }
 

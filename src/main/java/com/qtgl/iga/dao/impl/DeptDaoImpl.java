@@ -221,8 +221,8 @@ public class DeptDaoImpl implements DeptDao {
         String insertStr = "insert into dept (id,dept_code, dept_name, parent_code, del_mark ,tenant_id ,source, data_source, description, meta,create_time,tags,independent,active,active_time,tree_type,dept_index,abbreviation,update_time,type) values" +
                 "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         String updateStr = "update dept set  dept_name=?, parent_code=?, del_mark=? ,tenant_id =?" +
-                ",source =?, data_source=?, description=?, meta=?,update_time=?,tags=?,independent=?,tree_type= ?,active=? ,abbreviation=?,del_mark=0 ,type = ? " +
-                "where dept_code =? and update_time< ?";
+                ",source =?, data_source=?, description=?, meta=?,update_time=?,tags=?,independent=?,tree_type= ?,active=? ,abbreviation=?,type = ?,dept_index=? " +
+                "where dept_code =? and update_time<= ?";
         String deleteStr = "update dept set   del_mark= ? , active = ?,active_time= ?  " +
                 "where dept_code =? and update_time<= ? ";
         return txTemplate.execute(transactionStatus -> {
@@ -243,15 +243,15 @@ public class DeptDaoImpl implements DeptDao {
                             preparedStatement.setObject(8, "PULL");
                             preparedStatement.setObject(9, insertList.get(i).getDescription());
                             preparedStatement.setObject(10, insertList.get(i).getMeta());
-                            preparedStatement.setObject(11, insertList.get(i).getCreateTime() == null ? LocalDateTime.now() : insertList.get(i).getCreateTime());
+                            preparedStatement.setObject(11, insertList.get(i).getCreateTime());
                             preparedStatement.setObject(12, insertList.get(i).getTags());
                             preparedStatement.setObject(13, insertList.get(i).getIndependent());
                             preparedStatement.setObject(14, 0);
                             preparedStatement.setObject(15, LocalDateTime.now());
                             preparedStatement.setObject(16, insertList.get(i).getTreeType());
-                            preparedStatement.setObject(17, null == insertList.get(i).getDeptIndex() ? null : insertList.get(i).getDeptIndex());
-                            preparedStatement.setObject(18, null == insertList.get(i).getAbbreviation() ? null : insertList.get(i).getAbbreviation());
-                            preparedStatement.setObject(19, LocalDateTime.now());
+                            preparedStatement.setObject(17, insertList.get(i).getDeptIndex());
+                            preparedStatement.setObject(18, insertList.get(i).getAbbreviation());
+                            preparedStatement.setObject(19, insertList.get(i).getUpdateTime());
                             preparedStatement.setObject(20, insertList.get(i).getType());
                         }
 
@@ -267,21 +267,22 @@ public class DeptDaoImpl implements DeptDao {
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
                             preparedStatement.setObject(1, updateList.get(i).getName());
                             preparedStatement.setObject(2, updateList.get(i).getParentCode());
-                            preparedStatement.setObject(3, 0);
+                            preparedStatement.setObject(3, null == updateList.get(i).getDelMark() ? 0 : updateList.get(i).getDelMark());
                             preparedStatement.setObject(4, tenantId);
                             preparedStatement.setObject(5, updateList.get(i).getSource());
                             preparedStatement.setObject(6, "PULL");
                             preparedStatement.setObject(7, updateList.get(i).getDescription());
                             preparedStatement.setObject(8, updateList.get(i).getMeta());
-                            preparedStatement.setObject(9, updateList.get(i).getCreateTime() == null ? LocalDateTime.now() : updateList.get(i).getCreateTime());
+                            preparedStatement.setObject(9, updateList.get(i).getUpdateTime());
                             preparedStatement.setObject(10, updateList.get(i).getTags());
                             preparedStatement.setObject(11, updateList.get(i).getIndependent());
                             preparedStatement.setObject(12, updateList.get(i).getTreeType());
                             preparedStatement.setObject(13, 0);
-                            preparedStatement.setObject(14, null == updateList.get(i).getAbbreviation() ? null : updateList.get(i).getAbbreviation());
-                            preparedStatement.setObject(15, null == updateList.get(i).getType() ? null : updateList.get(i).getType());
-                            preparedStatement.setObject(16, updateList.get(i).getCode());
-                            preparedStatement.setObject(17, updateList.get(i).getCreateTime() == null ? LocalDateTime.now() : updateList.get(i).getCreateTime());
+                            preparedStatement.setObject(14, updateList.get(i).getAbbreviation());
+                            preparedStatement.setObject(15, updateList.get(i).getType());
+                            preparedStatement.setObject(16, updateList.get(i).getDeptIndex());
+                            preparedStatement.setObject(17, updateList.get(i).getCode());
+                            preparedStatement.setObject(18, updateList.get(i).getUpdateTime());
 
                         }
 
@@ -299,7 +300,7 @@ public class DeptDaoImpl implements DeptDao {
                             preparedStatement.setObject(2, 1);
                             preparedStatement.setObject(3, LocalDateTime.now());
                             preparedStatement.setObject(4, deleteList.get(i).getCode());
-                            preparedStatement.setObject(5, deleteList.get(i).getCreateTime());
+                            preparedStatement.setObject(5, deleteList.get(i).getUpdateTime());
                         }
 
                         @Override
