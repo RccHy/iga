@@ -181,6 +181,7 @@ public class OccupyServiceImpl implements OccupyService {
                     log.info("人员身份信息{}从删除恢复", val.getOccupyId());
                 }
                 if (flag) {
+                    val.setUpdateTime(newOccupy.getUpdateTime());
                     if (result.containsKey("update")) {
                         result.get("update").add(val);
                     } else {
@@ -191,13 +192,12 @@ public class OccupyServiceImpl implements OccupyService {
                 }
                 log.debug("人员身份对比后需要修改{}-{}", val, occupyDtoFromUpstream.get(key));
             } else if (!occupyDtoFromUpstream.containsKey(key) && 1 != val.getDelMark() && "PULL".equals(val.getDataSource())) {
-                OccupyDto occupyDto = new OccupyDto();
-                occupyDto.setOccupyId(val.getOccupyId());
+                val.setUpdateTime(occupyDtoFromUpstream.get(key).getUpdateTime());
                 if (result.containsKey("delete")) {
-                    result.get("delete").add(occupyDto);
+                    result.get("delete").add(val);
                 } else {
                     result.put("delete", new ArrayList<OccupyDto>() {{
-                        this.add(occupyDto);
+                        this.add(val);
                     }});
                 }
                 log.debug("人员身份对比后删除{}", val);

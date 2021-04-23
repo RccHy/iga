@@ -1,5 +1,6 @@
 package com.qtgl.iga.task;
 
+import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.Person;
@@ -9,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.annotation.Scheduled;
 
 import java.util.List;
 import java.util.Map;
@@ -36,13 +36,15 @@ public class TaskConfig {
 
     @Autowired
     PostService postService;
+    @Autowired
+    OccupyService occupyService;
 
     /**
      * 根据租户区分线程池
      * 串行执行 部门、岗位、人员、三元组 同步
      */
 
-   // @Scheduled(cron = "${dept.task.cron}")
+    // @Scheduled(cron = "${dept.task.cron}")
     public void deptTask() {
         try {
             log.info("hostname{}", hostname);
@@ -55,24 +57,26 @@ public class TaskConfig {
                                 executorService.execute(new Runnable() {
                                     @Override
                                     public void run() {
-                                        //   try {
-                                        //部门数据同步至sso
-                                        final Map<TreeBean, String> deptResult = deptService.buildDeptUpdateResult(domainInfo);
-                                        log.info(Thread.currentThread().getName() + ": 部门同步完成：{}==={}", deptResult.size(), System.currentTimeMillis());
+                                        try {
+                                            //部门数据同步至sso
+                                            final Map<TreeBean, String> deptResult = deptService.buildDeptUpdateResult(domainInfo);
+                                            log.info(Thread.currentThread().getName() + ": 部门同步完成：{}==={}", deptResult.size(), System.currentTimeMillis());
 
-                                        //岗位数据同步至sso
-                                        final Map<TreeBean, String> treeBeanStringMap = postService.buildPostUpdateResult(domainInfo);
-                                        log.info(Thread.currentThread().getName() + ": 岗位同步完成：{}==={}", treeBeanStringMap.size(), System.currentTimeMillis());
+                                            //岗位数据同步至sso
+                                            final Map<TreeBean, String> treeBeanStringMap = postService.buildPostUpdateResult(domainInfo);
+                                            log.info(Thread.currentThread().getName() + ": 岗位同步完成：{}==={}", treeBeanStringMap.size(), System.currentTimeMillis());
 
-                                        //人员数据同步至sso
-                                        Map<String, List<Person>> personResult = personService.buildPerson(domainInfo);
-                                        log.info(Thread.currentThread().getName() + ": 人员同步完成{}==={}", personResult.size(), System.currentTimeMillis());
+                                            //人员数据同步至sso
+                                            Map<String, List<Person>> personResult = personService.buildPerson(domainInfo);
+                                            log.info(Thread.currentThread().getName() + ": 人员同步完成{}==={}", personResult.size(), System.currentTimeMillis());
 
-                                        // todo 人员身份同步
-
-                                       /* } catch (Exception e) {
+                                            //人员身份同步至sso
+                                            final Map<String, List<OccupyDto>> stringListMap = occupyService.buildPerson(domainInfo);
+                                            log.info(Thread.currentThread().getName() + ": 人员身份同步完成{}==={}", personResult.size(), System.currentTimeMillis());
+                                        } catch (Exception e) {
+                                            log.error("定时同步异常：" + e);
                                             e.printStackTrace();
-                                        }*/
+                                        }
                                     }
                                 });
 
@@ -86,7 +90,7 @@ public class TaskConfig {
 
 
         } catch (Exception e) {
-            // e.printStackTrace();
+             e.printStackTrace();
         }
     }
 

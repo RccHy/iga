@@ -183,7 +183,7 @@ public class PersonDaoImpl implements PersonDao {
                 if (personMap.containsKey("update")) {
                     final List<Person> list = personMap.get("update");
                     String str = "UPDATE identity set  name= ?, account_no=?,  del_mark=?, update_time=?, tenant_id=?,  cellphone=?, email=?, data_source=?, tags=?,  active=?, active_time=? ,source= ?,data_source=?" +
-                            " where card_type=? and  card_no= ? and update_time< ? and tenant_id=?";
+                            " where id=? and update_time< ? ";
                     int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
@@ -200,10 +200,8 @@ public class PersonDaoImpl implements PersonDao {
                             preparedStatement.setObject(11, list.get(i).getActiveTime());
                             preparedStatement.setObject(12, "PULL");
                             preparedStatement.setObject(13, list.get(i).getDataSource());
-                            preparedStatement.setObject(14, list.get(i).getCardType());
-                            preparedStatement.setObject(15, list.get(i).getCardNo());
-                            preparedStatement.setObject(16, list.get(i).getUpdateTime());
-                            preparedStatement.setObject(17, tenantId);
+                            preparedStatement.setObject(14, list.get(i).getId());
+                            preparedStatement.setObject(15, list.get(i).getUpdateTime());
                         }
 
                         @Override
@@ -217,7 +215,7 @@ public class PersonDaoImpl implements PersonDao {
                     final List<Person> list = personMap.get("delete");
 
                     String str = "UPDATE identity set  del_mark= 1 and update_time=now()" +
-                            " where id=?  and tenant_id=?";
+                            " where id=?  ";
 
                     int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
                         @Override
@@ -225,7 +223,7 @@ public class PersonDaoImpl implements PersonDao {
                             preparedStatement.setObject(1, list.get(i).getCardType());
                             preparedStatement.setObject(2, list.get(i).getCardNo());
                             preparedStatement.setObject(3, list.get(i).getUpdateTime());
-                            preparedStatement.setObject(4, tenantId);
+
                         }
 
                         @Override
@@ -245,11 +243,13 @@ public class PersonDaoImpl implements PersonDao {
                     personDao.deleteOccupy(occupies);*/
 
                 }
+
                 return 1;
             } catch (Exception e) {
+                e.printStackTrace();
                 transactionStatus.setRollbackOnly();
                 // transactionStatus.rollbackToSavepoint(savepoint);
-                return null;
+                throw new RuntimeException("同步终止，人员同步异常！");
             }
         });
 
