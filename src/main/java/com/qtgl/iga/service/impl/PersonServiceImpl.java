@@ -117,6 +117,7 @@ public class PersonServiceImpl implements PersonService {
                     if (null == personBean.getDelMark()) {
                         personBean.setDelMark(0);
                     }
+
                     personFromUpstream.put(personBean.getCardType() + ":" + personBean.getCardNo(), personBean);
                 }
             }
@@ -135,8 +136,6 @@ public class PersonServiceImpl implements PersonService {
             // 对比出需要修改的person
             if (personFromUpstream.containsKey(key) &&
                     personFromUpstream.get(key).getCreateTime().isAfter(val.getUpdateTime())) {
-                // todo 增加对比出具体变更的字段。 明确描述出从删除恢复的对象
-
                 boolean flag = false;
                 boolean delFlag = true;
                 Person newPerson = personFromUpstream.get(key);
@@ -167,13 +166,14 @@ public class PersonServiceImpl implements PersonService {
                     }
                 }
 
+
                 if (val.getDelMark().equals(1) && delFlag) {
                     flag = true;
-                    newPerson.setDelMark(0);
-                    log.info("人员身份信息{}从删除恢复", val.getId());
+                    val.setDelMark(0);
+                    log.info("人员信息{}从删除恢复", val.getId());
                 }
-
                 if (flag) {
+                    val.setSource(newPerson.getSource());
                     val.setUpdateTime(newPerson.getUpdateTime());
                     if (result.containsKey("update")) {
                         result.get("update").add(val);
@@ -184,7 +184,7 @@ public class PersonServiceImpl implements PersonService {
                     }
                 }
                 log.info("对比后需要修改{}", val.toString());
-            } else if (!personFromUpstream.containsKey(key) && 1 != val.getDelMark() && "PULL".equals(val.getDataSource())) {
+            } else if (!personFromUpstream.containsKey(key) && 1 != val.getDelMark() && "PULL".equalsIgnoreCase(val.getDataSource())) {
                 val.setUpdateTime(personFromUpstream.get(key).getUpdateTime());
                 if (result.containsKey("delete")) {
                     result.get("delete").add(val);

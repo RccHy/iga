@@ -378,7 +378,7 @@ public class PostServiceImpl implements PostService {
             //查询数据库需要删除的数据
             for (TreeBean bean : beans) {
 
-                if (!"builtin".equals(bean.getDataSource()) || "PULL".equals(bean.getDataSource())) {
+                if (!"builtin".equals(bean.getDataSource()) || "PULL".equalsIgnoreCase(bean.getDataSource())) {
                     boolean flag = true;
                     for (TreeBean treeBean : result.keySet()) {
                         if (bean.getCode().equals(treeBean.getCode())) {

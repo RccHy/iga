@@ -34,7 +34,7 @@ public class OccupyDaoImpl implements OccupyDao {
     @Override
     public List<OccupyDto> findAll(String tenantId) {
         // 以人（identity）为主查询 人和身份的关联关系（identity_user）数据。再通过关联数据 查询身份信息详情。过滤掉 关键属性为空的数据行
-        String sql = "select" +
+        String sql = "select " +
                 "       iu.identity_id as personId," +
                 "       iu.user_id     as occupyId," +
                 "       u.user_type               as postCode," +
@@ -80,8 +80,7 @@ public class OccupyDaoImpl implements OccupyDao {
                     List<OccupyDto> list = occupyMap.get("install");
                     String sql = "INSERT INTO user " +
                             "               (id, user_type, card_type, card_no, del_mark, start_time, end_time, create_time, update_time, tenant_id, dept_code, source, data_source, active, active_time,user_index) " +
-                            "               VALUES (?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?);" +
-                            "            INSERT INTO identity_user (id, identity_id, user_id) VALUES (?, ?, ?);";
+                            "               VALUES (?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?);";
                     int[] ints = jdbcSSO.batchUpdate(sql, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
@@ -100,10 +99,21 @@ public class OccupyDaoImpl implements OccupyDao {
                             preparedStatement.setObject(13, 1);
                             preparedStatement.setObject(14, LocalDateTime.now());
                             preparedStatement.setObject(15, list.get(i).getIndex());
+                        }
 
-                            preparedStatement.setObject(16, UUID.randomUUID().toString());
-                            preparedStatement.setObject(17, list.get(i).getPersonId());
-                            preparedStatement.setObject(18, list.get(i).getOccupyId());
+                        @Override
+                        public int getBatchSize() {
+                            return list.size();
+                        }
+                    });
+
+                    String sql2 = "INSERT INTO identity_user (id, identity_id, user_id) VALUES (?, ?, ?);";
+                    jdbcSSO.batchUpdate(sql2, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, UUID.randomUUID().toString());
+                            preparedStatement.setObject(2, list.get(i).getPersonId());
+                            preparedStatement.setObject(3, list.get(i).getOccupyId());
 
                         }
 
@@ -129,10 +139,10 @@ public class OccupyDaoImpl implements OccupyDao {
                             preparedStatement.setObject(4, list.get(i).getDelMark());
                             preparedStatement.setObject(5, list.get(i).getStartTime());
                             preparedStatement.setObject(6, list.get(i).getEndTime());
-                            preparedStatement.setObject(7, list.get(i).getEndTime());
-                            preparedStatement.setObject(8, list.get(i).getUpdateTime());
-                            preparedStatement.setObject(9, list.get(i).getDeptCode());
-                            preparedStatement.setObject(10, "PULL");
+                            preparedStatement.setObject(7, list.get(i).getUpdateTime());
+                            preparedStatement.setObject(8, list.get(i).getDeptCode());
+                            preparedStatement.setObject(9, "PULL");
+                            preparedStatement.setObject(10, list.get(i).getDataSource());
                             preparedStatement.setObject(11, list.get(i).getIndex());
                             preparedStatement.setObject(12, list.get(i).getOccupyId());
                             preparedStatement.setObject(13, list.get(i).getUpdateTime());
@@ -155,8 +165,8 @@ public class OccupyDaoImpl implements OccupyDao {
                     int[] ints = jdbcSSO.batchUpdate(sql, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, list.get(i).getPostCode());
-                            preparedStatement.setObject(2, list.get(i).getUpdateTime());
+                            preparedStatement.setObject(1, list.get(i).getUpdateTime());
+                            preparedStatement.setObject(2, list.get(i).getOccupyId());
                             preparedStatement.setObject(3, list.get(i).getUpdateTime());
                         }
 
@@ -169,6 +179,7 @@ public class OccupyDaoImpl implements OccupyDao {
 
                 return 1;
             } catch (Exception e) {
+                e.printStackTrace();
                 transactionStatus.setRollbackOnly();
                 // transactionStatus.rollbackToSavepoint(savepoint);
                 throw new RuntimeException("同步终止，人员身份同步异常！");

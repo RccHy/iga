@@ -25,10 +25,8 @@ public class OccupyDto {
     private LocalDateTime updateTime;
     private LocalDateTime createTime;
     private Integer delMark;
-
-
-
-
+    private String active;
+    private LocalDateTime activeTime;
 
 
     private String upstreamType;

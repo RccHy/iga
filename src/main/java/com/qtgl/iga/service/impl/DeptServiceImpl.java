@@ -368,7 +368,7 @@ public class DeptServiceImpl implements DeptService {
                 if (null != bean.getTreeType() && bean.getTreeType().equals(treeTypeId)) {
                     boolean flag = true;
                     for (TreeBean treeBean : result.keySet()) {
-                        if (bean.getCode().equals(treeBean.getCode()) || (!"PULL".equals(bean.getDataSource()))) {
+                        if (bean.getCode().equals(treeBean.getCode()) || (!"PULL".equalsIgnoreCase(bean.getDataSource()))) {
                             flag = false;
                             break;
                         }

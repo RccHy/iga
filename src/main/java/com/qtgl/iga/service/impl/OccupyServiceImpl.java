@@ -123,6 +123,10 @@ public class OccupyServiceImpl implements OccupyService {
                 if (null == occupyDto.getDelMark()) {
                     occupyDto.setDelMark(0);
                 }
+                if(null==occupyDto.getActive()){
+                    occupyDto.setActive("1");
+                    occupyDto.setActiveTime(LocalDateTime.now());
+                }
                 String key = personId + ":" + occupyDto.getPostCode() + ":" + occupyDto.getDeptCode();
                 if (occupyDtoFromUpstream.containsKey(key)) {
                     log.warn("上游源人员身份数据覆盖:{}->{}", occupyDtoFromUpstream.get(key).toString(), occupyDto);
@@ -145,7 +149,7 @@ public class OccupyServiceImpl implements OccupyService {
                     occupyDtoFromUpstream.get(key).getCreateTime().isAfter(val.getUpdateTime())) {
                 //
                 boolean flag = false;
-                boolean delFlag=true;
+                boolean delFlag = true;
                 OccupyDto newOccupy = occupyDtoFromUpstream.get(key);
                 List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(newOccupy.getUpstreamType());
 
@@ -154,6 +158,9 @@ public class OccupyServiceImpl implements OccupyService {
                 if (null != fields && fields.size() > 0) {
                     for (UpstreamTypeField field : fields) {
                         String sourceField = field.getSourceField();
+                        if("personCardType".equals(sourceField)||"personCardNo".equals(sourceField)){
+                            continue;
+                        }
                         Object newValue = ClassCompareUtil.getGetMethod(newOccupy, sourceField);
                         Object oldValue = ClassCompareUtil.getGetMethod(val, sourceField);
                         if (null == oldValue && null == newValue) {
@@ -163,11 +170,11 @@ public class OccupyServiceImpl implements OccupyService {
                             continue;
                         }
                         flag = true;
-                        if (sourceField.equals("delMark") && (Integer) oldValue==1&&(Integer)newValue==0) {
-                            delFlag=false;
+                        if (sourceField.equals("delMark") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
+                            delFlag = false;
                             log.info("人员身份信息{}从删除恢复", val.getOccupyId());
                         }
-                        if (sourceField.equals("delMark") && (Integer) oldValue==0&&(Integer)newValue==1) {
+                        if (sourceField.equals("delMark") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
                             log.info("人员身份信息{}删除", val.getOccupyId());
                         }
                         ClassCompareUtil.setValue(val, val.getClass(), sourceField, oldValue, newValue);
@@ -175,12 +182,13 @@ public class OccupyServiceImpl implements OccupyService {
 
                     }
                 }
-                if (val.getDelMark().equals(1)&&delFlag) {
+                if (val.getDelMark().equals(1) && delFlag) {
                     flag = true;
-                    newOccupy.setDelMark(0);
+                    val.setDelMark(0);
                     log.info("人员身份信息{}从删除恢复", val.getOccupyId());
                 }
                 if (flag) {
+                    val.setSource(newOccupy.getSource());
                     val.setUpdateTime(newOccupy.getUpdateTime());
                     if (result.containsKey("update")) {
                         result.get("update").add(val);
@@ -191,8 +199,8 @@ public class OccupyServiceImpl implements OccupyService {
                     }
                 }
                 log.debug("人员身份对比后需要修改{}-{}", val, occupyDtoFromUpstream.get(key));
-            } else if (!occupyDtoFromUpstream.containsKey(key) && 1 != val.getDelMark() && "PULL".equals(val.getDataSource())) {
-                val.setUpdateTime(occupyDtoFromUpstream.get(key).getUpdateTime());
+            } else if (!occupyDtoFromUpstream.containsKey(key) && 1 != val.getDelMark() && "PULL".equalsIgnoreCase(val.getDataSource())) {
+                val.setUpdateTime(LocalDateTime.now());
                 if (result.containsKey("delete")) {
                     result.get("delete").add(val);
                 } else {
@@ -208,8 +216,8 @@ public class OccupyServiceImpl implements OccupyService {
 
         occupyDtoFromUpstream.forEach((key, val) -> {
             if (!occupiesFromSSOMap.containsKey(key)) {
+                val.setOccupyId(UUID.randomUUID().toString());
                 if (result.containsKey("install")) {
-                    val.setOccupyId(UUID.randomUUID().toString());
                     result.get("install").add(val);
                 } else {
                     result.put("install", new ArrayList<OccupyDto>() {{
@@ -220,7 +228,7 @@ public class OccupyServiceImpl implements OccupyService {
             }
         });
 
-        occupyDao.saveToSso(result,tenant.getId());
+        occupyDao.saveToSso(result, tenant.getId());
 
         return result;
     }
