@@ -40,7 +40,7 @@ public class ClassCompareUtil {
      * @return 属性差异比较结果map
      */
     @SuppressWarnings("rawtypes")
-    public static Map<String, Map<String, Object>> compareFields(Object oldObject, Object newObject) {
+    private static Map<String, Map<String, Object>> compareFields(Object oldObject, Object newObject) {
         Map<String, Map<String, Object>> map = null;
 
         try {
@@ -118,12 +118,12 @@ public class ClassCompareUtil {
      * @return
      * @throws Exception
      */
-    public static Object getGetMethod(Object ob, String name)  {
+    public static Object getGetMethod(Object ob, String name) {
         Method[] m = ob.getClass().getMethods();
-        for (int i = 0; i < m.length; i++) {
-            if (("get" + name).toLowerCase().equals(m[i].getName().toLowerCase())) {
+        for (Method method : m) {
+            if (("get" + name).toLowerCase().equals(method.getName().toLowerCase())) {
                 try {
-                    return m[i].invoke(ob);
+                    return method.invoke(ob);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }
@@ -137,7 +137,7 @@ public class ClassCompareUtil {
      *
      * @param obj       对象
      * @param clazz     对象的class
-     * @param filedName  需要设置值得属性
+     * @param filedName 需要设置值得属性
      * @param typeClass
      * @param value
      */
@@ -145,8 +145,8 @@ public class ClassCompareUtil {
         filedName = removeLine(filedName);
         String methodName = "set" + filedName.substring(0, 1).toUpperCase() + filedName.substring(1);
         try {
-            Method method = clazz.getDeclaredMethod(methodName, new Class[]{typeClass});
-            method.invoke(obj, new Object[]{getClassTypeValue(typeClass, value)});
+            Method method = clazz.getDeclaredMethod(methodName, typeClass);
+            method.invoke(obj, getClassTypeValue(typeClass, value));
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -212,14 +212,13 @@ public class ClassCompareUtil {
      * @param str
      * @return
      */
-    public static String removeLine(String str) {
+    private static String removeLine(String str) {
         if (null != str && str.contains("_")) {
             int i = str.indexOf("_");
             char ch = str.charAt(i + 1);
             char newCh = (ch + "").substring(0, 1).toUpperCase().toCharArray()[0];
             String newStr = str.replace(str.charAt(i + 1), newCh);
-            String newStr2 = newStr.replace("_", "");
-            return newStr2;
+            return newStr.replace("_", "");
         }
         return str;
     }

@@ -221,7 +221,7 @@ public class DeptDaoImpl implements DeptDao {
         String insertStr = "insert into dept (id,dept_code, dept_name, parent_code, del_mark ,tenant_id ,source, data_source, description, meta,create_time,tags,independent,active,active_time,tree_type,dept_index,abbreviation,update_time,type) values" +
                 "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         String updateStr = "update dept set  dept_name=?, parent_code=?, del_mark=? ,tenant_id =?" +
-                ",source =?, data_source=?, description=?, meta=?,update_time=?,tags=?,independent=?,tree_type= ?,active=? ,abbreviation=?,type = ?,dept_index=? " +
+                ",source =?, data_source=?, description=?, meta=?,update_time=?,tags=?,independent=?,tree_type= ?,active=? ,abbreviation=?,type = ?,dept_index=?,active=?  " +
                 "where dept_code =? and update_time<= ?";
         String deleteStr = "update dept set   del_mark= ? , active = ?,active_time= ?  " +
                 "where dept_code =? and update_time<= ? ";
@@ -281,8 +281,9 @@ public class DeptDaoImpl implements DeptDao {
                             preparedStatement.setObject(14, updateList.get(i).getAbbreviation());
                             preparedStatement.setObject(15, updateList.get(i).getType());
                             preparedStatement.setObject(16, updateList.get(i).getDeptIndex());
-                            preparedStatement.setObject(17, updateList.get(i).getCode());
-                            preparedStatement.setObject(18, updateList.get(i).getUpdateTime());
+                            preparedStatement.setObject(17, updateList.get(i).getActive());
+                            preparedStatement.setObject(18, updateList.get(i).getCode());
+                            preparedStatement.setObject(19, updateList.get(i).getUpdateTime());
 
                         }
 

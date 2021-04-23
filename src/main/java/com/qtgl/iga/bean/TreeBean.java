@@ -48,6 +48,8 @@ public class TreeBean {
     private Integer delMark;
 
     private String type;
+
+    private Integer active;
 //    public DeptBean(Dept dept) {
 //        this.setCode(dept.getDeptCode());
 //        this.setParentCode(dept.getParentCode());

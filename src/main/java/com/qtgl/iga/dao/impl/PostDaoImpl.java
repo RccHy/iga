@@ -228,7 +228,7 @@ public class PostDaoImpl implements PostDao {
 
         String updateStr = "update user_type set  name=?, parent_code=?, del_mark=? ,tenant_id =?" +
                 ", data_source=?, description=?, meta=?,update_time=?,tags=?,source=?" +
-                ", user_type_index = ?,post_type=? where user_type =? and update_time<= ?";
+                ", user_type_index = ?,post_type=?,active=?  where user_type =? and update_time<= ?";
 
         String deleteStr = "update user_type set   del_mark= ? , active = ?,active_time= ?  " +
                 "where user_type =?  and update_time<= ? ";
@@ -280,8 +280,9 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(10, updateList.get(i).getSource());
                             preparedStatement.setObject(11, updateList.get(i).getDeptIndex());
                             preparedStatement.setObject(12, updateList.get(i).getType());
-                            preparedStatement.setObject(13, updateList.get(i).getCode());
-                            preparedStatement.setObject(14, updateList.get(i).getUpdateTime());
+                            preparedStatement.setObject(13, updateList.get(i).getActive());
+                            preparedStatement.setObject(14, updateList.get(i).getCode());
+                            preparedStatement.setObject(15, updateList.get(i).getUpdateTime());
 
                         }
 
