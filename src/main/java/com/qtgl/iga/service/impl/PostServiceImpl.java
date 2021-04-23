@@ -251,7 +251,7 @@ public class PostServiceImpl implements PostService {
                             continue;
                         }
                         flag = true;
-                        ClassCompareUtil.setValue(oldTreeBean, oldTreeBean.getClass(), sourceField, oldValue.getClass(), newValue);
+                        ClassCompareUtil.setValue(oldTreeBean, oldTreeBean.getClass(), sourceField, oldValue, newValue);
                         logger.info(newTreeBean.getCode() + "字段" + sourceField + "-----------" + oldValue + "-------------" + newValue);
                     }
                 }

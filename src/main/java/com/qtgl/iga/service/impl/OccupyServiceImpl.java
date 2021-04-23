@@ -170,7 +170,7 @@ public class OccupyServiceImpl implements OccupyService {
                         if (sourceField.equals("delMark") && (Integer) oldValue==0&&(Integer)newValue==1) {
                             log.info("人员身份信息{}删除", val.getOccupyId());
                         }
-                        ClassCompareUtil.setValue(oldValue, oldValue.getClass(), sourceField, oldValue.getClass(), newValue);
+                        ClassCompareUtil.setValue(val, val.getClass(), sourceField, oldValue, newValue);
                         log.info("人员身份信息更新{}:字段{}：{} -> {}", val.getOccupyId(), sourceField, oldValue, newValue);
 
                     }

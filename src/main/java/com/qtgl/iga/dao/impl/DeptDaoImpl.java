@@ -313,7 +313,8 @@ public class DeptDaoImpl implements DeptDao {
             } catch (Exception e) {
                 transactionStatus.setRollbackOnly();
                 // transactionStatus.rollbackToSavepoint(savepoint);
-                return null;
+                throw new RuntimeException("同步终止，部门同步异常！");
+
             }
 
         });

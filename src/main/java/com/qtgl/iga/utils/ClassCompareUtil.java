@@ -138,15 +138,22 @@ public class ClassCompareUtil {
      * @param obj       对象
      * @param clazz     对象的class
      * @param filedName 需要设置值得属性
-     * @param typeClass
-     * @param value
+     * @param oldValue
+     * @param newValue
      */
-    public static void setValue(Object obj, Class<?> clazz, String filedName, Class<?> typeClass, Object value) {
+    public static void setValue(Object obj, Class<?> clazz, String filedName, Object oldValue, Object newValue) {
         filedName = removeLine(filedName);
         String methodName = "set" + filedName.substring(0, 1).toUpperCase() + filedName.substring(1);
         try {
+            Class<?> typeClass = null;
+            if (null != oldValue) {
+                typeClass = oldValue.getClass();
+            }
+            if (null != newValue) {
+                typeClass = newValue.getClass();
+            }
             Method method = clazz.getDeclaredMethod(methodName, typeClass);
-            method.invoke(obj, getClassTypeValue(typeClass, value));
+            method.invoke(obj, getClassTypeValue(typeClass, newValue));
         } catch (Exception ex) {
             ex.printStackTrace();
         }

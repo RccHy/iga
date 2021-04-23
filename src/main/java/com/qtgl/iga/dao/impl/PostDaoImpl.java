@@ -313,7 +313,7 @@ public class PostDaoImpl implements PostDao {
             } catch (Exception e) {
                 transactionStatus.setRollbackOnly();
                 // transactionStatus.rollbackToSavepoint(savepoint);
-                return null;
+                throw new RuntimeException("同步终止，岗位同步异常！");
             }
         });
     }

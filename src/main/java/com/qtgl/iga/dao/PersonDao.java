@@ -25,7 +25,7 @@ public interface PersonDao {
 
     Integer deleteOccupy(List<String> ids);
 
-         Integer saveToSso(Map<String, List<Person>> personMap, String tenantId) ;
+    Integer saveToSso(Map<String, List<Person>> personMap, String tenantId);
 
 
 }

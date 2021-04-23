@@ -117,7 +117,7 @@ public class OccupyDaoImpl implements OccupyDao {
                 if (occupyMap.containsKey("update")) {
                     List<OccupyDto> list = occupyMap.get("update");
                     String sql = "UPDATE `user` SET user_type = ?, card_type = ?, card_no = ?, del_mark = ?, start_time = ?, end_time = ?, update_time = ?,dept_code = ?,  " +
-                            " source = ?, data_source = 'PULL',  user_index = ?" +
+                            " source = ?, data_source = ?,  user_index = ?" +
                             " WHERE id = ? and update_time < ? ; ";
 
                     int[] ints = jdbcSSO.batchUpdate(sql, new BatchPreparedStatementSetter() {
@@ -132,7 +132,7 @@ public class OccupyDaoImpl implements OccupyDao {
                             preparedStatement.setObject(7, list.get(i).getEndTime());
                             preparedStatement.setObject(8, list.get(i).getUpdateTime());
                             preparedStatement.setObject(9, list.get(i).getDeptCode());
-                            preparedStatement.setObject(10, list.get(i).getSource());
+                            preparedStatement.setObject(10, "PULL");
                             preparedStatement.setObject(11, list.get(i).getIndex());
                             preparedStatement.setObject(12, list.get(i).getOccupyId());
                             preparedStatement.setObject(13, list.get(i).getUpdateTime());
@@ -171,7 +171,7 @@ public class OccupyDaoImpl implements OccupyDao {
             } catch (Exception e) {
                 transactionStatus.setRollbackOnly();
                 // transactionStatus.rollbackToSavepoint(savepoint);
-                return 0;
+                throw new RuntimeException("同步终止，人员身份同步异常！");
             }
 
         });

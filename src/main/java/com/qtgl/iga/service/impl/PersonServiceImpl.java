@@ -162,7 +162,7 @@ public class PersonServiceImpl implements PersonService {
                             log.info("人员信息{}删除", val.getId());
                         }
                         flag = true;
-                        ClassCompareUtil.setValue(val, val.getClass(), sourceField, oldValue.getClass(), newValue);
+                        ClassCompareUtil.setValue(val, val.getClass(), sourceField, oldValue, newValue);
                         log.debug("人员信息更新{}:字段{}：{} -> {}", val.getId(), sourceField, oldValue, newValue);
                     }
                 }

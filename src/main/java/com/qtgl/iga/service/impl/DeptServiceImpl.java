@@ -252,7 +252,7 @@ public class DeptServiceImpl implements DeptService {
                             continue;
                         }
                         flag = true;
-                        ClassCompareUtil.setValue(oldTreeBean, oldTreeBean.getClass(), sourceField, oldValue.getClass(), newValue);
+                        ClassCompareUtil.setValue(oldTreeBean, oldTreeBean.getClass(), sourceField, oldValue, newValue);
                         logger.info(newTreeBean.getCode() + "字段" + sourceField + "-----------" + oldValue + "-------------" + newValue);
                     }
                 }

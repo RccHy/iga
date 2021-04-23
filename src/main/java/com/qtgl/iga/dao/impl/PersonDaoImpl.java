@@ -267,6 +267,7 @@ public class PersonDaoImpl implements PersonDao {
     public List<String> getAccountByIdentityId(List<String> ids) {
         String sql = "select account_id from identity_account where identity_id in (?)";
         List<String> data = jdbcSSO.query(sql, new RowMapper<String>() {
+            @Override
             public String mapRow(ResultSet rs, int rowNum) throws SQLException {
                 return rs.getString(1);
             }
@@ -292,6 +293,7 @@ public class PersonDaoImpl implements PersonDao {
     public List<String> getOccupyByIdentityId(List<String> ids) {
         String sql = "select user_id from identity_user where identity_id in (?)";
         List<String> data = jdbcSSO.query(sql, new RowMapper<String>() {
+            @Override
             public String mapRow(ResultSet rs, int rowNum) throws SQLException {
                 return rs.getString(1);
             }
