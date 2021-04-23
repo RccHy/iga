@@ -485,6 +485,8 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         return getUpstreamTypeFields(filedList);
     }
 
+
+
     @Override
     public Integer deleteByUpstreamId(String id, String domain) {
         //删除字段映射表数据

@@ -25,7 +25,10 @@ public class Person {
     private LocalDateTime updateTime;
     private Integer delMark;
 
+    private String upstreamType;
+
     private String openId;
+
 
 
 }
