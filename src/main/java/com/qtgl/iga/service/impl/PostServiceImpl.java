@@ -71,6 +71,7 @@ public class PostServiceImpl implements PostService {
                 }
             }
         } else {
+            logger.error("租户 :{} 无builtin岗位，请先创建", tenant.getId());
             throw new Exception("无builtin岗位，请先创建");
         }
         //轮训比对标记(是否有主键id)
@@ -81,7 +82,7 @@ public class PostServiceImpl implements PostService {
         List<TreeBean> mainTreeBeans = new ArrayList<>();
 
         for (TreeBean rootBean : rootBeans) {
-            calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, "system");
+            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, "system");
         }
 //
         // 判断重复(code)
@@ -126,6 +127,7 @@ public class PostServiceImpl implements PostService {
         //获取默认数据
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
+            logger.error("请检查根树是否合法{}", domain.getId());
             throw new Exception("租户不存在");
         }
         //  置空 mainTree
@@ -137,6 +139,7 @@ public class PostServiceImpl implements PostService {
                 }
             }
         } else {
+            logger.error("请检查根树是否合法{}", tenant.getId());
             throw new Exception("请检查根树是否合法");
         }
 
@@ -152,10 +155,8 @@ public class PostServiceImpl implements PostService {
         List<TreeBean> mainTreeBeans = new ArrayList<>();
 
         for (TreeBean rootBean : rootBeans) {
-            calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, "system");
+            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, "system");
         }
-        System.out.println("==");
-
         // 判断重复(code)
         calculationService.groupByCode(mainTreeBeans);
 
@@ -180,8 +181,6 @@ public class PostServiceImpl implements PostService {
         // 判断重复(code)
         calculationService.groupByCode(beans);
 
-//        saveToSso(result, tenant.getId());
-
         return beans;
     }
 
@@ -191,7 +190,7 @@ public class PostServiceImpl implements PostService {
      * @Description: 增量插入sso数据库
      * @return: void
      */
-    private void saveToSso(Map<TreeBean, String> result, String tenantId, List<TreeBean> logBeans) throws Exception {
+    private void saveToSso(Map<TreeBean, String> result, String tenantId, List<TreeBean> logBeans) {
         Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
         Map<String, TreeBean> logCollect = null;
 
@@ -206,7 +205,7 @@ public class PostServiceImpl implements PostService {
         List<Map.Entry<TreeBean, String>> insert = collect.get("insert");
         if (null != insert && insert.size() > 0) {
             for (Map.Entry<TreeBean, String> key : insert) {
-
+                logger.debug("岗位对比后新增{}", key.getKey().toString());
                 insertList.add(key.getKey());
             }
         }
@@ -216,7 +215,7 @@ public class PostServiceImpl implements PostService {
             for (Map.Entry<TreeBean, String> key : obsolete) {
                 list.add(key.getKey());
             }
-            logger.info("忽略" + list.size() + "条已过时数据{}", obsolete.toString());
+            logger.info("忽略 {} 条已过时数据{}", list.size(), obsolete.toString());
 
         }
         List<Map.Entry<TreeBean, String>> update = collect.get("update");
@@ -252,16 +251,17 @@ public class PostServiceImpl implements PostService {
                         }
                         flag = true;
                         ClassCompareUtil.setValue(oldTreeBean, oldTreeBean.getClass(), sourceField, oldValue, newValue);
-                        logger.info(newTreeBean.getCode() + "字段" + sourceField + "-----------" + oldValue + "-------------" + newValue);
+                        logger.debug("岗位信息更新{}:字段{}: {} -> {} ", newTreeBean.getCode(), sourceField, oldValue, newValue);
                     }
                 }
 
                 if (delFlag && oldTreeBean.getDelMark().equals(1)) {
                     flag = true;
-                    logger.info(newTreeBean.getCode() + "重新启用");
+                    logger.info("岗位信息{}从删除恢复", oldTreeBean.getCode());
                 }
 
                 if (flag) {
+                    logger.info("岗位对比后需要修改{}", oldTreeBean.toString());
                     updateList.add(oldTreeBean);
                 }
             }
@@ -274,6 +274,7 @@ public class PostServiceImpl implements PostService {
                 TreeBean oldTreeBean = logCollect.get(newTreeBean.getCode());
                 if (oldTreeBean.getDelMark() == 0) {
                     if (null != oldTreeBean.getUpdateTime() && (newTreeBean.getCreateTime().isAfter(oldTreeBean.getUpdateTime()) || newTreeBean.getCreateTime().isEqual(oldTreeBean.getUpdateTime()))) {
+                        logger.info("部门对比后删除{}", key.getKey().toString());
                         deleteList.add(key.getKey());
                     }
                 }
@@ -285,13 +286,13 @@ public class PostServiceImpl implements PostService {
         if (null != flag && flag > 0) {
 
 
-            logger.info("post插入" + insertList.size() + "条数据  {}", System.currentTimeMillis());
+            logger.info("dept插入 {} 条数据  {}", insertList.size(), System.currentTimeMillis());
 
 
-            logger.info("post更新" + updateList.size() + "条数据  {}", System.currentTimeMillis());
+            logger.info("dept更新 {} 条数据  {}", updateList.size(), System.currentTimeMillis());
 
 
-            logger.info("post删除" + deleteList.size() + "条数据  {}", System.currentTimeMillis());
+            logger.info("dept删除 {} 条数据  {}", deleteList.size(), System.currentTimeMillis());
         } else {
 
             logger.error("数据更新sso数据库失败{}", System.currentTimeMillis());
@@ -343,7 +344,6 @@ public class PostServiceImpl implements PostService {
                     for (TreeBean bean : beans) {
                         if (treeBean.getCode().equals(bean.getCode())) {
 
-
                             if (null != treeBean.getCreateTime()) {
                                 //修改
                                 if (null == bean.getCreateTime() || treeBean.getCreateTime().isAfter(bean.getCreateTime())) {
@@ -363,12 +363,10 @@ public class PostServiceImpl implements PostService {
                     //没有相等的应该是新增
                     if (flag) {
                         //新增
-//                        collect.put(treeBean.getCode(), treeBean);
                         insert.add(treeBean);
                         result.put(treeBean, "insert");
                     }
                 } else {
-//                    collect.put(treeBean.getCode(), treeBean);
                     insert.add(treeBean);
                     result.put(treeBean, "insert");
                 }

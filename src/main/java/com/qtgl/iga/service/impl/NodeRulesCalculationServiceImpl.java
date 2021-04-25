@@ -283,31 +283,32 @@ public class NodeRulesCalculationServiceImpl {
             final Map<String, List<TreeBean>> mainTreeChildren = TreeUtil.groupChildren(new ArrayList<>(mainDept));
 
 
-            // 过滤出继承下来的NodeRules
-            Map<String, NodeRules> inheritNodeRules = nodeRules.stream().filter(rules -> StringUtils.isNotEmpty(rules.getInheritId()))
-                    .collect(Collectors.toMap(NodeRules::getId, v -> v));
-            // 遍历结束后 要对数据确权
-            for (NodeRules nodeRule : nodeRules) {
-                logger.info("开始'{}'节点拉取规则，上游:{}", code, nodeRule.getUpstreamTypesId());
-                // 每次循环都能拿到一个部门树，并计算出需要挂载的内容
-                //
-                if (null == nodeRule.getUpstreamTypesId()) {
-                    logger.error("对应拉取节点'{}'无上有源类型数据", code);
-                    throw new Exception("对应拉取节点'" + code + "'无上有源类型数据");
-                }
-                if (StringUtils.isNotEmpty(nodeRule.getInheritId())) {
-                    logger.info("对应拉取节点'{}'继承自父级{}，跳过计算", code, nodeRule.getInheritId());
-                    continue;
-                }
-                // 根据id 获取 UpstreamType
-                UpstreamType upstreamType = upstreamTypeDao.findById(nodeRule.getUpstreamTypesId());
-                //获取来源
-                Upstream upstream = upstreamDao.findById(upstreamType.getUpstreamId());
-                //获得部门树
-                JSONArray upstreamTree = new JSONArray();
-                //   请求graphql查询，获得部门树
-                LocalDateTime timestamp = LocalDateTime.now();
-                upstreamTree = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
+            if (null != nodeRules && nodeRules.size() > 0) {
+                // 过滤出继承下来的NodeRules
+                Map<String, NodeRules> inheritNodeRules = nodeRules.stream().filter(rules -> StringUtils.isNotEmpty(rules.getInheritId()))
+                        .collect(Collectors.toMap(NodeRules::getId, v -> v));
+                // 遍历结束后 要对数据确权
+                for (NodeRules nodeRule : nodeRules) {
+                    logger.info("开始'{}'节点拉取规则，上游:{}", code, nodeRule.getUpstreamTypesId());
+                    // 每次循环都能拿到一个部门树，并计算出需要挂载的内容
+                    //
+                    if (null == nodeRule.getUpstreamTypesId()) {
+                        logger.error("对应拉取节点'{}'无上有源类型数据", code);
+                        throw new Exception("对应拉取节点'" + code + "'无上有源类型数据");
+                    }
+                    if (StringUtils.isNotEmpty(nodeRule.getInheritId())) {
+                        logger.info("对应拉取节点'{}'继承自父级{}，跳过计算", code, nodeRule.getInheritId());
+                        continue;
+                    }
+                    // 根据id 获取 UpstreamType
+                    UpstreamType upstreamType = upstreamTypeDao.findById(nodeRule.getUpstreamTypesId());
+                    //获取来源
+                    Upstream upstream = upstreamDao.findById(upstreamType.getUpstreamId());
+                    //获得部门树
+                    JSONArray upstreamTree = new JSONArray();
+                    //   请求graphql查询，获得部门树
+                    LocalDateTime timestamp = LocalDateTime.now();
+                    upstreamTree = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
 //                if (null == dataByBus || null == dataByBus.get("data")) {
 //                    throw new Exception("数据获取失败");
 //                }
@@ -323,73 +324,73 @@ public class NodeRulesCalculationServiceImpl {
 //                } else {
 //                    upstreamTree = JSONObject.parseObject(dataByBus.get("data").toString()).getJSONArray(TYPE);
 //                }
-                //验证树的合法性
-                if (upstreamTree.size() <= 0) {
-                    logger.info("节点'{}'数据源{}获取部门数据为空", code, upstreamType.getGraphqlUrl());
-                    return mainTree;
-                }
-                logger.error("节点'{}'数据获取完成", code);
-                //循环引用判断
-                this.circularData(upstreamTree);
-
-                //判断上游是否给出时间戳
-                upstreamTree = this.judgeTime(upstreamTree, timestamp);
-
-
-                /////////////////
-                List<TreeBean> upstreamDept = new ArrayList<>();
-                //
-                for (Object o : upstreamTree) {
-                    JSONObject dept = (JSONObject) o;
-                    if (null == dept.getString(TreeEnum.PARENTCODE.getCode())) {
-                        dept.put(TreeEnum.PARENTCODE.getCode(), "");
+                    //验证树的合法性
+                    if (upstreamTree.size() <= 0) {
+                        logger.info("节点'{}'数据源{}获取部门数据为空", code, upstreamType.getGraphqlUrl());
+                        return mainTree;
                     }
-                    if (null == dept.getString(TreeEnum.CREATETIME.getCode())) {
-                        dept.put(TreeEnum.CREATETIME.getCode(), timestamp);
-                    }
-                    if (null == dept.getString(TreeEnum.UPDATETIME.getCode())) {
-                        dept.put(TreeEnum.UPDATETIME.getCode(), timestamp);
-                    }
-                    dept.put("upstreamTypeId", upstreamType.getId());
-                    upstreamDept.add(dept.toJavaObject(TreeBean.class));
+                    logger.error("节点'{}'数据获取完成", code);
+                    //循环引用判断
+                    this.circularData(upstreamTree);
 
-                }
+                    //判断上游是否给出时间戳
+                    upstreamTree = this.judgeTime(upstreamTree, timestamp);
+
+
+                    /////////////////
+                    List<TreeBean> upstreamDept = new ArrayList<>();
+                    //
+                    for (Object o : upstreamTree) {
+                        JSONObject dept = (JSONObject) o;
+                        if (null == dept.getString(TreeEnum.PARENTCODE.getCode())) {
+                            dept.put(TreeEnum.PARENTCODE.getCode(), "");
+                        }
+                        if (null == dept.getString(TreeEnum.CREATETIME.getCode())) {
+                            dept.put(TreeEnum.CREATETIME.getCode(), timestamp);
+                        }
+                        if (null == dept.getString(TreeEnum.UPDATETIME.getCode())) {
+                            dept.put(TreeEnum.UPDATETIME.getCode(), timestamp);
+                        }
+                        dept.put("upstreamTypeId", upstreamType.getId());
+                        upstreamDept.add(dept.toJavaObject(TreeBean.class));
+
+                    }
 //                fileds.put(upstreamType,upstreamDept);
-                if ("task".equals(operator)) {
-                    //   待优化
-                    Integer flag = saveDataToDb(upstreamTree, upstreamType.getId());
-                    if (flag <= 0) {
-                        throw new Exception("数据插入 iga 失败");
+                    if ("task".equals(operator)) {
+                        //   待优化
+                        Integer flag = saveDataToDb(upstreamTree, upstreamType.getId());
+                        if (flag <= 0) {
+                            throw new Exception("数据插入 iga 失败");
+                        }
+                        logger.error("节点'{}'数据入库完成", code);
                     }
-                    logger.error("节点'{}'数据入库完成", code);
-                }
-                //对树 json 转为 map
-                Map<String, TreeBean> upstreamMap = TreeUtil.toMap(upstreamDept);
+                    //对树 json 转为 map
+                    Map<String, TreeBean> upstreamMap = TreeUtil.toMap(upstreamDept);
 
-                //对树进行 parent 分组
-                Map<String, List<TreeBean>> childrenMap = TreeUtil.groupChildren(upstreamDept);
-                //查询 树 运行  规则,
-                List<NodeRulesRange> nodeRulesRanges = rangeDao.getByRulesId(nodeRule.getId(), null);
-                Map<String, TreeBean> mergeDeptMap = new ConcurrentHashMap<>();
-                logger.error("节点'{}'开始运行挂载", code);
-                //获取并检测 需要挂载的树， add 进入 待合并的树集合 mergeDept
-                mountRules(nodeCode, mainTreeMap, upstreamMap, childrenMap, nodeRulesRanges, mergeDeptMap, upstream.getAppName() + "(" + upstream.getAppCode() + ")");
-                //在挂载基础上进行排除
-                excludeRules(mergeDeptMap, childrenMap, nodeRulesRanges);
-                logger.error("节点'{}'开始运行排除", code);
-                // 对最终要挂载的树进行重命名
-                renameRules(mergeDeptMap, nodeRulesRanges, childrenMap, type);
-                logger.error("节点'{}'开始运行重命名", code);
-                logger.info("节点'{}'的规则运算完成：{}", nodeCode, mergeDeptMap);
+                    //对树进行 parent 分组
+                    Map<String, List<TreeBean>> childrenMap = TreeUtil.groupChildren(upstreamDept);
+                    //查询 树 运行  规则,
+                    List<NodeRulesRange> nodeRulesRanges = rangeDao.getByRulesId(nodeRule.getId(), null);
+                    Map<String, TreeBean> mergeDeptMap = new ConcurrentHashMap<>();
+                    logger.error("节点'{}'开始运行挂载", code);
+                    //获取并检测 需要挂载的树， add 进入 待合并的树集合 mergeDept
+                    mountRules(nodeCode, mainTreeMap, upstreamMap, childrenMap, nodeRulesRanges, mergeDeptMap, upstream.getAppName() + "(" + upstream.getAppCode() + ")");
+                    //在挂载基础上进行排除
+                    excludeRules(mergeDeptMap, childrenMap, nodeRulesRanges);
+                    logger.error("节点'{}'开始运行排除", code);
+                    // 对最终要挂载的树进行重命名
+                    renameRules(mergeDeptMap, nodeRulesRanges, childrenMap, type);
+                    logger.error("节点'{}'开始运行重命名", code);
+                    logger.info("节点'{}'的规则运算完成：{}", nodeCode, mergeDeptMap);
 
 
-                logger.info("部门节点:{}的规则运算完成", nodeCode);
+                    logger.info("部门节点:{}的规则运算完成", nodeCode);
 
-                //判空
-                this.judgeData(mergeDeptMap);
+                    //判空
+                    this.judgeData(mergeDeptMap);
 
-                //循环引用判断
-                this.circularData(mergeDeptMap);
+                    //循环引用判断
+                    this.circularData(mergeDeptMap);
 
 
             /*
@@ -397,24 +398,43 @@ public class NodeRulesCalculationServiceImpl {
                 1: 确认权威源， 根据源的排序，在合并时候，判断是否要修改同级别，同code 的节点来源。
                 2： 如果子节点不继承父级规则，则由父级规则之前合并进来的子树先进行删除
              */
-                // 如果本次规则  权重 大于 继承 规则。  则 丢掉主树中 同code 同parent的节点
-                if (inheritNodeRules.size() > 0) {
-                    for (Map.Entry<String, NodeRules> nodeRulesEntry : inheritNodeRules.entrySet()) {
-                        // 当前权重大于 继承来源
-                        if (nodeRule.getSort() < nodeRulesEntry.getValue().getSort()) {
-                            Map<String, TreeBean> mainTreeMap2 = new ConcurrentHashMap<>();
-                            mainTreeMap2.putAll(mainTreeMap);
-                            for (Map.Entry<String, TreeBean> deptEntry : mainTreeMap2.entrySet()) {
-                                String key = deptEntry.getKey();
-                                TreeBean value = deptEntry.getValue();
-                                if (mainTreeMap.containsKey(key) &&
-                                        mergeDeptMap.get(key).getParentCode().equals(value.getParentCode())
-                                ) {
-                                    mainTreeMap.remove(key);
+                    // 如果本次规则  权重 大于 继承 规则。  则 丢掉主树中 同code 同parent的节点
+                    if (inheritNodeRules.size() > 0) {
+                        for (Map.Entry<String, NodeRules> nodeRulesEntry : inheritNodeRules.entrySet()) {
+                            // 当前权重大于 继承来源
+                            if (nodeRule.getSort() < nodeRulesEntry.getValue().getSort()) {
+                                Map<String, TreeBean> mainTreeMap2 = new ConcurrentHashMap<>();
+                                mainTreeMap2.putAll(mainTreeMap);
+                                for (Map.Entry<String, TreeBean> deptEntry : mainTreeMap2.entrySet()) {
+                                    String key = deptEntry.getKey();
+                                    TreeBean value = deptEntry.getValue();
+                                    if (mainTreeMap.containsKey(key) &&
+                                            mergeDeptMap.get(key).getParentCode().equals(value.getParentCode())
+                                    ) {
+                                        mainTreeMap.remove(key);
+                                    }
                                 }
+                            } else {
+                                // 当前权重 小于 继承来源
+                                Map<String, TreeBean> mergeDeptMap2 = new ConcurrentHashMap<>();
+                                mergeDeptMap2.putAll(mergeDeptMap);
+                                for (Map.Entry<String, TreeBean> deptEntry : mergeDeptMap2.entrySet()) {
+                                    String key = deptEntry.getKey();
+                                    TreeBean value = deptEntry.getValue();
+                                    if (mainTreeMap.containsKey(key) && mainTreeMap.get(key).getParentCode().equals(value.getParentCode())) {
+                                        mergeDeptMap.remove(key);
+                                    }
+                                }
+
                             }
+                        }
+                    } else {
+                        // 完全没有继承
+                        if (nodeRule.getSort() == 0) {
+                            // 完全不继承 第一个数据源， 需处理掉 主树当前节点下所有的子集
+                            TreeUtil.removeMainTree(nodeCode, mainTreeChildren, mainTreeMap);
                         } else {
-                            // 当前权重 小于 继承来源
+                            //完全不继承 非一个数据源， 直接去重 向主树合并
                             Map<String, TreeBean> mergeDeptMap2 = new ConcurrentHashMap<>();
                             mergeDeptMap2.putAll(mergeDeptMap);
                             for (Map.Entry<String, TreeBean> deptEntry : mergeDeptMap2.entrySet()) {
@@ -426,39 +446,24 @@ public class NodeRulesCalculationServiceImpl {
                             }
 
                         }
-                    }
-                } else {
-                    // 完全没有继承
-                    if (nodeRule.getSort() == 0) {
-                        // 完全不继承 第一个数据源， 需处理掉 主树当前节点下所有的子集
-                        TreeUtil.removeMainTree(nodeCode, mainTreeChildren, mainTreeMap);
-                    } else {
-                        //完全不继承 非一个数据源， 直接去重 向主树合并
-                        Map<String, TreeBean> mergeDeptMap2 = new ConcurrentHashMap<>();
-                        mergeDeptMap2.putAll(mergeDeptMap);
-                        for (Map.Entry<String, TreeBean> deptEntry : mergeDeptMap2.entrySet()) {
-                            String key = deptEntry.getKey();
-                            TreeBean value = deptEntry.getValue();
-                            if (mainTreeMap.containsKey(key) && mainTreeMap.get(key).getParentCode().equals(value.getParentCode())) {
-                                mergeDeptMap.remove(key);
-                            }
-                        }
 
                     }
 
-                }
+                    if (null != mergeDeptMap) {
+                        Collection<TreeBean> values = mergeDeptMap.values();
 
-                if (null != mergeDeptMap) {
-                    Collection<TreeBean> values = mergeDeptMap.values();
+                        mainTree.addAll(new ArrayList<>(values));
+                    }
+                    // 将本次 add 进的 节点 进行 规则运算
+                    for (Map.Entry<String, TreeBean> entry : mergeDeptMap.entrySet()) {
+                        mainTree = nodeRules(domain, deptTreeType, entry.getValue().getCode(), mainTree, status, type, operator);
+                    }
 
-                    mainTree.addAll(new ArrayList<>(values));
+                    /*========================规则运算完成=============================*/
                 }
-                // 将本次 add 进的 节点 进行 规则运算
-                for (Map.Entry<String, TreeBean> entry : mergeDeptMap.entrySet()) {
-                    nodeRules(domain, deptTreeType, entry.getValue().getCode(), mainTree, status, type, operator);
-                }
-
-                /*========================规则运算完成=============================*/
+            } else {
+                TreeUtil.removeTree(code, mainTreeChildren, mainTreeMap);
+                mainTree = new ArrayList<>(mainTreeMap.values());
             }
         }
 

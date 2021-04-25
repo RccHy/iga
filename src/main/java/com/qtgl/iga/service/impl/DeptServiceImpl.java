@@ -85,13 +85,9 @@ public class DeptServiceImpl implements DeptService {
         // 获取租户下开启的部门类型
         List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
         for (DeptTreeType deptType : deptTreeTypes) {
-//            Map<String, TreeBean> mainTreeMap = new ConcurrentHashMap<>();
             List<TreeBean> mainTreeBeans = new ArrayList<>();
             // id 改为code
-            calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE, "system");
-            //  数据合法性
-//            Collection<TreeBean> mainDept = mainTreeMap.values();
-//            ArrayList<TreeBean> mainList = new ArrayList<>(mainDept);
+            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE, "system");
             // 判断重复(code)
             calculationService.groupByCode(mainTreeBeans);
 //            //同步到sso
@@ -156,13 +152,9 @@ public class DeptServiceImpl implements DeptService {
         // 获取租户下开启的部门类型
         List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
         for (DeptTreeType deptType : deptTreeTypes) {
-//            Map<String, TreeBean> mainTreeMap = new ConcurrentHashMap<>();
             List<TreeBean> mainTreeBeans = new ArrayList<>();
             //  id 改为code
-            calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE, "task");
-            //  数据合法性
-//            Collection<TreeBean> mainDept = mainTreeMap.values();
-//            ArrayList<TreeBean> mainList = new ArrayList<>(mainDept);
+            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE, "task");
             // 判断重复(code)
             calculationService.groupByCode(mainTreeBeans);
             //同步到sso
@@ -200,7 +192,7 @@ public class DeptServiceImpl implements DeptService {
         List<Map.Entry<TreeBean, String>> insert = collect.get("insert");
         if (null != insert && insert.size() > 0) {
             for (Map.Entry<TreeBean, String> key : insert) {
-
+                logger.debug("部门对比后新增{}", key.getKey().toString());
                 insertList.add(key.getKey());
             }
         }
@@ -210,7 +202,7 @@ public class DeptServiceImpl implements DeptService {
             for (Map.Entry<TreeBean, String> key : obsolete) {
                 list.add(key.getKey());
             }
-            logger.info("忽略" + list.size() + "条已过时数据{}", obsolete.toString());
+            logger.info("忽略 {} 条已过时数据{}", list.size(), obsolete.toString());
 
         }
         List<Map.Entry<TreeBean, String>> update = collect.get("update");
@@ -218,14 +210,6 @@ public class DeptServiceImpl implements DeptService {
         if (null != update && update.size() > 0) {
             for (Map.Entry<TreeBean, String> key : update) {
                 key.getKey().setDataSource("PULL");
-//                //统计修改字段
-//                if (null != logBeans && logBeans.size() > 0) {
-//                    TreeBean treeBean = logCollect.get(key.getKey().getCode());
-//                    Map<String, Map<String, Object>> stringMapMap = ClassCompareUtil.compareObject(treeBean, key.getKey());
-//                    for (Map.Entry<String, Map<String, Object>> stringMapEntry : stringMapMap.entrySet()) {
-//                        System.out.println(treeBean.getCode() + "-----------" + stringMapEntry.getKey() + "-------------" + stringMapEntry.getValue());
-//                    }
-//                }
                 TreeBean newTreeBean = key.getKey();
                 TreeBean oldTreeBean = logCollect.get(newTreeBean.getCode());
                 oldTreeBean.setSource(newTreeBean.getSource());
@@ -253,16 +237,17 @@ public class DeptServiceImpl implements DeptService {
                         }
                         flag = true;
                         ClassCompareUtil.setValue(oldTreeBean, oldTreeBean.getClass(), sourceField, oldValue, newValue);
-                        logger.info(newTreeBean.getCode() + "字段" + sourceField + "-----------" + oldValue + "-------------" + newValue);
+                        logger.debug("部门信息更新{}:字段{}: {} -> {} ", newTreeBean.getCode(), sourceField, oldValue, newValue);
                     }
                 }
 
                 if (delFlag && oldTreeBean.getDelMark().equals(1)) {
                     flag = true;
-                    logger.info(newTreeBean.getCode() + "重新启用");
+                    logger.info("部门信息{}从删除恢复", oldTreeBean.getCode());
                 }
 
                 if (flag) {
+                    logger.info("部门对比后需要修改{}", oldTreeBean.toString());
                     updateList.add(oldTreeBean);
                 }
             }
@@ -275,6 +260,7 @@ public class DeptServiceImpl implements DeptService {
                 TreeBean oldTreeBean = logCollect.get(newTreeBean.getCode());
                 if (oldTreeBean.getDelMark() == 0) {
                     if (null != oldTreeBean.getUpdateTime() && (newTreeBean.getCreateTime().isAfter(oldTreeBean.getUpdateTime()) || newTreeBean.getCreateTime().isEqual(oldTreeBean.getUpdateTime()))) {
+                        logger.info("部门对比后删除{}", key.getKey().toString());
                         deleteList.add(key.getKey());
                     }
                 }
@@ -286,13 +272,13 @@ public class DeptServiceImpl implements DeptService {
         if (null != flag && flag > 0) {
 
 
-            logger.info("dept插入" + insertList.size() + "条数据  {}", System.currentTimeMillis());
+            logger.info("dept插入 {} 条数据  {}", insertList.size(), System.currentTimeMillis());
 
 
-            logger.info("dept更新" + updateList.size() + "条数据  {}", System.currentTimeMillis());
+            logger.info("dept更新 {} 条数据  {}", updateList.size(), System.currentTimeMillis());
 
 
-            logger.info("dept删除" + deleteList.size() + "条数据  {}", System.currentTimeMillis());
+            logger.info("dept删除 {} 条数据  {}", deleteList.size(), System.currentTimeMillis());
         } else {
 
             logger.error("数据更新ssoApi数据库失败{}", System.currentTimeMillis());
@@ -329,7 +315,6 @@ public class DeptServiceImpl implements DeptService {
                 for (TreeBean bean : beans) {
                     if (treeBean.getCode().equals(bean.getCode())) {
                         //
-//                        if (treeBean.getTreeType().equals(bean.getTreeType())) {
                         if (null != treeBean.getCreateTime()) {
                             //修改
                             if (null == bean.getCreateTime() || treeBean.getCreateTime().isAfter(bean.getCreateTime())) {
@@ -344,20 +329,15 @@ public class DeptServiceImpl implements DeptService {
                         }
                         flag = false;
                     }
-//                        else {
-//                            throw new RuntimeException(deptBean + "与" + bean + "code重复");
-//                        }
-//                    }
+
                 }
                 //没有相等的应该是新增
                 if (flag) {
                     //新增
-//                    collect.put(treeBean.getCode(), treeBean);
                     insert.add(treeBean);
                     result.put(treeBean, "insert");
                 }
             } else {
-//                collect.put(treeBean.getCode(), treeBean);
                 insert.add(treeBean);
                 result.put(treeBean, "insert");
             }
