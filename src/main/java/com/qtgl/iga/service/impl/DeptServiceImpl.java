@@ -1,25 +1,27 @@
 package com.qtgl.iga.service.impl;
 
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
-import com.qtgl.iga.bean.DeptBean;
+
+import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.DeptService;
-import com.qtgl.iga.utils.TreeEnum;
-import com.qtgl.iga.utils.TreeUtil;
+import com.qtgl.iga.service.NodeService;
+
+import com.qtgl.iga.utils.ClassCompareUtil;
+import com.qtgl.iga.utils.DataBusUtil;
+import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
-@Transactional
+@Transactional(rollbackFor = Exception.class)
 public class DeptServiceImpl implements DeptService {
 
 
@@ -33,330 +35,340 @@ public class DeptServiceImpl implements DeptService {
     @Autowired
     NodeDao nodeDao;
     @Autowired
-    NodeRulesDao rulesDao;
+    DeptTreeTypeDao deptTreeTypeDao;
     @Autowired
-    NodeRulesRangeDao rangeDao;
+    TenantDao tenantDao;
+    @Autowired
+    NodeService nodeService;
+    @Autowired
+    NodeRulesCalculationServiceImpl calculationService;
     @Autowired
     UpstreamTypeDao upstreamTypeDao;
 
+    @Value("${iga.hostname}")
+    String hostname;
 
+    private final String TYPE = "dept";
+
+
+    /**
+     * graphql 查询方法实现
+     *
+     * @param arguments 查询参数
+     * @param domain    租户信息
+     * @return
+     * @throws Exception
+     */
     @Override
-    public List<Dept> getAllDepts() {
-        return deptDao.getAllDepts();
-    }
-
-
-    @Override
-    public void buildDept() throws Exception {
-
-        //
-        Map<String, DeptBean> mainTreeMap = new ConcurrentHashMap<>();
-        JSONObject root = new JSONObject();
-        root.put("code", "root");
-        root.put("name", "root");
-        root.put("parentCode", "");
-
-        List<DomainInfo> domainInfos = domainInfoDao.findAll();
-        for (DomainInfo domain : domainInfos) {
-            nodeRules(domain, null, mainTreeMap);
+    public List<TreeBean> findDept(Map<String, Object> arguments, DomainInfo domain) throws Exception {
+        Integer status = nodeService.judgeEdit(arguments, domain, TYPE);
+        if (status == null) {
+            return null;
         }
-        System.out.println("1");
+        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        if (null == tenant) {
+            throw new Exception("租户不存在");
+        }
+        //通过tenantId查询ssoApis库中的数据
+        List<TreeBean> beans = deptDao.findByTenantId(tenant.getId(), null, null);
+        if (null != beans && beans.size() > 0) {
+            //将null赋为""
+            for (TreeBean bean : beans) {
+                if (null == bean.getParentCode()) {
+                    bean.setParentCode("");
+                }
+            }
+        }
+        //轮训比对标记(是否有主键id)
+        Map<TreeBean, String> result = new HashMap<>();
+        ArrayList<TreeBean> insert = new ArrayList<>();
+        // 获取租户下开启的部门类型
+        List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
+        for (DeptTreeType deptType : deptTreeTypes) {
+            List<TreeBean> mainTreeBeans = new ArrayList<>();
+            // id 改为code
+            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE, "system");
+            // 判断重复(code)
+            calculationService.groupByCode(mainTreeBeans);
+//            //同步到sso
+            Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+            beans = dataProcessing(mainTreeMap, domain, deptType.getCode(), beans, result, insert);
+        }
+        if (null != beans) {
+            beans.addAll(insert);
+        }
+        calculationService.groupByCode(beans);
+        return beans;
+
     }
 
     /**
+     * @param domainName
+     * @param treeType
+     * @param delMark
+     * @Description: 通过租户获取sso库的数据
+     * @return: java.util.List<com.qtgl.iga.bean.DeptBean>
+     */
+    @Override
+    public List<TreeBean> findDeptByDomainName(String domainName, String treeType, Integer delMark) {
+        Tenant byDomainName = tenantDao.findByDomainName(domainName);
+        List<TreeBean> byTenantId = deptDao.findByTenantId(byDomainName.getId(), treeType, delMark);
+
+        return byTenantId;
+    }
+
+
+    /**
+     * 构建部门树 并 插入进 sso-api 数据库
+     * 返回操作语句记录
+     *
      * @param domain
-     * @param nodeCode
-     * @throws Exception
-     */
-    private Map nodeRules(DomainInfo domain, String nodeCode, Map<String, DeptBean> mainTree) throws Exception {
-       /* String hrJson = "[\n" +
-                "{code:\"001\",name:\"一级部门1\",parentCode:\"\"},\n" +
-                "{code:\"002\",name:\"一级部门2\",parentCode:\"\"},\n" +
-                "{code:\"003\",name:\"一级部门3\",parentCode:\"\"},\n" +
-                "{code:\"0011\",name:\"二级部门1-1\",parentCode:\"001\"},\n" +
-                "{code:\"0012\",name:\"二级部门1-2\",parentCode:\"001\"},\n" +
-                "{code:\"0013\",name:\"二级部门1-2\",parentCode:\"001\"},\n" +
-                "{code:\"0021\",name:\"二级部门2-1\",parentCode:\"002\"},\n" +
-                "{code:\"0022\",name:\"二级部门2-1\",parentCode:\"002\"}\n" +
-                "{code:\"00221\",name:\"三级部门2-1-1\",parentCode:\"0021\"}\n" +
-                "]";
-        String eduJson = "[\n" +
-                "{code:\"004\",name:\"一级部门4\",parentCode:\"\"},\n" +
-                "{code:\"005\",name:\"一级部门5\",parentCode:\"\"},\n" +
-                "{code:\"0051\",name:\"二级部门5-1\",parentCode:\"005\"},\n" +
-                "{code:\"00511\",name:\"三级部门5-1-1\",parentCode:\"0051\"},\n" +
-                "]";
-
-        String otherJson = "[\n" +
-                "{code:\"0014\",name:\"二级部门1-4\",parentCode:\"abc\"},\n" +
-                "{code:\"00141\",name:\"二级部门1-4-1\",parentCode:\"0014\"},\n" +
-                "]";
-*/
-
-        //获取根节点的规则
-        List<Node> nodes = nodeDao.getByCode(domain.getId(), nodeCode);
-        for (Node node : nodes) {
-            if (null == node) {
-                return mainTree;
-            }
-            //获取节点的[拉取] 规则，来获取部门树
-            List<NodeRules> nodeRules = rulesDao.getByNodeAndType(node.getId(), 1, true);
-            for (NodeRules nodeRule : nodeRules) {
-                //
-                if (null == nodeRule.getUpstreamTypesId()) {
-                    throw new Exception("build dept tree error:node upstream type is null,id:" + nodeRule.getNodeId());
-                }
-
-                // 根据id 获取 UpstreamType
-                UpstreamType upstreamType = upstreamTypeDao.findById(nodeRule.getUpstreamTypesId());
-                // todo  请求graphql查询，获得部门树。目前写死变量
-                String graphqlUrl = upstreamType.getGraphqlUrl();
-
-
-                //获得部门树
-                JSONArray upstreamTree = new JSONArray();
-                /*if (a == 1) {
-                    upstreamTree = JSONArray.parseArray(hrJson);
-                }
-                if (a == 2) {
-                    upstreamTree = JSONArray.parseArray(otherJson);
-                }*/
-
-                //验证树的合法性
-                if (upstreamTree.size() <= 0) {
-                    logger.info("数据源获取部门数据为空{}", upstreamType.toString());
-                    return mainTree;
-                }
-
-                //对树 json 转为 map
-                Map<String, JSONObject> upstreamMap = TreeUtil.toMap(upstreamTree);
-                //对树进行 parent 分组
-                Map<String, List<JSONObject>> childrenMap = TreeUtil.groupChildren(upstreamTree);
-
-                //查询 树 运行  规则,
-                List<NodeRulesRange> nodeRulesRanges = rangeDao.getByRulesId(nodeRule.getId());
-
-                Map<String, DeptBean> mergeDeptMap = new ConcurrentHashMap<>();
-
-
-                //获取并检测 需要挂载的树， add 进入 待合并的树集合 mergeDept
-                mountRules(nodeCode, mainTree, upstreamMap, childrenMap, nodeRulesRanges, mergeDeptMap);
-                //在挂载基础上进行排除
-                excludeRules(mergeDeptMap, childrenMap, nodeRulesRanges);
-                // 对最终要挂载的树进行重命名
-                renameRules(mergeDeptMap, nodeRulesRanges, childrenMap);
-
-                // 和主树进行合并
-                mainTree.putAll(mergeDeptMap);
-
-
-                // 将本次 add 进的 节点 进行 规则运算
-                for (Map.Entry<String, DeptBean> entry : mergeDeptMap.entrySet()) {
-                    nodeRules(domain, entry.getKey(), mainTree);
-                }
-                /*========================规则运算完成=============================*/
-
-
-            }
-        }
-        return mainTree;
-    }
-
-
-    /**
-     * 重命名规则
-     *
-     * @param mergeDeptMap
-     * @param nodeRulesRanges
-     * @param childrenMap
-     */
-    private void renameRules(Map<String, DeptBean> mergeDeptMap, List<NodeRulesRange> nodeRulesRanges, Map<String, List<JSONObject>> childrenMap) {
-        for (NodeRulesRange nodeRulesRange : nodeRulesRanges) {
-            // 重命名
-            if (2 == nodeRulesRange.getType()) {
-                String rename = nodeRulesRange.getRename();
-                for (DeptBean deptBean : mergeDeptMap.values()) {
-                    if (rename.contains("${code}")) {
-                        String newCode = rename.replace("${code}", deptBean.getCode());
-                        deptBean.setCode(newCode);
-                        // 如果当前节点有子集，则同时修改子集的parentCode指向
-                        if (childrenMap.containsKey(deptBean.getParentCode())) {
-                            String newParentCode = rename.replace("${code}", deptBean.getParentCode());
-                            deptBean.setParentCode(newParentCode);
-                        }
-
-                    }
-                    if (rename.contains("${name}")) {
-                        String newName = rename.replace("${name}", deptBean.getName());
-                        deptBean.setName(newName);
-                    }
-                }
-            }
-        }
-    }
-
-
-    /**
-     * 排除节点运算
-     * 计算 所有排除规则后，将 源树 剔除节点后成一颗待合并待树，再将树进行循环加入主树
-     *
-     * @param childrenMap
-     * @param nodeRulesRanges
-     * @throws Exception
-     */
-    private void excludeRules(Map<String, DeptBean> mergeDept, Map<String, List<JSONObject>> childrenMap, List<NodeRulesRange> nodeRulesRanges) throws Exception {
-        for (NodeRulesRange nodeRulesRange : nodeRulesRanges) {
-            //配置的节点
-            String rangeNodeCode = nodeRulesRange.getNode();
-            // 排除 规则
-            if (1 == nodeRulesRange.getType()) {
-                // 排除当前节点 以及 其子节点
-                if (0 == nodeRulesRange.getRange()) {
-                    if (!mergeDept.containsKey(rangeNodeCode)) {
-                        throw new Exception("无法在挂载树中找到排除节点：" + rangeNodeCode);
-                    }
-                    mergeDept.remove(rangeNodeCode);
-                    removeTree(rangeNodeCode, childrenMap, mergeDept);
-                }
-                // 仅排除当前节点子节点
-                if (1 == nodeRulesRange.getRange()) {
-                    if (!mergeDept.containsKey(rangeNodeCode)) {
-                        throw new Exception("无法在树中找到排除节点：" + rangeNodeCode);
-                    }
-                    removeTree(rangeNodeCode, childrenMap, mergeDept);
-                }
-                // todo  预留 支持通过表达式排除
-                if (2 == nodeRulesRange.getRange()) {
-
-                }
-            }
-        }
-
-    }
-
-    /**
-     * 挂载规则
-     *
-     * @param nodeCode
-     * @param mainTree
-     * @param upstreamMap
-     * @param childrenMap
-     * @param nodeRulesRanges
-     * @param mergeDeptMap
-     * @throws Exception
-     */
-    private void mountRules(String nodeCode, Map<String, DeptBean> mainTree, Map<String, JSONObject> upstreamMap,
-                            Map<String, List<JSONObject>> childrenMap, List<NodeRulesRange> nodeRulesRanges,
-                            Map<String, DeptBean> mergeDeptMap) throws Exception {
-        for (NodeRulesRange nodeRulesRange : nodeRulesRanges) {
-            //配置的节点
-            String rangeNodeCode = nodeRulesRange.getNode();
-            // 挂载规则
-            if (0 == nodeRulesRange.getType()) {
-                // 包含根节点一起挂载，修改根节点个parentCode
-                if (0 == nodeRulesRange.getRange()) {
-                    if (!upstreamMap.containsKey(rangeNodeCode)) {
-                        throw new Exception("无法在树中找到挂载节点：" + rangeNodeCode);
-                    }
-                    DeptBean deptBean = JSONObject.toJavaObject(upstreamMap.get(rangeNodeCode), DeptBean.class);
-                    deptBean.setParentCode(nodeCode);
-                    if (mainTree.containsKey(deptBean.getCode()) &&
-                            (!mainTree.get(deptBean.getCode()).getParentCode().equals(deptBean.getParentCode()))) {
-                        throw new Exception("挂载异常，节点中有同code不同parentCode节点：" + deptBean.getCode());
-                    }
-                    // mainTree.put(deptBean.getCode(), deptBean);
-                    mergeDeptMap.put(deptBean.getCode(), deptBean);
-                    //对该节点下所有子树同时进行挂载
-                    mergeDeptTree(deptBean.getCode(), deptBean.getCode(), childrenMap, mainTree, mergeDeptMap);
-                }
-                // 去除根节点开始挂载
-                if (1 == nodeRulesRange.getRange()) {
-                    if (!upstreamMap.containsKey(rangeNodeCode)) {
-                        throw new Exception("无法在树中找到挂载节点：" + rangeNodeCode);
-                    }
-                    //对该节点下所有子树同时进行挂载
-                    mergeDeptTree(nodeRulesRange.getNode(), nodeCode, childrenMap, mainTree, mergeDeptMap);
-                }
-
-
-            }
-        }
-    }
-
-
-    /**
-     * @param treeArray 需要挂载的树
-     * @param nodeCode  被挂载的节点
      * @return
      */
-    public JSONObject checkTree(JSONArray treeArray, String nodeCode) {
-        JSONObject error = new JSONObject();
-        String msg = "";
-        Boolean key = true;
-        Boolean root = true;
-        for (int i = 0; i < treeArray.size(); i++) {
-            JSONObject tree = treeArray.getJSONObject(i);
-            //如果有节点结构不符合规则
-            if (!tree.containsKey(TreeEnum.CODE.getCode()) || !tree.containsKey(TreeEnum.NAME.getCode()) || !tree.containsKey(TreeEnum.PARENTCODE.getCode())) {
-                key = false;
-                msg = tree.toJSONString();
-                break;
-            }
+    @SneakyThrows
+    @Override
+    public Map<TreeBean, String> buildDeptUpdateResult(DomainInfo domain) {
+        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        if (null == tenant) {
+            throw new Exception("租户不存在");
         }
-        // 验证是否有根节点
-        for (int i = 0; i < treeArray.size(); i++) {
-            JSONObject tree = treeArray.getJSONObject(i);
-            //如果有节点结构不符合规则
-            if ("".equals(tree.getString(TreeEnum.PARENTCODE.getCode()))) {
+        //通过tenantId查询ssoApis库中的数据
+        List<TreeBean> beans = deptDao.findByTenantId(tenant.getId(), null, null);
+        ArrayList<TreeBean> logBeans = new ArrayList<>();
+        if (null != beans && beans.size() > 0) {
+            //将null赋为""
+            for (TreeBean bean : beans) {
+                if (null == bean.getParentCode()) {
+                    bean.setParentCode("");
+                }
+            }
+            logBeans.addAll(beans);
+        }
 
+
+        //轮训比对标记(是否有主键id)
+        Map<TreeBean, String> result = new HashMap<>();
+        ArrayList<TreeBean> treeBeans = new ArrayList<>();
+        // 获取租户下开启的部门类型
+        List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
+        for (DeptTreeType deptType : deptTreeTypes) {
+            List<TreeBean> mainTreeBeans = new ArrayList<>();
+            //  id 改为code
+            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE, "task");
+            // 判断重复(code)
+            calculationService.groupByCode(mainTreeBeans);
+            //同步到sso
+            Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+            beans = dataProcessing(mainTreeMap, domain, deptType.getCode(), beans, result, treeBeans);
+        }
+        if (null != treeBeans && treeBeans.size() > 0) {
+            beans.addAll(treeBeans);
+        }
+        calculationService.groupByCode(beans);
+        saveToSso(result, tenant.getId(), logBeans);
+        return result;
+    }
+
+
+    /**
+     * @param result
+     * @param tenantId
+     * @Description: 插入sso数据库
+     * @return: void
+     */
+    public void saveToSso(Map<TreeBean, String> result, String tenantId, List<TreeBean> logBeans) {
+        //插入数据
+        Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
+        Map<String, TreeBean> logCollect = null;
+
+        ArrayList<TreeBean> insertList = new ArrayList<>();
+        ArrayList<TreeBean> updateList = new ArrayList<>();
+        ArrayList<TreeBean> deleteList = new ArrayList<>();
+
+
+        if (null != logBeans && logBeans.size() > 0) {
+            logCollect = logBeans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
+        }
+        List<Map.Entry<TreeBean, String>> insert = collect.get("insert");
+        if (null != insert && insert.size() > 0) {
+            for (Map.Entry<TreeBean, String> key : insert) {
+                logger.debug("部门对比后新增{}", key.getKey().toString());
+                insertList.add(key.getKey());
             }
         }
-        if (!key) {
-            error.put("key error", msg);
-            return error;
+        List<Map.Entry<TreeBean, String>> obsolete = collect.get("obsolete");
+        if (null != obsolete && obsolete.size() > 0) {
+            ArrayList<TreeBean> list = new ArrayList<>();
+            for (Map.Entry<TreeBean, String> key : obsolete) {
+                list.add(key.getKey());
+            }
+            logger.info("忽略 {} 条已过时数据{}", list.size(), obsolete.toString());
+
         }
-        return null;
+        List<Map.Entry<TreeBean, String>> update = collect.get("update");
+        //修改数据
+        if (null != update && update.size() > 0) {
+            for (Map.Entry<TreeBean, String> key : update) {
+                key.getKey().setDataSource("PULL");
+                TreeBean newTreeBean = key.getKey();
+                TreeBean oldTreeBean = logCollect.get(newTreeBean.getCode());
+                oldTreeBean.setSource(newTreeBean.getSource());
+                oldTreeBean.setUpdateTime(newTreeBean.getUpdateTime());
+                oldTreeBean.setActive(newTreeBean.getActive());
+                //根据upstreamTypeId查询fileds
+                boolean flag = false;
+                boolean delFlag = true;
+
+
+                List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(newTreeBean.getUpstreamTypeId());
+                if (null != fields && fields.size() > 0) {
+                    for (UpstreamTypeField field : fields) {
+                        String sourceField = field.getSourceField();
+                        if ("delMark".equals(sourceField)) {
+                            delFlag = false;
+                        }
+                        Object newValue = ClassCompareUtil.getGetMethod(newTreeBean, sourceField);
+                        Object oldValue = ClassCompareUtil.getGetMethod(oldTreeBean, sourceField);
+                        if (null == oldValue && null == newValue) {
+                            continue;
+                        }
+                        if (null != oldValue && oldValue.equals(newValue)) {
+                            continue;
+                        }
+                        flag = true;
+                        ClassCompareUtil.setValue(oldTreeBean, oldTreeBean.getClass(), sourceField, oldValue, newValue);
+                        logger.debug("部门信息更新{}:字段{}: {} -> {} ", newTreeBean.getCode(), sourceField, oldValue, newValue);
+                    }
+                }
+
+                if (delFlag && oldTreeBean.getDelMark().equals(1)) {
+                    flag = true;
+                    logger.info("部门信息{}从删除恢复", oldTreeBean.getCode());
+                }
+
+                if (flag) {
+                    logger.info("部门对比后需要修改{}", oldTreeBean.toString());
+                    updateList.add(oldTreeBean);
+                }
+            }
+        }
+        List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
+        //删除数据
+        if (null != delete && delete.size() > 0) {
+            for (Map.Entry<TreeBean, String> key : delete) {
+                TreeBean newTreeBean = key.getKey();
+                TreeBean oldTreeBean = logCollect.get(newTreeBean.getCode());
+                if (oldTreeBean.getDelMark() == 0) {
+                    if (null != oldTreeBean.getUpdateTime() && (newTreeBean.getCreateTime().isAfter(oldTreeBean.getUpdateTime()) || newTreeBean.getCreateTime().isEqual(oldTreeBean.getUpdateTime()))) {
+                        logger.info("部门对比后删除{}", key.getKey().toString());
+                        deleteList.add(key.getKey());
+                    }
+                }
+            }
+        }
+
+
+        Integer flag = deptDao.renewData(insertList, updateList, deleteList, tenantId);
+        if (null != flag && flag > 0) {
+
+
+            logger.info("dept插入 {} 条数据  {}", insertList.size(), System.currentTimeMillis());
+
+
+            logger.info("dept更新 {} 条数据  {}", updateList.size(), System.currentTimeMillis());
+
+
+            logger.info("dept删除 {} 条数据  {}", deleteList.size(), System.currentTimeMillis());
+        } else {
+
+            logger.error("数据更新ssoApi数据库失败{}", System.currentTimeMillis());
+        }
+
 
     }
 
 
     /**
-     * 深度递归，合并所有子节点
-     *
-     * @param code        节点code
-     * @param parentNode  在 去除根节点挂载情况下， parentNode要特殊指向定义规则的节点。t_mgr_node
-     * @param childrenMap
      * @param mainTree
-     * @throws Exception
+     * @Description: 处理数据
+     * @return: void
      */
-    public void mergeDeptTree(String code, String parentNode, Map<String, List<JSONObject>> childrenMap, Map<String, DeptBean> mainTree,
-                              Map<String, DeptBean> mergeDept) throws Exception {
-        List<JSONObject> children = childrenMap.get(code);
-        if (null != children) {
-            for (JSONObject treeJson : children) {
-                String treeCode = treeJson.getString(TreeEnum.CODE.getCode());
-                String treeParentCode = treeJson.getString(TreeEnum.CODE.getCode());
-                if (mainTree.containsKey(treeCode) &&
-                        (!mainTree.get(treeCode).getParentCode()
-                                .equals(treeParentCode))) {
-                    throw new Exception("挂载异常，节点中已有同code不同parentCode节点：" + treeCode);
+    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> beans, Map<TreeBean, String> result, ArrayList<TreeBean> insert) {
+        Map<String, TreeBean> collect = new HashMap<>();
+        if (null != beans && beans.size() > 0) {
+            collect = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
+        }
+
+        //拉取的数据
+        Collection<TreeBean> mainDept = mainTree.values();
+        ArrayList<TreeBean> treeBeans = new ArrayList<>(mainDept);
+
+
+        //遍历拉取数据
+        for (TreeBean treeBean : treeBeans) {
+            //标记新增还是修改
+            boolean flag = true;
+            //赋值treeTypeId
+            treeBean.setTreeType(treeTypeId);
+            if (null != beans) {
+                //遍历数据库数据
+                for (TreeBean bean : beans) {
+                    if (treeBean.getCode().equals(bean.getCode())) {
+                        //
+                        if (null != treeBean.getCreateTime()) {
+                            //修改
+                            if (null == bean.getCreateTime() || treeBean.getCreateTime().isAfter(bean.getCreateTime())) {
+                                //新来的数据更实时
+                                collect.put(treeBean.getCode(), treeBean);
+                                result.put(treeBean, "update");
+                            } else {
+                                result.put(treeBean, "obsolete");
+                            }
+                        } else {
+                            result.put(treeBean, "obsolete");
+                        }
+                        flag = false;
+                    }
+
                 }
-                treeJson.put(TreeEnum.PARENTCODE.getCode(), parentNode);
-                mergeDept.put(treeCode, JSONObject.toJavaObject(treeJson, DeptBean.class));
-                mergeDeptTree(treeCode, treeCode, childrenMap, mainTree, mergeDept);
+                //没有相等的应该是新增
+                if (flag) {
+                    //新增
+                    insert.add(treeBean);
+                    result.put(treeBean, "insert");
+                }
+            } else {
+                insert.add(treeBean);
+                result.put(treeBean, "insert");
             }
         }
-    }
-
-
-    public void removeTree(String code, Map<String, List<JSONObject>> childrenMap, Map<String, DeptBean> mergeDept) {
-        List<JSONObject> children = childrenMap.get(code);
-        if (null != children) {
-            for (JSONObject deptJson : children) {
-                mergeDept.remove(deptJson.getString(TreeEnum.CODE.getCode()));
-                removeTree(deptJson.getString(TreeEnum.CODE.getCode()), childrenMap, mergeDept);
+        if (null != beans) {
+            //查询数据库需要删除的数据
+            for (TreeBean bean : beans) {
+                if (null != bean.getTreeType() && bean.getTreeType().equals(treeTypeId)) {
+                    boolean flag = true;
+                    for (TreeBean treeBean : result.keySet()) {
+                        if (bean.getCode().equals(treeBean.getCode()) || (!"PULL".equalsIgnoreCase(bean.getDataSource()))) {
+                            flag = false;
+                            break;
+                        }
+                    }
+                    if (flag) {
+                        TreeBean treeBean = new TreeBean();
+                        treeBean.setCode(bean.getCode());
+                        collect.remove(treeBean.getCode());
+                        result.put(bean, "delete");
+                    }
+                }
             }
         }
+
+
+        Collection<TreeBean> values = collect.values();
+        return new ArrayList<>(values);
+
+
     }
+
 
 }

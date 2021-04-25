@@ -3,16 +3,25 @@ extend type Query {
     #查询上游源注册信息
     upstreams(id:ID,filter:upstreamFilter):[upstream]
 
+    #新版查询上游源及类型(带类型)
+    upstreamsAndTypes(id:ID,filter:upstreamFilter):[upstream]
+
 }
 extend type Mutation {
 
 
     #新增上游源注册
     saveUpstream(entity:InputUpstream!):upstream
+
+    #新版上游源注册(带类型)
+    #    saveUpstreamAndTypes(entity:InputUpstream!):upstream
     #根据id删除上游源注册
     deleteUpstream(id:ID!): upstream
     #更新上游源注册
     updateUpstream(entity:InputUpstream!):upstream
+
+    #更新上游源及类型
+    #    updateUpstreamAndTypes(entity:InputUpstream!):upstream
 }
 
 
@@ -39,6 +48,8 @@ type upstream{
     active:Boolean
     # 代表色
     color:String
+    #上游源类型
+    upstreamTypes:[upstreamType]
 
 }
 
@@ -66,6 +77,8 @@ input InputUpstream{
     active:Boolean
     # 代表色
     color:String
+    #上游源类型
+    upstreamTypes:[InputupstreamType]
 
 }
 

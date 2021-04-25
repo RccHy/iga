@@ -12,13 +12,14 @@ import lombok.Getter;
 public enum TreeEnum {
 
 
-
-
     CODE("code", "代码"),
 
     NAME("name", "名称"),
 
-    PARENTCODE("parentCode", "父级");
+    PARENTCODE("parentCode", "父级"),
+    SOURCE("source", "来源"),
+    CREATETIME("createTime","创建时间"),
+    UPDATETIME("updateTime","修改时间");
 
 
     private String code;

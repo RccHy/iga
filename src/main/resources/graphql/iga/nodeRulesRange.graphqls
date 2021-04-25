@@ -1,0 +1,82 @@
+extend type Query {
+    #查询节点规则明细作用域
+    nodeRulesRanges(id:ID,status:Int,filter:NodeRulesRangeFilter):[NodeRulesRange]
+}
+extend type Mutation {
+    #新增节点规则明细作用域
+    saveNodeRulesRange(entity:InputNodeRulesRange!):NodeRulesRange
+    #根据id删除节点规则明细作用域
+    deleteNodeRulesRange(id:ID!): NodeRulesRange
+    #更新节点规则明细作用域
+    updateNodeRulesRange(entity:InputNodeRulesRange!):NodeRulesRange
+}
+
+# 节点规则明细作用域实体
+type NodeRulesRange{
+    #主键
+    id :ID
+
+    #nodeRules外键
+    nodeRulesId :String
+
+    #规则类型 0 挂载 1 排除 2 重命名
+    type :Int
+
+    #重命名规则
+    rename :String
+
+    #作用节点
+    node :String
+
+    #作用域0/1；挂载（是否包含节点本身0还是仅其子树1） 排除（排除无用节点以及0/仅1其子树）
+    range :Int
+
+    #创建时间
+    createTime :Timestamp
+
+    #修改时间
+    updateTime :Timestamp
+
+    #状态 0 发布 1 编辑中 2 历史
+    status :Int
+}
+
+
+# 节点规则明细作用域入参
+input InputNodeRulesRange{
+    #主键
+    id :ID
+
+    #nodeRules外键
+    nodeRulesId :String
+
+    #规则类型 0 挂载 1 排除 2 重命名
+    type :Int
+
+    #重命名规则
+    rename :String
+
+    #作用节点
+    node :String
+
+    #作用域0/1；挂载（是否包含节点本身0还是仅其子树1） 排除（排除无用节点以及0/仅1其子树）
+    range :Int
+
+    #创建时间
+    createTime :Timestamp
+
+    #修改时间
+    updateTime :Timestamp
+    #状态 0 发布 1 编辑中 2 历史
+    status :Int
+}
+
+input NodeRulesRangeFilter{
+    type:integerFilter
+    status:integerFilter
+}
+
+
+
+
+

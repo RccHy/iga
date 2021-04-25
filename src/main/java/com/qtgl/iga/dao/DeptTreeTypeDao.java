@@ -12,7 +12,7 @@ public interface DeptTreeTypeDao {
 
     DeptTreeType saveDeptTreeType(DeptTreeType deptTreeType, String domain) throws Exception;
 
-    DeptTreeType deleteDeptTreeType(Map<String, Object> arguments, String domain) throws Exception;
+    DeptTreeType deleteDeptTreeType(String id, String domain) throws Exception;
 
     DeptTreeType updateDeptTreeType(DeptTreeType deptTreeType) throws Exception;
 

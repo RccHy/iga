@@ -10,11 +10,11 @@ spring:
       username: ${SSO_DATASOURCE_USERNAME}
       password: ${SSO_DATASOURCE_PASSWORD}
       type: com.alibaba.druid.pool.DruidDataSource
-    sso-api:
-      url: ${SSO_API_DATASOURCE_URL}
-      username: ${SSO_API_DATASOURCE_USERNAME}
-      password: ${SSO_API_DATASOURCE_PASSWORD}
-      type: com.alibaba.druid.pool.DruidDataSource
+      api:
+        url: ${SSO_API_DATASOURCE_URL}
+        username: ${SSO_API_DATASOURCE_USERNAME}
+        password: ${SSO_API_DATASOURCE_PASSWORD}
+        type: com.alibaba.druid.pool.DruidDataSource
 
 graphql:
   url: /graphql
@@ -38,3 +38,13 @@ bus:
 server:
   servlet:
     context-path: /iga
+
+
+dept:
+  task:
+    cron: 0 */10 * * * ?
+
+
+
+iga:
+  hostname: ${HOSTNAME}

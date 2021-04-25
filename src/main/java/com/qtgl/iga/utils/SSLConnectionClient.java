@@ -24,101 +24,101 @@ import java.util.Map;
 
 public class SSLConnectionClient implements HttpClient {
 
-	public SSLConnectionClient() {
-	}
+    public SSLConnectionClient() {
+    }
 
-	public <T extends OAuthClientResponse> T execute(
-			OAuthClientRequest request, Map<String, String> headers,
-			String requestMethod, Class<T> responseClass)
-			throws OAuthSystemException, OAuthProblemException {
+    public <T extends OAuthClientResponse> T execute(
+            OAuthClientRequest request, Map<String, String> headers,
+            String requestMethod, Class<T> responseClass)
+            throws OAuthSystemException, OAuthProblemException {
 
-		String responseBody = null;
-		URLConnection c = null;
-		int responseCode = 0;
-		try {
-			URL url = new URL(request.getLocationUri());
+        String responseBody = null;
+        URLConnection c = null;
+        int responseCode = 0;
+        try {
+            URL url = new URL(request.getLocationUri());
 
-			c = url.openConnection();
-			responseCode = -1;
+            c = url.openConnection();
+            responseCode = -1;
 
-			HttpURLConnection connection = (HttpURLConnection) c;
+            HttpURLConnection connection = (HttpURLConnection) c;
 
-			if (c instanceof HttpsURLConnection) {
-				SSLContext sslContext = SSLContext.getInstance("TLS");
-				sslContext.init(null, new TrustManager[] { new TrustAnyTrustManager() }, new SecureRandom());
-				((HttpsURLConnection) connection).setSSLSocketFactory(sslContext.getSocketFactory());
-				((HttpsURLConnection) connection).setHostnameVerifier(new TrustAnyHostnameVerifier());
-			} else {
-				if (request.getHeaders() != null) {
-					for (Map.Entry<String, String> header : request.getHeaders().entrySet()) {
-						connection.addRequestProperty(header.getKey(), header.getValue());
-					}
-				}
-			}
+            if (c instanceof HttpsURLConnection) {
+                SSLContext sslContext = SSLContext.getInstance("TLS");
+                sslContext.init(null, new TrustManager[]{new TrustAnyTrustManager()}, new SecureRandom());
+                ((HttpsURLConnection) connection).setSSLSocketFactory(sslContext.getSocketFactory());
+                ((HttpsURLConnection) connection).setHostnameVerifier(new TrustAnyHostnameVerifier());
+            } else {
+                if (request.getHeaders() != null) {
+                    for (Map.Entry<String, String> header : request.getHeaders().entrySet()) {
+                        connection.addRequestProperty(header.getKey(), header.getValue());
+                    }
+                }
+            }
 
-			if (headers != null && !headers.isEmpty()) {
-				for (Map.Entry<String, String> header : headers.entrySet()) {
-					connection.addRequestProperty(header.getKey(), header.getValue());
-				}
-			}
+            if (headers != null && !headers.isEmpty()) {
+                for (Map.Entry<String, String> header : headers.entrySet()) {
+                    connection.addRequestProperty(header.getKey(), header.getValue());
+                }
+            }
 
-			if (!OAuthUtils.isEmpty(requestMethod)) {
-				connection.setRequestMethod(requestMethod);
-				if (requestMethod.equals(OAuth.HttpMethod.POST)) {
-					connection.setDoOutput(true);
-					OutputStream ost = connection.getOutputStream();
-					PrintWriter pw = new PrintWriter(ost);
-					pw.print(request.getBody());
-					pw.flush();
-					pw.close();
-				}
-			} else {
-				connection.setRequestMethod(OAuth.HttpMethod.GET);
-			}
+            if (!OAuthUtils.isEmpty(requestMethod)) {
+                connection.setRequestMethod(requestMethod);
+                if (requestMethod.equals(OAuth.HttpMethod.POST)) {
+                    connection.setDoOutput(true);
+                    OutputStream ost = connection.getOutputStream();
+                    PrintWriter pw = new PrintWriter(ost);
+                    pw.print(request.getBody());
+                    pw.flush();
+                    pw.close();
+                }
+            } else {
+                connection.setRequestMethod(OAuth.HttpMethod.GET);
+            }
 
-			connection.connect();
+            connection.connect();
 
-			InputStream inputStream;
-			responseCode = connection.getResponseCode();
-			if (responseCode == 400) {
-				inputStream = connection.getErrorStream();
-			} else {
-				inputStream = connection.getInputStream();
-			}
+            InputStream inputStream;
+            responseCode = connection.getResponseCode();
+            if (responseCode == 400) {
+                inputStream = connection.getErrorStream();
+            } else {
+                inputStream = connection.getInputStream();
+            }
 
-			responseBody = OAuthUtils.saveStreamAsString(inputStream);
-		} catch (Exception e) {
-			throw new OAuthSystemException(e);
-		}
+            responseBody = OAuthUtils.saveStreamAsString(inputStream);
+        } catch (Exception e) {
+            throw new OAuthSystemException(e);
+        }
 
-		return OAuthClientResponseFactory.createCustomResponse(responseBody,
-				c.getContentType(), responseCode, responseClass);
-	}
+        return OAuthClientResponseFactory.createCustomResponse(responseBody,
+                c.getContentType(), responseCode, responseClass);
+    }
 
-	public void shutdown() {
-		// Nothing to do here
-	}
+    public void shutdown() {
+        // Nothing to do here
+    }
 
-	static class TrustAnyTrustManager implements X509TrustManager {
-		public void checkClientTrusted(X509Certificate[] chain, String authType)
-				throws CertificateException {
+    static class TrustAnyTrustManager implements X509TrustManager {
+        public void checkClientTrusted(X509Certificate[] chain, String authType)
+                throws CertificateException {
 
-		}
+        }
 
-		public void checkServerTrusted(X509Certificate[] chain, String authType)
-				throws CertificateException {
+        public void checkServerTrusted(X509Certificate[] chain, String authType)
+                throws CertificateException {
 
-		}
+        }
 
-		public X509Certificate[] getAcceptedIssuers() {
-			return new X509Certificate[] {};
-		}
-	}
+        public X509Certificate[] getAcceptedIssuers() {
+            return new X509Certificate[]{};
+        }
+    }
 
-	static class TrustAnyHostnameVerifier implements HostnameVerifier {
-		public boolean verify(String hostname, SSLSession session) {
-			return true;
-		}
-	}
+    static class TrustAnyHostnameVerifier implements HostnameVerifier {
+        public boolean verify(String hostname, SSLSession session) {
+            return true;
+        }
+    }
 
 }

@@ -74,9 +74,13 @@ public class CertifiedConnector {
         String ssoUrl = getSSOUrl(request);
         DomainInfo domainInfo = certifiedConnector.domainInfoService.findAll().get(0);
         String domainName = CertifiedConnector.introspect(request, ssoUrl.replace("/oauth2/authorize", ""), domainInfo.getClientId(), domainInfo.getClientSecret());
-        if (null == domainName) throw new Exception("No access authorization");
+        if (null == domainName) {
+            throw new Exception("No access authorization");
+        }
         DomainInfo byDomainName = certifiedConnector.domainInfoService.getByDomainName(domainName);
-        if (null == byDomainName) throw new Exception("No domain info");
+        if (null == byDomainName) {
+            throw new Exception("No domain info");
+        }
         return byDomainName;
     }
 

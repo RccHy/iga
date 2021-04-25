@@ -49,6 +49,11 @@ type upstreamType{
     graphqlUrl:String
     # 字段映射
     upstreamTypeFields:[upstreamTypeField]
+    #是否分页
+    isPage:Boolean
+    #方式  推送0/拉取1
+    synWay:Int
+
 }
 
 
@@ -119,6 +124,11 @@ input InputupstreamType{
     graphqlUrl:String
     # 映射字段
     upstreamTypeFields:[InputUpstreamTypeField]
+    #是否分页
+    isPage:Boolean
+    #方式 拉取0/推送1
+    synWay:Int
+
 }
 
 input upstreamTypeFilter{
@@ -129,6 +139,7 @@ input upstreamTypeFilter{
     synType:stringFilter
     createTime:timestampFilter
     updateTime:timestampFilter
+    synWay:integerFilter
 }
 
 

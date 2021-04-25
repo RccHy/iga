@@ -3,7 +3,6 @@ package com.qtgl.iga.bo;
 
 import lombok.Data;
 
-import java.sql.Timestamp;
 
 /**
  * 节点规则
@@ -12,9 +11,6 @@ import java.sql.Timestamp;
 public class Node {
 
     private String id;
-
-    //是否继承父级规则
-    private Boolean inherit;
 
     //是否允许手工
     private Boolean manual;
@@ -28,7 +24,14 @@ public class Node {
     //修改时间
     private Long updateTime;
 
-    //
+    //租户
     private String domain;
+
+    //部门树类型
+    private String deptTreeType;
+    //当前状态 0 发布 1 编辑中 2 历史
+    private Integer status;
+
+    private String type;
 
 }

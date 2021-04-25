@@ -15,9 +15,9 @@ public interface UpstreamTypeService {
 
     UpstreamType deleteUpstreamType(Map<String, Object> arguments, String domain) throws Exception;
 
-    UpstreamType saveUpstreamType(UpstreamType upstreamType, String domain);
+    UpstreamType saveUpstreamType(UpstreamType upstreamType, String domain) throws Exception;
 
-    UpstreamType updateUpstreamType(UpstreamType upstreamType);
+    UpstreamType updateUpstreamType(UpstreamType upstreamType) throws Exception;
 
     List<UpstreamTypeField> findFields(String url);
 }

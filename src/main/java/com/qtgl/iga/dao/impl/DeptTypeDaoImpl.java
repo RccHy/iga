@@ -94,7 +94,7 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
         //生成主键和时间
         String id = UUID.randomUUID().toString().replace("-", "");
         deptType.setId(id);
-        Timestamp date = new Timestamp(new Date().getTime());
+        Timestamp date = new Timestamp(System.currentTimeMillis());
         deptType.setCreateTime(date);
         deptType.setUpdateTime(date);
         int update = jdbcIGA.update(sql, preparedStatement -> {

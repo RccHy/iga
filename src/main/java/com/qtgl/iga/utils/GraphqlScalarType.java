@@ -9,6 +9,8 @@ import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Date;
 
 public class GraphqlScalarType {
@@ -68,11 +70,14 @@ public class GraphqlScalarType {
                 } catch (ArithmeticException var4) {
                     return null;
                 }
+            } else if (input instanceof LocalDateTime) {
+                return ((LocalDateTime) input).toInstant(ZoneOffset.ofHours(8)).toEpochMilli();
             } else {
                 return null;
             }
         }
 
+        @Override
         public Long serialize(Object input) {
             Long result = this.convertImpl(input);
             if (result == null) {
@@ -88,6 +93,7 @@ public class GraphqlScalarType {
             }
         }
 
+        @Override
         public Date parseValue(Object input) {
             Long result = this.convertImpl(input);
             if (result == null) {
@@ -102,6 +108,7 @@ public class GraphqlScalarType {
             }
         }
 
+        @Override
         public Date parseLiteral(Object input) {
            /* if (input instanceof StringValue) {
                 try {
@@ -153,11 +160,14 @@ public class GraphqlScalarType {
                 } catch (ArithmeticException var4) {
                     return null;
                 }
+            } else if (input instanceof LocalDateTime) {
+                return ((LocalDateTime) input).toInstant(ZoneOffset.ofHours(8)).toEpochMilli();
             } else {
                 return null;
             }
         }
 
+        @Override
         public Long serialize(Object input) {
             Long result = this.convertImpl(input);
             logger.info("timestamp result" + result);
@@ -176,6 +186,7 @@ public class GraphqlScalarType {
             }
         }
 
+        @Override
         public Date parseValue(Object input) {
             Long result = this.convertImpl(input);
             logger.info("timestamp parseValue" + result);
@@ -193,6 +204,7 @@ public class GraphqlScalarType {
             }
         }
 
+        @Override
         public Date parseLiteral(Object input) {
            /* if (input instanceof StringValue) {
                 try {

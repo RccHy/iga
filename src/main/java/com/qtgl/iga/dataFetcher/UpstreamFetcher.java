@@ -2,6 +2,7 @@ package com.qtgl.iga.dataFetcher;
 
 
 import com.alibaba.fastjson.JSON;
+import com.qtgl.iga.bean.UpstreamDto;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.Upstream;
 import com.qtgl.iga.service.UpstreamService;
@@ -69,6 +70,50 @@ public class UpstreamFetcher {
             Upstream upstream = JSON.parseObject(JSON.toJSONString(arguments.get("entity")), Upstream.class);
             upstream.setDomain(domain.getId());
             Upstream data = upstreamService.updateUpstream(upstream);
+            if (null != data) {
+                return data;
+            }
+            throw new Exception("修改失败");
+        };
+    }
+
+    public DataFetcher saveUpstreamAndTypes() {
+        return dataFetchingEvn -> {
+            //1。更具token信息验证是否合法，并判断其租户
+            DomainInfo domain = CertifiedConnector.getDomain();
+            // 获取传入参数
+            Map<String, Object> arguments = dataFetchingEvn.getArguments();
+            UpstreamDto upstream = JSON.parseObject(JSON.toJSONString(arguments.get("entity")), UpstreamDto.class);
+            UpstreamDto data = upstreamService.saveUpstreamAndTypes(upstream, domain.getId());
+            if (null != data) {
+                return data;
+            }
+            throw new Exception("添加上游源失败");
+        };
+
+    }
+
+    public DataFetcher upstreamsAndTypes() {
+        return dataFetchingEvn -> {
+            //1。更具token信息验证是否合法，并判断其租户
+            DomainInfo domain = CertifiedConnector.getDomain();
+            // 获取传入参数
+            Map<String, Object> arguments = dataFetchingEvn.getArguments();
+            //2。解析查询参数  进行查询
+            return upstreamService.upstreamsAndTypes(arguments, domain.getId());
+        };
+    }
+
+    public DataFetcher updateUpstreamAndTypes() {
+
+        return dataFetchingEvn -> {
+            //1。更具token信息验证是否合法，并判断其租户
+            DomainInfo domain = CertifiedConnector.getDomain();
+            // 获取传入参数
+            Map<String, Object> arguments = dataFetchingEvn.getArguments();
+            UpstreamDto upstream = JSON.parseObject(JSON.toJSONString(arguments.get("entity")), UpstreamDto.class);
+            upstream.setDomain(domain.getId());
+            UpstreamDto data = upstreamService.updateUpstreamAndTypes(upstream);
             if (null != data) {
                 return data;
             }

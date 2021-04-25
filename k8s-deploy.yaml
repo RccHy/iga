@@ -1,10 +1,16 @@
-apiVersion: extensions/v1beta1
-kind: Deployment
+apiVersion: apps/v1
+kind: StatefulSet
 metadata:
+  labels:
+    app: iga
   name: iga
   namespace: ketanyun
 spec:
+  serviceName: iga
   replicas: 1
+  selector:
+    matchLabels:
+      app: iga
   template:
     metadata:
       labels:
@@ -30,6 +36,11 @@ spec:
               secretKeyRef:
                 name: iga-secret
                 key: iga_datasource_password
+          - name: SSO_DATASOURCE_URL
+            valueFrom:
+              secretKeyRef:
+                name: iga-secret
+                key: sso_datasource_url
           - name: SSO_DATASOURCE_USERNAME
             valueFrom:
               secretKeyRef:
@@ -45,6 +56,11 @@ spec:
               secretKeyRef:
                 name: iga-secret
                 key: sso_api_datasource_password
+          - name: SSO_API_DATASOURCE_URL
+            valueFrom:
+              secretKeyRef:
+                name: iga-secret
+                key: sso_api_datasource_url
           - name: SSO_API_DATASOURCE_USERNAME
             valueFrom:
               secretKeyRef:

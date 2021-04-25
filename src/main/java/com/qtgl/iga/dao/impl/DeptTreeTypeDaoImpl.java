@@ -2,20 +2,15 @@ package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bo.DeptTreeType;
 
-import com.qtgl.iga.bo.DeptType;
 import com.qtgl.iga.dao.DeptTreeTypeDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import com.qtgl.iga.dao.DeptTreeTypeDao;
+
 import javax.annotation.Resource;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
 
@@ -28,14 +23,12 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
     @Resource(name = "jdbcIGA")
     JdbcTemplate jdbcIGA;
 
-    @Autowired
-    UpstreamTypeDaoImpl upStreamTypeDao;
 
     @Override
     public List<DeptTreeType> findAll(Map<String, Object> arguments, String domain) {
         String sql = "select id, code, name, description," +
                 "multiple_root_node as multipleRootNode, create_time as createTime," +
-                "update_time as updateTime, create_user as createUser, domain " +
+                "update_time as updateTime, create_user as createUser, domain ,tree_index as treeIndex " +
                 "from t_mgr_dept_tree_type where 1 = 1 ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
@@ -45,6 +38,7 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
         dealData(arguments, stb, param);
 //        getChild(arguments,param,stb);
         System.out.println(stb.toString());
+        stb.append("order by tree_index");
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
         ArrayList<DeptTreeType> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
@@ -71,11 +65,11 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
         if (null != mapList && mapList.size() > 0) {
             throw new Exception("code 或 name 不能重复,添加组织机构树类别失败");
         }
-        String sql = "insert into t_mgr_dept_tree_type  values(?,?,?,?,?,?,?,?,?)";
+        String sql = "insert into t_mgr_dept_tree_type  values(?,?,?,?,?,?,?,?,?,?)";
         //生成主键和时间
         String id = UUID.randomUUID().toString().replace("-", "");
         deptTreeType.setId(id);
-        Timestamp date = new Timestamp(new Date().getTime());
+        Timestamp date = new Timestamp(System.currentTimeMillis());
         deptTreeType.setCreateTime(date);
         deptTreeType.setUpdateTime(date);
         int update = jdbcIGA.update(sql, preparedStatement -> {
@@ -88,6 +82,7 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
             preparedStatement.setObject(7, deptTreeType.getUpdateTime());
             preparedStatement.setObject(8, deptTreeType.getCreateUser());
             preparedStatement.setObject(9, domain);
+            preparedStatement.setObject(10, deptTreeType.getTreeIndex());
 
         });
         return update > 0 ? deptTreeType : null;
@@ -95,9 +90,9 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
 
     @Override
     @Transactional
-    public DeptTreeType deleteDeptTreeType(Map<String, Object> arguments, String domain) throws Exception {
+    public DeptTreeType deleteDeptTreeType(String id, String domain) throws Exception {
         Object[] objects = new Object[2];
-        objects[0] = arguments.get("id");
+        objects[0] = id;
         objects[1] = domain;
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_dept_tree_type  where id =? and domain=?", objects);
         ArrayList<DeptTreeType> list = new ArrayList<>();
@@ -117,11 +112,11 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
 
 
         //删除组织类别树数据
-        String sql = "delete from t_mgr_dept_tree_type  where id =?";
-        int id = jdbcIGA.update(sql, preparedStatement -> preparedStatement.setObject(1, arguments.get("id")));
+        String sql = "delete from t_mgr_dept_tree_type  where id =? and domain =? ";
+        int i = jdbcIGA.update(sql, id, domain);
 
 
-        return id > 0 ? deptTreeType : null;
+        return i > 0 ? deptTreeType : null;
 
     }
 
@@ -135,7 +130,7 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
             throw new Exception("code 或 name 不能重复,修改组织机构类别树失败");
         }
         String sql = "update t_mgr_dept_tree_type  set code = ?,name = ?,description = ?,multiple_root_node = ?,create_time = ?," +
-                "update_time = ?,create_user = ?,domain= ?  where id=?";
+                "update_time = ?,create_user = ?,domain= ?,tree_index=?  where id=?";
         Date date = new Date();
         return jdbcIGA.update(sql, preparedStatement -> {
             preparedStatement.setObject(1, deptTreeType.getCode());
@@ -146,7 +141,8 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
             preparedStatement.setObject(6, date);
             preparedStatement.setObject(7, deptTreeType.getCreateUser());
             preparedStatement.setObject(8, deptTreeType.getDomain());
-            preparedStatement.setObject(9, deptTreeType.getId());
+            preparedStatement.setObject(9, deptTreeType.getTreeIndex());
+            preparedStatement.setObject(10, deptTreeType.getId());
         }) > 0 ? deptTreeType : null;
     }
 
@@ -154,8 +150,8 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
     public DeptTreeType findById(String id) {
         String sql = "select id, code, name, description," +
                 "multiple_root_node as multipleRootNode, create_time as createTime," +
-                "update_time as updateTime, create_user as createUser, domain " +
-                "from t_mgr_dept_tree_type where id= ? ";
+                "update_time as updateTime, create_user as createUser, domain ,tree_index as treeIndex " +
+                "from t_mgr_dept_tree_type where id= ?  order by tree_index";
 
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id);
         DeptTreeType deptTreeType = new DeptTreeType();
@@ -191,15 +187,15 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
         Iterator<Map.Entry<String, Object>> it = arguments.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, Object> entry = it.next();
-            if (entry.getKey().equals("id")) {
+            if ("id".equals(entry.getKey())) {
                 stb.append("and id= ? ");
                 param.add(entry.getValue());
             }
 
-            if (entry.getKey().equals("filter")) {
+            if ("filter".equals(entry.getKey())) {
                 HashMap<String, Object> map = (HashMap<String, Object>) entry.getValue();
                 for (Map.Entry<String, Object> str : map.entrySet()) {
-                    if (str.getKey().equals("code")) {
+                    if ("code".equals(str.getKey())) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
                             if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
@@ -219,7 +215,7 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
                             }
                         }
                     }
-                    if (str.getKey().equals("name")) {
+                    if ("name".equals(str.getKey())) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
                             if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
@@ -239,7 +235,7 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
                             }
                         }
                     }
-                    if (str.getKey().equals("createTime")) {
+                    if ("createTime".equals(str.getKey())) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
                             //判断是否是区间

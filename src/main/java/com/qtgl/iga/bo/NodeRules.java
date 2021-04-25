@@ -3,6 +3,7 @@ package com.qtgl.iga.bo;
 
 import lombok.Data;
 
+
 /**
  * 节点规则明细
  */
@@ -15,11 +16,13 @@ public class NodeRules implements java.io.Serializable {
     //node 外键
     private String nodeId;
 
-    // 规则类型 0推送 1拉取 3手动
+    private String inheritId;
+
+    // 规则类型 0推送 1拉取 2手动
     private Integer type;
 
     //
-    private boolean active;
+    private Boolean active;
 
     // 生效/失效 操作时间
     private Long activeTime;
@@ -38,7 +41,8 @@ public class NodeRules implements java.io.Serializable {
 
     //排序
     private Integer sort;
-
+    //当前状态 0 发布 1 编辑中 2 历史
+    private Integer status;
 
 
 }

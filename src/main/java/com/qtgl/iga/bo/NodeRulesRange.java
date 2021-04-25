@@ -3,6 +3,7 @@ package com.qtgl.iga.bo;
 
 import lombok.Data;
 
+
 /**
  * 节点规则明细作用域
  */
@@ -18,7 +19,7 @@ public class NodeRulesRange {
     private Integer type;
 
     //重命名规则
-    private  String rename;
+    private String rename;
 
     //作用节点
     private String node;
@@ -28,4 +29,10 @@ public class NodeRulesRange {
 
     //创建时间
     private Long createTime;
+
+    //创建时间
+    private Long updateTime;
+    //当前状态 0 发布 1 编辑中 2 历史
+    private Integer status;
+
 }

@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.sql.Timestamp;
-import java.util.Date;
 import java.util.UUID;
 
 @Controller
@@ -50,7 +49,7 @@ public class ApiController {
                 domainInfo.setClientId(clientId);
                 domainInfo.setClientSecret(clientSecret);
                 domainInfo.setStatus(0);
-                domainInfo.setCreateTime(new Timestamp(new Date().getTime()));
+                domainInfo.setCreateTime(new Timestamp(System.currentTimeMillis()));
                 try {
                     domainInfoService.install(domainInfo);
                     //GraphQLService.setDomainGraphQLMap(runner.buildGraphql());
