@@ -39,6 +39,9 @@ public class TaskConfig {
     @Autowired
     OccupyService occupyService;
 
+    @Autowired
+
+
     /**
      * 根据租户区分线程池
      * 串行执行 部门、岗位、人员、三元组 同步
