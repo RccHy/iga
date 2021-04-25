@@ -12,10 +12,10 @@ vm构建命令，根据实际环境替换对应的值<br/>
    
 # 初始化数据库脚本
 * 初次部署直接执行以下sql即可安装最新完整数据库
-iga/sql/iga.sql
+iga/sql/iga-20210425.sql
 # 更新数据库脚本
 * 在部署过环境进行更新，根据日期逐条执行sql
-iga/sql/update/iga.sql
+iga/sql/update/updateiga-20210425.sql
 
 # 如何安装
 

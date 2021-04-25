@@ -1,4 +1,3 @@
-
 create table t_mgr_dept_tree_type
 (
     id                 varchar(50)      not null comment '主键'
@@ -54,7 +53,8 @@ create table t_mgr_node
     update_time    timestamp    null comment '修改时间',
     domain         varchar(50)  not null comment '所属租户',
     dept_tree_type varchar(50)  null comment '部门树类型',
-    status         int          not null comment '当前状态 0 发布 1 编辑中 2 历史'
+    status         int          not null comment '当前状态 0 发布 1 编辑中 2 历史',
+    type           varchar(255) null comment 'person  dept post occupy'
 )
     charset = utf8;
 
@@ -74,6 +74,20 @@ create table t_mgr_post_type
     domain      varchar(50) null comment '租户外键'
 )
     comment '组织机构类别' charset = utf8;
+
+create table t_mgr_task_log
+(
+    id          varchar(50) not null
+        primary key,
+    status      int         not null,
+    dept_no     int         null,
+    post_no     int         null,
+    person_no   int         null,
+    occupy_no   int         null,
+    create_time timestamp   null,
+    update_time timestamp   null
+)
+    comment '同步任务日志表';
 
 create table t_mgr_upstream
 (
@@ -177,6 +191,4 @@ create table t_mgr_upstream_types_field
     domain           varchar(50) null comment '租户外键'
 )
     comment '上游源类型字段映射表' charset = utf8;
-
-
 
