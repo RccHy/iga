@@ -47,14 +47,13 @@ D：配置允许进行接口进行推送数据，并覆盖更新同一个上游�
 配置人员身份数据的数据来源；
 
 **change：**
+- 无
 
-无
 **bugfix：**
+- 无
 
-无
 **delete：**
-
-无
+- 无
 
 **image：**
 - docker.qtgl.com.cn/product/iga:20210426
