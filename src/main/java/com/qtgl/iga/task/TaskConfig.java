@@ -92,7 +92,7 @@ public class TaskConfig {
                                             log.info("{}同步结束,task:{}", domainInfo.getDomainName(), taskLog.getId());
                                         } catch (Exception e) {
                                             log.error("定时同步异常：" + e);
-                                            taskLog.setStatus(1);
+                                            taskLog.setStatus(2);
                                             taskLogService.save(taskLog, domainInfo.getId(), "update");
                                             e.printStackTrace();
                                         }
