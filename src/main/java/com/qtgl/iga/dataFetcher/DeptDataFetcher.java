@@ -1,7 +1,9 @@
 package com.qtgl.iga.dataFetcher;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.qtgl.iga.bean.ErrorData;
 import com.qtgl.iga.bean.OccupyConnection;
 import com.qtgl.iga.bean.PersonConnection;
 import com.qtgl.iga.bean.TreeBean;
@@ -10,6 +12,7 @@ import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.service.OccupyService;
 import com.qtgl.iga.service.PersonService;
 import com.qtgl.iga.service.PostService;
+import com.qtgl.iga.service.impl.NodeRulesCalculationServiceImpl;
 import com.qtgl.iga.utils.CertifiedConnector;
 import com.qtgl.iga.utils.GraphqlError;
 import graphql.execution.DataFetcherResult;
@@ -54,9 +57,9 @@ public class DeptDataFetcher {
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.error(domain.getDomainName() + e.getMessage());
-                List<TreeBean> treeBeans = deptService.findDeptByDomainName(domain.getDomainName(), (String) arguments.get("treeType"), 0);
-
-                return getObject(e, treeBeans);
+//                List<TreeBean> treeBeans = deptService.findDept(arguments, domain);
+                Object object = getObject(e, NodeRulesCalculationServiceImpl.errorData,NodeRulesCalculationServiceImpl.errorTree);
+                return object;
 
 
             }
@@ -76,19 +79,21 @@ public class DeptDataFetcher {
             } catch (Exception e) {
                 e.printStackTrace();
                 logger.error(domain.getDomainName() + e.getMessage());
-                List<TreeBean> treeBeans = postService.findDeptByDomainName(domain.getDomainName());
+//                List<TreeBean> treeBeans = postService.findPosts(arguments, domain);
 
-                return getObject(e, treeBeans);
+
+                return getObject(e, NodeRulesCalculationServiceImpl.errorData,NodeRulesCalculationServiceImpl.errorTree);
             }
         };
     }
 
-    private Object getObject(Exception e, List<TreeBean> treeBeans) {
+    private Object getObject(Exception e, List<ErrorData> errorData, List<TreeBean> treeBeans) {
         JSONObject hashMap = new JSONObject();
 
         JSONArray errors = new JSONArray();
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("message", e.getLocalizedMessage());
+        jsonObject.put("errorData",errorData);
         errors.add(jsonObject);
 
         hashMap.put("errors", errors);
@@ -97,7 +102,8 @@ public class DeptDataFetcher {
         hashMap.put("data", json);
 //                return hashMap;
         List<GraphqlError> errorsList = new ArrayList<>();
-        errorsList.add(new GraphqlError(e.getLocalizedMessage()));
+        errorsList.add(new GraphqlError(e.getLocalizedMessage(), errorData));
+        errorsList.add(new GraphqlError(JSON.toJSONString(errorData), errorData));
 
         return new DataFetcherResult(treeBeans, errorsList);
     }

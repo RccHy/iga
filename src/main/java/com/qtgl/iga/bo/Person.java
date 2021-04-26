@@ -4,6 +4,9 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
+/**
+ * @author 1
+ */
 @Data
 public class Person {
 
@@ -28,7 +31,6 @@ public class Person {
     private String upstreamType;
 
     private String openId;
-
 
 
 }

@@ -9,7 +9,9 @@ import java.util.List;
 /**
  * <FileName> UpstreamDto
  * <Desc>
- **/
+ *
+ * @author 1
+ */
 @Data
 public class UpstreamDto extends Upstream {
     private List<UpstreamType> upstreamTypes;

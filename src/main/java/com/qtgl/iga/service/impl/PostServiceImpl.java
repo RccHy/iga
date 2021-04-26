@@ -82,11 +82,11 @@ public class PostServiceImpl implements PostService {
         List<TreeBean> mainTreeBeans = new ArrayList<>();
 
         for (TreeBean rootBean : rootBeans) {
-            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, "system");
+            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, "task");
         }
 //
         // 判断重复(code)
-        calculationService.groupByCode(mainTreeBeans);
+        calculationService.groupByCode(mainTreeBeans, 0);
 
         //通过tenantId查询ssoApis库中的数据
         List<TreeBean> beans = postDao.findByTenantId(tenant.getId());
@@ -110,7 +110,7 @@ public class PostServiceImpl implements PostService {
         }
 
         // 判断重复(code)
-        calculationService.groupByCode(beans);
+        calculationService.groupByCode(beans, 0);
 
         saveToSso(result, tenant.getId(), logBeans);
 
@@ -131,9 +131,13 @@ public class PostServiceImpl implements PostService {
             throw new Exception("租户不存在");
         }
         //  置空 mainTree
-        List<TreeBean> rootBeans = postDao.findRootData(tenant.getId());
-        if (null != rootBeans && rootBeans.size() > 0) {
-            for (TreeBean rootBean : rootBeans) {
+        ArrayList<TreeBean> rootBeans = new ArrayList<>();
+        TreeBean treeBean = new TreeBean();
+        treeBean.setCode("");
+        rootBeans.add(treeBean);
+        List<TreeBean> ssoBeans = postDao.findRootData(tenant.getId());
+        if (null != ssoBeans && ssoBeans.size() > 0) {
+            for (TreeBean rootBean : ssoBeans) {
                 if (null == rootBean.getParentCode()) {
                     rootBean.setParentCode("");
                 }
@@ -142,6 +146,7 @@ public class PostServiceImpl implements PostService {
             logger.error("请检查根树是否合法{}", tenant.getId());
             throw new Exception("请检查根树是否合法");
         }
+        rootBeans.addAll(ssoBeans);
 
         //sso dept库的数据(通过domain 关联tenant查询)
         if (null == tenant) {
@@ -157,8 +162,9 @@ public class PostServiceImpl implements PostService {
         for (TreeBean rootBean : rootBeans) {
             mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, "system");
         }
+
         // 判断重复(code)
-        calculationService.groupByCode(mainTreeBeans);
+        calculationService.groupByCode(mainTreeBeans, status);
 
 
         //通过tenantId查询ssoApis库中的数据
@@ -179,9 +185,10 @@ public class PostServiceImpl implements PostService {
             beans.addAll(treeBeans);
         }
         // 判断重复(code)
-        calculationService.groupByCode(beans);
+        calculationService.groupByCode(beans, status);
 
         return beans;
+
     }
 
     /**

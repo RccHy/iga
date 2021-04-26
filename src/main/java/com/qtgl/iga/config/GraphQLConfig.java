@@ -27,6 +27,9 @@ import java.util.concurrent.ConcurrentMap;
 
 import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
 
+/**
+ * @author 1
+ */
 @Configuration
 public class GraphQLConfig {
 

@@ -181,7 +181,6 @@ public class OccupyDaoImpl implements OccupyDao {
             } catch (Exception e) {
                 e.printStackTrace();
                 transactionStatus.setRollbackOnly();
-                // transactionStatus.rollbackToSavepoint(savepoint);
                 throw new RuntimeException("同步终止，人员身份同步异常！");
             }
 

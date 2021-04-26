@@ -18,22 +18,20 @@ public class NodeProvider {
     NodeDataFetcher dataFetcher;
 
     public TypeRuntimeWiring.Builder buildQueryRuntimeWiring() {
-        TypeRuntimeWiring.Builder builder = newTypeWiring("Query")
+
+        return newTypeWiring("Query")
                 .dataFetcher("nodes", dataFetcher.findNodes())
                 .dataFetcher("nodesPlus", dataFetcher.findNodesPlus());
-
-        return builder;
     }
 
 
     public TypeRuntimeWiring.Builder buildMutationRuntimeWiring() throws Exception {
-        TypeRuntimeWiring.Builder builder = newTypeWiring("Mutation")
+        return newTypeWiring("Mutation")
                 .dataFetcher("saveNode", dataFetcher.saveNode())
                 .dataFetcher("deleteNode", dataFetcher.deleteNode())
                 .dataFetcher("updateNode", dataFetcher.updateNode())
                 .dataFetcher("applyNode", dataFetcher.applyNode())
                 .dataFetcher("rollbackNode", dataFetcher.rollbackNode());
-        return builder;
 
     }
 

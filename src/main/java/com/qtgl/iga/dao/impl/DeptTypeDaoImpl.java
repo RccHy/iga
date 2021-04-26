@@ -122,7 +122,7 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
         }
         String sql = "update t_mgr_dept_type  set code = ?,name = ?,description = ?,create_time = ?," +
                 "update_time = ?,create_user = ?,domain= ?  where id=?";
-        Timestamp date = new Timestamp(new Date().getTime());
+        Timestamp date = new Timestamp(System.currentTimeMillis());
         return jdbcIGA.update(sql, preparedStatement -> {
             preparedStatement.setObject(1, deptType.getCode());
             preparedStatement.setObject(2, deptType.getName());
@@ -158,22 +158,22 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
         Iterator<Map.Entry<String, Object>> it = arguments.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, Object> entry = it.next();
-            if (entry.getKey().equals("id")) {
+            if ("id".equals(entry.getKey())) {
                 stb.append("and id= ? ");
                 param.add(entry.getValue());
             }
 
-            if (entry.getKey().equals("filter")) {
+            if ("filter".equals(entry.getKey())) {
                 HashMap<String, Object> map = (HashMap<String, Object>) entry.getValue();
                 for (Map.Entry<String, Object> str : map.entrySet()) {
-                    if (str.getKey().equals("code")) {
+                    if ("code".equals(str.getKey())) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
-                                stb.append("and code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                            if ("like".equals(FilterCodeEnum.getDescByCode(soe.getKey()))) {
+                                stb.append("and code ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                                 param.add("%" + soe.getValue() + "%");
                             } else if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
-                                stb.append("and code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ( ");
+                                stb.append("and code ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
                                 ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
                                 for (String s : value1) {
                                     stb.append(" ? ,");
@@ -181,19 +181,19 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
                                 }
                                 stb.replace(stb.length() - 1, stb.length(), ")");
                             } else {
-                                stb.append("and code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                stb.append("and code ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                                 param.add(soe.getValue());
                             }
                         }
                     }
-                    if (str.getKey().equals("name")) {
+                    if ("name".equals(str.getKey())) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
-                                stb.append("and name " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                            if ("like".equals(FilterCodeEnum.getDescByCode(soe.getKey()))) {
+                                stb.append("and name ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                                 param.add("%" + soe.getValue() + "%");
-                            } else if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
-                                stb.append("and name " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ( ");
+                            } else if ("in".equals(FilterCodeEnum.getDescByCode(soe.getKey())) || "not in".equals(FilterCodeEnum.getDescByCode(soe.getKey()))) {
+                                stb.append("and name ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
                                 ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
                                 for (String s : value1) {
                                     stb.append(" ? ,");
@@ -201,31 +201,31 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
                                 }
                                 stb.replace(stb.length() - 1, stb.length(), ")");
                             } else {
-                                stb.append("and name " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                stb.append("and name ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                                 param.add(soe.getValue());
                             }
                         }
                     }
-                    if (str.getKey().equals("createTime")) {
+                    if ("createTime".equals(str.getKey())) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
                             //判断是否是区间
-                            if (soe.getKey().equals("gt") || soe.getKey().equals("lt")
-                                    || soe.getKey().equals("gte") || soe.getKey().equals("lte")) {
-                                stb.append("and create_time " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                            if ("gt".equals(soe.getKey()) || "lt".equals(soe.getKey())
+                                    || "gte".equals(soe.getKey()) || "lte".equals(soe.getKey())) {
+                                stb.append("and create_time ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                                 param.add(soe.getValue());
 
                             }
                         }
                     }
 
-                    if (str.getKey().equals("updateTime")) {
+                    if ("updateTime".equals(str.getKey())) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
                             //判断是否是区间
-                            if (soe.getKey().equals("gt") || soe.getKey().equals("lt")
-                                    || soe.getKey().equals("gte") || soe.getKey().equals("lte")) {
-                                stb.append("and update_time " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                            if ("gt".equals(soe.getKey()) || "lt".equals(soe.getKey())
+                                    || "gte".equals(soe.getKey()) || "lte".equals(soe.getKey())) {
+                                stb.append("and update_time ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                                 param.add(soe.getValue());
 
                             }

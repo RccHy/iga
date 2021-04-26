@@ -9,6 +9,7 @@ import com.qtgl.iga.service.NodeService;
 
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +48,7 @@ public class DeptServiceImpl implements DeptService {
 
     @Value("${iga.hostname}")
     String hostname;
-
+    //类型
     private final String TYPE = "dept";
 
 
@@ -82,22 +83,29 @@ public class DeptServiceImpl implements DeptService {
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
         ArrayList<TreeBean> insert = new ArrayList<>();
+        List<TreeBean> mainTreeBeans = new ArrayList<>();
+
         // 获取租户下开启的部门类型
         List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
         for (DeptTreeType deptType : deptTreeTypes) {
-            List<TreeBean> mainTreeBeans = new ArrayList<>();
             // id 改为code
             mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE, "system");
             // 判断重复(code)
-            calculationService.groupByCode(mainTreeBeans);
-//            //同步到sso
-            Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-            beans = dataProcessing(mainTreeMap, domain, deptType.getCode(), beans, result, insert);
+            calculationService.groupByCode(mainTreeBeans, status);
+
         }
+
+        //同步到sso
+        Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+        beans = dataProcessing(mainTreeMap, domain, beans, result, insert);
+        //如果插入的数据不为空则加入返回集
         if (null != beans) {
             beans.addAll(insert);
         }
-        calculationService.groupByCode(beans);
+        //code重复性校验
+        calculationService.groupByCode(beans, status);
+
+
         return beans;
 
     }
@@ -112,9 +120,8 @@ public class DeptServiceImpl implements DeptService {
     @Override
     public List<TreeBean> findDeptByDomainName(String domainName, String treeType, Integer delMark) {
         Tenant byDomainName = tenantDao.findByDomainName(domainName);
-        List<TreeBean> byTenantId = deptDao.findByTenantId(byDomainName.getId(), treeType, delMark);
 
-        return byTenantId;
+        return deptDao.findByTenantId(byDomainName.getId(), treeType, delMark);
     }
 
 
@@ -142,29 +149,32 @@ public class DeptServiceImpl implements DeptService {
                     bean.setParentCode("");
                 }
             }
+            //保存数据库数据插入时做对比
             logBeans.addAll(beans);
         }
-
-
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
         ArrayList<TreeBean> treeBeans = new ArrayList<>();
+        List<TreeBean> mainTreeBeans = new ArrayList<>();
+
         // 获取租户下开启的部门类型
         List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
         for (DeptTreeType deptType : deptTreeTypes) {
-            List<TreeBean> mainTreeBeans = new ArrayList<>();
             //  id 改为code
             mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE, "task");
             // 判断重复(code)
-            calculationService.groupByCode(mainTreeBeans);
-            //同步到sso
-            Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-            beans = dataProcessing(mainTreeMap, domain, deptType.getCode(), beans, result, treeBeans);
+            calculationService.groupByCode(mainTreeBeans, 0);
+
         }
+        //同步到sso
+        Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+        beans = dataProcessing(mainTreeMap, domain, beans, result, treeBeans);
         if (null != treeBeans && treeBeans.size() > 0) {
             beans.addAll(treeBeans);
         }
-        calculationService.groupByCode(beans);
+        //code重复性校验
+        calculationService.groupByCode(beans, 0);
+        //保存到数据库
         saveToSso(result, tenant.getId(), logBeans);
         return result;
     }
@@ -180,13 +190,14 @@ public class DeptServiceImpl implements DeptService {
         //插入数据
         Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
         Map<String, TreeBean> logCollect = null;
-
+        //声明存储插入,修改,删除数据的容器
         ArrayList<TreeBean> insertList = new ArrayList<>();
         ArrayList<TreeBean> updateList = new ArrayList<>();
         ArrayList<TreeBean> deleteList = new ArrayList<>();
 
 
         if (null != logBeans && logBeans.size() > 0) {
+            //将数据根据code分组
             logCollect = logBeans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
         }
         List<Map.Entry<TreeBean, String>> insert = collect.get("insert");
@@ -207,15 +218,16 @@ public class DeptServiceImpl implements DeptService {
         }
         List<Map.Entry<TreeBean, String>> update = collect.get("update");
         //修改数据
-        if (null != update && update.size() > 0) {
+        if (null != update && update.size() > 0 && null != logCollect) {
             for (Map.Entry<TreeBean, String> key : update) {
                 key.getKey().setDataSource("PULL");
                 TreeBean newTreeBean = key.getKey();
+                //与数据库对象对比映射字段
                 TreeBean oldTreeBean = logCollect.get(newTreeBean.getCode());
                 oldTreeBean.setSource(newTreeBean.getSource());
                 oldTreeBean.setUpdateTime(newTreeBean.getUpdateTime());
                 oldTreeBean.setActive(newTreeBean.getActive());
-                //根据upstreamTypeId查询fileds
+                //根据upstreamTypeId查询fields
                 boolean flag = false;
                 boolean delFlag = true;
 
@@ -254,9 +266,10 @@ public class DeptServiceImpl implements DeptService {
         }
         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
         //删除数据
-        if (null != delete && delete.size() > 0) {
+        if (null != delete && delete.size() > 0 && null != logCollect) {
             for (Map.Entry<TreeBean, String> key : delete) {
                 TreeBean newTreeBean = key.getKey();
+                assert logCollect != null;
                 TreeBean oldTreeBean = logCollect.get(newTreeBean.getCode());
                 if (oldTreeBean.getDelMark() == 0) {
                     if (null != oldTreeBean.getUpdateTime() && (newTreeBean.getCreateTime().isAfter(oldTreeBean.getUpdateTime()) || newTreeBean.getCreateTime().isEqual(oldTreeBean.getUpdateTime()))) {
@@ -293,7 +306,8 @@ public class DeptServiceImpl implements DeptService {
      * @Description: 处理数据
      * @return: void
      */
-    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> beans, Map<TreeBean, String> result, ArrayList<TreeBean> insert) {
+    //, String treeTypeId
+    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, List<TreeBean> beans, Map<TreeBean, String> result, ArrayList<TreeBean> insert) {
         Map<String, TreeBean> collect = new HashMap<>();
         if (null != beans && beans.size() > 0) {
             collect = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
@@ -303,13 +317,12 @@ public class DeptServiceImpl implements DeptService {
         Collection<TreeBean> mainDept = mainTree.values();
         ArrayList<TreeBean> treeBeans = new ArrayList<>(mainDept);
 
-
         //遍历拉取数据
         for (TreeBean treeBean : treeBeans) {
             //标记新增还是修改
             boolean flag = true;
             //赋值treeTypeId
-            treeBean.setTreeType(treeTypeId);
+//            treeBean.setTreeType(treeTypeId);
             if (null != beans) {
                 //遍历数据库数据
                 for (TreeBean bean : beans) {
@@ -345,21 +358,21 @@ public class DeptServiceImpl implements DeptService {
         if (null != beans) {
             //查询数据库需要删除的数据
             for (TreeBean bean : beans) {
-                if (null != bean.getTreeType() && bean.getTreeType().equals(treeTypeId)) {
-                    boolean flag = true;
-                    for (TreeBean treeBean : result.keySet()) {
-                        if (bean.getCode().equals(treeBean.getCode()) || (!"PULL".equalsIgnoreCase(bean.getDataSource()))) {
-                            flag = false;
-                            break;
-                        }
-                    }
-                    if (flag) {
-                        TreeBean treeBean = new TreeBean();
-                        treeBean.setCode(bean.getCode());
-                        collect.remove(treeBean.getCode());
-                        result.put(bean, "delete");
+//                if (null != bean.getTreeType() && bean.getTreeType().equals(treeTypeId)) {
+                boolean flag = true;
+                for (TreeBean treeBean : result.keySet()) {
+                    if (bean.getCode().equals(treeBean.getCode()) || (!"PULL".equalsIgnoreCase(bean.getDataSource()))) {
+                        flag = false;
+                        break;
                     }
                 }
+                if (flag) {
+                    TreeBean treeBean = new TreeBean();
+                    treeBean.setCode(bean.getCode());
+                    collect.remove(treeBean.getCode());
+                    result.put(bean, "delete");
+                }
+//                }
             }
         }
 

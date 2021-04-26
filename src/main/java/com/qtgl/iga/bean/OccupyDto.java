@@ -4,6 +4,9 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
+/**
+ * @author 1
+ */
 @Data
 public class OccupyDto {
 
@@ -13,9 +16,13 @@ public class OccupyDto {
     private String deptCode;
     private String personCardType;
     private String personCardNo;
-    // 身份证件类型
+    /**
+     * 身份证件类型
+     */
     private String identityCardType;
-    // 身份证件编号
+    /**
+     * 身份证件编号
+     */
     private String identityCardNo;
     private LocalDateTime startTime;
     private LocalDateTime endTime;

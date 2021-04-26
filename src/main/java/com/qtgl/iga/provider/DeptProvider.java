@@ -18,12 +18,11 @@ public class DeptProvider {
     DeptDataFetcher dataFetcher;
 
     public TypeRuntimeWiring.Builder buildQueryRuntimeWiring() {
-        TypeRuntimeWiring.Builder builder = newTypeWiring("Query")
+        return newTypeWiring("Query")
                 .dataFetcher("depts", dataFetcher.findDept())
                 .dataFetcher("posts", dataFetcher.findPosts())
                 .dataFetcher("persons", dataFetcher.findPersons())
                 .dataFetcher("occupies", dataFetcher.findOccupies());
-        return builder;
     }
 
 

@@ -3,13 +3,16 @@ package com.qtgl.iga.bean;
 import com.qtgl.iga.bo.Node;
 import com.qtgl.iga.vo.NodeRulesVo;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 import java.util.List;
 
 /**
  * <FileName> NodeDto
  * <Desc> Node入参
- **/
+ *
+ * @author 1*/
+@EqualsAndHashCode(callSuper = true)
 @Data
 public class NodeDto extends Node {
 

@@ -49,11 +49,7 @@ public class DomainInfoDaoImpl implements DomainInfoDao {
         return null;
     }
 
-//    @Override
-//    public DomainInfo getByDomainName(String name) {
-//        DomainInfo domainInfo = jdbcIGA.queryForObject("select * from t_mgr_domain_info where status=0", new DomainInfoRowMapper());
-//        return domainInfo;
-//    }
+
 
     @Override
     public DomainInfo getByDomainName(String name) {

@@ -126,7 +126,7 @@ public class PostDaoImpl implements PostDao {
                 preparedStatement.setObject(14, LocalDateTime.now());
                 preparedStatement.setObject(15, LocalDateTime.now());
                 preparedStatement.setObject(16, list.get(i).getSource());
-                preparedStatement.setObject(17, null == list.get(i).getDeptIndex() ? null : list.get(i).getDeptIndex());
+                preparedStatement.setObject(17, list.get(i).getDeptIndex());
             }
 
             @Override

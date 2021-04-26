@@ -7,9 +7,12 @@ import java.time.LocalDateTime;
 /**
  * <FileName> Tenant
  * <Desc> sso库tenant表
- **/
+ *
+ * @author 1
+ */
 @Data
 public class Tenant {
+
     private String id;
 
     private String domain;

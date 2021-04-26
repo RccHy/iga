@@ -14,7 +14,6 @@ public interface NodeRulesDao {
 
     List<NodeRules> getByNodeAndType(String nodeId, Integer type, Boolean active, Integer status);
 
-
     NodeDto saveNodeRules(NodeDto nodeRules);
 
     List<NodeRules> findNodeRules(Map<String, Object> arguments);
@@ -31,7 +30,7 @@ public interface NodeRulesDao {
 
     Integer deleteNodeRulesById(String id);
 
-    List<NodeRules> findNodeRulesByUpStreamTypeId(String id, Integer status) throws InvocationTargetException, IllegalAccessException;
+    List<NodeRules> findNodeRulesByUpStreamTypeId(String id, Integer status);
 
     Integer makeNodeRulesToHistory(String id, Integer status);
 }

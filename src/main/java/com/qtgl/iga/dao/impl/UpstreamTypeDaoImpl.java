@@ -415,7 +415,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
                     if ("synWay".equals(str.getKey())) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            stb.append("and syn_way " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                            stb.append("and syn_way ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                             param.add(soe.getValue());
                         }
                     }
@@ -484,7 +484,6 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         List<Map<String, Object>> filedList = jdbcIGA.queryForList("select id,upstream_type_id as upstreamTypeId,source_field as sourceField , target_field as targetField,create_time as createTime,update_time as updateTime,domain from t_mgr_upstream_types_field where upstream_type_id = ? ", id);
         return getUpstreamTypeFields(filedList);
     }
-
 
 
     @Override

@@ -18,19 +18,17 @@ public class NodeRulesProvider {
     NodeRulesDataFetcher dataFetcher;
 
     public TypeRuntimeWiring.Builder buildQueryRuntimeWiring() {
-        TypeRuntimeWiring.Builder builder = newTypeWiring("Query")
+        return newTypeWiring("Query")
                 .dataFetcher("nodeRules", dataFetcher.findNodeRules());
-        return builder;
     }
 
 
     public TypeRuntimeWiring.Builder buildMutationRuntimeWiring() {
-        TypeRuntimeWiring.Builder builder = newTypeWiring("Mutation")
+        return newTypeWiring("Mutation")
                 .dataFetcher("saveRules", dataFetcher.saveRules())
                 .dataFetcher("deleteRules", dataFetcher.deleteRules())
                 .dataFetcher("updateRules", dataFetcher.updateRules())
                 .dataFetcher("deleteBatchRules", dataFetcher.deleteBatchRules());
-        return builder;
 
     }
 
@@ -38,7 +36,7 @@ public class NodeRulesProvider {
     private GraphQLConfig graphQLConfig;
 
     @PostConstruct
-    private void init() throws Exception {
+    private void init() {
         String key = this.getClass().getName();
         graphQLConfig.builderConcurrentMap.put(key + "-Query", buildQueryRuntimeWiring());
         graphQLConfig.builderConcurrentMap.put(key + "-Mutation", buildMutationRuntimeWiring());

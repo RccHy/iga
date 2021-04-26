@@ -1,8 +1,10 @@
 package com.qtgl.iga.utils;
 
+import com.qtgl.iga.bean.ErrorData;
 import graphql.ErrorClassification;
 import graphql.GraphQLError;
 import graphql.language.SourceLocation;
+import lombok.Data;
 
 import java.util.List;
 import java.util.Map;
@@ -11,12 +13,14 @@ import java.util.Map;
  * <FileName> GraphqlError
  * <Desc> graphql异常类
  **/
+@Data
 public class GraphqlError implements GraphQLError {
     private List<SourceLocation> locations;
     private List<Object> absolutePath;
     private String message;
     private ErrorClassification errorType;
     private Map<String, Object> extensions;
+    private List<ErrorData> errorData;
 
     public GraphqlError(List<SourceLocation> locations, List<Object> absolutePath, String message, ErrorClassification errorType, Map<String, Object> extensions) {
         this.locations = locations;
@@ -26,9 +30,10 @@ public class GraphqlError implements GraphQLError {
         this.extensions = extensions;
     }
 
-    public GraphqlError(String message) {
+    public GraphqlError(String message,List<ErrorData> errorData) {
 
         this.message = message;
+        this.errorData=errorData;
 
     }
 

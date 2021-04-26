@@ -56,7 +56,6 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
 
     @Override
     public NodeDto saveNodeRuleRange(NodeDto nodeDto) {
-        //(id,node_rules_id,type,node,range,create_time,rename,update_time,status)
         String str = "insert into t_mgr_node_rules_range  values (?,?,?,?,?,?,?,?,?)";
         boolean contains = false;
         for (NodeRulesVo nodeRule : nodeDto.getNodeRules()) {
@@ -140,7 +139,6 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
         if (null == rulesRange.getId()) {
             rulesRange.setId(UUID.randomUUID().toString().replace("-", ""));
         }
-        //(id,node_rules_id,type,node,range,create_time,rename,update_time,status)
         String str = "insert into t_mgr_node_rules_range values(?,?,?,?,?,?,?,?,?)";
         rulesRange.setCreateTime(System.currentTimeMillis());
         return jdbcIGA.update(str, preparedStatement -> {

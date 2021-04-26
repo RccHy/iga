@@ -16,7 +16,12 @@ public class DeptTypeServiceImpl implements DeptTypeService {
 
     @Autowired
     DeptTypeDao deptTypeDao;
-
+    /**
+     * @Description: 获取所有
+     * @param arguments
+     * @param domain
+     * @return: java.util.List<com.qtgl.iga.bo.DeptType>
+     */
     @Override
     public List<DeptType> getAllDeptTypes(Map<String, Object> arguments, String domain) {
         return deptTypeDao.getAllDeptTypes(arguments, domain);

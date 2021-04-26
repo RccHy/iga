@@ -101,6 +101,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
 
             @Override
             public int getBatchSize() {
+                assert nodeRules != null;
                 return nodeRules.size();
             }
         });
@@ -267,7 +268,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
     }
 
     @Override
-    public List<NodeRules> findNodeRulesByUpStreamTypeId(String id, Integer status) throws InvocationTargetException, IllegalAccessException {
+    public List<NodeRules> findNodeRulesByUpStreamTypeId(String id, Integer status) {
         List<NodeRules> nodeRules = new ArrayList<>();
         String sql = "select id,node_id as nodeId,type as type,active as active," +
                 "create_time as createTime,service_key as serviceKey,upstream_types_id as upstreamTypesId,inherit_id as inheritId," +
