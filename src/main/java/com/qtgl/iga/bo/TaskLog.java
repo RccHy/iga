@@ -16,4 +16,5 @@ public class TaskLog {
     private Integer occupyNo;
     private Long createTime;
     private Long updateTime;
+    private String domain;
 }

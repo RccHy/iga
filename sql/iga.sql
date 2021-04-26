@@ -85,7 +85,8 @@ create table t_mgr_task_log
     person_no   int         null,
     occupy_no   int         null,
     create_time timestamp   null,
-    update_time timestamp   null
+    update_time timestamp   null,
+    domain varchar(50)   null comment '租户外键'
 )
     comment '同步任务日志表';
 
