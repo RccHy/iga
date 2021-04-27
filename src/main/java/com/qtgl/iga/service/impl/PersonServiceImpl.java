@@ -78,12 +78,12 @@ public class PersonServiceImpl implements PersonService {
         List<NodeRules> userRules = rulesDao.getByNodeAndType(nodeId, 1, true, 0);
         // 根据证件类型+证件号进行合重
         Map<String, Person> personFromUpstream = new ConcurrentHashMap<>();
+        final LocalDateTime now = LocalDateTime.now();
         userRules.forEach(rules -> {
             // 通过规则获取数据
             UpstreamType upstreamType = upstreamTypeDao.findById(rules.getUpstreamTypesId());
             ArrayList<Upstream> upstreams = upstreamDao.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
             JSONArray dataByBus = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
-            final LocalDateTime now = LocalDateTime.now();
             List<Person> personBeanList = dataByBus.toJavaList(Person.class);
             if (null != personBeanList) {
                 for (Person personBean : personBeanList) {
@@ -132,6 +132,7 @@ public class PersonServiceImpl implements PersonService {
         Map<String, Person> personFromSSOMap = personFromSSO.stream().filter(person -> !StringUtils.isEmpty(person.getCardType()) && !StringUtils.isEmpty(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
         // 存储最终需要操作的数据
         Map<String, List<Person>> result = new HashMap<>();
+
         personFromSSOMap.forEach((key, val) -> {
             // 对比出需要修改的person
             if (personFromUpstream.containsKey(key) &&
@@ -185,7 +186,7 @@ public class PersonServiceImpl implements PersonService {
                 }
                 log.info("对比后需要修改{}", val.toString());
             } else if (!personFromUpstream.containsKey(key) && 1 != val.getDelMark() && "PULL".equalsIgnoreCase(val.getDataSource())) {
-                val.setUpdateTime(personFromUpstream.get(key).getUpdateTime());
+                val.setUpdateTime(now);
                 if (result.containsKey("delete")) {
                     result.get("delete").add(val);
                 } else {
