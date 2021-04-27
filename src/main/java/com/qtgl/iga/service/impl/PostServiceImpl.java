@@ -275,13 +275,14 @@ public class PostServiceImpl implements PostService {
         }
         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
         //删除数据
+
         if (null != delete && delete.size() > 0) {
             for (Map.Entry<TreeBean, String> key : delete) {
                 TreeBean newTreeBean = key.getKey();
                 TreeBean oldTreeBean = logCollect.get(newTreeBean.getCode());
                 if (oldTreeBean.getDelMark() == 0) {
                     if (null != oldTreeBean.getUpdateTime() && (newTreeBean.getCreateTime().isAfter(oldTreeBean.getUpdateTime()) || newTreeBean.getCreateTime().isEqual(oldTreeBean.getUpdateTime()))) {
-                        logger.info("部门对比后删除{}", key.getKey().toString());
+                        logger.info("岗位对比后删除{}", key.getKey().toString());
                         deleteList.add(key.getKey());
                     }
                 }
@@ -293,13 +294,13 @@ public class PostServiceImpl implements PostService {
         if (null != flag && flag > 0) {
 
 
-            logger.info("dept插入 {} 条数据  {}", insertList.size(), System.currentTimeMillis());
+            logger.info("post插入 {} 条数据  {}", insertList.size(), System.currentTimeMillis());
 
 
-            logger.info("dept更新 {} 条数据  {}", updateList.size(), System.currentTimeMillis());
+            logger.info("post更新 {} 条数据  {}", updateList.size(), System.currentTimeMillis());
 
 
-            logger.info("dept删除 {} 条数据  {}", deleteList.size(), System.currentTimeMillis());
+            logger.info("post删除 {} 条数据  {}", deleteList.size(), System.currentTimeMillis());
         } else {
 
             logger.error("数据更新sso数据库失败{}", System.currentTimeMillis());
@@ -392,10 +393,10 @@ public class PostServiceImpl implements PostService {
                         }
                     }
                     if (flag) {
-                        TreeBean treeBean = new TreeBean();
-                        treeBean.setCode(bean.getCode());
-                        collect.remove(treeBean.getCode());
-                        result.put(treeBean, "delete");
+//                        TreeBean treeBean = new TreeBean();
+//                        treeBean.setCode(bean.getCode());
+                        collect.remove(bean.getCode());
+                        result.put(bean, "delete");
                     }
                 }
             }

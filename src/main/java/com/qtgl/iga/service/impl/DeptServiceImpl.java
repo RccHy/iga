@@ -307,10 +307,10 @@ public class DeptServiceImpl implements DeptService {
      * @return: void
      */
     //, String treeTypeId
-    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, List<TreeBean> beans, Map<TreeBean, String> result, ArrayList<TreeBean> insert) {
-        Map<String, TreeBean> collect = new HashMap<>();
-        if (null != beans && beans.size() > 0) {
-            collect = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
+    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, List<TreeBean> ssoBeans, Map<TreeBean, String> result, ArrayList<TreeBean> insert) {
+        Map<String, TreeBean> ssoCollect = new HashMap<>();
+        if (null != ssoBeans && ssoBeans.size() > 0) {
+            ssoCollect = ssoBeans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
         }
 
         //拉取的数据
@@ -323,16 +323,16 @@ public class DeptServiceImpl implements DeptService {
             boolean flag = true;
             //赋值treeTypeId
 //            treeBean.setTreeType(treeTypeId);
-            if (null != beans) {
+            if (null != ssoBeans) {
                 //遍历数据库数据
-                for (TreeBean bean : beans) {
+                for (TreeBean bean : ssoBeans) {
                     if (treeBean.getCode().equals(bean.getCode())) {
                         //
                         if (null != treeBean.getCreateTime()) {
                             //修改
                             if (null == bean.getCreateTime() || treeBean.getCreateTime().isAfter(bean.getCreateTime())) {
                                 //新来的数据更实时
-                                collect.put(treeBean.getCode(), treeBean);
+                                ssoCollect.put(treeBean.getCode(), treeBean);
                                 result.put(treeBean, "update");
                             } else {
                                 result.put(treeBean, "obsolete");
@@ -355,9 +355,9 @@ public class DeptServiceImpl implements DeptService {
                 result.put(treeBean, "insert");
             }
         }
-        if (null != beans) {
+        if (null != ssoBeans) {
             //查询数据库需要删除的数据
-            for (TreeBean bean : beans) {
+            for (TreeBean bean : ssoBeans) {
 //                if (null != bean.getTreeType() && bean.getTreeType().equals(treeTypeId)) {
                 boolean flag = true;
                 for (TreeBean treeBean : result.keySet()) {
@@ -367,9 +367,9 @@ public class DeptServiceImpl implements DeptService {
                     }
                 }
                 if (flag) {
-                    TreeBean treeBean = new TreeBean();
-                    treeBean.setCode(bean.getCode());
-                    collect.remove(treeBean.getCode());
+//                    TreeBean treeBean = new TreeBean();
+//                    treeBean.setCode(bean.getCode());
+                    ssoCollect.remove(bean.getCode());
                     result.put(bean, "delete");
                 }
 //                }
@@ -377,7 +377,7 @@ public class DeptServiceImpl implements DeptService {
         }
 
 
-        Collection<TreeBean> values = collect.values();
+        Collection<TreeBean> values = ssoCollect.values();
         return new ArrayList<>(values);
 
 

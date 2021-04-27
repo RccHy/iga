@@ -464,7 +464,8 @@ public class NodeRulesCalculationServiceImpl {
 
                     /*========================规则运算完成=============================*/
                 }
-            } else {
+            }
+            if(null==nodeRules&&(!"".equals(nodeCode))) {
                 TreeUtil.removeTree(code, mainTreeChildren, mainTreeMap);
                 mainTree = new ArrayList<>(mainTreeMap.values());
             }
@@ -582,22 +583,22 @@ public class NodeRulesCalculationServiceImpl {
                     NodeRules nodeRules = rulesDao.findNodeRulesById(treeBean1.getRuleId(), status);
                     List<Node> nodes = nodeDao.findById(nodeRules.getNodeId());
 
-                    if (null != treeBean.getTreeType()) {
+                    if (null == treeBean.getTreeType()) {
                         treeBean.setTreeType("");
                     }
                     DeptTreeType deptTreeType2 = deptTreeTypeDao.findByCode(treeBean.getTreeType());
                     UpstreamType upstreamType2 = upstreamTypeDao.findById(treeBean.getUpstreamTypeId());
                     NodeRules nodeRules2 = rulesDao.findNodeRulesById(treeBean.getRuleId(), status);
                     List<Node> nodes2 = nodeDao.findById(nodeRules2.getNodeId());
-                    logger.error("机构 {} 节点 {}   规则{} 中的 数据 {} code:{} 与 机构{} 节点 {}   规则{} 中的 数据 {} code:{} 重复 ",
+                    logger.error(" {} 节点 {}   规则{} 中的 数据 {} code:{} 与 机构{} 节点 {}   规则{} 中的 数据 {} code:{} 重复 ",
                             null == deptTreeType ? "" : deptTreeType.getName(), ("".equals(nodes.get(0).getNodeCode()) ? "根节点" : nodes.get(0).getNodeCode()), treeBean1.getRuleId(), treeBean1.getName(), treeBean1.getCode(),
                             null == deptTreeType2 ? "" : deptTreeType2.getName(), ("".equals(nodes2.get(0).getNodeCode()) ? "根节点" : nodes2.get(0).getNodeCode()), treeBean.getRuleId(), treeBean.getName(), treeBean.getCode());
                     errorData = new ArrayList<>();
                     errorData.add(new ErrorData((null == deptTreeType ? "" : deptTreeType.getId()), treeBean1.getRuleId(), nodes.get(0).getNodeCode()));
                     errorData.add(new ErrorData((null == deptTreeType2 ? "" : deptTreeType2.getId()), treeBean.getRuleId(), nodes2.get(0).getNodeCode()));
                     errorTree = treeBeans;
-                    throw new Exception("机构 " + (null == deptTreeType ? "" : deptTreeType.getName()) + " 节点 (" + ("".equals(nodes.get(0).getNodeCode()) ? "根节点" : nodes.get(0).getNodeCode()) + " )规则" + treeBean1.getRuleId() + "中的数据" + treeBean1.getName() + "(" + treeBean1.getCode() + ")" + " 与"
-                            + "机构" + (null == deptTreeType2 ? "" : deptTreeType2.getName()) + " 节点 (" + ("".equals(nodes2.get(0).getNodeCode()) ? "根节点" : nodes2.get(0).getNodeCode()) + " )规则" + treeBean.getRuleId() + "中的数据" + treeBean.getName() + "(" + treeBean.getCode() + ")" +
+                    throw new Exception(" " + (null == deptTreeType ? "" : deptTreeType.getName()) + " 节点 (" + ("".equals(nodes.get(0).getNodeCode()) ? "根节点" : nodes.get(0).getNodeCode()) + " )" + "中的数据" + treeBean1.getName() + "(" + treeBean1.getCode() + ")" + " 与"
+                            + (null == deptTreeType2 ? "" : deptTreeType2.getName()) + " 节点 (" + ("".equals(nodes2.get(0).getNodeCode()) ? "根节点" : nodes2.get(0).getNodeCode()) + " )" + "中的数据" + treeBean.getName() + "(" + treeBean.getCode() + ")" +
                             "重复");
                 }
                 ArrayList<TreeBean> treeList = new ArrayList<>();
