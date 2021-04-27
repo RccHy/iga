@@ -223,7 +223,7 @@ public class DeptServiceImpl implements DeptService {
 
         List<Map.Entry<TreeBean, String>> update = collect.get("update");
         //修改数据
-        if (null != update && update.size() > 0 && null != logCollect) {
+        if (null != update && update.size() > 0 ) {
             for (Map.Entry<TreeBean, String> key : update) {
 //                key.getKey().setDataSource("PULL");
 //                TreeBean newTreeBean = key.getKey();
@@ -271,7 +271,7 @@ public class DeptServiceImpl implements DeptService {
         }
         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
         //删除数据
-        if (null != delete && delete.size() > 0 && null != logCollect) {
+        if (null != delete && delete.size() > 0 ) {
             for (Map.Entry<TreeBean, String> key : delete) {
 //                TreeBean newTreeBean = key.getKey();
 //                assert logCollect != null;

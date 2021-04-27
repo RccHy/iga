@@ -26,7 +26,7 @@ public class DomainInfoDaoImpl implements DomainInfoDao {
         jdbcIGA.update("INSERT INTO `t_mgr_domain_info`(`id`, `domain_id`," +
                         " `domain_name` ,`client_id` , `client_secret` , " +
                         "`status`, `create_time`,`create_user` ,`update_time` ) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?,?);",
                 domainInfo.getId(), domainInfo.getDomainId(), domainInfo.getDomainName(), domainInfo.getClientId(), domainInfo.getClientSecret(), domainInfo.getStatus(), domainInfo.getCreateTime(), domainInfo.getCreateUser(), domainInfo.getUpdateTime()
         );
     }
