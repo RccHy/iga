@@ -2,6 +2,7 @@ package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bo.Person;
 import com.qtgl.iga.dao.PersonDao;
+import com.qtgl.iga.utils.MyBeanUtils;
 import org.apache.commons.beanutils.BeanUtils;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -39,7 +40,7 @@ public class PersonDaoImpl implements PersonDao {
         maps.forEach(map -> {
             Person person = new Person();
             try {
-                BeanUtils.populate(person, map);
+                MyBeanUtils.populate(person, map);
             } catch (Exception e) {
                 e.printStackTrace();
             }

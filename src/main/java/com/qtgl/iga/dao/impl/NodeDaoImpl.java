@@ -4,6 +4,7 @@ import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.Node;
 import com.qtgl.iga.dao.NodeDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
+import com.qtgl.iga.utils.MyBeanUtils;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -71,7 +72,7 @@ public class NodeDaoImpl implements NodeDao {
         for (Map<String, Object> map : mapList) {
             Node node = new Node();
             try {
-                BeanUtils.populate(node, map);
+                MyBeanUtils.populate(node, map);
                 nodes.add(node);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -126,7 +127,7 @@ public class NodeDaoImpl implements NodeDao {
         for (Map<String, Object> map : mapList) {
             try {
                 Node node = new Node();
-                BeanUtils.populate(node, map);
+                MyBeanUtils.populate(node, map);
                 nodes.add(node);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -199,7 +200,7 @@ public class NodeDaoImpl implements NodeDao {
         for (Map<String, Object> map : mapList) {
             try {
                 Node node = new Node();
-                BeanUtils.populate(node, map);
+                MyBeanUtils.populate(node, map);
                 nodes.add(node);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -249,7 +250,7 @@ public class NodeDaoImpl implements NodeDao {
         for (Map<String, Object> map : mapList) {
             try {
                 Node node = new Node();
-                BeanUtils.populate(node, map);
+                MyBeanUtils.populate(node, map);
                 nodes.add(node);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -275,7 +276,7 @@ public class NodeDaoImpl implements NodeDao {
         for (Map<String, Object> map : mapList) {
             try {
                 Node node = new Node();
-                BeanUtils.populate(node, map);
+                MyBeanUtils.populate(node, map);
                 nodes.add(node);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -292,7 +293,7 @@ public class NodeDaoImpl implements NodeDao {
         for (Map<String, Object> map : mapList) {
             try {
                 Node node = new Node();
-                BeanUtils.populate(node, map);
+                MyBeanUtils.populate(node, map);
                 nodes.add(node);
 
 

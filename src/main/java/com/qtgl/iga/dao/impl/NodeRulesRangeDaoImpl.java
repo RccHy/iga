@@ -3,6 +3,7 @@ package com.qtgl.iga.dao.impl;
 import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.NodeRulesRange;
 import com.qtgl.iga.dao.NodeRulesRangeDao;
+import com.qtgl.iga.utils.MyBeanUtils;
 import com.qtgl.iga.vo.NodeRulesVo;
 import org.apache.commons.beanutils.BeanUtils;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
@@ -43,7 +44,7 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
 
             for (Map<String, Object> map : maps) {
                 NodeRulesRange nodeRulesRange = new NodeRulesRange();
-                BeanUtils.populate(nodeRulesRange, map);
+                MyBeanUtils.populate(nodeRulesRange, map);
                 nodeRulesRanges.add(nodeRulesRange);
             }
             return nodeRulesRanges;

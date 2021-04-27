@@ -3,7 +3,7 @@ package com.qtgl.iga.dao.impl;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.Dept;
 import com.qtgl.iga.dao.DeptDao;
-import org.apache.commons.beanutils.BeanUtils;
+import com.qtgl.iga.utils.MyBeanUtils;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -94,7 +94,8 @@ public class DeptDaoImpl implements DeptDao {
             for (Map<String, Object> map : mapList) {
                 TreeBean dept = new TreeBean();
                 try {
-                    BeanUtils.populate(dept, map);
+                    //ConvertUtils.register(new IntegerConverter(null), Integer.class);
+                    MyBeanUtils.populate(dept, map);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }

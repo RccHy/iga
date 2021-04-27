@@ -2,6 +2,7 @@ package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.dao.PostDao;
+import com.qtgl.iga.utils.MyBeanUtils;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.cglib.beans.BeanMap;
@@ -51,7 +52,7 @@ public class PostDaoImpl implements PostDao {
             for (Map<String, Object> map : mapList) {
                 TreeBean dept = new TreeBean();
                 try {
-                    BeanUtils.populate(dept, map);
+                    MyBeanUtils.populate(dept, map);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }
@@ -178,7 +179,7 @@ public class PostDaoImpl implements PostDao {
             for (Map<String, Object> map : mapList) {
                 TreeBean treeBean = new TreeBean();
                 try {
-                    BeanUtils.populate(treeBean, map);
+                    MyBeanUtils.populate(treeBean, map);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }
@@ -205,7 +206,7 @@ public class PostDaoImpl implements PostDao {
             for (Map<String, Object> map : mapList) {
                 TreeBean treeBean = new TreeBean();
                 try {
-                    BeanUtils.populate(treeBean, map);
+                    MyBeanUtils.populate(treeBean, map);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }

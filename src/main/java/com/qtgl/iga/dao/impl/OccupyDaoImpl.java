@@ -2,6 +2,7 @@ package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.dao.OccupyDao;
+import com.qtgl.iga.utils.MyBeanUtils;
 import org.apache.commons.beanutils.BeanUtils;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -62,7 +63,7 @@ public class OccupyDaoImpl implements OccupyDao {
         mapList.forEach(map -> {
             OccupyDto occupy = new OccupyDto();
             try {
-                BeanUtils.populate(occupy, map);
+                MyBeanUtils.populate(occupy, map);
             } catch (Exception e) {
                 e.printStackTrace();
             }

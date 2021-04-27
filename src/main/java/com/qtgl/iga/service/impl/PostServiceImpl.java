@@ -62,7 +62,7 @@ public class PostServiceImpl implements PostService {
         if (null == tenant) {
             throw new Exception("租户不存在");
         }
-        //  查sso builtin 的岗位
+        //  查sso BUILTIN 的岗位
         List<TreeBean> rootBeans = postDao.findRootData(tenant.getId());
         if (null != rootBeans && rootBeans.size() > 0) {
             for (TreeBean rootBean : rootBeans) {
@@ -71,8 +71,8 @@ public class PostServiceImpl implements PostService {
                 }
             }
         } else {
-            logger.error("租户 :{} 无builtin岗位，请先创建", tenant.getId());
-            throw new Exception("无builtin岗位，请先创建");
+            logger.error("租户 :{} 无BUILTIN岗位，请先创建", tenant.getId());
+            throw new Exception("无BUILTIN岗位，请先创建");
         }
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();

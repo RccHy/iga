@@ -3,6 +3,7 @@ package com.qtgl.iga.dao.impl;
 import com.alibaba.druid.util.StringUtils;
 import com.qtgl.iga.bo.TaskLog;
 import com.qtgl.iga.dao.TaskLogDao;
+import com.qtgl.iga.utils.MyBeanUtils;
 import org.apache.commons.beanutils.BeanUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -29,7 +30,7 @@ public class TaskLogDaoImpl implements TaskLogDao {
             List<Map<String, Object>> taskLogMap = jdbcIGA.queryForList(sql, domain);
             for (Map<String, Object> map : taskLogMap) {
                 TaskLog taskLog = new TaskLog();
-                BeanUtils.populate(taskLog, map);
+                MyBeanUtils.populate(taskLog, map);
                 taskLogs.add(taskLog);
             }
             return taskLogs;

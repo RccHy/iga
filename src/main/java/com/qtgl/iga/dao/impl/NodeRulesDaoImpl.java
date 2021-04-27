@@ -3,6 +3,7 @@ package com.qtgl.iga.dao.impl;
 import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.NodeRules;
 import com.qtgl.iga.dao.NodeRulesDao;
+import com.qtgl.iga.utils.MyBeanUtils;
 import com.qtgl.iga.vo.NodeRulesVo;
 import org.apache.commons.beanutils.BeanUtils;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
@@ -49,7 +50,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
             for (Map<String, Object> map : maps) {
                 NodeRules nodeRule = new NodeRules();
                 try {
-                    BeanUtils.populate(nodeRule, map);
+                    MyBeanUtils.populate(nodeRule, map);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }
@@ -130,7 +131,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
             for (Map<String, Object> map : mapList) {
                 NodeRules nodeRules = new NodeRules();
                 try {
-                    BeanUtils.populate(nodeRules, map);
+                    MyBeanUtils.populate(nodeRules, map);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }
@@ -191,7 +192,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
             for (Map<String, Object> map : mapList) {
                 NodeRulesVo nodeRules = new NodeRulesVo();
                 try {
-                    BeanUtils.populate(nodeRules, map);
+                    MyBeanUtils.populate(nodeRules, map);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }
@@ -244,7 +245,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
             try {
                 for (Map<String, Object> map : mapList) {
                     NodeRules nodeRules = new NodeRules();
-                    BeanUtils.populate(nodeRules, map);
+                    MyBeanUtils.populate(nodeRules, map);
                     list.add(nodeRules);
                 }
             } catch (IllegalAccessException | InvocationTargetException e) {
@@ -284,7 +285,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
             for (Map<String, Object> map : maps) {
                 NodeRules nodeRule = new NodeRules();
                 try {
-                    BeanUtils.populate(nodeRule, map);
+                    MyBeanUtils.populate(nodeRule, map);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }

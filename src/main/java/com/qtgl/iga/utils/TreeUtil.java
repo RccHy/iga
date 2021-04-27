@@ -74,7 +74,7 @@ public class TreeUtil<T> {
         if (null != children) {
             for (TreeBean dept : children) {
                 if (null != dept.getDataSource()) {
-                    if (!dept.getDataSource().equals("builtin")) {
+                    if (!dept.getDataSource().equalsIgnoreCase("BUILTIN")) {
                         mainTree.remove(dept.getCode());
                         removeMainTree(dept.getCode(), childrenMap, mainTree);
                     }

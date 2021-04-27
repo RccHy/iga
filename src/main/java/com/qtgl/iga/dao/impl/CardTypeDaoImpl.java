@@ -2,6 +2,7 @@ package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bo.CardType;
 import com.qtgl.iga.dao.CardTypeDao;
+import com.qtgl.iga.utils.MyBeanUtils;
 import org.apache.commons.beanutils.BeanUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -28,7 +29,7 @@ public class CardTypeDaoImpl implements CardTypeDao {
         listMaps.forEach(map -> {
             CardType cardType = new CardType();
             try {
-                BeanUtils.populate(cardType, map);
+                MyBeanUtils.populate(cardType, map);
             } catch (Exception e) {
                 e.printStackTrace();
             }
