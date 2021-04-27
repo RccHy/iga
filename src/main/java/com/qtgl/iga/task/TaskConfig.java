@@ -71,11 +71,13 @@ public class TaskConfig {
                                             //部门数据同步至sso
                                             final Map<TreeBean, String> deptResult = deptService.buildDeptUpdateResult(domainInfo);
                                             log.info(Thread.currentThread().getName() + ": 部门同步完成：{}==={}", deptResult.size(), System.currentTimeMillis());
+                                            taskLog.setStatus(1);
                                             taskLog.setDeptNo(deptResult.size());
                                             taskLogService.save(taskLog, domainInfo.getId(), "update");
                                             //岗位数据同步至sso
                                             final Map<TreeBean, String> treeBeanStringMap = postService.buildPostUpdateResult(domainInfo);
                                             log.info(Thread.currentThread().getName() + ": 岗位同步完成：{}==={}", treeBeanStringMap.size(), System.currentTimeMillis());
+
                                             taskLog.setPersonNo(treeBeanStringMap.size());
                                             taskLogService.save(taskLog, domainInfo.getId(), "update");
                                             //人员数据同步至sso

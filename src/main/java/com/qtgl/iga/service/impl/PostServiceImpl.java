@@ -383,7 +383,6 @@ public class PostServiceImpl implements PostService {
         if (null != beans) {
             //查询数据库需要删除的数据
             for (TreeBean bean : beans) {
-
                 if (!"builtin".equals(bean.getDataSource()) || "PULL".equalsIgnoreCase(bean.getDataSource())) {
                     boolean flag = true;
                     for (TreeBean treeBean : result.keySet()) {
@@ -392,9 +391,7 @@ public class PostServiceImpl implements PostService {
                             break;
                         }
                     }
-                    if (flag) {
-//                        TreeBean treeBean = new TreeBean();
-//                        treeBean.setCode(bean.getCode());
+                    if (flag&&0 == bean.getDelMark() ) {
                         collect.remove(bean.getCode());
                         result.put(bean, "delete");
                     }

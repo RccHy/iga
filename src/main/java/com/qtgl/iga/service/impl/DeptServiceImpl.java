@@ -2,14 +2,15 @@ package com.qtgl.iga.service.impl;
 
 
 import com.qtgl.iga.bean.TreeBean;
-import com.qtgl.iga.bo.*;
+import com.qtgl.iga.bo.DeptTreeType;
+import com.qtgl.iga.bo.DomainInfo;
+import com.qtgl.iga.bo.Tenant;
+import com.qtgl.iga.bo.UpstreamTypeField;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.service.NodeService;
-
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -358,21 +359,19 @@ public class DeptServiceImpl implements DeptService {
         if (null != ssoBeans) {
             //查询数据库需要删除的数据
             for (TreeBean bean : ssoBeans) {
-//                if (null != bean.getTreeType() && bean.getTreeType().equals(treeTypeId)) {
-                boolean flag = true;
-                for (TreeBean treeBean : result.keySet()) {
-                    if (bean.getCode().equals(treeBean.getCode()) || (!"PULL".equalsIgnoreCase(bean.getDataSource()))) {
-                        flag = false;
-                        break;
+                if ("PULL".equals(bean.getDataSource())) {
+                    boolean flag = true;
+                    for (TreeBean treeBean : result.keySet()) {
+                        if (bean.getCode().equals(treeBean.getCode())) {
+                            flag = false;
+                            break;
+                        }
+                    }
+                    if (flag && 0 == bean.getDelMark()) {
+                        ssoCollect.remove(bean.getCode());
+                        result.put(bean, "delete");
                     }
                 }
-                if (flag) {
-//                    TreeBean treeBean = new TreeBean();
-//                    treeBean.setCode(bean.getCode());
-                    ssoCollect.remove(bean.getCode());
-                    result.put(bean, "delete");
-                }
-//                }
             }
         }
 
