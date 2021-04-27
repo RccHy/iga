@@ -123,7 +123,7 @@ public class OccupyServiceImpl implements OccupyService {
                 if (null == occupyDto.getDelMark()) {
                     occupyDto.setDelMark(0);
                 }
-                if(null==occupyDto.getActive()){
+                if (null == occupyDto.getActive()) {
                     occupyDto.setActive("1");
                     occupyDto.setActiveTime(LocalDateTime.now());
                 }
@@ -158,7 +158,7 @@ public class OccupyServiceImpl implements OccupyService {
                 if (null != fields && fields.size() > 0) {
                     for (UpstreamTypeField field : fields) {
                         String sourceField = field.getSourceField();
-                        if("personCardType".equals(sourceField)||"personCardNo".equals(sourceField)){
+                        if ("personCardType".equals(sourceField) || "personCardNo".equals(sourceField)) {
                             continue;
                         }
                         Object newValue = ClassCompareUtil.getGetMethod(newOccupy, sourceField);

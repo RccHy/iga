@@ -105,7 +105,7 @@ public class PostServiceImpl implements PostService {
         Map<String, TreeBean> collect = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
 
         //同步到sso
-        beans = dataProcessing(collect, domain, "", beans, result, treeBeans,now);
+        beans = dataProcessing(collect, domain, "", beans, result, treeBeans, now);
         if (null != beans) {
             beans.addAll(treeBeans);
         }
@@ -181,7 +181,7 @@ public class PostServiceImpl implements PostService {
         }
         //同步到sso
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-        beans = dataProcessing(mainTreeMap, domain, "", beans, result, treeBeans,now);
+        beans = dataProcessing(mainTreeMap, domain, "", beans, result, treeBeans, now);
 
         if (null != beans) {
             beans.addAll(treeBeans);
@@ -334,7 +334,7 @@ public class PostServiceImpl implements PostService {
      * @Description: 处理数据
      * @return: void
      */
-    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> ssoBeans, Map<TreeBean, String> result, ArrayList<TreeBean> insert,LocalDateTime now) {
+    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> ssoBeans, Map<TreeBean, String> result, ArrayList<TreeBean> insert, LocalDateTime now) {
         Map<String, TreeBean> ssoCollect = new HashMap<>();
         if (null != ssoBeans && ssoBeans.size() > 0) {
             ssoCollect = ssoBeans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
