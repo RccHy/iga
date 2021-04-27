@@ -28,7 +28,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
 
     @Override
     public List<NodeRules> getByNodeAndType(String nodeId, Integer type, Boolean active, Integer status) {
-        List<NodeRules> nodeRules = new ArrayList<>();
+        List<NodeRules> nodeRules = null;
         List<Object> para = new ArrayList<>();
         para.add(nodeId);
         para.add(active);
@@ -47,6 +47,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
         sql.append(" order by sort asc");
         List<Map<String, Object>> maps = jdbcIGA.queryForList(sql.toString(), para.toArray());
         if (null != maps && maps.size() > 0) {
+            nodeRules=new ArrayList<>();
             for (Map<String, Object> map : maps) {
                 NodeRules nodeRule = new NodeRules();
                 try {
@@ -54,6 +55,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }
+
                 nodeRules.add(nodeRule);
             }
         }

@@ -100,7 +100,7 @@ public class DeptServiceImpl implements DeptService {
 
         //同步到sso
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-        beans = dataProcessing(mainTreeMap, domain, beans, result, insert,now);
+        beans = dataProcessing(mainTreeMap, domain, beans, result, insert, now);
         //如果插入的数据不为空则加入返回集
         if (null != beans) {
             beans.addAll(insert);
@@ -172,7 +172,7 @@ public class DeptServiceImpl implements DeptService {
         }
         //同步到sso
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-        beans = dataProcessing(mainTreeMap, domain, beans, result, treeBeans,now);
+        beans = dataProcessing(mainTreeMap, domain, beans, result, treeBeans, now);
         if (null != treeBeans && treeBeans.size() > 0) {
             beans.addAll(treeBeans);
         }
@@ -310,7 +310,7 @@ public class DeptServiceImpl implements DeptService {
      * @return: void
      */
     //, String treeTypeId
-    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, List<TreeBean> ssoBeans, Map<TreeBean, String> result, ArrayList<TreeBean> insert,LocalDateTime now) {
+    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, List<TreeBean> ssoBeans, Map<TreeBean, String> result, ArrayList<TreeBean> insert, LocalDateTime now) {
         Map<String, TreeBean> ssoCollect = new HashMap<>();
         if (null != ssoBeans && ssoBeans.size() > 0) {
             ssoCollect = ssoBeans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
@@ -338,6 +338,7 @@ public class DeptServiceImpl implements DeptService {
                                 ssoBean.setSource(pullBean.getSource());
                                 ssoBean.setUpdateTime(now);
                                 ssoBean.setActive(pullBean.getActive());
+                                ssoBean.setTreeType(pullBean.getTreeType());
                                 //新来的数据更实时
                                 boolean updateFlag = false;
                                 boolean delFlag = true;
