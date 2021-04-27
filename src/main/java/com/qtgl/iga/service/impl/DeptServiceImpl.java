@@ -142,7 +142,7 @@ public class DeptServiceImpl implements DeptService {
         }
         //通过tenantId查询ssoApis库中的数据
         List<TreeBean> beans = deptDao.findByTenantId(tenant.getId(), null, null);
-        ArrayList<TreeBean> logBeans = new ArrayList<>();
+//        ArrayList<TreeBean> logBeans = new ArrayList<>();
         if (null != beans && beans.size() > 0) {
             //将null赋为""
             for (TreeBean bean : beans) {
@@ -151,7 +151,7 @@ public class DeptServiceImpl implements DeptService {
                 }
             }
             //保存数据库数据插入时做对比
-            logBeans.addAll(beans);
+//            logBeans.addAll(beans);
         }
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
@@ -176,7 +176,7 @@ public class DeptServiceImpl implements DeptService {
         //code重复性校验
         calculationService.groupByCode(beans, 0);
         //保存到数据库
-        saveToSso(result, tenant.getId(), logBeans);
+        saveToSso(result, tenant.getId(), null);
         return result;
     }
 
@@ -197,10 +197,10 @@ public class DeptServiceImpl implements DeptService {
         ArrayList<TreeBean> deleteList = new ArrayList<>();
 
 
-        if (null != logBeans && logBeans.size() > 0) {
-            //将数据根据code分组
-            logCollect = logBeans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
-        }
+//        if (null != logBeans && logBeans.size() > 0) {
+//            //将数据根据code分组
+//            logCollect = logBeans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
+//        }
         List<Map.Entry<TreeBean, String>> insert = collect.get("insert");
         if (null != insert && insert.size() > 0) {
             for (Map.Entry<TreeBean, String> key : insert) {
@@ -217,67 +217,66 @@ public class DeptServiceImpl implements DeptService {
             logger.info("忽略 {} 条已过时数据{}", list.size(), obsolete.toString());
 
         }
+
         List<Map.Entry<TreeBean, String>> update = collect.get("update");
         //修改数据
         if (null != update && update.size() > 0 && null != logCollect) {
             for (Map.Entry<TreeBean, String> key : update) {
-                key.getKey().setDataSource("PULL");
-                TreeBean newTreeBean = key.getKey();
-                //与数据库对象对比映射字段
-                TreeBean oldTreeBean = logCollect.get(newTreeBean.getCode());
-                oldTreeBean.setSource(newTreeBean.getSource());
-                oldTreeBean.setUpdateTime(newTreeBean.getUpdateTime());
-                oldTreeBean.setActive(newTreeBean.getActive());
-                //根据upstreamTypeId查询fields
-                boolean flag = false;
-                boolean delFlag = true;
+//                key.getKey().setDataSource("PULL");
+//                TreeBean newTreeBean = key.getKey();
+//                //与数据库对象对比映射字段
+//                TreeBean oldTreeBean = logCollect.get(newTreeBean.getCode());
+//                oldTreeBean.setSource(newTreeBean.getSource());
+//                oldTreeBean.setUpdateTime(newTreeBean.getUpdateTime());
+//                oldTreeBean.setActive(newTreeBean.getActive());
+//                //根据upstreamTypeId查询fields
+//                boolean flag = false;
+//                boolean delFlag = true;
+//
+//
+//                List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(newTreeBean.getUpstreamTypeId());
+//                if (null != fields && fields.size() > 0) {
+//                    for (UpstreamTypeField field : fields) {
+//                        String sourceField = field.getSourceField();
+//                        if ("delMark".equals(sourceField)) {
+//                            delFlag = false;
+//                        }
+//                        Object newValue = ClassCompareUtil.getGetMethod(newTreeBean, sourceField);
+//                        Object oldValue = ClassCompareUtil.getGetMethod(oldTreeBean, sourceField);
+//                        if (null == oldValue && null == newValue) {
+//                            continue;
+//                        }
+//                        if (null != oldValue && oldValue.equals(newValue)) {
+//                            continue;
+//                        }
+//                        flag = true;
+//                        ClassCompareUtil.setValue(oldTreeBean, oldTreeBean.getClass(), sourceField, oldValue, newValue);
+//                        logger.debug("部门信息更新{}:字段{}: {} -> {} ", newTreeBean.getCode(), sourceField, oldValue, newValue);
+//                    }
+//                }
 
+//                if (delFlag && oldTreeBean.getDelMark().equals(1)) {
+//                    flag = true;
+//                    logger.info("部门信息{}从删除恢复", oldTreeBean.getCode());
+//                }
 
-                List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(newTreeBean.getUpstreamTypeId());
-                if (null != fields && fields.size() > 0) {
-                    for (UpstreamTypeField field : fields) {
-                        String sourceField = field.getSourceField();
-                        if ("delMark".equals(sourceField)) {
-                            delFlag = false;
-                        }
-                        Object newValue = ClassCompareUtil.getGetMethod(newTreeBean, sourceField);
-                        Object oldValue = ClassCompareUtil.getGetMethod(oldTreeBean, sourceField);
-                        if (null == oldValue && null == newValue) {
-                            continue;
-                        }
-                        if (null != oldValue && oldValue.equals(newValue)) {
-                            continue;
-                        }
-                        flag = true;
-                        ClassCompareUtil.setValue(oldTreeBean, oldTreeBean.getClass(), sourceField, oldValue, newValue);
-                        logger.debug("部门信息更新{}:字段{}: {} -> {} ", newTreeBean.getCode(), sourceField, oldValue, newValue);
-                    }
-                }
-
-                if (delFlag && oldTreeBean.getDelMark().equals(1)) {
-                    flag = true;
-                    logger.info("部门信息{}从删除恢复", oldTreeBean.getCode());
-                }
-
-                if (flag) {
-                    logger.info("部门对比后需要修改{}", oldTreeBean.toString());
-                    updateList.add(oldTreeBean);
-                }
+//                if (flag) {
+                logger.info("部门对比后需要修改{}", key.getKey().toString());
+                updateList.add(key.getKey());
+//                }
             }
         }
         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
         //删除数据
         if (null != delete && delete.size() > 0 && null != logCollect) {
             for (Map.Entry<TreeBean, String> key : delete) {
-                TreeBean newTreeBean = key.getKey();
-                assert logCollect != null;
-                TreeBean oldTreeBean = logCollect.get(newTreeBean.getCode());
-                if (oldTreeBean.getDelMark() == 0) {
-                    if (null != oldTreeBean.getUpdateTime() && (newTreeBean.getCreateTime().isAfter(oldTreeBean.getUpdateTime()) || newTreeBean.getCreateTime().isEqual(oldTreeBean.getUpdateTime()))) {
-                        logger.info("部门对比后删除{}", key.getKey().toString());
-                        deleteList.add(key.getKey());
-                    }
-                }
+//                TreeBean newTreeBean = key.getKey();
+//                assert logCollect != null;
+//                TreeBean oldTreeBean = logCollect.get(newTreeBean.getCode());
+                logger.info("部门对比后删除{}", key.getKey().toString());
+                deleteList.add(key.getKey());
+
+
             }
         }
 
@@ -319,27 +318,64 @@ public class DeptServiceImpl implements DeptService {
         ArrayList<TreeBean> treeBeans = new ArrayList<>(mainDept);
 
         //遍历拉取数据
-        for (TreeBean treeBean : treeBeans) {
+        for (TreeBean pullBean : treeBeans) {
             //标记新增还是修改
             boolean flag = true;
             //赋值treeTypeId
 //            treeBean.setTreeType(treeTypeId);
             if (null != ssoBeans) {
                 //遍历数据库数据
-                for (TreeBean bean : ssoBeans) {
-                    if (treeBean.getCode().equals(bean.getCode())) {
+                for (TreeBean ssoBean : ssoBeans) {
+                    if (pullBean.getCode().equals(ssoBean.getCode())) {
                         //
-                        if (null != treeBean.getCreateTime()) {
+                        if (null != pullBean.getCreateTime()) {
                             //修改
-                            if (null == bean.getCreateTime() || treeBean.getCreateTime().isAfter(bean.getCreateTime())) {
+                            if (null == ssoBean.getCreateTime() || pullBean.getCreateTime().isAfter(ssoBean.getCreateTime())) {
+                                ssoBean.setDataSource("PULL");
+                                ssoBean.setSource(pullBean.getSource());
+                                ssoBean.setUpdateTime(pullBean.getUpdateTime());
+                                ssoBean.setActive(pullBean.getActive());
                                 //新来的数据更实时
-                                ssoCollect.put(treeBean.getCode(), treeBean);
-                                result.put(treeBean, "update");
+                                boolean updateFlag = false;
+                                boolean delFlag = true;
+
+                                List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(pullBean.getUpstreamTypeId());
+                                if (null != fields && fields.size() > 0) {
+                                    for (UpstreamTypeField field : fields) {
+                                        String sourceField = field.getSourceField();
+                                        if ("delMark".equals(sourceField)) {
+                                            delFlag = false;
+                                        }
+                                        Object newValue = ClassCompareUtil.getGetMethod(pullBean, sourceField);
+                                        Object oldValue = ClassCompareUtil.getGetMethod(ssoBean, sourceField);
+                                        if (null == oldValue && null == newValue) {
+                                            continue;
+                                        }
+                                        if (null != oldValue && oldValue.equals(newValue)) {
+                                            continue;
+                                        }
+                                        updateFlag = true;
+                                        ClassCompareUtil.setValue(ssoBean, ssoBean.getClass(), sourceField, oldValue, newValue);
+                                        logger.debug("部门信息更新{}:字段{}: {} -> {} ", pullBean.getCode(), sourceField, oldValue, newValue);
+                                    }
+                                }
+                                if (delFlag && ssoBean.getDelMark().equals(1)) {
+                                    updateFlag = true;
+                                    logger.info("部门信息{}从删除恢复", ssoBean.getCode());
+                                }
+                                if (updateFlag) {
+
+                                    logger.info("部门对比后需要修改{}", ssoBean.toString());
+
+                                    ssoCollect.put(ssoBean.getCode(), ssoBean);
+                                    result.put(ssoBean, "update");
+                                }
+
                             } else {
-                                result.put(treeBean, "obsolete");
+                                result.put(pullBean, "obsolete");
                             }
                         } else {
-                            result.put(treeBean, "obsolete");
+                            result.put(pullBean, "obsolete");
                         }
                         flag = false;
                     }
@@ -348,12 +384,12 @@ public class DeptServiceImpl implements DeptService {
                 //没有相等的应该是新增
                 if (flag) {
                     //新增
-                    insert.add(treeBean);
-                    result.put(treeBean, "insert");
+                    insert.add(pullBean);
+                    result.put(pullBean, "insert");
                 }
             } else {
-                insert.add(treeBean);
-                result.put(treeBean, "insert");
+                insert.add(pullBean);
+                result.put(pullBean, "insert");
             }
         }
         if (null != ssoBeans) {
@@ -367,9 +403,11 @@ public class DeptServiceImpl implements DeptService {
                             break;
                         }
                     }
-                    if (flag && 0 == bean.getDelMark()) {
+                    if (flag) {
                         ssoCollect.remove(bean.getCode());
-                        result.put(bean, "delete");
+                        if (0 == bean.getDelMark()) {
+                            result.put(bean, "delete");
+                        }
                     }
                 }
             }

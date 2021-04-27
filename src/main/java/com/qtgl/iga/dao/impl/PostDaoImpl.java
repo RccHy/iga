@@ -172,7 +172,7 @@ public class PostDaoImpl implements PostDao {
                 " tags ,data_source as dataSource , description , meta,source,post_type as postType,user_type_index as deptIndex  " +
                 " from user_type where tenant_id=? and del_mark=0 and data_source=?";
 
-        List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId, "builtin");
+        List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId, "BUILTIN");
         ArrayList<TreeBean> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {
