@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -80,7 +81,7 @@ public class PostServiceImpl implements PostService {
 
 
         List<TreeBean> mainTreeBeans = new ArrayList<>();
-
+        final LocalDateTime now = LocalDateTime.now();
         for (TreeBean rootBean : rootBeans) {
             mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, "task");
         }
@@ -104,7 +105,7 @@ public class PostServiceImpl implements PostService {
         Map<String, TreeBean> collect = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
 
         //同步到sso
-        beans = dataProcessing(collect, domain, "", beans, result, treeBeans);
+        beans = dataProcessing(collect, domain, "", beans, result, treeBeans,now);
         if (null != beans) {
             beans.addAll(treeBeans);
         }
@@ -158,6 +159,7 @@ public class PostServiceImpl implements PostService {
         ArrayList<TreeBean> treeBeans = new ArrayList<>();
 
         List<TreeBean> mainTreeBeans = new ArrayList<>();
+        final LocalDateTime now = LocalDateTime.now();
 
         for (TreeBean rootBean : rootBeans) {
             mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, "system");
@@ -179,7 +181,7 @@ public class PostServiceImpl implements PostService {
         }
         //同步到sso
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-        beans = dataProcessing(mainTreeMap, domain, "", beans, result, treeBeans);
+        beans = dataProcessing(mainTreeMap, domain, "", beans, result, treeBeans,now);
 
         if (null != beans) {
             beans.addAll(treeBeans);
@@ -332,7 +334,7 @@ public class PostServiceImpl implements PostService {
      * @Description: 处理数据
      * @return: void
      */
-    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> ssoBeans, Map<TreeBean, String> result, ArrayList<TreeBean> insert) {
+    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> ssoBeans, Map<TreeBean, String> result, ArrayList<TreeBean> insert,LocalDateTime now) {
         Map<String, TreeBean> ssoCollect = new HashMap<>();
         if (null != ssoBeans && ssoBeans.size() > 0) {
             ssoCollect = ssoBeans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
@@ -357,7 +359,7 @@ public class PostServiceImpl implements PostService {
                                 if (null == ssoBean.getCreateTime() || pullBean.getCreateTime().isAfter(ssoBean.getCreateTime())) {
                                     ssoBean.setDataSource("PULL");
                                     ssoBean.setSource(pullBean.getSource());
-                                    ssoBean.setUpdateTime(pullBean.getUpdateTime());
+                                    ssoBean.setUpdateTime(now);
                                     ssoBean.setActive(pullBean.getActive());
                                     //新来的数据更实时
                                     boolean updateFlag = false;
@@ -419,19 +421,20 @@ public class PostServiceImpl implements PostService {
         }
         if (null != ssoBeans) {
             //查询数据库需要删除的数据
-            for (TreeBean bean : ssoBeans) {
-                if (!"BUILTIN".equals(bean.getDataSource()) || "PULL".equalsIgnoreCase(bean.getDataSource())) {
+            for (TreeBean ssoBean : ssoBeans) {
+                if (!"BUILTIN".equals(ssoBean.getDataSource()) || "PULL".equalsIgnoreCase(ssoBean.getDataSource())) {
                     boolean flag = true;
-                    for (TreeBean treeBean : result.keySet()) {
-                        if (bean.getCode().equals(treeBean.getCode())) {
+                    for (TreeBean pullBean : pullBeans) {
+                        if (ssoBean.getCode().equals(pullBean.getCode())) {
                             flag = false;
                             break;
                         }
                     }
                     if (flag) {
-                        ssoCollect.remove(bean.getCode());
-                        if (0 == bean.getDelMark()) {
-                            result.put(bean, "delete");
+                        ssoCollect.remove(ssoBean.getCode());
+                        if (0 == ssoBean.getDelMark()) {
+                            ssoBean.setUpdateTime(now);
+                            result.put(ssoBean, "delete");
 
                         }
                     }
