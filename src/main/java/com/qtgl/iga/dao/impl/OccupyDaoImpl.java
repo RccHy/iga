@@ -81,7 +81,7 @@ public class OccupyDaoImpl implements OccupyDao {
                     List<OccupyDto> list = occupyMap.get("install");
                     String sql = "INSERT INTO user " +
                             "               (id, user_type, card_type, card_no, del_mark, start_time, end_time, create_time, update_time, tenant_id, dept_code, source, data_source, active, active_time,user_index) " +
-                            "               VALUES (?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?);";
+                            "               VALUES (?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?)";
                     int[] ints = jdbcSSO.batchUpdate(sql, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
@@ -108,7 +108,7 @@ public class OccupyDaoImpl implements OccupyDao {
                         }
                     });
 
-                    String sql2 = "INSERT INTO identity_user (id, identity_id, user_id) VALUES (?, ?, ?);";
+                    String sql2 = "INSERT INTO identity_user (id, identity_id, user_id) VALUES (?, ?, ?)";
                     jdbcSSO.batchUpdate(sql2, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
@@ -129,7 +129,7 @@ public class OccupyDaoImpl implements OccupyDao {
                     List<OccupyDto> list = occupyMap.get("update");
                     String sql = "UPDATE `user` SET user_type = ?, card_type = ?, card_no = ?, del_mark = ?, start_time = ?, end_time = ?, update_time = ?,dept_code = ?,  " +
                             " source = ?, data_source = ?,  user_index = ?" +
-                            " WHERE id = ? and update_time < ? ; ";
+                            " WHERE id = ? and update_time < ?  ";
 
                     int[] ints = jdbcSSO.batchUpdate(sql, new BatchPreparedStatementSetter() {
                         @Override
@@ -162,7 +162,7 @@ public class OccupyDaoImpl implements OccupyDao {
                 if (occupyMap.containsKey("delete")) {
                     List<OccupyDto> list = occupyMap.get("delete");
                     String sql = "UPDATE `user` SET  del_mark = 1, update_time = ?" +
-                            " WHERE id = ? and update_time < ? ; ";
+                            " WHERE id = ? and update_time < ?  ";
                     int[] ints = jdbcSSO.batchUpdate(sql, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {

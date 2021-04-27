@@ -17,10 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -201,6 +198,7 @@ public class PersonServiceImpl implements PersonService {
 
         personFromUpstream.forEach((key, val) -> {
             if (!personFromSSOMap.containsKey(key)) {
+                val.setId(UUID.randomUUID().toString());
                 val.setOpenId(RandomStringUtils.randomAlphanumeric(20));
                 if (result.containsKey("install")) {
                     result.get("install").add(val);

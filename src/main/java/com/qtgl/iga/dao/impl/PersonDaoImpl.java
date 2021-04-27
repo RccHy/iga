@@ -23,7 +23,7 @@ import java.util.*;
 public class PersonDaoImpl implements PersonDao {
 
 
-    @Resource(name = "jdbcSSO")
+   @Resource(name = "jdbcSSO")
     JdbcTemplate jdbcSSO;
 
     @Resource(name = "sso-txTemplate")
@@ -149,14 +149,18 @@ public class PersonDaoImpl implements PersonDao {
         return txTemplate.execute(transactionStatus -> {
             try {
                 if (personMap.containsKey("install")) {
-                    final List<Person> list = personMap.get("install");
-                    String str = "insert into identity (id, `name`, account_no,open_id,  del_mark, create_time, update_time, tenant_id, card_type, card_no, cellphone, email, data_source, tags,  active, active_time,source)" +
-                            "values  (?, ?, ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
+                    final List<Person> list =personMap.get("install");
+
+                    //list.add(.get(0));
+
+                    String str = "insert into identity (id, `name`, account_no,open_id,  del_mark, create_time, update_time, tenant_id, card_type, card_no, cellphone, email, data_source, tags,  `active`, active_time,`source`)" +
+                            " values  (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+
 
                     int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, UUID.randomUUID().toString().replace("-", ""));
+                            preparedStatement.setObject(1, list.get(i).getId());
                             preparedStatement.setObject(2, list.get(i).getName());
                             preparedStatement.setObject(3, list.get(i).getAccountNo());
                             preparedStatement.setObject(4, list.get(i).getOpenId());
@@ -174,7 +178,6 @@ public class PersonDaoImpl implements PersonDao {
                             preparedStatement.setObject(16, list.get(i).getActiveTime());
                             preparedStatement.setObject(17, "PULL");
                         }
-
                         @Override
                         public int getBatchSize() {
                             return list.size();
@@ -183,7 +186,7 @@ public class PersonDaoImpl implements PersonDao {
                 }
                 if (personMap.containsKey("update")) {
                     final List<Person> list = personMap.get("update");
-                    String str = "UPDATE identity set  name= ?, account_no=?,  del_mark=?, update_time=?, tenant_id=?,  cellphone=?, email=?, data_source=?, tags=?,  active=?, active_time=? ,source= ?,data_source=?" +
+                    String str = "UPDATE identity set  `name`= ?, account_no=?,  del_mark=?, update_time=?, tenant_id=?,  cellphone=?, email=?, data_source=?, tags=?,  `active`=?, active_time=? ,`source`= ?,data_source=?" +
                             " where id=? and update_time< ? ";
                     int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
                         @Override

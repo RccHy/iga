@@ -225,7 +225,7 @@ public class PostDaoImpl implements PostDao {
     public Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, String tenantId) {
         String insertStr = "insert into user_type (id,user_type, name, parent_code, can_login ,tenant_id ,tags," +
                 " data_source, description, meta,create_time,del_mark,active,active_time,update_time,source,user_type_index,post_type) values" +
-                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
         String updateStr = "update user_type set  name=?, parent_code=?, del_mark=? ,tenant_id =?" +
                 ", data_source=?, description=?, meta=?,update_time=?,tags=?,source=?" +
@@ -314,6 +314,7 @@ public class PostDaoImpl implements PostDao {
             } catch (Exception e) {
                 transactionStatus.setRollbackOnly();
                 // transactionStatus.rollbackToSavepoint(savepoint);
+                e.printStackTrace();
                 throw new RuntimeException("同步终止，岗位同步异常！");
             }
         });
