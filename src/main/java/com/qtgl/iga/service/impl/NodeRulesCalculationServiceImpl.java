@@ -274,7 +274,7 @@ public class NodeRulesCalculationServiceImpl {
      * @Description: 规则运算
      * @return: java.util.Map<java.lang.String, com.qtgl.iga.bean.TreeBean>
      */
-    public List<TreeBean> nodeRules(DomainInfo domain, String deptTreeType, String nodeCode, List<TreeBean> mainTree, Integer status, String type, String operator,List<TreeBean> rootBeans) throws Exception {
+    public List<TreeBean> nodeRules(DomainInfo domain, String deptTreeType, String nodeCode, List<TreeBean> mainTree, Integer status, String type, String operator, List<TreeBean> rootBeans) throws Exception {
         //获取根节点的规则
         List<Node> nodes = nodeDao.getByCode(domain.getId(), deptTreeType, nodeCode, status, type);
         for (Node node : nodes) {
@@ -353,7 +353,7 @@ public class NodeRulesCalculationServiceImpl {
                     //循环引用判断
                     this.circularData(upstreamTree, status);
                     // 判断上游源拉取数据是否有重复性问题
-                    this.groupByCode(upstreamDept,status,rootBeans);
+                    this.groupByCode(upstreamDept, status, rootBeans);
 
 
                     //判断上游是否给出时间戳
@@ -413,7 +413,7 @@ public class NodeRulesCalculationServiceImpl {
                                 for (Map.Entry<String, TreeBean> deptEntry : mainTreeMap2.entrySet()) {
                                     String key = deptEntry.getKey();
                                     TreeBean value = deptEntry.getValue();
-                                    if (mainTreeMap.containsKey(key) &&
+                                    if (mergeDeptMap.containsKey(key) &&
                                             mergeDeptMap.get(key).getParentCode().equals(value.getParentCode())
                                     ) {
                                         mainTreeMap.remove(key);
@@ -457,14 +457,15 @@ public class NodeRulesCalculationServiceImpl {
 
                     }
                     // }
-
+                    mainTree = new ArrayList<>(mainTreeMap.values());
                     if (null != mergeDeptMap) {
                         Collection<TreeBean> values = mergeDeptMap.values();
 
                         mainTree.addAll(new ArrayList<>(values));
                     }
-                     //拼接到mainTree后校验总树是否有重复
-                     this.groupByCode(mainTree,status,rootBeans);
+
+                    //拼接到mainTree后校验总树是否有重复
+                    this.groupByCode(mainTree, status, rootBeans);
                     mainTreeMap = mainTree.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
                     mainDept = mainTreeMap.values();
                     mainTreeChildren = TreeUtil.groupChildren(new ArrayList<>(mainDept));
