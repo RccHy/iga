@@ -92,9 +92,9 @@ public class DeptServiceImpl implements DeptService {
         final LocalDateTime now = LocalDateTime.now();
         for (DeptTreeType deptType : deptTreeTypes) {
             // id 改为code
-            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE, "system");
+            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE, "system", null);
             // 判断重复(code)
-            calculationService.groupByCode(mainTreeBeans, status);
+            calculationService.groupByCode(mainTreeBeans, status, null);
 
         }
 
@@ -106,7 +106,7 @@ public class DeptServiceImpl implements DeptService {
             beans.addAll(insert);
         }
         //code重复性校验
-        calculationService.groupByCode(beans, status);
+        calculationService.groupByCode(beans, status, null);
 
 
         return beans;
@@ -165,9 +165,9 @@ public class DeptServiceImpl implements DeptService {
         final LocalDateTime now = LocalDateTime.now();
         for (DeptTreeType deptType : deptTreeTypes) {
             //  id 改为code
-            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE, "task");
+            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE, "task", null);
             // 判断重复(code)
-            calculationService.groupByCode(mainTreeBeans, 0);
+            calculationService.groupByCode(mainTreeBeans, 0, null);
 
         }
         //同步到sso
@@ -177,7 +177,7 @@ public class DeptServiceImpl implements DeptService {
             beans.addAll(treeBeans);
         }
         //code重复性校验
-        calculationService.groupByCode(beans, 0);
+        calculationService.groupByCode(beans, 0, null);
         //保存到数据库
         saveToSso(result, tenant.getId(), null);
         return result;
@@ -223,7 +223,7 @@ public class DeptServiceImpl implements DeptService {
 
         List<Map.Entry<TreeBean, String>> update = collect.get("update");
         //修改数据
-        if (null != update && update.size() > 0 ) {
+        if (null != update && update.size() > 0) {
             for (Map.Entry<TreeBean, String> key : update) {
 //                key.getKey().setDataSource("PULL");
 //                TreeBean newTreeBean = key.getKey();
@@ -271,7 +271,7 @@ public class DeptServiceImpl implements DeptService {
         }
         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
         //删除数据
-        if (null != delete && delete.size() > 0 ) {
+        if (null != delete && delete.size() > 0) {
             for (Map.Entry<TreeBean, String> key : delete) {
 //                TreeBean newTreeBean = key.getKey();
 //                assert logCollect != null;
