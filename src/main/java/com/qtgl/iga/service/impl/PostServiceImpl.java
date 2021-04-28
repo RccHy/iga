@@ -165,12 +165,12 @@ public class PostServiceImpl implements PostService {
 
         for (TreeBean rootBean : rootBeans) {
             mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, "system", rootBeans);
-            // 判断重复(code)
-            calculationService.groupByCode(mainTreeBeans, status, rootBeans);
+//            // 判断重复(code)
+//            calculationService.groupByCode(mainTreeBeans, status, rootBeans);
         }
 
-        // 判断重复(code)
-        calculationService.groupByCode(mainTreeBeans, status, rootBeans);
+//        // 判断重复(code)
+//        calculationService.groupByCode(mainTreeBeans, status, rootBeans);
 
 
         //通过tenantId查询ssoApis库中的数据

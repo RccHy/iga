@@ -351,7 +351,7 @@ public class NodeRulesCalculationServiceImpl {
 
                     //循环引用判断
                     this.circularData(upstreamTree, status);
-                    // 是否有数据重复性问题
+                    // 判断上游源拉取数据是否有重复性问题
                     this.groupByCode(upstreamDept,status,rootBeans);
 
 
@@ -460,6 +460,9 @@ public class NodeRulesCalculationServiceImpl {
 
                         mainTree.addAll(new ArrayList<>(values));
                     }
+                    //拼接到mainTree后校验总树是否有重复
+                    this.groupByCode(mainTree,status,rootBeans);
+
                     // 将本次 add 进的 节点 进行 规则运算
                     for (Map.Entry<String, TreeBean> entry : mergeDeptMap.entrySet()) {
                         mainTree = nodeRules(domain, deptTreeType, entry.getValue().getCode(), mainTree, status, type, operator,rootBeans);

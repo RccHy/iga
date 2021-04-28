@@ -93,8 +93,8 @@ public class DeptServiceImpl implements DeptService {
         for (DeptTreeType deptType : deptTreeTypes) {
             // id 改为code
             mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE, "system", null);
-            // 判断重复(code)
-            calculationService.groupByCode(mainTreeBeans, status, null);
+//            // 判断重复(code)
+//            calculationService.groupByCode(mainTreeBeans, status, null);
 
         }
 
