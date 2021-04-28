@@ -351,6 +351,9 @@ public class NodeRulesCalculationServiceImpl {
 
                     //循环引用判断
                     this.circularData(upstreamTree, status);
+                    // 是否有数据重复性问题
+                    this.groupByCode(upstreamDept,status);
+
 
                     //判断上游是否给出时间戳
                     upstreamTree = this.judgeTime(upstreamTree, timestamp);
@@ -363,7 +366,6 @@ public class NodeRulesCalculationServiceImpl {
                         }
                         logger.error("节点'{}'数据入库完成", code);
                     }
-                    this.groupByCode(upstreamDept,status);
                     //对树 json 转为 map
                     Map<String, TreeBean> upstreamMap = TreeUtil.toMap(upstreamDept);
 
