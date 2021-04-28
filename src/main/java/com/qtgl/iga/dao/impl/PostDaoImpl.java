@@ -251,7 +251,7 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(10, insertList.get(i).getMeta());
                             preparedStatement.setObject(11, insertList.get(i).getCreateTime());
                             preparedStatement.setObject(12, 0);
-                            preparedStatement.setObject(13, 0);
+                            preparedStatement.setObject(13, 1);
                             preparedStatement.setObject(14, LocalDateTime.now());
                             preparedStatement.setObject(15, insertList.get(i).getUpdateTime());
                             preparedStatement.setObject(16, insertList.get(i).getSource());

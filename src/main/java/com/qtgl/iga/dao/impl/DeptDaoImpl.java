@@ -247,7 +247,7 @@ public class DeptDaoImpl implements DeptDao {
                             preparedStatement.setObject(11, insertList.get(i).getCreateTime());
                             preparedStatement.setObject(12, insertList.get(i).getTags());
                             preparedStatement.setObject(13, insertList.get(i).getIndependent());
-                            preparedStatement.setObject(14, 0);
+                            preparedStatement.setObject(14, 1);
                             preparedStatement.setObject(15, LocalDateTime.now());
                             preparedStatement.setObject(16, insertList.get(i).getTreeType());
                             preparedStatement.setObject(17, insertList.get(i).getDeptIndex());
