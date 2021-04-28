@@ -59,6 +59,8 @@ public class DeptDataFetcher {
                 logger.error(domain.getDomainName() + e.getMessage());
 //                List<TreeBean> treeBeans = deptService.findDept(arguments, domain);
                 Object object = getObject(e, NodeRulesCalculationServiceImpl.errorData,NodeRulesCalculationServiceImpl.errorTree);
+                NodeRulesCalculationServiceImpl.errorData=null;
+                NodeRulesCalculationServiceImpl.errorTree=null;
                 return object;
 
 
@@ -82,7 +84,10 @@ public class DeptDataFetcher {
 //                List<TreeBean> treeBeans = postService.findPosts(arguments, domain);
 
 
-                return getObject(e, NodeRulesCalculationServiceImpl.errorData,NodeRulesCalculationServiceImpl.errorTree);
+                Object object = getObject(e, NodeRulesCalculationServiceImpl.errorData,NodeRulesCalculationServiceImpl.errorTree);
+                NodeRulesCalculationServiceImpl.errorData=null;
+                NodeRulesCalculationServiceImpl.errorTree=null;
+                return object;
             }
         };
     }
