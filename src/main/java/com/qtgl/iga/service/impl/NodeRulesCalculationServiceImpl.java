@@ -363,6 +363,7 @@ public class NodeRulesCalculationServiceImpl {
                         }
                         logger.error("节点'{}'数据入库完成", code);
                     }
+                    this.groupByCode(upstreamDept,status);
                     //对树 json 转为 map
                     Map<String, TreeBean> upstreamMap = TreeUtil.toMap(upstreamDept);
 
