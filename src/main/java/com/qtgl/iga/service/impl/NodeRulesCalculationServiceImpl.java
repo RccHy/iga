@@ -289,11 +289,12 @@ public class NodeRulesCalculationServiceImpl {
             //将主树进行 分组
             Map<String, TreeBean> mainTreeMap = mainTree.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
 
-            final Collection<TreeBean> mainDept = mainTreeMap.values();
-            final Map<String, List<TreeBean>> mainTreeChildren = TreeUtil.groupChildren(new ArrayList<>(mainDept));
-
+            Collection<TreeBean> mainDept = mainTreeMap.values();
+            Map<String, List<TreeBean>> mainTreeChildren = TreeUtil.groupChildren(new ArrayList<>(mainDept));
 
             if (null != nodeRules && nodeRules.size() > 0) {
+
+
                 // 过滤出继承下来的NodeRules
                 Map<String, NodeRules> inheritNodeRules = nodeRules.stream().filter(rules -> StringUtils.isNotEmpty(rules.getInheritId()))
                         .collect(Collectors.toMap(NodeRules::getId, v -> v));
@@ -402,44 +403,24 @@ public class NodeRulesCalculationServiceImpl {
              */
                     // 如果本次规则  权重 大于 继承 规则。  则 丢掉主树中 同code 同parent的节点
                     //非根节点计算继承规则
-                    if (!"".equals(nodeCode)) {
-                        if (inheritNodeRules.size() > 0) {
-                            for (Map.Entry<String, NodeRules> nodeRulesEntry : inheritNodeRules.entrySet()) {
-                                // 当前权重大于 继承来源
-                                if (nodeRule.getSort() < nodeRulesEntry.getValue().getSort()) {
-                                    Map<String, TreeBean> mainTreeMap2 = new ConcurrentHashMap<>();
-                                    mainTreeMap2.putAll(mainTreeMap);
-                                    for (Map.Entry<String, TreeBean> deptEntry : mainTreeMap2.entrySet()) {
-                                        String key = deptEntry.getKey();
-                                        TreeBean value = deptEntry.getValue();
-                                        if (mainTreeMap.containsKey(key) &&
-                                                mergeDeptMap.get(key).getParentCode().equals(value.getParentCode())
-                                        ) {
-                                            mainTreeMap.remove(key);
-                                        }
+                    //if (!"".equals(nodeCode)) {
+                    if (inheritNodeRules.size() > 0) {
+                        for (Map.Entry<String, NodeRules> nodeRulesEntry : inheritNodeRules.entrySet()) {
+                            // 当前权重大于 继承来源
+                            if (nodeRule.getSort() < nodeRulesEntry.getValue().getSort()) {
+                                Map<String, TreeBean> mainTreeMap2 = new ConcurrentHashMap<>();
+                                mainTreeMap2.putAll(mainTreeMap);
+                                for (Map.Entry<String, TreeBean> deptEntry : mainTreeMap2.entrySet()) {
+                                    String key = deptEntry.getKey();
+                                    TreeBean value = deptEntry.getValue();
+                                    if (mainTreeMap.containsKey(key) &&
+                                            mergeDeptMap.get(key).getParentCode().equals(value.getParentCode())
+                                    ) {
+                                        mainTreeMap.remove(key);
                                     }
-                                } else {
-                                    // 当前权重 小于 继承来源
-                                    Map<String, TreeBean> mergeDeptMap2 = new ConcurrentHashMap<>();
-                                    mergeDeptMap2.putAll(mergeDeptMap);
-                                    for (Map.Entry<String, TreeBean> deptEntry : mergeDeptMap2.entrySet()) {
-                                        String key = deptEntry.getKey();
-                                        TreeBean value = deptEntry.getValue();
-                                        if (mainTreeMap.containsKey(key) && mainTreeMap.get(key).getParentCode().equals(value.getParentCode())) {
-                                            mergeDeptMap.remove(key);
-                                        }
-                                    }
-
                                 }
-                            }
-                        } else {
-                            // 完全没有继承
-                            if (nodeRule.getSort() == 0) {
-                                // 完全不继承 第一个数据源， 需处理掉 主树当前节点下所有的子集
-                                TreeUtil.removeTree(nodeCode, mainTreeChildren, mainTreeMap);
-                                mainTree = new ArrayList<>(mainTreeMap.values());
                             } else {
-                                //完全不继承 非一个数据源， 直接去重 向主树合并
+                                // 当前权重 小于 继承来源
                                 Map<String, TreeBean> mergeDeptMap2 = new ConcurrentHashMap<>();
                                 mergeDeptMap2.putAll(mergeDeptMap);
                                 for (Map.Entry<String, TreeBean> deptEntry : mergeDeptMap2.entrySet()) {
@@ -451,26 +432,55 @@ public class NodeRulesCalculationServiceImpl {
                                 }
 
                             }
+                        }
+                    } else {
+                        // 完全没有继承
+                        if (nodeRule.getSort() == 0) {
+                            if (!"".equals(nodeCode)) {
+                                // 完全不继承 第一个数据源， 需处理掉 主树当前节点下所有的子集
+                                TreeUtil.removeTree(nodeCode, mainTreeChildren, mainTreeMap);
+                            }
+                            //mainTree = new ArrayList<>(mainTreeMap.values());
+                        } else {
+                            //完全不继承 非一个数据源， 直接去重 向主树合并
+                            Map<String, TreeBean> mergeDeptMap2 = new ConcurrentHashMap<>();
+                            mergeDeptMap2.putAll(mergeDeptMap);
+                            for (Map.Entry<String, TreeBean> deptEntry : mergeDeptMap2.entrySet()) {
+                                String key = deptEntry.getKey();
+                                TreeBean value = deptEntry.getValue();
+                                if (mainTreeMap.containsKey(key) && mainTreeMap.get(key).getParentCode().equals(value.getParentCode())) {
+                                    mergeDeptMap.remove(key);
+                                }
+                            }
 
                         }
+
                     }
+                    // }
 
                     if (null != mergeDeptMap) {
                         Collection<TreeBean> values = mergeDeptMap.values();
 
                         mainTree.addAll(new ArrayList<>(values));
                     }
-                    //拼接到mainTree后校验总树是否有重复
-                    this.groupByCode(mainTree,status,rootBeans);
+                     //拼接到mainTree后校验总树是否有重复
+                     this.groupByCode(mainTree,status,rootBeans);
+                    mainTreeMap = mainTree.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+                    mainDept = mainTreeMap.values();
+                    mainTreeChildren = TreeUtil.groupChildren(new ArrayList<>(mainDept));
 
                     // 将本次 add 进的 节点 进行 规则运算
                     for (Map.Entry<String, TreeBean> entry : mergeDeptMap.entrySet()) {
-                        mainTree = nodeRules(domain, deptTreeType, entry.getValue().getCode(), mainTree, status, type, operator,rootBeans);
+                        mainTree = nodeRules(domain, deptTreeType, entry.getValue().getCode(), mainTree, status, type, operator, rootBeans);
                     }
+
+
 
                     /*========================规则运算完成=============================*/
                 }
             }
+
+
             if (null == nodeRules && (!"".equals(nodeCode))) {
                 TreeUtil.removeTree(code, mainTreeChildren, mainTreeMap);
                 mainTree = new ArrayList<>(mainTreeMap.values());
