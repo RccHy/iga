@@ -464,7 +464,7 @@ public class DataBusUtil {
             for (UpstreamTypeField field : fields) {
                 //   修改常量
                 if (field.getTargetField().contains("$")) {
-                    node.addResultAttributes(field.getSourceField() + ":" + field.getTargetField().substring(2, field.getTargetField().length() - 1));
+                    node.addResultAttributes(field.getSourceField() + ":" + field.getTargetField().substring(2));
                 } else {
                     upstreamTypeFields.add(field);
                 }
