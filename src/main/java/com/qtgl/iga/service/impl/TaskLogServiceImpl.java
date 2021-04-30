@@ -1,5 +1,6 @@
 package com.qtgl.iga.service.impl;
 
+import com.qtgl.iga.bean.TaskLogConnection;
 import com.qtgl.iga.bo.TaskLog;
 import com.qtgl.iga.dao.TaskLogDao;
 import com.qtgl.iga.service.TaskLogService;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 
 @Service
@@ -25,6 +27,11 @@ public class TaskLogServiceImpl implements TaskLogService {
 
     @Override
     public Integer save(TaskLog taskLog, String domain, String type) {
-        return taskLogDao.save(taskLog,domain,type);
+        return taskLogDao.save(taskLog, domain, type);
+    }
+
+    @Override
+    public TaskLogConnection taskLogs(Map<String, Object> arguments, String domainId) {
+        return taskLogDao.taskLogs(arguments,domainId);
     }
 }

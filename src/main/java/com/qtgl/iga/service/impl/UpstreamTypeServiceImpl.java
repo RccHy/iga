@@ -1,6 +1,8 @@
 package com.qtgl.iga.service.impl;
 
 
+import com.alibaba.fastjson.JSONArray;
+import com.google.gson.JsonArray;
 import com.qtgl.iga.bo.NodeRules;
 import com.qtgl.iga.bo.UpstreamType;
 import com.qtgl.iga.bo.UpstreamTypeField;
@@ -8,11 +10,13 @@ import com.qtgl.iga.dao.NodeRulesDao;
 import com.qtgl.iga.dao.UpstreamDao;
 import com.qtgl.iga.dao.UpstreamTypeDao;
 import com.qtgl.iga.service.UpstreamTypeService;
+import com.qtgl.iga.utils.DataBusUtil;
 import com.qtgl.iga.vo.UpstreamTypeVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -26,6 +30,8 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
     NodeRulesDao nodeRulesDao;
     @Autowired
     UpstreamDao upstreamDao;
+    @Autowired
+    DataBusUtil dataBusUtil;
 
     @Override
     public List<UpstreamTypeVo> findAll(Map<String, Object> arguments, String domain) {
@@ -63,6 +69,14 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
     @Override
     public List<UpstreamTypeField> findFields(String url) {
         return upstreamTypeDao.findFields(url);
+    }
+
+    @Override
+    public HashMap<Object, Object> upstreamTypesData(Map<String, Object> arguments, String domainName) {
+        UpstreamType id = upstreamTypeDao.findById((String) arguments.get("id"));
+        HashMap<Object, Object> map = new HashMap<>();
+        map.put("data", dataBusUtil.getDataByBus(id, domainName));
+        return map;
     }
 
 }

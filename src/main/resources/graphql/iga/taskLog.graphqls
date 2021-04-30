@@ -1,0 +1,89 @@
+extend type Query {
+    #查询同步日志
+    taskLogs(offset:Int,first:Int,filter:TaskLogFilter):TaskLogConnection
+}
+#extend type Mutation {
+#    #新增节点规则明细作用域
+#    saveNodeRulesRange(entity:InputNodeRulesRange!):NodeRulesRange
+#    #根据id删除节点规则明细作用域
+#    deleteNodeRulesRange(id:ID!): NodeRulesRange
+#    #更新节点规则明细作用域
+#    updateNodeRulesRange(entity:InputNodeRulesRange!):NodeRulesRange
+#}
+
+# 节点规则明细作用域实体
+type TaskLog{
+    #主键
+    id :ID
+
+    #状态
+    status :String
+
+    #部门同步数量
+    deptNo :Int
+
+    #岗位同步数量
+    postNo :Int
+
+    #人员同步数量
+    personNo :Int
+
+    #人员身份同步数量
+    occupyNo :Int
+
+    #创建时间
+    createTime :Timestamp
+
+    #修改时间
+    updateTime :Timestamp
+
+}
+
+
+# 节点规则明细作用域入参
+input InputTaskLog{
+    #主键
+    id :ID
+
+    #状态
+    status :String
+
+    #部门同步数量
+    deptNo :Int
+
+    #岗位同步数量
+    postNo :Int
+
+    #人员同步数量
+    personNo :Int
+
+    #人员身份同步数量
+    occupyNo :Int
+
+    #创建时间
+    createTime :Timestamp
+
+    #修改时间
+    updateTime :Timestamp
+}
+
+input TaskLogFilter{
+    startTime:timestampFilter
+    endTime:timestampFilter
+    status:stringFilter
+}
+
+#分页结构###
+type TaskLogConnection{
+    edges: [TaskLogEdge]
+    totalCount: Int
+}
+
+type TaskLogEdge{
+    node: TaskLog
+}
+
+
+
+
+

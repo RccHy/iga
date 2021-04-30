@@ -124,7 +124,9 @@ public class PostServiceImpl implements PostService {
     @Override
     public List<TreeBean> findPosts(Map<String, Object> arguments, DomainInfo domain) throws Exception {
         Integer status = nodeService.judgeEdit(arguments, domain, TYPE);
-
+        if (status == null) {
+            return null;
+        }
         //获取默认数据
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
@@ -148,9 +150,7 @@ public class PostServiceImpl implements PostService {
             throw new Exception("请检查根树是否合法");
         }
         rootBeans.addAll(ssoBeans);
-        if (status == null) {
-            return null;
-        }
+
         //sso dept库的数据(通过domain 关联tenant查询)
         if (null == tenant) {
             throw new Exception("租户不存在");

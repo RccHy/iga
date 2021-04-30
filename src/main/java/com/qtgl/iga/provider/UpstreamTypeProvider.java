@@ -24,7 +24,8 @@ public class UpstreamTypeProvider {
 
     public TypeRuntimeWiring.Builder buildQueryRuntimeWiring() {
         return newTypeWiring("Query")
-                .dataFetcher("upstreamTypes", upstreamTypeFetcher.upstreamTypes());
+                .dataFetcher("upstreamTypes", upstreamTypeFetcher.upstreamTypes())
+                .dataFetcher("upstreamTypesData", upstreamTypeFetcher.upstreamTypesData());
     }
 
 

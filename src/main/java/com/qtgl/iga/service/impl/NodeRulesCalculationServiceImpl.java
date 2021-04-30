@@ -17,10 +17,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
+import javax.script.SimpleBindings;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -123,25 +128,72 @@ public class NodeRulesCalculationServiceImpl {
             String rangeNodeCode = nodeRulesRange.getNode();
             // 排除 规则
             if (1 == nodeRulesRange.getType()) {
-                // 排除当前节点 以及 其子节点
-                if (0 == nodeRulesRange.getRange()) {
-                    if (!mergeDept.containsKey(rangeNodeCode)) {
-                        throw new Exception("无法在挂载树中找到排除节点：" + rangeNodeCode);
-                    }
-                    mergeDept.remove(rangeNodeCode);
-                    TreeUtil.removeTree(rangeNodeCode, childrenMap, mergeDept);
-                }
-                // 仅排除当前节点子节点
-                if (1 == nodeRulesRange.getRange()) {
-                    if (!mergeDept.containsKey(rangeNodeCode)) {
-                        throw new Exception("无法在树中找到排除节点：" + rangeNodeCode);
-                    }
-                    TreeUtil.removeTree(rangeNodeCode, childrenMap, mergeDept);
-                }
-                // todo  预留 支持通过表达式排除
-                if (2 == nodeRulesRange.getRange()) {
+                if (rangeNodeCode.contains("=")) {
+                    if ("*".equals((rangeNodeCode.substring(1)).trim())) {
+                        mergeDept.remove(mergeDept);
+                    } else if (Pattern.matches("=[a-zA-Z0-9_]*([a-zA-Z0-9_]*)", rangeNodeCode)) {
+                        //符合函数表达式的所有节点
+                        for (TreeBean treeBean : new ArrayList<>(mergeDept.values())) {
+                            String reg = rangeNodeCode.substring(rangeNodeCode.indexOf("(") + 1, rangeNodeCode.indexOf(")"));
+                            if (Pattern.matches(reg, treeBean.getCode())) {
+                                mergeDept.remove(treeBean.getCode());
+                            }
+                        }
+                    } else {
 
+//                        非正则(逻辑表达式)
+                        for (TreeBean treeBean : new ArrayList<>(mergeDept.values())) {
+                            try {
+                                SimpleBindings bindings = new SimpleBindings();
+                                bindings.put("$code", treeBean.getCode());
+                                String reg = rangeNodeCode.substring(1);
+                                ScriptEngineManager sem = new ScriptEngineManager();
+                                ScriptEngine engine = sem.getEngineByName("js");
+                                final Object eval = engine.eval(reg, bindings);
+                                if (null != mergeDept.get(eval)) {
+                                    mergeDept.remove(treeBean.getCode());
+                                }
+
+                            } catch (ScriptException e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+                    }
+//                    else {
+//                        for (TreeBean treeBean : new ArrayList<>(mergeDept.values())) {
+//                            if (Pattern.matches(rangeNodeCode, treeBean.getCode())) {
+//                                mergeDept.remove(treeBean.getCode());
+//                            }
+//                        }
+//                    }
+                } else {
+                    if(null!=nodeRulesRange.getRange()){
+                        if (!mergeDept.containsKey(rangeNodeCode)) {
+                            logger.error(" 规则{} 中的  code:{} 无法找到挂载节点 ", nodeRulesRange.getNodeRulesId(), rangeNodeCode);
+
+                            throw new Exception(" 规则" + nodeRulesRange.getNodeRulesId() + " 中的 : " + rangeNodeCode + "无法找到挂载节点 ");
+                        }
+                        // 排除当前节点 以及 其子节点
+                        if (0 == nodeRulesRange.getRange()) {
+
+                            mergeDept.remove(rangeNodeCode);
+                            TreeUtil.removeTree(rangeNodeCode, childrenMap, mergeDept);
+                        }
+                        // 仅排除当前节点子节点
+                        if (1 == nodeRulesRange.getRange()) {
+                            TreeUtil.removeTree(rangeNodeCode, childrenMap, mergeDept);
+                        }
+                    }else {
+                        logger.error(" 规则{} 中的  code:{} 排除规则为空 ", nodeRulesRange.getNodeRulesId(), rangeNodeCode);
+
+                        throw new Exception(" 规则" + nodeRulesRange.getNodeRulesId() + " 中的 : " + rangeNodeCode + "排除规则为空 ");
+                    }
                 }
+//                //   预留 支持通过表达式排除
+//                if (2 == nodeRulesRange.getRange()) {
+//
+//                }
             }
         }
 
@@ -166,33 +218,75 @@ public class NodeRulesCalculationServiceImpl {
             String rangeNodeCode = nodeRulesRange.getNode();
             // 挂载规则
             if (0 == nodeRulesRange.getType()) {
-                // 包含根节点一起挂载，修改根节点个parentCode
-                if (0 == nodeRulesRange.getRange()) {
+                //表达式规则
+                if (rangeNodeCode.contains("=")) {
+                    if ("*".equals((rangeNodeCode.substring(1)).trim())) {
+                        //全部节点
+                        mergeDeptMap.putAll(upstreamMap);
+                    } else if (rangeNodeCode.contains("(") && rangeNodeCode.contains(")")) {
+                        //Pattern.matches("=[a-zA-Z0-9_*]*\\([a-zA-Z0-9_*]*\\)", rangeNodeCode)
+                        //=[a-zA-Z0-9_*]*\([a-zA-Z0-9_*]*\)
+                        //=[a-zA-Z0-9_]*([a-zA-Z0-9_*]*)
+                        //符合函数表达式的所有节点
+                        for (TreeBean treeBean : new ArrayList<>(upstreamMap.values())) {
+                            String reg = rangeNodeCode.substring(rangeNodeCode.indexOf("(") + 1, rangeNodeCode.indexOf(")"));
+                            if (Pattern.matches(reg, treeBean.getCode())) {
+                                mergeDeptMap.put(treeBean.getCode(), treeBean);
+                            }
+                        }
+                    } else {
+//                        非正则(逻辑表达式)
+                        for (TreeBean treeBean : new ArrayList<>(upstreamMap.values())) {
+                            try {
+                                SimpleBindings bindings = new SimpleBindings();
+                                bindings.put("$code", treeBean.getCode());
+                                String reg = rangeNodeCode.substring(1);
+                                ScriptEngineManager sem = new ScriptEngineManager();
+                                ScriptEngine engine = sem.getEngineByName("js");
+                                final Object eval = engine.eval(reg, bindings);
+                                if (null != upstreamMap.get(eval)) {
+                                    mergeDeptMap.put(treeBean.getCode(), upstreamMap.get(eval));
+                                }
+
+                            } catch (ScriptException e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+                    }
+
+                } else {
                     if (!upstreamMap.containsKey(rangeNodeCode)) {
-                        logger.error(" 节点 {}   规则{} 中的  code:{} 无法找到挂载节点 ", nodeRulesRange.getNode(), nodeRulesRange.getNodeRulesId(), rangeNodeCode);
+                        logger.error(" 节点 {}   规则{} 中的  code:{} 无法找到挂载节点 ", nodeCode, nodeRulesRange.getNodeRulesId(), rangeNodeCode);
+
                         throw new Exception("节点 " + nodeCode + " 规则" + nodeRulesRange.getNodeRulesId() + " 中的 : " + rangeNodeCode + "无法找到挂载节点 ");
                     }
-                    TreeBean treeBean = upstreamMap.get(rangeNodeCode);
-                    treeBean.setParentCode(nodeCode);
+                    // 包含根节点一起挂载，修改根节点个parentCode
+                    if (null != nodeRulesRange.getRange()) {
+                        if (0 == nodeRulesRange.getRange()) {
+                            TreeBean treeBean = upstreamMap.get(rangeNodeCode);
+                            treeBean.setParentCode(nodeCode);
                     /*if (mainTree.containsKey(deptBean.getCode()) &&
                             (!mainTree.get(deptBean.getCode()).getParentCode().equals(deptBean.getParentCode()))) {
                         throw new Exception("挂载异常，节点中有同code不同parentCode节点：" + deptBean.getCode());
                     }*/
-                    // mainTree.put(deptBean.getCode(), deptBean);
-                    treeBean.setSource(source);
-                    mergeDeptMap.put(treeBean.getCode(), treeBean);
-                    //对该节点下所有子树同时进行挂载
-                    mergeDeptTree(treeBean.getCode(), treeBean.getCode(), childrenMap, mergeDeptMap, source);
-                }
-                // 去除根节点开始挂载
-                if (1 == nodeRulesRange.getRange()) {
-                    if (!upstreamMap.containsKey(rangeNodeCode)) {
-                        logger.error(" 节点 {}   规则{} 中的  code:{} 无法找到挂载节点 ", nodeRulesRange.getNode(), nodeRulesRange.getNodeRulesId(), rangeNodeCode);
+                            // mainTree.put(deptBean.getCode(), deptBean);
+                            treeBean.setSource(source);
+                            mergeDeptMap.put(treeBean.getCode(), treeBean);
+                            //对该节点下所有子树同时进行挂载
+                            mergeDeptTree(treeBean.getCode(), treeBean.getCode(), childrenMap, mergeDeptMap, source);
+                        }
+                        // 去除根节点开始挂载
+                        if (1 == nodeRulesRange.getRange()) {
 
-                        throw new Exception("节点 " + nodeCode + " 规则" + nodeRulesRange.getNodeRulesId() + " 中的 : " + rangeNodeCode + "无法找到挂载节点 ");
+                            //对该节点下所有子树同时进行挂载
+                            mergeDeptTree(nodeRulesRange.getNode(), nodeCode, childrenMap, mergeDeptMap, source);
+                        }
+                    }else {
+                        logger.error(" 节点 {}   规则{} 中的  code:{} 挂载规则非法 ", nodeCode, nodeRulesRange.getNodeRulesId(), rangeNodeCode);
+
+                        throw new Exception("节点 " + nodeCode + " 规则" + nodeRulesRange.getNodeRulesId() + " 中的 : " + rangeNodeCode + "没有挂载规则 ");
                     }
-                    //对该节点下所有子树同时进行挂载
-                    mergeDeptTree(nodeRulesRange.getNode(), nodeCode, childrenMap, mergeDeptMap, source);
                 }
             }
         }
@@ -244,7 +338,7 @@ public class NodeRulesCalculationServiceImpl {
      * @throws Exception
      */
     public void mergeDeptTree(String code, String parentNode, Map<String, List<TreeBean>> childrenMap,
-                              Map<String, TreeBean> mergeDeptMap, String source) throws Exception {
+                              Map<String, TreeBean> mergeDeptMap, String source) {
         List<TreeBean> children = childrenMap.get(code);
         if (null != children) {
             for (TreeBean treeJson : children) {

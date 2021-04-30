@@ -2,7 +2,8 @@ extend type Query {
 
     #查询上游源类型注册信息
     upstreamTypes(id:ID,filter:upstreamTypeFilter):[upstreamType]
-
+    #根据上游源类型获取数据
+    upstreamTypesData(id:ID):upstreamTypeData
 }
 extend type Mutation {
 
@@ -140,6 +141,10 @@ input upstreamTypeFilter{
     createTime:timestampFilter
     updateTime:timestampFilter
     synWay:integerFilter
+}
+
+type upstreamTypeData{
+    data:String
 }
 
 

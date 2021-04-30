@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @Component
@@ -76,6 +77,19 @@ public class UpstreamTypeFetcher {
                 return data;
             }
             throw new Exception("修改失败");
+        };
+    }
+
+    public DataFetcher upstreamTypesData() {
+        return dataFetchingEvn -> {
+            //1。更具token信息验证是否合法，并判断其租户
+            DomainInfo domain = CertifiedConnector.getDomain();
+            // 获取传入参数
+            Map<String, Object> arguments = dataFetchingEvn.getArguments();
+            //2。解析查询参数  进行查询
+            HashMap<Object, Object> map = upStreamTypeService.upstreamTypesData(arguments, domain.getDomainName());
+
+            return map;
         };
     }
 }
