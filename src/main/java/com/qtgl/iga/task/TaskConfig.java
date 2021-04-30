@@ -71,7 +71,7 @@ public class TaskConfig {
                                             //部门数据同步至sso
                                             final Map<TreeBean, String> deptResult = deptService.buildDeptUpdateResult(domainInfo);
                                             log.info(Thread.currentThread().getName() + ": 部门同步完成：{}==={}", deptResult.size(), System.currentTimeMillis());
-                                            taskLog.setStatus(1);
+                                            taskLog.setStatus("doing");
                                             taskLog.setDeptNo(deptResult.size());
                                             taskLogService.save(taskLog, domainInfo.getId(), "update");
                                             //岗位数据同步至sso
@@ -88,13 +88,13 @@ public class TaskConfig {
                                             //人员身份同步至sso
                                             final Map<String, List<OccupyDto>> occupyResult = occupyService.buildPerson(domainInfo);
                                             log.info(Thread.currentThread().getName() + ": 人员身份同步完成{}==={}", occupyResult.size(), System.currentTimeMillis());
+                                            taskLog.setStatus("done");
                                             taskLog.setPersonNo(occupyResult.size());
-                                            taskLog.setStatus(1);
                                             taskLogService.save(taskLog, domainInfo.getId(), "update");
                                             log.info("{}同步结束,task:{}", domainInfo.getDomainName(), taskLog.getId());
                                         } catch (Exception e) {
                                             log.error("定时同步异常：" + e);
-                                            taskLog.setStatus(2);
+                                            taskLog.setStatus("failed");
                                             taskLogService.save(taskLog, domainInfo.getId(), "update");
                                             e.printStackTrace();
                                         }

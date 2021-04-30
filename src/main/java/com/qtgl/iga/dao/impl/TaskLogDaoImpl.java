@@ -47,7 +47,7 @@ public class TaskLogDaoImpl implements TaskLogDao {
         if("save".equals(type)){
             String sql="INSERT INTO t_mgr_task_log (id, status, dept_no, post_no, person_no, occupy_no, create_time, domain)" +
                     " VALUES (?, ?, ?, ?, ?, ?, now(), ?);";
-            update = jdbcIGA.update(sql, taskLog.getId(), 0, 0, 0, 0, 0, domain);
+            update = jdbcIGA.update(sql, taskLog.getId(), "doing", 0, 0, 0, 0, domain);
         }else{
             String sql="UPDATE t_mgr_task_log " +
                     "SET status = ?, dept_no = ?, post_no = ?, person_no = ?, occupy_no = ?, update_time = now()  WHERE id = ?;";

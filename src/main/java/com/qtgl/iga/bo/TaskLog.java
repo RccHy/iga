@@ -9,7 +9,7 @@ import lombok.Data;
 public class TaskLog {
 
     private String id;
-    private Integer status;
+    private String status;
     private Integer deptNo;
     private Integer postNo;
     private Integer personNo;
