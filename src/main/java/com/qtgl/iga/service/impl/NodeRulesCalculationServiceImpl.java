@@ -131,7 +131,7 @@ public class NodeRulesCalculationServiceImpl {
                 if (rangeNodeCode.contains("=")) {
                     if ("*".equals((rangeNodeCode.substring(1)).trim())) {
                         mergeDept.remove(mergeDept);
-                    } else if (Pattern.matches("=[a-zA-Z0-9_]*([a-zA-Z0-9_]*)", rangeNodeCode)) {
+                    } else if (Pattern.matches("=[a-zA-Z0-9_]*\\(.*\\)", rangeNodeCode)) {
                         //符合函数表达式的所有节点
                         for (TreeBean treeBean : new ArrayList<>(mergeDept.values())) {
                             String reg = rangeNodeCode.substring(rangeNodeCode.indexOf("(") + 1, rangeNodeCode.indexOf(")"));
@@ -223,10 +223,12 @@ public class NodeRulesCalculationServiceImpl {
                     if ("*".equals((rangeNodeCode.substring(1)).trim())) {
                         //全部节点
                         mergeDeptMap.putAll(upstreamMap);
-                    } else if (rangeNodeCode.contains("(") && rangeNodeCode.contains(")")) {
-                        //Pattern.matches("=[a-zA-Z0-9_*]*\\([a-zA-Z0-9_*]*\\)", rangeNodeCode)
+                    } else if (Pattern.matches("=[a-zA-Z0-9_]*\\(.*\\)", rangeNodeCode)) {
+                        //rangeNodeCode.contains("(") && rangeNodeCode.contains(")")
+                        //
                         //=[a-zA-Z0-9_*]*\([a-zA-Z0-9_*]*\)
                         //=[a-zA-Z0-9_]*([a-zA-Z0-9_*]*)
+                        //"
                         //符合函数表达式的所有节点
                         for (TreeBean treeBean : new ArrayList<>(upstreamMap.values())) {
                             String reg = rangeNodeCode.substring(rangeNodeCode.indexOf("(") + 1, rangeNodeCode.indexOf(")"));
