@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import javax.script.ScriptException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -65,6 +66,17 @@ public class DeptDataFetcher {
 
 
             }
+//            catch (ScriptException e) {
+//                e.printStackTrace();
+//                logger.error(domain.getDomainName() + e.getMessage());
+////                List<TreeBean> treeBeans = deptService.findDept(arguments, domain);
+//                Object object = getObject(e, NodeRulesCalculationServiceImpl.errorData, NodeRulesCalculationServiceImpl.errorTree);
+//                NodeRulesCalculationServiceImpl.errorData = null;
+//                NodeRulesCalculationServiceImpl.errorTree = null;
+//                return object;
+//
+//
+//            }
 
         };
     }

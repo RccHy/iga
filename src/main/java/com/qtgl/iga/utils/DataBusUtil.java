@@ -183,8 +183,7 @@ public class DataBusUtil {
                 e.printStackTrace();
             }
         }
-        assert s != null;
-        if (s.contains("errors")) {
+        if (null == s || s.contains("errors")) {
             try {
                 throw new Exception("获取url失败" + s);
             } catch (Exception e) {
@@ -307,10 +306,6 @@ public class DataBusUtil {
                 JSONArray resultJson = new JSONArray();
                 Map<String, String> collect = fields.stream().collect(Collectors.toMap(UpstreamTypeField::getSourceField, UpstreamTypeField::getTargetField));
                 for (Object object : objects) {
-
-//                    String s = object.toString();
-//                    HashMap hashMap = JSON.parseObject(object.toString(), HashMap.class);
-//                    System.out.println(hashMap);
                     BeanMap beanMap = new BeanMap(object);
                     HashMap<String, String> innerMap = (HashMap<String, String>) beanMap.get("innerMap");
                     JSONObject jsonObject = new JSONObject();
@@ -325,6 +320,7 @@ public class DataBusUtil {
                             final Object eval = engine.eval(reg, bindings);
                             jsonObject.put(map.get(entry.getKey()), eval);
                         } catch (ScriptException e) {
+                            logger.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())).substring(1));
                             e.printStackTrace();
                         }
                     }

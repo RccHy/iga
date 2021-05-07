@@ -281,6 +281,9 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
         if (null != status) {
             sql = sql + "and status =? ";
             param.add(status);
+        } else {
+            sql = sql + "and status !=? ";
+            param.add(2);
         }
         List<Map<String, Object>> maps = jdbcIGA.queryForList(sql, param.toArray());
         if (null != maps && maps.size() > 0) {
