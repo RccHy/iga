@@ -1,8 +1,6 @@
 package com.qtgl.iga.service;
 
 
-import com.alibaba.fastjson.JSONArray;
-import com.google.gson.JsonArray;
 import com.qtgl.iga.bo.UpstreamType;
 import com.qtgl.iga.bo.UpstreamTypeField;
 import com.qtgl.iga.vo.UpstreamTypeVo;

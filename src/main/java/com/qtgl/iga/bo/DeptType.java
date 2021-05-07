@@ -6,6 +6,7 @@ import java.sql.Timestamp;
 
 /**
  * 组织机构类别
+ *
  * @author 1
  */
 @Data

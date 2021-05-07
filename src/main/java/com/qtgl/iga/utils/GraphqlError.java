@@ -30,10 +30,10 @@ public class GraphqlError implements GraphQLError {
         this.extensions = extensions;
     }
 
-    public GraphqlError(String message,List<ErrorData> errorData) {
+    public GraphqlError(String message, List<ErrorData> errorData) {
 
         this.message = message;
-        this.errorData=errorData;
+        this.errorData = errorData;
 
     }
 

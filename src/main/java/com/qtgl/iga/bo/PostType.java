@@ -6,6 +6,7 @@ import java.sql.Timestamp;
 
 /**
  * 岗位类别
+ *
  * @author 1
  */
 @Data

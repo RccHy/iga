@@ -134,7 +134,7 @@ public class NodeRulesCalculationServiceImpl {
                     } else if (Pattern.matches("=[a-zA-Z0-9_]*\\(.*\\)", rangeNodeCode)) {
                         //符合函数表达式的所有节点
                         for (TreeBean treeBean : new ArrayList<>(mergeDept.values())) {
-                            String reg = rangeNodeCode.substring(rangeNodeCode.indexOf("(") + 1, rangeNodeCode.indexOf(")"));
+                            String reg = rangeNodeCode.substring(rangeNodeCode.indexOf("(") + 1);
                             if (Pattern.matches(reg, treeBean.getCode())) {
                                 mergeDept.remove(treeBean.getCode());
                             }
@@ -168,7 +168,7 @@ public class NodeRulesCalculationServiceImpl {
 //                        }
 //                    }
                 } else {
-                    if(null!=nodeRulesRange.getRange()){
+                    if (null != nodeRulesRange.getRange()) {
                         if (!mergeDept.containsKey(rangeNodeCode)) {
                             logger.error(" 规则{} 中的  code:{} 无法找到挂载节点 ", nodeRulesRange.getNodeRulesId(), rangeNodeCode);
 
@@ -184,7 +184,7 @@ public class NodeRulesCalculationServiceImpl {
                         if (1 == nodeRulesRange.getRange()) {
                             TreeUtil.removeTree(rangeNodeCode, childrenMap, mergeDept);
                         }
-                    }else {
+                    } else {
                         logger.error(" 规则{} 中的  code:{} 排除规则为空 ", nodeRulesRange.getNodeRulesId(), rangeNodeCode);
 
                         throw new Exception(" 规则" + nodeRulesRange.getNodeRulesId() + " 中的 : " + rangeNodeCode + "排除规则为空 ");
@@ -284,7 +284,7 @@ public class NodeRulesCalculationServiceImpl {
                             //对该节点下所有子树同时进行挂载
                             mergeDeptTree(nodeRulesRange.getNode(), nodeCode, childrenMap, mergeDeptMap, source);
                         }
-                    }else {
+                    } else {
                         logger.error(" 节点 {}   规则{} 中的  code:{} 挂载规则非法 ", nodeCode, nodeRulesRange.getNodeRulesId(), rangeNodeCode);
 
                         throw new Exception("节点 " + nodeCode + " 规则" + nodeRulesRange.getNodeRulesId() + " 中的 : " + rangeNodeCode + "没有挂载规则 ");

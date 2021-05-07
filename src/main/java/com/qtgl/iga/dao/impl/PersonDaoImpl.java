@@ -23,7 +23,7 @@ import java.util.*;
 public class PersonDaoImpl implements PersonDao {
 
 
-   @Resource(name = "jdbcSSO")
+    @Resource(name = "jdbcSSO")
     JdbcTemplate jdbcSSO;
 
     @Resource(name = "sso-txTemplate")
@@ -149,7 +149,7 @@ public class PersonDaoImpl implements PersonDao {
         return txTemplate.execute(transactionStatus -> {
             try {
                 if (personMap.containsKey("install")) {
-                    final List<Person> list =personMap.get("install");
+                    final List<Person> list = personMap.get("install");
 
                     //list.add(.get(0));
 
@@ -178,6 +178,7 @@ public class PersonDaoImpl implements PersonDao {
                             preparedStatement.setObject(16, list.get(i).getActiveTime());
                             preparedStatement.setObject(17, "PULL");
                         }
+
                         @Override
                         public int getBatchSize() {
                             return list.size();

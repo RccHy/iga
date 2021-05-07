@@ -6,6 +6,7 @@ import lombok.Data;
 
 /**
  * 节点规则明细作用域
+ *
  * @author 1
  */
 @Data

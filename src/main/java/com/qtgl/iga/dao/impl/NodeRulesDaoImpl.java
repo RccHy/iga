@@ -47,7 +47,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
         sql.append(" order by sort asc");
         List<Map<String, Object>> maps = jdbcIGA.queryForList(sql.toString(), para.toArray());
         if (null != maps && maps.size() > 0) {
-            nodeRules=new ArrayList<>();
+            nodeRules = new ArrayList<>();
             for (Map<String, Object> map : maps) {
                 NodeRules nodeRule = new NodeRules();
                 try {

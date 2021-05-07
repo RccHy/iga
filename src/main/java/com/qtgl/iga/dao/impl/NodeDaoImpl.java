@@ -269,7 +269,7 @@ public class NodeDaoImpl implements NodeDao {
                 "node_code as nodeCode," +
                 "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status,type" +
                 " from t_mgr_node where id=?  ";
-        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql,id);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id);
         if (null == mapList || mapList.size() == 0) {
             return null;
         }

@@ -7,7 +7,8 @@ import lombok.Data;
  * <FileName> PersonEdge
  * <Desc>
  *
- * @author 1*/
+ * @author 1
+ */
 @Data
 public class PersonEdge {
 

@@ -50,7 +50,6 @@ public class DomainInfoDaoImpl implements DomainInfoDao {
     }
 
 
-
     @Override
     public DomainInfo getByDomainName(String name) {
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select id,domain_id as domainId,domain_name as domainName,client_id as clientId,client_secret as clientSecret,create_time as createTime,update_time as updateTime,create_user as createUser,status from t_mgr_domain_info where status=0");

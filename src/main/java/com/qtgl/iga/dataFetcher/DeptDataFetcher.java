@@ -58,9 +58,9 @@ public class DeptDataFetcher {
                 e.printStackTrace();
                 logger.error(domain.getDomainName() + e.getMessage());
 //                List<TreeBean> treeBeans = deptService.findDept(arguments, domain);
-                Object object = getObject(e, NodeRulesCalculationServiceImpl.errorData,NodeRulesCalculationServiceImpl.errorTree);
-                NodeRulesCalculationServiceImpl.errorData=null;
-                NodeRulesCalculationServiceImpl.errorTree=null;
+                Object object = getObject(e, NodeRulesCalculationServiceImpl.errorData, NodeRulesCalculationServiceImpl.errorTree);
+                NodeRulesCalculationServiceImpl.errorData = null;
+                NodeRulesCalculationServiceImpl.errorTree = null;
                 return object;
 
 
@@ -84,9 +84,9 @@ public class DeptDataFetcher {
 //                List<TreeBean> treeBeans = postService.findPosts(arguments, domain);
 
 
-                Object object = getObject(e, NodeRulesCalculationServiceImpl.errorData,NodeRulesCalculationServiceImpl.errorTree);
-                NodeRulesCalculationServiceImpl.errorData=null;
-                NodeRulesCalculationServiceImpl.errorTree=null;
+                Object object = getObject(e, NodeRulesCalculationServiceImpl.errorData, NodeRulesCalculationServiceImpl.errorTree);
+                NodeRulesCalculationServiceImpl.errorData = null;
+                NodeRulesCalculationServiceImpl.errorTree = null;
                 return object;
             }
         };
@@ -98,7 +98,7 @@ public class DeptDataFetcher {
         JSONArray errors = new JSONArray();
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("message", e.getLocalizedMessage());
-        jsonObject.put("errorData",errorData);
+        jsonObject.put("errorData", errorData);
         errors.add(jsonObject);
 
         hashMap.put("errors", errors);

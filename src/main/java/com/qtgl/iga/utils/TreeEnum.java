@@ -18,8 +18,8 @@ public enum TreeEnum {
 
     PARENTCODE("parentCode", "父级"),
     SOURCE("source", "来源"),
-    CREATETIME("createTime","创建时间"),
-    UPDATETIME("updateTime","修改时间");
+    CREATETIME("createTime", "创建时间"),
+    UPDATETIME("updateTime", "修改时间");
 
 
     private String code;

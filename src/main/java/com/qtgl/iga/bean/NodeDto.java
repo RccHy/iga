@@ -11,7 +11,8 @@ import java.util.List;
  * <FileName> NodeDto
  * <Desc> Node入参
  *
- * @author 1*/
+ * @author 1
+ */
 @EqualsAndHashCode(callSuper = true)
 @Data
 public class NodeDto extends Node {

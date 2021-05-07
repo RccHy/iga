@@ -32,7 +32,7 @@ public class TaskLogDataFetcher {
             // 获取传入参数
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
             //2。解析查询参数+租户进行  进行查询
-            return taskLogService.taskLogs(arguments,domain.getId());
+            return taskLogService.taskLogs(arguments, domain.getId());
         };
     }
 }

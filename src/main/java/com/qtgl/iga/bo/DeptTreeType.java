@@ -6,7 +6,8 @@ import java.sql.Timestamp;
 
 /**
  * 组织机构树类别
- * @author  1
+ *
+ * @author 1
  */
 @Data
 public class DeptTreeType {

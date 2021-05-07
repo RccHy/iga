@@ -8,7 +8,8 @@ import java.util.List;
  * <FileName> TaskLogConnection
  * <Desc>
  *
- * @author 1*/
+ * @author 1
+ */
 @Data
 public class TaskLogConnection {
 
