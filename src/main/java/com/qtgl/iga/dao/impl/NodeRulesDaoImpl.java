@@ -322,7 +322,6 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
                 param.add(entry.getValue());
             }
 
-
         }
     }
 

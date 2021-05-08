@@ -106,7 +106,7 @@ public class DeptServiceImpl implements DeptService {
             beans.addAll(insert);
         }
         //code重复性校验
-        calculationService.groupByCode(beans, status, null);
+        calculationService.groupByCode(beans, status, null, domain);
 
 
         return beans;
@@ -167,7 +167,7 @@ public class DeptServiceImpl implements DeptService {
             //  id 改为code
             mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE, "task", null);
             // 判断重复(code)
-            calculationService.groupByCode(mainTreeBeans, 0, null);
+            calculationService.groupByCode(mainTreeBeans, 0, null, domain);
 
         }
         //同步到sso
@@ -177,7 +177,7 @@ public class DeptServiceImpl implements DeptService {
             beans.addAll(treeBeans);
         }
         //code重复性校验
-        calculationService.groupByCode(beans, 0, null);
+        calculationService.groupByCode(beans, 0, null, domain);
         //保存到数据库
         saveToSso(result, tenant.getId(), null);
         return result;

@@ -91,7 +91,7 @@ public class DataBusUtil {
     }
 
 
-    public JSONArray getDataByBus(UpstreamType upstreamType, String serverName) {
+    public JSONArray getDataByBus(UpstreamType upstreamType, String serverName) throws Exception {
         //获取token
         String key = getToken(serverName);
         String[] split = upstreamType.getGraphqlUrl().split("/");
@@ -207,7 +207,7 @@ public class DataBusUtil {
 
     }
 
-    private JSONArray invokeForData(String dataUrl, UpstreamType upstreamType) {
+    private JSONArray invokeForData(String dataUrl, UpstreamType upstreamType) throws Exception {
         logger.info("source url " + dataUrl);
         //获取字段映射
         List<UpstreamTypeField> fields = upstreamTypeService.findFields(upstreamType.getId());
@@ -320,8 +320,9 @@ public class DataBusUtil {
                             final Object eval = engine.eval(reg, bindings);
                             jsonObject.put(map.get(entry.getKey()), eval);
                         } catch (ScriptException e) {
-                            logger.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())).substring(1));
-                            e.printStackTrace();
+                            logger.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
+                            throw new Exception("表达式" + collect.get(map.get(entry.getKey())) + "不符合规范请检查");
+
                         }
                     }
                     resultJson.add(jsonObject);
@@ -388,11 +389,9 @@ public class DataBusUtil {
                 logger.info("result  data --" + entry.getKey() + "------" + entry.getValue());
             }
             if (null == result || null == result.get("data")) {
-                try {
-                    throw new Exception("数据获取失败");
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+
+                throw new Exception("映射字段有误,数据获取失败");
+
             }
             JSONObject.parseObject(result.get("data").toString()).getJSONArray(upstreamType.getSynType());
             Map dataMap = (Map) result.get("data");
@@ -428,7 +427,8 @@ public class DataBusUtil {
                         final Object eval = engine.eval(reg, bindings);
                         jsonObject.put(map.get(entry.getKey()), eval);
                     } catch (ScriptException e) {
-                        e.printStackTrace();
+                        logger.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
+                        throw new Exception("表达式" + collect.get(map.get(entry.getKey())) + "不符合规范请检查");
                     }
                 }
                 resultJson.add(jsonObject);
@@ -441,7 +441,7 @@ public class DataBusUtil {
         return null;
     }
 
-    public Map getDataByBus(UpstreamType upstreamType, Integer offset, Integer first) {
+    public Map getDataByBus(UpstreamType upstreamType, Integer offset, Integer first) throws Exception {
         //获取token
         String key = getToken(null);
         String[] split = upstreamType.getGraphqlUrl().split("/");
@@ -461,7 +461,7 @@ public class DataBusUtil {
     }
 
 
-    private Map invokeForMapData(String dataUrl, UpstreamType upstreamType, Integer offset, Integer first) {
+    private Map invokeForMapData(String dataUrl, UpstreamType upstreamType, Integer offset, Integer first) throws Exception {
         logger.info("source url " + dataUrl);
         //获取字段映射
         List<UpstreamTypeField> fields = upstreamTypeService.findFields(upstreamType.getId());
@@ -530,11 +530,9 @@ public class DataBusUtil {
             }
 
             if (null == result || null == result.get("data")) {
-                try {
-                    throw new Exception("数据获取失败");
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+
+                throw new Exception("映射字段错误,数据获取失败");
+
             }
 
             Map dataMap = (Map) result.get("data");
@@ -572,7 +570,8 @@ public class DataBusUtil {
                         final Object eval = engine.eval(reg, bindings);
                         jsonObject.put(map.get(entry.getKey()), eval);
                     } catch (ScriptException e) {
-                        e.printStackTrace();
+                        logger.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
+                        throw new Exception("表达式" + collect.get(map.get(entry.getKey())) + "不符合规范请检查");
                     }
                 }
                 LinkedHashMap<String, Object> stringObjectLinkedHashMap = new LinkedHashMap<>();

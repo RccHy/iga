@@ -80,7 +80,12 @@ public class PersonServiceImpl implements PersonService {
             // 通过规则获取数据
             UpstreamType upstreamType = upstreamTypeDao.findById(rules.getUpstreamTypesId());
             ArrayList<Upstream> upstreams = upstreamDao.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
-            JSONArray dataByBus = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
+            JSONArray dataByBus = null;
+            try {
+                dataByBus = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
+            } catch (Exception e) {
+                log.error("人员治理中类型 : " + upstreamType.getUpstreamId() + "表达式异常");
+            }
             List<Person> personBeanList = dataByBus.toJavaList(Person.class);
             if (null != personBeanList) {
                 for (Person personBean : personBeanList) {
@@ -226,7 +231,13 @@ public class PersonServiceImpl implements PersonService {
         Integer first = (Integer) arguments.get("first");
         UpstreamType upstreamType = upstreamTypeDao.findById(upstreamTypeId);
         if (null != upstreamType && upstreamType.getIsPage()) {
-            Map dataMap = dataBusUtil.getDataByBus(upstreamType, offset, first);
+            Map dataMap = null;
+            try {
+                dataMap = dataBusUtil.getDataByBus(upstreamType, offset, first);
+            } catch (Exception e) {
+                log.error("人员治理中类型:{} 中 {} ", upstreamType.getDescription(), e.getMessage());
+                throw new Exception("人员治理中类型:" + upstreamType.getDescription() + "中" + e.getMessage());
+            }
 
             Map deptMap = (Map) dataMap.get(upstreamType.getSynType());
             JSONArray deptArray = (JSONArray) JSONArray.toJSON(deptMap.get("edges"));

@@ -15,12 +15,21 @@ public class ErrorData {
 
     private String code;
 
-    public ErrorData() {
-    }
+    private String rangeId;
 
     public ErrorData(String deptTreeTypeId, String nodeRulesId, String code) {
         this.deptTreeTypeId = deptTreeTypeId;
         this.nodeRulesId = nodeRulesId;
         this.code = code;
+    }
+
+    public ErrorData() {
+    }
+
+    public ErrorData(String deptTreeTypeId, String nodeRulesId, String code, String rangeId) {
+        this.deptTreeTypeId = deptTreeTypeId;
+        this.nodeRulesId = nodeRulesId;
+        this.code = code;
+        this.rangeId = rangeId;
     }
 }

@@ -10,6 +10,8 @@ import com.qtgl.iga.dao.UpstreamTypeDao;
 import com.qtgl.iga.service.UpstreamTypeService;
 import com.qtgl.iga.utils.DataBusUtil;
 import com.qtgl.iga.vo.UpstreamTypeVo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +32,7 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
     UpstreamDao upstreamDao;
     @Autowired
     DataBusUtil dataBusUtil;
+    public static Logger logger = LoggerFactory.getLogger(UpstreamTypeServiceImpl.class);
 
     @Override
     public List<UpstreamTypeVo> findAll(Map<String, Object> arguments, String domain) {
@@ -70,11 +73,19 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
     }
 
     @Override
-    public HashMap<Object, Object> upstreamTypesData(Map<String, Object> arguments, String domainName) {
-        UpstreamType id = upstreamTypeDao.findById((String) arguments.get("id"));
-        HashMap<Object, Object> map = new HashMap<>();
-        map.put("data", dataBusUtil.getDataByBus(id, domainName));
-        return map;
+    public HashMap<Object, Object> upstreamTypesData(Map<String, Object> arguments, String domainName) throws Exception {
+        UpstreamType id = null;
+        try {
+            id = upstreamTypeDao.findById((String) arguments.get("id"));
+            HashMap<Object, Object> map = new HashMap<>();
+            map.put("data", dataBusUtil.getDataByBus(id, domainName));
+            return map;
+        } catch (Exception e) {
+            logger.error("当前类型{}中的{},获取数据失败", id.getDescription(), e.getMessage());
+            throw new Exception("当前类型" + id.getDescription() + "中的" + e.getMessage() + ",获取数据失败");
+        }
+
+
     }
 
 }

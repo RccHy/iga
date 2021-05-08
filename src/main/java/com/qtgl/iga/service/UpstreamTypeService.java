@@ -22,5 +22,5 @@ public interface UpstreamTypeService {
 
     List<UpstreamTypeField> findFields(String url);
 
-    HashMap<Object, Object> upstreamTypesData(Map<String, Object> arguments, String domainName);
+    HashMap<Object, Object> upstreamTypesData(Map<String, Object> arguments, String domainName) throws Exception;
 }

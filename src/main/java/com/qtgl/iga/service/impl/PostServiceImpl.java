@@ -85,11 +85,11 @@ public class PostServiceImpl implements PostService {
         for (TreeBean rootBean : rootBeans) {
             mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, "task", rootBeans);
             // 判断重复(code)
-            calculationService.groupByCode(mainTreeBeans, 0, rootBeans);
+            calculationService.groupByCode(mainTreeBeans, 0, rootBeans,domain);
         }
 //
         // 判断重复(code)
-        calculationService.groupByCode(mainTreeBeans, 0, rootBeans);
+        calculationService.groupByCode(mainTreeBeans, 0, rootBeans,domain);
 
         //通过tenantId查询ssoApis库中的数据
         List<TreeBean> beans = postDao.findByTenantId(tenant.getId());
@@ -113,7 +113,7 @@ public class PostServiceImpl implements PostService {
         }
 
         // 判断重复(code)
-        calculationService.groupByCode(beans, 0, rootBeans);
+        calculationService.groupByCode(beans, 0, rootBeans,domain);
 
         saveToSso(result, tenant.getId(), null);
 
@@ -191,7 +191,7 @@ public class PostServiceImpl implements PostService {
             beans.addAll(treeBeans);
         }
         // 判断重复(code)
-        calculationService.groupByCode(beans, status, rootBeans);
+        calculationService.groupByCode(beans, status, rootBeans,domain);
 
         return beans;
 

@@ -59,9 +59,9 @@ public class DeptDataFetcher {
                 e.printStackTrace();
                 logger.error(domain.getDomainName() + e.getMessage());
 //                List<TreeBean> treeBeans = deptService.findDept(arguments, domain);
-                Object object = getObject(e, NodeRulesCalculationServiceImpl.errorData, NodeRulesCalculationServiceImpl.errorTree);
-                NodeRulesCalculationServiceImpl.errorData = null;
-                NodeRulesCalculationServiceImpl.errorTree = null;
+                Object object = getObject(e, NodeRulesCalculationServiceImpl.errorData.get(domain.getDomainName()), NodeRulesCalculationServiceImpl.errorTree.get(domain.getDomainName()));
+//                NodeRulesCalculationServiceImpl.errorData.put(domain.getDomainName(),null);
+//                NodeRulesCalculationServiceImpl.errorTree.put(domain.getDomainName(),null);
                 return object;
 
 
@@ -96,9 +96,9 @@ public class DeptDataFetcher {
 //                List<TreeBean> treeBeans = postService.findPosts(arguments, domain);
 
 
-                Object object = getObject(e, NodeRulesCalculationServiceImpl.errorData, NodeRulesCalculationServiceImpl.errorTree);
-                NodeRulesCalculationServiceImpl.errorData = null;
-                NodeRulesCalculationServiceImpl.errorTree = null;
+                Object object = getObject(e, NodeRulesCalculationServiceImpl.errorData.get(domain.getDomainName()), NodeRulesCalculationServiceImpl.errorTree.get(domain.getDomainName()));
+//                NodeRulesCalculationServiceImpl.errorData = null;
+//                NodeRulesCalculationServiceImpl.errorTree = null;
                 return object;
             }
         };
