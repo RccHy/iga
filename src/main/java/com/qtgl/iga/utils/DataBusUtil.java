@@ -293,11 +293,11 @@ public class DataBusUtil {
                     for (Object deptOb : deptArray) {
                         JSONObject nodeJson = (JSONObject) deptOb;
                         JSONObject node1 = nodeJson.getJSONObject("node");
-                        if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
-                            for (UpstreamTypeField field : upstreamTypeFields) {
-                                node1.put(field.getSourceField(), field.getTargetField());
-                            }
-                        }
+//                        if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
+//                            for (UpstreamTypeField field : upstreamTypeFields) {
+//                                node1.put(field.getSourceField(), field.getTargetField());
+//                            }
+//                        }
 
                         objects.add(node1);
                     }
@@ -323,6 +323,11 @@ public class DataBusUtil {
                             logger.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
                             throw new Exception("表达式" + collect.get(map.get(entry.getKey())) + "不符合规范请检查");
 
+                        }
+                    }
+                    if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
+                        for (UpstreamTypeField field : upstreamTypeFields) {
+                            jsonObject.put(field.getSourceField(), field.getTargetField());
                         }
                     }
                     resultJson.add(jsonObject);
@@ -399,11 +404,11 @@ public class DataBusUtil {
             for (Object o : dept) {
                 JSONObject nodeJson = (JSONObject) o;
                 JSONObject node1 = nodeJson.getJSONObject("node");
-                if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
-                    for (UpstreamTypeField field : upstreamTypeFields) {
-                        node1.put(field.getSourceField(), field.getTargetField());
-                    }
-                }
+//                if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
+//                    for (UpstreamTypeField field : upstreamTypeFields) {
+//                        node1.put(field.getSourceField(), field.getTargetField());
+//                    }
+//                }
                 objects.add(node1);
             }
             JSONArray resultJson = new JSONArray();
@@ -431,9 +436,27 @@ public class DataBusUtil {
                         throw new Exception("表达式" + collect.get(map.get(entry.getKey())) + "不符合规范请检查");
                     }
                 }
+                if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
+                    for (UpstreamTypeField field : upstreamTypeFields) {
+                        jsonObject.put(field.getSourceField(), field.getTargetField());
+                    }
+                }
                 resultJson.add(jsonObject);
 
             }
+//            JSONArray objects1 = new JSONArray();
+//            if (null != resultJson) {
+//                for (Object deptOb : resultJson) {
+//                    JSONObject nodeJson = (JSONObject) deptOb;
+//                    if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
+//                        for (UpstreamTypeField field : upstreamTypeFields) {
+//                            nodeJson.put(field.getSourceField(), field.getTargetField());
+//                        }
+//                    }
+//
+//                    objects1.add(nodeJson);
+//                }
+//            }
             return resultJson;
         }
 
@@ -542,11 +565,11 @@ public class DataBusUtil {
                 for (Object deptOb : deptArray) {
                     JSONObject nodeJson = (JSONObject) deptOb;
                     JSONObject node1 = nodeJson.getJSONObject("node");
-                    if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
-                        for (UpstreamTypeField field : upstreamTypeFields) {
-                            node1.put(field.getSourceField(), field.getTargetField());
-                        }
-                    }
+//                    if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
+//                        for (UpstreamTypeField field : upstreamTypeFields) {
+//                            node1.put(field.getSourceField(), field.getTargetField());
+//                        }
+//                    }
 
                     objects.add(node1);
                 }
@@ -575,9 +598,15 @@ public class DataBusUtil {
                     }
                 }
                 LinkedHashMap<String, Object> stringObjectLinkedHashMap = new LinkedHashMap<>();
+                if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
+                    for (UpstreamTypeField field : upstreamTypeFields) {
+                        jsonObject.put(field.getSourceField(), field.getTargetField());
+                    }
+                }
                 stringObjectLinkedHashMap.put("node", jsonObject);
                 rs.add(stringObjectLinkedHashMap);
             }
+
 
             deptMap.put("edges", rs);
 
