@@ -1,15 +1,31 @@
-### XXXX
+### 20210509
 
 **数据库：**
 
-- 执行iga/update/update.sql下XXXX的sql
+- 执行iga/update/update.sql下 20210509的sql
 
 **new：**
 
 1：日志监控
     监控定时任务监控情况
 
+2：增加环境变量**TASK_CRON**，控制定时同步任务时间。默认值 0 */5 * * * ?
 
+**change：**
+
+1: 支持表达式  （=开头判定为表达式）
+* 挂载节点支持 **'全部'**（=*） 以及  **正则**  (=Reg(^hr_20.*$))
+* 权威源字段映射可直接通过表达式进行 **重命名** (="hr_"+$Code) 以及 **正则**
+* 去除规则配置中的重命名规则
+    
+**delete：**
+- 无
+
+**image：**
+- docker.qtgl.com.cn/product/iga:20210509
+
+**依赖其他项目：**
+- docker.qtgl.com.cn/product/console:20210509
 
 
 
