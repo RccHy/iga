@@ -49,6 +49,7 @@ tenantId: "" 租户全局code(domain)
 | BUS_URL | 网关bus地址 | https://cloud.ketanyun.cn/bus 支持多租环境，多组环境下任意挑选其中一租户的sso绝对路径
 | APP_CLIENT | 应用id | ------
 | APP_SECRET | 应用密钥 |------
+| TASK_CRON | 同步时间 | 控制定时同步任务间隔时间。默认值 0 */5 * * * ?
 
 * 注：
 在maker中创建应用，并在sso/admin中勾选scope客户端认证：data、introspect<br/>
