@@ -5,6 +5,7 @@ import com.qtgl.iga.bo.UpstreamType;
 import com.qtgl.iga.bo.UpstreamTypeField;
 import com.qtgl.iga.vo.UpstreamTypeVo;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -20,4 +21,6 @@ public interface UpstreamTypeService {
     UpstreamType updateUpstreamType(UpstreamType upstreamType) throws Exception;
 
     List<UpstreamTypeField> findFields(String url);
+
+    HashMap<Object, Object> upstreamTypesData(Map<String, Object> arguments, String domainName) throws Exception;
 }

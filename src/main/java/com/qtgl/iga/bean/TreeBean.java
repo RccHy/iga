@@ -6,6 +6,9 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
+/**
+ * @author 1
+ */
 @Data
 public class TreeBean {
 
@@ -26,7 +29,7 @@ public class TreeBean {
     private String source;
 
     /**
-     * push  PULL  builtin
+     * push  PULL  BUILTIN
      */
     private String dataSource;
 
@@ -48,6 +51,10 @@ public class TreeBean {
     private String type;
 
     private Integer active;
+
+    private String ruleId;
+
+//    private String deptTreeTypeId;
 //    public DeptBean(Dept dept) {
 //        this.setCode(dept.getDeptCode());
 //        this.setParentCode(dept.getParentCode());

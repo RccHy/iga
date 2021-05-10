@@ -5,7 +5,6 @@ import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.NodeRules;
 import com.qtgl.iga.vo.NodeRulesVo;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Map;
 
@@ -13,7 +12,6 @@ public interface NodeRulesDao {
 
 
     List<NodeRules> getByNodeAndType(String nodeId, Integer type, Boolean active, Integer status);
-
 
     NodeDto saveNodeRules(NodeDto nodeRules);
 
@@ -31,7 +29,7 @@ public interface NodeRulesDao {
 
     Integer deleteNodeRulesById(String id);
 
-    List<NodeRules> findNodeRulesByUpStreamTypeId(String id, Integer status) throws InvocationTargetException, IllegalAccessException;
+    List<NodeRules> findNodeRulesByUpStreamTypeId(String id, Integer status);
 
     Integer makeNodeRulesToHistory(String id, Integer status);
 }

@@ -7,5 +7,7 @@ import com.qtgl.iga.bo.Tenant;
  * <Desc>
  **/
 public interface TenantDao {
+
     Tenant findByDomainName(String domainName);
+
 }

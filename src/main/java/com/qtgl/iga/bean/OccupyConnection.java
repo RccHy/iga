@@ -7,7 +7,9 @@ import java.util.List;
 /**
  * <FileName> OccupyConnection
  * <Desc>
- **/
+ *
+ * @author 1
+ */
 @Data
 public class OccupyConnection {
 

@@ -415,7 +415,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
                     if ("synWay".equals(str.getKey())) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            stb.append("and syn_way " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                            stb.append("and syn_way ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                             param.add(soe.getValue());
                         }
                     }
@@ -434,7 +434,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         Object[] params = new Object[1];
         params[0] = upId;
         String sql = "select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_type_id as deptTypeId,enable_prefix as enablePrefix,active,active_time asactiveTime,root,create_time as createTime,update_time as updateTime," +
-                " graphql_url as graphqlUrl,service_code as serviceCode,domain,syn_way as synWay from  t_mgr_upstream_types where  upstream_id = ?";
+                " graphql_url as graphqlUrl,service_code as serviceCode,domain,syn_way as synWay,is_page as isPage from  t_mgr_upstream_types where  upstream_id = ?";
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, params);
         ArrayList<UpstreamType> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
@@ -484,7 +484,6 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         List<Map<String, Object>> filedList = jdbcIGA.queryForList("select id,upstream_type_id as upstreamTypeId,source_field as sourceField , target_field as targetField,create_time as createTime,update_time as updateTime,domain from t_mgr_upstream_types_field where upstream_type_id = ? ", id);
         return getUpstreamTypeFields(filedList);
     }
-
 
 
     @Override

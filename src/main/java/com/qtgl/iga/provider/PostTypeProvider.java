@@ -18,18 +18,16 @@ public class PostTypeProvider {
     PostTypeDataFetcher dataFetcher;
 
     public TypeRuntimeWiring.Builder buildQueryRuntimeWiring() {
-        TypeRuntimeWiring.Builder builder = newTypeWiring("Query")
+        return newTypeWiring("Query")
                 .dataFetcher("postTypes", dataFetcher.postTypes());
-        return builder;
     }
 
 
     public TypeRuntimeWiring.Builder buildMutationRuntimeWiring() throws Exception {
-        TypeRuntimeWiring.Builder builder = newTypeWiring("Mutation")
+        return newTypeWiring("Mutation")
                 .dataFetcher("savePostType", dataFetcher.savePostType())
                 .dataFetcher("deletePostType", dataFetcher.deletePostType())
                 .dataFetcher("updatePostType", dataFetcher.updatePostType());
-        return builder;
 
     }
 

@@ -27,6 +27,8 @@ public interface NodeDao {
 
     List<Node> findNodesByStatusAndType(Integer status, String type, String domain, Object version);
 
+    List<Node> findById(String id);
+
 
 //    Integer publishNode(String id);
 

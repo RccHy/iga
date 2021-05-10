@@ -19,18 +19,16 @@ public class NodeRulesRangeProvider {
     NodeRulesRangeDataFetcher dataFetcher;
 
     public TypeRuntimeWiring.Builder buildQueryRuntimeWiring() {
-        TypeRuntimeWiring.Builder builder = newTypeWiring("Query")
+        return newTypeWiring("Query")
                 .dataFetcher("nodeRulesRanges", dataFetcher.findNodeRulesRange());
-        return builder;
     }
 
 
     public TypeRuntimeWiring.Builder buildMutationRuntimeWiring() {
-        TypeRuntimeWiring.Builder builder = newTypeWiring("Mutation")
+        return newTypeWiring("Mutation")
                 .dataFetcher("saveNodeRulesRange", dataFetcher.saveNodeRulesRange())
                 .dataFetcher("deleteNodeRulesRange", dataFetcher.deleteNodeRulesRange())
                 .dataFetcher("updateNodeRulesRange", dataFetcher.updateNodeRulesRange());
-        return builder;
 
     }
 

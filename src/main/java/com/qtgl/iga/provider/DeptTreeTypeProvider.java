@@ -18,18 +18,16 @@ public class DeptTreeTypeProvider {
     DeptTreeTypeDataFetcher dataFetcher;
 
     public TypeRuntimeWiring.Builder buildQueryRuntimeWiring() {
-        TypeRuntimeWiring.Builder builder = newTypeWiring("Query")
+        return newTypeWiring("Query")
                 .dataFetcher("deptTreeTypes", dataFetcher.deptTreeTypes());
-        return builder;
     }
 
 
     public TypeRuntimeWiring.Builder buildMutationRuntimeWiring() throws Exception {
-        TypeRuntimeWiring.Builder builder = newTypeWiring("Mutation")
+        return newTypeWiring("Mutation")
                 .dataFetcher("saveDeptTreeType", dataFetcher.saveDeptTreeType())
                 .dataFetcher("deleteDeptTreeType", dataFetcher.deleteDeptTreeType())
                 .dataFetcher("updateDeptTreeType", dataFetcher.updateDeptTreeType());
-        return builder;
 
     }
 

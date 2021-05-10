@@ -3,7 +3,7 @@ package com.qtgl.iga.dao.impl;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.Dept;
 import com.qtgl.iga.dao.DeptDao;
-import org.apache.commons.beanutils.BeanUtils;
+import com.qtgl.iga.utils.MyBeanUtils;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -94,7 +94,8 @@ public class DeptDaoImpl implements DeptDao {
             for (Map<String, Object> map : mapList) {
                 TreeBean dept = new TreeBean();
                 try {
-                    BeanUtils.populate(dept, map);
+                    //ConvertUtils.register(new IntegerConverter(null), Integer.class);
+                    MyBeanUtils.populate(dept, map);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }
@@ -246,7 +247,7 @@ public class DeptDaoImpl implements DeptDao {
                             preparedStatement.setObject(11, insertList.get(i).getCreateTime());
                             preparedStatement.setObject(12, insertList.get(i).getTags());
                             preparedStatement.setObject(13, insertList.get(i).getIndependent());
-                            preparedStatement.setObject(14, 0);
+                            preparedStatement.setObject(14, 1);
                             preparedStatement.setObject(15, LocalDateTime.now());
                             preparedStatement.setObject(16, insertList.get(i).getTreeType());
                             preparedStatement.setObject(17, insertList.get(i).getDeptIndex());

@@ -17,13 +17,22 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
+import javax.script.SimpleBindings;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+/**
+ * @author 1
+ */
 @Controller
 @RequestMapping("/test")
 @Slf4j
@@ -65,7 +74,7 @@ public class HelloController {
     @ResponseBody
     public void testDb() {
         try {
-            System.out.println("=======START======="+ DateUtil.getNow() +"=================");
+            System.out.println("=======START=======" + DateUtil.getNow() + "=================");
             final List<DomainInfo> all = domainInfoService.findAll();
             final DomainInfo domainInfo = all.get(0);
             //部门数据同步至sso
@@ -84,7 +93,7 @@ public class HelloController {
             final Map<String, List<OccupyDto>> occupyResult = occupyService.buildPerson(domainInfo);
             log.info(Thread.currentThread().getName() + ": 人员身份同步完成{}==={}", occupyResult.size(), System.currentTimeMillis());
 
-            System.out.println("=======END======="+ DateUtil.getNow() +"=================");
+            System.out.println("=======END=======" + DateUtil.getNow() + "=================");
         } catch (Exception e) {
             log.error("定时同步异常：" + e);
             e.printStackTrace();
@@ -99,6 +108,39 @@ public class HelloController {
         DomainInfo byDomainName = domainInfoService.getByDomainName(request.getServerName());
 
         postService.buildPostUpdateResult(byDomainName);
+
+    }
+
+    public static void main(String[] args) throws ScriptException {
+
+        String str = "=red(1*)";
+        String pattern = "=[a-zA-Z0-9_]*([a-zA-Z0-9_]*)";
+
+        Pattern r = Pattern.compile(pattern);
+        Matcher m = r.matcher(str);
+        System.out.println(m.matches());
+        System.out.println(Pattern.matches("=[a-zA-Z0-9_*]*\\([a-zA-Z0-9_*+\\[ \\]]*\\)", "=rrr(1[0-9]*)"));
+
+
+        //        SimpleBindings bindings = new SimpleBindings();
+//        bindings.put("$code", "1000");
+//        String reg="(1+2)+$code";
+//        ScriptEngineManager sem = new ScriptEngineManager();
+//        ScriptEngine engine = sem.getEngineByName("js");
+//        final Object eval = engine.eval(reg, bindings);
+//        System.out.println(eval);
+//        String pattern = "\\$[a-zA-Z0-9_]+";
+//        String reg = "=[a-zA-Z0-9_]+";
+//
+//
+//        Pattern r = Pattern.compile(reg);
+//        Matcher m = r.matcher("=$Parent");
+//
+//        if (m.find()) {
+//            System.out.println("Found value: " + m.group(0));
+//        } else {
+//            System.out.println("NO MATCH");
+//        }
 
     }
 

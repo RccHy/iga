@@ -29,6 +29,10 @@ type Dept{
     type:String
     #标签
     tags:String
+#    #组织机构类型id
+#    deptTreeTypeId:String
+#    #ruleId
+#    ruleId:String
 
 }
 
@@ -44,22 +48,22 @@ type PersonEdge{
 }
 
 type Person{
-
+    #姓名
     name:String
+    #用户名
     accountNo:String
+    #身份类型
     cardType:String
+    #身份编码
     cardNo:String
+    #标签
     tags:String
+    #租户id
     tenantId:String
+    #电话
     cellphone:String
+    #邮箱
     email:String
-    #    source:String
-    #    dataSource:String
-    #    active:String
-    #    activeTime:Timestamp
-    #    createTime:Timestamp
-    #    updateTime:Timestamp
-    #    openId:String
 
 }
 
@@ -74,23 +78,24 @@ type OccupyEdge{
     node: Occupy
 }
 type Occupy{
-
+    #岗位代码
     postCode:String
+    #部门代码
     deptCode:String
+    #证件类型
     personCardType:String
+    #证件代码
     personCardNo:String
+    #身份证件类型
     identityCardType:String
+    #身份证件号码
     identityCardNo:String
+    #有效期开始时间
     startTime:Timestamp
+    #有效期结束时间
     endTime:Timestamp
+    #排序
     index:Int
-    #    source:String
-    #    dataSource:String
-    #    active:String
-    #    activeTime:Timestamp
-    #    createTime:Timestamp
-    #    updateTime:Timestamp
-    #    openId:String
 
 }
 

@@ -96,6 +96,11 @@ spec:
               secretKeyRef:
                 name: iga-secret
                 key: bus_url
+          - name: TASK_CRON
+            valueFrom:
+              secretKeyRef:
+                name: iga-secret
+                key: task_cron
         ports:
         - containerPort: 8080
       imagePullSecrets:

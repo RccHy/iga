@@ -3,6 +3,7 @@ package com.qtgl.iga.dao.impl;
 import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.NodeRules;
 import com.qtgl.iga.dao.NodeRulesDao;
+import com.qtgl.iga.utils.MyBeanUtils;
 import com.qtgl.iga.vo.NodeRulesVo;
 import org.apache.commons.beanutils.BeanUtils;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
@@ -27,7 +28,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
 
     @Override
     public List<NodeRules> getByNodeAndType(String nodeId, Integer type, Boolean active, Integer status) {
-        List<NodeRules> nodeRules = new ArrayList<>();
+        List<NodeRules> nodeRules = null;
         List<Object> para = new ArrayList<>();
         para.add(nodeId);
         para.add(active);
@@ -46,13 +47,15 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
         sql.append(" order by sort asc");
         List<Map<String, Object>> maps = jdbcIGA.queryForList(sql.toString(), para.toArray());
         if (null != maps && maps.size() > 0) {
+            nodeRules = new ArrayList<>();
             for (Map<String, Object> map : maps) {
                 NodeRules nodeRule = new NodeRules();
                 try {
-                    BeanUtils.populate(nodeRule, map);
+                    MyBeanUtils.populate(nodeRule, map);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }
+
                 nodeRules.add(nodeRule);
             }
         }
@@ -101,6 +104,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
 
             @Override
             public int getBatchSize() {
+                assert nodeRules != null;
                 return nodeRules.size();
             }
         });
@@ -129,7 +133,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
             for (Map<String, Object> map : mapList) {
                 NodeRules nodeRules = new NodeRules();
                 try {
-                    BeanUtils.populate(nodeRules, map);
+                    MyBeanUtils.populate(nodeRules, map);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }
@@ -190,7 +194,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
             for (Map<String, Object> map : mapList) {
                 NodeRulesVo nodeRules = new NodeRulesVo();
                 try {
-                    BeanUtils.populate(nodeRules, map);
+                    MyBeanUtils.populate(nodeRules, map);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }
@@ -243,7 +247,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
             try {
                 for (Map<String, Object> map : mapList) {
                     NodeRules nodeRules = new NodeRules();
-                    BeanUtils.populate(nodeRules, map);
+                    MyBeanUtils.populate(nodeRules, map);
                     list.add(nodeRules);
                 }
             } catch (IllegalAccessException | InvocationTargetException e) {
@@ -267,7 +271,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
     }
 
     @Override
-    public List<NodeRules> findNodeRulesByUpStreamTypeId(String id, Integer status) throws InvocationTargetException, IllegalAccessException {
+    public List<NodeRules> findNodeRulesByUpStreamTypeId(String id, Integer status) {
         List<NodeRules> nodeRules = new ArrayList<>();
         String sql = "select id,node_id as nodeId,type as type,active as active," +
                 "create_time as createTime,service_key as serviceKey,upstream_types_id as upstreamTypesId,inherit_id as inheritId," +
@@ -277,13 +281,16 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
         if (null != status) {
             sql = sql + "and status =? ";
             param.add(status);
+        } else {
+            sql = sql + "and status !=? ";
+            param.add(2);
         }
         List<Map<String, Object>> maps = jdbcIGA.queryForList(sql, param.toArray());
         if (null != maps && maps.size() > 0) {
             for (Map<String, Object> map : maps) {
                 NodeRules nodeRule = new NodeRules();
                 try {
-                    BeanUtils.populate(nodeRule, map);
+                    MyBeanUtils.populate(nodeRule, map);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }
@@ -314,7 +321,6 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
                 stb.append("and id= ? ");
                 param.add(entry.getValue());
             }
-
 
         }
     }

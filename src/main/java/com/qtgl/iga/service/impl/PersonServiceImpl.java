@@ -17,10 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -78,12 +75,17 @@ public class PersonServiceImpl implements PersonService {
         List<NodeRules> userRules = rulesDao.getByNodeAndType(nodeId, 1, true, 0);
         // 根据证件类型+证件号进行合重
         Map<String, Person> personFromUpstream = new ConcurrentHashMap<>();
+        final LocalDateTime now = LocalDateTime.now();
         userRules.forEach(rules -> {
             // 通过规则获取数据
             UpstreamType upstreamType = upstreamTypeDao.findById(rules.getUpstreamTypesId());
             ArrayList<Upstream> upstreams = upstreamDao.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
-            JSONArray dataByBus = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
-            final LocalDateTime now = LocalDateTime.now();
+            JSONArray dataByBus = null;
+            try {
+                dataByBus = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
+            } catch (Exception e) {
+                log.error("人员治理中类型 : " + upstreamType.getUpstreamId() + "表达式异常");
+            }
             List<Person> personBeanList = dataByBus.toJavaList(Person.class);
             if (null != personBeanList) {
                 for (Person personBean : personBeanList) {
@@ -132,6 +134,7 @@ public class PersonServiceImpl implements PersonService {
         Map<String, Person> personFromSSOMap = personFromSSO.stream().filter(person -> !StringUtils.isEmpty(person.getCardType()) && !StringUtils.isEmpty(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
         // 存储最终需要操作的数据
         Map<String, List<Person>> result = new HashMap<>();
+
         personFromSSOMap.forEach((key, val) -> {
             // 对比出需要修改的person
             if (personFromUpstream.containsKey(key) &&
@@ -175,6 +178,7 @@ public class PersonServiceImpl implements PersonService {
                 if (flag) {
                     val.setSource(newPerson.getSource());
                     val.setUpdateTime(newPerson.getUpdateTime());
+                    log.info("对比后需要修改{}", val.toString());
                     if (result.containsKey("update")) {
                         result.get("update").add(val);
                     } else {
@@ -183,9 +187,9 @@ public class PersonServiceImpl implements PersonService {
                         }});
                     }
                 }
-                log.info("对比后需要修改{}", val.toString());
+
             } else if (!personFromUpstream.containsKey(key) && 1 != val.getDelMark() && "PULL".equalsIgnoreCase(val.getDataSource())) {
-                val.setUpdateTime(personFromUpstream.get(key).getUpdateTime());
+                val.setUpdateTime(now);
                 if (result.containsKey("delete")) {
                     result.get("delete").add(val);
                 } else {
@@ -200,6 +204,7 @@ public class PersonServiceImpl implements PersonService {
 
         personFromUpstream.forEach((key, val) -> {
             if (!personFromSSOMap.containsKey(key)) {
+                val.setId(UUID.randomUUID().toString());
                 val.setOpenId(RandomStringUtils.randomAlphanumeric(20));
                 if (result.containsKey("install")) {
                     result.get("install").add(val);
@@ -227,7 +232,13 @@ public class PersonServiceImpl implements PersonService {
         Integer first = (Integer) arguments.get("first");
         UpstreamType upstreamType = upstreamTypeDao.findById(upstreamTypeId);
         if (null != upstreamType && upstreamType.getIsPage()) {
-            Map dataMap = dataBusUtil.getDataByBus(upstreamType, offset, first);
+            Map dataMap = null;
+            try {
+                dataMap = dataBusUtil.getDataByBus(upstreamType, offset, first);
+            } catch (Exception e) {
+                log.error("人员治理中类型:{} 中 {} ", upstreamType.getDescription(), e.getMessage());
+                throw new Exception("人员治理中类型:" + upstreamType.getDescription() + "中" + e.getMessage());
+            }
 
             Map deptMap = (Map) dataMap.get(upstreamType.getSynType());
             JSONArray deptArray = (JSONArray) JSONArray.toJSON(deptMap.get("edges"));

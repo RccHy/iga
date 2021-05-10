@@ -3,6 +3,7 @@ package com.qtgl.iga.service.impl;
 import com.alibaba.druid.util.StringUtils;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.qtgl.iga.bean.ErrorData;
 import com.qtgl.iga.bean.OccupyConnection;
 import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bean.OccupyEdge;
@@ -90,7 +91,16 @@ public class OccupyServiceImpl implements OccupyService {
             UpstreamType upstreamType = upstreamTypeDao.findById(rules.getUpstreamTypesId());
             ArrayList<Upstream> upstreams = upstreamDao.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
             final LocalDateTime now = LocalDateTime.now();
-            JSONArray dataByBus = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
+            JSONArray dataByBus = null;
+            //todo 异常
+            try {
+                dataByBus = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
+            } catch (Exception e) {
+
+                log.error("人员身份类型中 : " + upstreamType.getUpstreamId() + "表达式异常");
+//                throw new Exception("人员身份类型中 : "+upstreamType.getUpstreamId()+"表达式异常");
+
+            }
             final List<OccupyDto> occupies = dataByBus.toJavaList(OccupyDto.class);
             for (OccupyDto occupyDto : occupies) {
                 if (StringUtils.isEmpty(occupyDto.getPersonCardType()) || StringUtils.isEmpty(occupyDto.getPersonCardNo())) {
@@ -123,7 +133,7 @@ public class OccupyServiceImpl implements OccupyService {
                 if (null == occupyDto.getDelMark()) {
                     occupyDto.setDelMark(0);
                 }
-                if(null==occupyDto.getActive()){
+                if (null == occupyDto.getActive()) {
                     occupyDto.setActive("1");
                     occupyDto.setActiveTime(LocalDateTime.now());
                 }
@@ -158,7 +168,7 @@ public class OccupyServiceImpl implements OccupyService {
                 if (null != fields && fields.size() > 0) {
                     for (UpstreamTypeField field : fields) {
                         String sourceField = field.getSourceField();
-                        if("personCardType".equals(sourceField)||"personCardNo".equals(sourceField)){
+                        if ("personCardType".equals(sourceField) || "personCardNo".equals(sourceField)) {
                             continue;
                         }
                         Object newValue = ClassCompareUtil.getGetMethod(newOccupy, sourceField);
@@ -242,7 +252,13 @@ public class OccupyServiceImpl implements OccupyService {
         Integer first = (Integer) arguments.get("first");
         UpstreamType upstreamType = upstreamTypeDao.findById(upstreamTypeId);
         if (null != upstreamType && upstreamType.getIsPage()) {
-            Map dataMap = dataBusUtil.getDataByBus(upstreamType, offset, first);
+            Map dataMap = null;
+            try {
+                dataMap = dataBusUtil.getDataByBus(upstreamType, offset, first);
+            } catch (Exception e) {
+                log.error("人员身份治理中类型:{} 中 {} ", upstreamType.getDescription(), e.getMessage());
+                throw new Exception("人员身份治理中类型:" + upstreamType.getDescription() + "中" + e.getMessage());
+            }
 
             Map deptMap = (Map) dataMap.get(upstreamType.getSynType());
             JSONArray deptArray = (JSONArray) JSONArray.toJSON(deptMap.get("edges"));

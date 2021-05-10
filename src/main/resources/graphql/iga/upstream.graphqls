@@ -1,24 +1,24 @@
 extend type Query {
 
     #查询上游源注册信息
-    upstreams(id:ID,filter:upstreamFilter):[upstream]
+    upstreams(id:ID,filter:UpstreamFilter):[Upstream]
 
     #新版查询上游源及类型(带类型)
-    upstreamsAndTypes(id:ID,filter:upstreamFilter):[upstream]
+    upstreamsAndTypes(id:ID,filter:UpstreamFilter):[Upstream]
 
 }
 extend type Mutation {
 
 
     #新增上游源注册
-    saveUpstream(entity:InputUpstream!):upstream
+    saveUpstream(entity:InputUpstream!):Upstream
 
     #新版上游源注册(带类型)
     #    saveUpstreamAndTypes(entity:InputUpstream!):upstream
     #根据id删除上游源注册
-    deleteUpstream(id:ID!): upstream
+    deleteUpstream(id:ID!): Upstream
     #更新上游源注册
-    updateUpstream(entity:InputUpstream!):upstream
+    updateUpstream(entity:InputUpstream!):Upstream
 
     #更新上游源及类型
     #    updateUpstreamAndTypes(entity:InputUpstream!):upstream
@@ -27,7 +27,7 @@ extend type Mutation {
 
 
 #上游源注册信息实体
-type upstream{
+type Upstream{
     # 主键
     id:ID
     # 应用代码，如人事：HR_SYS
@@ -49,7 +49,7 @@ type upstream{
     # 代表色
     color:String
     #上游源类型
-    upstreamTypes:[upstreamType]
+    upstreamTypes:[UpstreamType]
 
 }
 
@@ -78,11 +78,11 @@ input InputUpstream{
     # 代表色
     color:String
     #上游源类型
-    upstreamTypes:[InputupstreamType]
+    upstreamTypes:[InputUpstreamType]
 
 }
 
-input upstreamFilter{
+input UpstreamFilter{
     appCode:stringFilter
     appName:stringFilter
     dataCode:stringFilter

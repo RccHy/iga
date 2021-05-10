@@ -4,10 +4,12 @@ import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.Node;
 import com.qtgl.iga.bo.NodeRulesRange;
+import com.qtgl.iga.config.TaskThreadPool;
 import com.qtgl.iga.dao.NodeDao;
 import com.qtgl.iga.dao.NodeRulesDao;
 import com.qtgl.iga.dao.NodeRulesRangeDao;
 import com.qtgl.iga.service.NodeService;
+import com.qtgl.iga.task.TaskConfig;
 import com.qtgl.iga.vo.NodeRulesVo;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 
 import java.util.*;
+import java.util.concurrent.ExecutorService;
 
 @Service
 @Transactional
@@ -327,6 +330,10 @@ public class NodeServiceImpl implements NodeService {
             throw new Exception("状态不能为空");
         }
         if (1 == status) {
+            //判断同步任务状态
+//            ExecutorService executorService = TaskThreadPool.executorServiceMap.get(domain.getDomainName());
+//            executorService.shutdown();
+//            boolean terminated = executorService.isTerminated();
             //查看是否有治理中的规则
             HashMap<String, Object> map = new HashMap<>();
             map.put("status", 1);

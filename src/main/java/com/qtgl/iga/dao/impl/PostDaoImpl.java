@@ -2,6 +2,7 @@ package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.dao.PostDao;
+import com.qtgl.iga.utils.MyBeanUtils;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.cglib.beans.BeanMap;
@@ -51,7 +52,7 @@ public class PostDaoImpl implements PostDao {
             for (Map<String, Object> map : mapList) {
                 TreeBean dept = new TreeBean();
                 try {
-                    BeanUtils.populate(dept, map);
+                    MyBeanUtils.populate(dept, map);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }
@@ -126,7 +127,7 @@ public class PostDaoImpl implements PostDao {
                 preparedStatement.setObject(14, LocalDateTime.now());
                 preparedStatement.setObject(15, LocalDateTime.now());
                 preparedStatement.setObject(16, list.get(i).getSource());
-                preparedStatement.setObject(17, null == list.get(i).getDeptIndex() ? null : list.get(i).getDeptIndex());
+                preparedStatement.setObject(17, list.get(i).getDeptIndex());
             }
 
             @Override
@@ -172,13 +173,13 @@ public class PostDaoImpl implements PostDao {
                 " tags ,data_source as dataSource , description , meta,source,post_type as postType,user_type_index as deptIndex  " +
                 " from user_type where tenant_id=? and del_mark=0 and data_source=?";
 
-        List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId, "builtin");
+        List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId, "BUILTIN");
         ArrayList<TreeBean> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {
                 TreeBean treeBean = new TreeBean();
                 try {
-                    BeanUtils.populate(treeBean, map);
+                    MyBeanUtils.populate(treeBean, map);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }
@@ -205,7 +206,7 @@ public class PostDaoImpl implements PostDao {
             for (Map<String, Object> map : mapList) {
                 TreeBean treeBean = new TreeBean();
                 try {
-                    BeanUtils.populate(treeBean, map);
+                    MyBeanUtils.populate(treeBean, map);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }
@@ -224,7 +225,7 @@ public class PostDaoImpl implements PostDao {
     public Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, String tenantId) {
         String insertStr = "insert into user_type (id,user_type, name, parent_code, can_login ,tenant_id ,tags," +
                 " data_source, description, meta,create_time,del_mark,active,active_time,update_time,source,user_type_index,post_type) values" +
-                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
         String updateStr = "update user_type set  name=?, parent_code=?, del_mark=? ,tenant_id =?" +
                 ", data_source=?, description=?, meta=?,update_time=?,tags=?,source=?" +
@@ -250,7 +251,7 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(10, insertList.get(i).getMeta());
                             preparedStatement.setObject(11, insertList.get(i).getCreateTime());
                             preparedStatement.setObject(12, 0);
-                            preparedStatement.setObject(13, 0);
+                            preparedStatement.setObject(13, 1);
                             preparedStatement.setObject(14, LocalDateTime.now());
                             preparedStatement.setObject(15, insertList.get(i).getUpdateTime());
                             preparedStatement.setObject(16, insertList.get(i).getSource());
@@ -313,6 +314,7 @@ public class PostDaoImpl implements PostDao {
             } catch (Exception e) {
                 transactionStatus.setRollbackOnly();
                 // transactionStatus.rollbackToSavepoint(savepoint);
+                e.printStackTrace();
                 throw new RuntimeException("同步终止，岗位同步异常！");
             }
         });

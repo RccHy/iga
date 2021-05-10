@@ -36,7 +36,6 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
         List<Object> param = new ArrayList<>();
 
         dealData(arguments, stb, param);
-//        getChild(arguments,param,stb);
         System.out.println(stb.toString());
         stb.append("order by tree_index");
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
@@ -166,22 +165,25 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
         return null;
     }
 
+    @Override
+    public DeptTreeType findByCode(String treeType) {
+        String sql = "select id, code, name, description," +
+                "multiple_root_node as multipleRootNode, create_time as createTime," +
+                "update_time as updateTime, create_user as createUser, domain ,tree_index as treeIndex " +
+                "from t_mgr_dept_tree_type where code = ?  order by tree_index";
 
-//    private void getChild(Map<String,Object> map,List<Object> param,StringBuffer sql) {
-//        for (Map.Entry<String,Object> entry : map.entrySet()){
-//
-//
-//            if (entry.getKey().equals("filter")){
-//                Map<String,Object> value = (Map<String, Object>) entry.getValue();
-//                getChild(value,param,sql);
-//            }
-//
-//            sql.append("and "+entry.getKey()+" = ?" );
-//            param.add(entry.getValue());
-//
-//
-//        }
-//    }
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, treeType);
+        DeptTreeType deptTreeType = new DeptTreeType();
+        if (null != mapList && mapList.size() > 0) {
+            for (Map<String, Object> map : mapList) {
+
+                BeanMap beanMap = BeanMap.create(deptTreeType);
+                beanMap.putAll(map);
+            }
+            return deptTreeType;
+        }
+        return null;
+    }
 
     private void dealData(Map<String, Object> arguments, StringBuffer stb, List<Object> param) {
         Iterator<Map.Entry<String, Object>> it = arguments.entrySet().iterator();

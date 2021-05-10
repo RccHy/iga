@@ -1,28 +1,29 @@
 extend type Query {
 
     #查询上游源类型注册信息
-    upstreamTypes(id:ID,filter:upstreamTypeFilter):[upstreamType]
-
+    upstreamTypes(id:ID,filter:UpstreamTypeFilter):[UpstreamType]
+    #根据上游源类型获取数据
+    upstreamTypesData(id:ID):UpstreamTypeData
 }
 extend type Mutation {
 
 
     #新增上游源类型
-    saveUpstreamType(entity:InputupstreamType!):upstreamType
+    saveUpstreamType(entity:InputUpstreamType!):UpstreamType
     #根据id删除上游源类型
-    deleteUpstreamType(id:ID!): upstreamType
+    deleteUpstreamType(id:ID!): UpstreamType
     #更新上游源类型
-    updateUpstreamType(entity:InputupstreamType!):upstreamType
+    updateUpstreamType(entity:InputUpstreamType!):UpstreamType
 }
 
 
 
 #上游源类型信息实体
-type upstreamType{
+type UpstreamType{
     # 主键
     id:ID
     # 上有源id
-    upstream:upstream
+    upstream:Upstream
     # 描述
     description:String
     # 同步类型  部门/岗位/人员
@@ -48,8 +49,8 @@ type upstreamType{
     # ://服务/类型/方法
     graphqlUrl:String
     # 字段映射
-    upstreamTypeFields:[upstreamTypeField]
-    #是否分页
+    upstreamTypeFields:[UpstreamTypeField]
+    #是否分页 1为true 0为false
     isPage:Boolean
     #方式  推送0/拉取1
     synWay:Int
@@ -58,7 +59,7 @@ type upstreamType{
 
 
 #上游源类型字段映射实体
-type upstreamTypeField{
+type UpstreamTypeField{
     # 主键
     id:ID
     # 上游源数据类型注册外键
@@ -93,7 +94,7 @@ input InputUpstreamTypeField{
 }
 
 # 上游源类型入参
-input InputupstreamType{
+input InputUpstreamType{
     # 主键
     id:ID
     # 上有源id
@@ -131,7 +132,7 @@ input InputupstreamType{
 
 }
 
-input upstreamTypeFilter{
+input UpstreamTypeFilter{
     deptTypeId:stringFilter
     serviceCode:stringFilter
     upstreamId:stringFilter
@@ -140,6 +141,10 @@ input upstreamTypeFilter{
     createTime:timestampFilter
     updateTime:timestampFilter
     synWay:integerFilter
+}
+
+type UpstreamTypeData{
+    data:String
 }
 
 

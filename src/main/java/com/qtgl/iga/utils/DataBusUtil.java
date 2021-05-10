@@ -8,6 +8,7 @@ import com.qtgl.iga.bo.UpstreamType;
 import com.qtgl.iga.bo.UpstreamTypeField;
 import com.qtgl.iga.service.DomainInfoService;
 import com.qtgl.iga.service.UpstreamTypeService;
+import org.apache.commons.beanutils.BeanMap;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.fluent.Request;
@@ -31,10 +32,18 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
+import javax.script.SimpleBindings;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Component
 public class DataBusUtil {
@@ -62,7 +71,7 @@ public class DataBusUtil {
 
     private ConcurrentHashMap<String, Token> tokenMap = new ConcurrentHashMap<>();
 
-    public  static ConcurrentHashMap<String, List<UpstreamTypeField>> typeFields = new ConcurrentHashMap<>();
+    public static ConcurrentHashMap<String, List<UpstreamTypeField>> typeFields = new ConcurrentHashMap<>();
 
 
     private static String sendPostRequest(String url, JSONObject params) {
@@ -82,7 +91,7 @@ public class DataBusUtil {
     }
 
 
-    public JSONArray getDataByBus(UpstreamType upstreamType, String serverName) {
+    public JSONArray getDataByBus(UpstreamType upstreamType, String serverName) throws Exception {
         //获取token
         String key = getToken(serverName);
         String[] split = upstreamType.getGraphqlUrl().split("/");
@@ -174,8 +183,7 @@ public class DataBusUtil {
                 e.printStackTrace();
             }
         }
-        assert s != null;
-        if (s.contains("errors")) {
+        if (null == s || s.contains("errors")) {
             try {
                 throw new Exception("获取url失败" + s);
             } catch (Exception e) {
@@ -199,11 +207,11 @@ public class DataBusUtil {
 
     }
 
-    private JSONArray invokeForData(String dataUrl, UpstreamType upstreamType) {
+    private JSONArray invokeForData(String dataUrl, UpstreamType upstreamType) throws Exception {
         logger.info("source url " + dataUrl);
         //获取字段映射
         List<UpstreamTypeField> fields = upstreamTypeService.findFields(upstreamType.getId());
-        typeFields.put(upstreamType.getId(),fields);
+        typeFields.put(upstreamType.getId(), fields);
         String[] type = upstreamType.getGraphqlUrl().split("/");
         GraphqlClient graphqlClient = GraphqlClient.buildGraphqlClient(dataUrl);
         String methodName = type[5];
@@ -214,11 +222,38 @@ public class DataBusUtil {
                 GraphqlQuery query = new DefaultGraphqlQuery(upstreamType.getSynType() + ":" + methodName);
                 ResultAttributtes edges = new ResultAttributtes("edges");
                 ResultAttributtes node = new ResultAttributtes("node");
+                //未处理的映射字段(来源数据库)
                 ArrayList<UpstreamTypeField> upstreamTypeFields = new ArrayList<>();
+                //存储映射字段(处理后的)
+                HashMap<String, String> map = new HashMap<>();
+                //存储前缀
+//                HashMap<String, String> prefixMap = new HashMap<>();
                 for (UpstreamTypeField field : fields) {
                     //   修改常量
                     if (field.getTargetField().contains("$")) {
-                        node.addResultAttributes(field.getSourceField() + ":" + field.getTargetField().substring(2, field.getTargetField().length() - 1));
+//                        node.addResultAttributes(field.getSourceField() + ":" + field.getTargetField().substring(2));
+                        //名称校验
+                        String pattern = "\\$[a-zA-Z0-9_]+";
+                        Pattern r = Pattern.compile(pattern);
+                        Matcher m = r.matcher(field.getTargetField());
+                        if (m.find()) {
+                            System.out.println("Found value: " + m.group(0));
+                            node.addResultAttributes(m.group(0).substring(1));
+                            map.put(m.group(0).substring(1), field.getSourceField());
+                        } else {
+                            System.out.println("NO MATCH");
+                        }
+//                        //前缀校验
+//                        String reg = "=[a-zA-Z0-9_]+";
+//                        Pattern r2 = Pattern.compile(reg);
+//                        Matcher m2 = r2.matcher(field.getTargetField());
+//                        if (m2.find()) {
+//                            System.out.println("Found value: " + m2.group(0));
+//                            prefixMap.put(field.getSourceField(), m2.group(0).substring(1));
+//                        } else {
+//                            prefixMap.put(field.getSourceField(), "");
+//                        }
+
                     } else {
                         upstreamTypeFields.add(field);
                     }
@@ -252,34 +287,97 @@ public class DataBusUtil {
                     }
                 }
                 Map dataMap = (Map) result.get("data");
-
                 Map deptMap = (Map) dataMap.get(upstreamType.getSynType());
                 JSONArray deptArray = (JSONArray) JSONArray.toJSON(deptMap.get("edges"));
                 if (null != deptArray) {
                     for (Object deptOb : deptArray) {
                         JSONObject nodeJson = (JSONObject) deptOb;
                         JSONObject node1 = nodeJson.getJSONObject("node");
-                        if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
-                            for (UpstreamTypeField field : upstreamTypeFields) {
-                                node1.put(field.getSourceField(), field.getTargetField());
-                            }
-                        }
+//                        if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
+//                            for (UpstreamTypeField field : upstreamTypeFields) {
+//                                node1.put(field.getSourceField(), field.getTargetField());
+//                            }
+//                        }
 
                         objects.add(node1);
                     }
                 }
 
+                JSONArray resultJson = new JSONArray();
+                Map<String, String> collect = fields.stream().collect(Collectors.toMap(UpstreamTypeField::getSourceField, UpstreamTypeField::getTargetField));
+                for (Object object : objects) {
+                    BeanMap beanMap = new BeanMap(object);
+                    HashMap<String, String> innerMap = (HashMap<String, String>) beanMap.get("innerMap");
+                    JSONObject jsonObject = new JSONObject();
+                    for (Map.Entry<String, String> entry : innerMap.entrySet()) {
+                        try {
+                            //处理前缀
+                            SimpleBindings bindings = new SimpleBindings();
+                            bindings.put("$" + entry.getKey(), null == entry.getValue() ? "" : entry.getValue());
+                            String reg = collect.get(map.get(entry.getKey())).substring(1);
+                            ScriptEngineManager sem = new ScriptEngineManager();
+                            ScriptEngine engine = sem.getEngineByName("js");
+                            final Object eval = engine.eval(reg, bindings);
+                            jsonObject.put(map.get(entry.getKey()), eval);
+                            if ("parentCode".equals(map.get(entry.getKey()))) {
+                                if((null == entry.getValue()) || ("".equals(entry.getValue()))){
+                                    jsonObject.put(map.get(entry.getKey()), "");
+                                }
+                            }
+                        } catch (ScriptException e) {
+                            logger.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
+                            throw new Exception("表达式" + collect.get(map.get(entry.getKey())) + "不符合规范请检查");
 
-                return objects;
+                        }
+                    }
+                    if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
+                        for (UpstreamTypeField field : upstreamTypeFields) {
+                            jsonObject.put(field.getSourceField(), field.getTargetField());
+                        }
+                    }
+                    resultJson.add(jsonObject);
+
+                }
+
+
+                return resultJson;
             }
         }
         if ("query".equals(type[4])) {
             GraphqlQuery query = new DefaultGraphqlQuery(methodName);
 
+            //未处理的映射字段(来源数据库)
             ArrayList<UpstreamTypeField> upstreamTypeFields = new ArrayList<>();
+            //存储映射字段(处理后的)
+            HashMap<String, String> map = new HashMap<>();
+            //存储前缀
+//            HashMap<String, String> prefixMap = new HashMap<>();
             for (UpstreamTypeField field : fields) {
+                //   修改常量
                 if (field.getTargetField().contains("$")) {
-                    query.addResultAttributes(field.getSourceField() + ":" + field.getTargetField().substring(2, field.getTargetField().length() - 1));
+//                        node.addResultAttributes(field.getSourceField() + ":" + field.getTargetField().substring(2));
+                    //名称校验
+                    String pattern = "\\$[a-zA-Z0-9_]+";
+                    Pattern r = Pattern.compile(pattern);
+                    Matcher m = r.matcher(field.getTargetField());
+                    if (m.find()) {
+                        System.out.println("Found value: " + m.group(0));
+                        query.addResultAttributes(m.group(0).substring(1));
+                        map.put(m.group(0).substring(1), field.getSourceField());
+                    } else {
+                        System.out.println("NO MATCH");
+                    }
+//                    //前缀校验
+//                    String reg = "=[a-zA-Z0-9_]+";
+//                    Pattern r2 = Pattern.compile(reg);
+//                    Matcher m2 = r2.matcher(field.getTargetField());
+//                    if (m2.find()) {
+//                        System.out.println("Found value: " + m2.group(0));
+//                        prefixMap.put(field.getSourceField(), m2.group(0).substring(1));
+//                    } else {
+//                        prefixMap.put(field.getSourceField(), "");
+//                    }
+
                 } else {
                     upstreamTypeFields.add(field);
                 }
@@ -301,11 +399,9 @@ public class DataBusUtil {
                 logger.info("result  data --" + entry.getKey() + "------" + entry.getValue());
             }
             if (null == result || null == result.get("data")) {
-                try {
-                    throw new Exception("数据获取失败");
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+
+                throw new Exception("映射字段有误,数据获取失败");
+
             }
             JSONObject.parseObject(result.get("data").toString()).getJSONArray(upstreamType.getSynType());
             Map dataMap = (Map) result.get("data");
@@ -313,20 +409,72 @@ public class DataBusUtil {
             for (Object o : dept) {
                 JSONObject nodeJson = (JSONObject) o;
                 JSONObject node1 = nodeJson.getJSONObject("node");
-                if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
-                    for (UpstreamTypeField field : upstreamTypeFields) {
-                        node1.put(field.getSourceField(), field.getTargetField());
-                    }
-                }
+//                if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
+//                    for (UpstreamTypeField field : upstreamTypeFields) {
+//                        node1.put(field.getSourceField(), field.getTargetField());
+//                    }
+//                }
                 objects.add(node1);
             }
+            JSONArray resultJson = new JSONArray();
+            for (Object object : objects) {
+
+//                    String s = object.toString();
+//                    HashMap hashMap = JSON.parseObject(object.toString(), HashMap.class);
+//                    System.out.println(hashMap);
+                BeanMap beanMap = new BeanMap(object);
+                HashMap<String, String> innerMap = (HashMap<String, String>) beanMap.get("innerMap");
+                JSONObject jsonObject = new JSONObject();
+                Map<String, String> collect = fields.stream().collect(Collectors.toMap(UpstreamTypeField::getSourceField, UpstreamTypeField::getTargetField));
+                for (Map.Entry<String, String> entry : innerMap.entrySet()) {
+                    try {
+                        //处理前缀
+                        SimpleBindings bindings = new SimpleBindings();
+                        bindings.put("$" + entry.getKey(), null == entry.getValue() ? "" : entry.getValue());
+                        String reg = collect.get(map.get(entry.getKey())).substring(1);
+                        ScriptEngineManager sem = new ScriptEngineManager();
+                        ScriptEngine engine = sem.getEngineByName("js");
+                        final Object eval = engine.eval(reg, bindings);
+                        jsonObject.put(map.get(entry.getKey()), eval);
+                        if ("parentCode".equals(map.get(entry.getKey()))) {
+                            if((null == entry.getValue()) || ("".equals(entry.getValue()))){
+                                jsonObject.put(map.get(entry.getKey()), "");
+                            }
+                        }
+                    } catch (ScriptException e) {
+                        logger.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
+                        throw new Exception("表达式" + collect.get(map.get(entry.getKey())) + "不符合规范请检查");
+                    }
+                }
+                if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
+                    for (UpstreamTypeField field : upstreamTypeFields) {
+                        jsonObject.put(field.getSourceField(), field.getTargetField());
+                    }
+                }
+                resultJson.add(jsonObject);
+
+            }
+//            JSONArray objects1 = new JSONArray();
+//            if (null != resultJson) {
+//                for (Object deptOb : resultJson) {
+//                    JSONObject nodeJson = (JSONObject) deptOb;
+//                    if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
+//                        for (UpstreamTypeField field : upstreamTypeFields) {
+//                            nodeJson.put(field.getSourceField(), field.getTargetField());
+//                        }
+//                    }
+//
+//                    objects1.add(nodeJson);
+//                }
+//            }
+            return resultJson;
         }
 
 
-        return objects;
+        return null;
     }
 
-    public Map getDataByBus(UpstreamType upstreamType, Integer offset, Integer first) {
+    public Map getDataByBus(UpstreamType upstreamType, Integer offset, Integer first) throws Exception {
         //获取token
         String key = getToken(null);
         String[] split = upstreamType.getGraphqlUrl().split("/");
@@ -346,7 +494,7 @@ public class DataBusUtil {
     }
 
 
-    private Map invokeForMapData(String dataUrl, UpstreamType upstreamType, Integer offset, Integer first) {
+    private Map invokeForMapData(String dataUrl, UpstreamType upstreamType, Integer offset, Integer first) throws Exception {
         logger.info("source url " + dataUrl);
         //获取字段映射
         List<UpstreamTypeField> fields = upstreamTypeService.findFields(upstreamType.getId());
@@ -355,6 +503,7 @@ public class DataBusUtil {
         String methodName = type[5];
         Map<String, Object> result = null;
         JSONArray objects = new JSONArray();
+        ArrayList<HashMap<String, Object>> rs = null;
         if ("query".equals(type[4])) {
             GraphqlQuery query = new DefaultGraphqlQuery(upstreamType.getSynType() + ":" + methodName);
             if (null != offset) {
@@ -365,11 +514,28 @@ public class DataBusUtil {
             }
             ResultAttributtes edges = new ResultAttributtes("edges");
             ResultAttributtes node = new ResultAttributtes("node");
+            //未处理的映射字段(来源数据库)
             ArrayList<UpstreamTypeField> upstreamTypeFields = new ArrayList<>();
+            //存储映射字段(处理后的)
+            HashMap<String, String> map = new HashMap<>();
+            //存储前缀
+//                HashMap<String, String> prefixMap = new HashMap<>();
             for (UpstreamTypeField field : fields) {
                 //   修改常量
                 if (field.getTargetField().contains("$")) {
-                    node.addResultAttributes(field.getSourceField() + ":" + field.getTargetField().substring(2, field.getTargetField().length() - 1));
+//                        node.addResultAttributes(field.getSourceField() + ":" + field.getTargetField().substring(2));
+                    //名称校验
+                    String pattern = "\\$[a-zA-Z0-9_]+";
+                    Pattern r = Pattern.compile(pattern);
+                    Matcher m = r.matcher(field.getTargetField());
+                    if (m.find()) {
+                        System.out.println("Found value: " + m.group(0));
+                        node.addResultAttributes(m.group(0).substring(1));
+                        map.put(m.group(0).substring(1), field.getSourceField());
+                    } else {
+                        System.out.println("NO MATCH");
+                    }
+
                 } else {
                     upstreamTypeFields.add(field);
                 }
@@ -394,18 +560,77 @@ public class DataBusUtil {
             result = response.getData();
             for (Map.Entry<String, Object> entry : result.entrySet()) {
                 logger.info("result  data --" + entry.getKey() + "------" + entry.getValue());
-            }
-
-            if (null == result || null == result.get("data")) {
-                try {
-                    throw new Exception("数据获取失败");
-                } catch (Exception e) {
-                    e.printStackTrace();
+                if("errors".equals(entry.getKey())){
+                    throw new Exception("查询数据失败,请检查上游源配置");
                 }
             }
 
+            if (null == result || null == result.get("data")) {
+
+                throw new Exception("映射字段错误,数据获取失败");
+
+            }
+
+            Map dataMap = (Map) result.get("data");
+            Map deptMap = (Map) dataMap.get(upstreamType.getSynType());
+            JSONArray deptArray = (JSONArray) JSONArray.toJSON(deptMap.get("edges"));
+            if (null != deptArray) {
+                for (Object deptOb : deptArray) {
+                    JSONObject nodeJson = (JSONObject) deptOb;
+                    JSONObject node1 = nodeJson.getJSONObject("node");
+//                    if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
+//                        for (UpstreamTypeField field : upstreamTypeFields) {
+//                            node1.put(field.getSourceField(), field.getTargetField());
+//                        }
+//                    }
+
+                    objects.add(node1);
+                }
+            }
+
+            rs = new ArrayList<>();
+            Map<String, String> collect = fields.stream().collect(Collectors.toMap(UpstreamTypeField::getSourceField, UpstreamTypeField::getTargetField));
+            for (Object object : objects) {
+
+                BeanMap beanMap = new BeanMap(object);
+                HashMap<String, String> innerMap = (HashMap<String, String>) beanMap.get("innerMap");
+                JSONObject jsonObject = new JSONObject();
+                for (Map.Entry<String, String> entry : innerMap.entrySet()) {
+                    try {
+                        //处理前缀
+                        SimpleBindings bindings = new SimpleBindings();
+                        bindings.put("$" + entry.getKey(), null == entry.getValue() ? "" : entry.getValue());
+                        String reg = collect.get(map.get(entry.getKey())).substring(1);
+                        ScriptEngineManager sem = new ScriptEngineManager();
+                        ScriptEngine engine = sem.getEngineByName("js");
+                        final Object eval = engine.eval(reg, bindings);
+                        jsonObject.put(map.get(entry.getKey()), eval);
+                        if ("parentCode".equals(map.get(entry.getKey()))) {
+                            if((null == entry.getValue()) || ("".equals(entry.getValue()))){
+                                jsonObject.put(map.get(entry.getKey()), "");
+                            }
+                        }
+                    } catch (ScriptException e) {
+                        logger.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
+                        throw new Exception("表达式" + collect.get(map.get(entry.getKey())) + "不符合规范请检查");
+                    }
+                }
+                LinkedHashMap<String, Object> stringObjectLinkedHashMap = new LinkedHashMap<>();
+                if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
+                    for (UpstreamTypeField field : upstreamTypeFields) {
+                        jsonObject.put(field.getSourceField(), field.getTargetField());
+                    }
+                }
+                stringObjectLinkedHashMap.put("node", jsonObject);
+                rs.add(stringObjectLinkedHashMap);
+            }
+
+
+            deptMap.put("edges", rs);
+
 
         }
+
         return (Map) result.get("data");
 
 

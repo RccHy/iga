@@ -41,12 +41,16 @@ type Node{
 
     #规则明细
     nodeRules:[NodeRules]
+
     #部门树类型
     deptTreeType:String
+
     #状态 0 发布 1 编辑中 2 历史
     status :Int
+
     #是否继承
     inherit:Boolean
+
     #类型
     type:String
 
@@ -70,15 +74,15 @@ input InputNode{
     #修改时间
     updateTime:Timestamp
 
-    #    #租户
-    #    domain:String
     #部门树类型
     deptTreeType:String
 
     #规则明细
     nodeRules:[InputNodeRules]
+
     #状态 0 发布 1 编辑中 2 历史
     status :Int
+
     #类型
     type:String
 

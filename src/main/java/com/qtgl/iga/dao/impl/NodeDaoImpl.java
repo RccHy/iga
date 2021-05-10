@@ -4,6 +4,7 @@ import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.Node;
 import com.qtgl.iga.dao.NodeDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
+import com.qtgl.iga.utils.MyBeanUtils;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -71,7 +72,7 @@ public class NodeDaoImpl implements NodeDao {
         for (Map<String, Object> map : mapList) {
             Node node = new Node();
             try {
-                BeanUtils.populate(node, map);
+                MyBeanUtils.populate(node, map);
                 nodes.add(node);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -95,7 +96,7 @@ public class NodeDaoImpl implements NodeDao {
     public List<Node> findNodes(Map<String, Object> arguments, String domain) {
         ArrayList<Node> nodes = new ArrayList<>();
         Integer status = null == arguments.get("status") ? null : (Integer) arguments.get("status");
-        Object version = null == arguments.get("version") ? null : arguments.get("version");
+        Object version = arguments.get("version");
         Object type = arguments.get("type");
         String sql = "select id,manual," +
                 "node_code as nodeCode," +
@@ -126,7 +127,7 @@ public class NodeDaoImpl implements NodeDao {
         for (Map<String, Object> map : mapList) {
             try {
                 Node node = new Node();
-                BeanUtils.populate(node, map);
+                MyBeanUtils.populate(node, map);
                 nodes.add(node);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -199,7 +200,7 @@ public class NodeDaoImpl implements NodeDao {
         for (Map<String, Object> map : mapList) {
             try {
                 Node node = new Node();
-                BeanUtils.populate(node, map);
+                MyBeanUtils.populate(node, map);
                 nodes.add(node);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -249,7 +250,7 @@ public class NodeDaoImpl implements NodeDao {
         for (Map<String, Object> map : mapList) {
             try {
                 Node node = new Node();
-                BeanUtils.populate(node, map);
+                MyBeanUtils.populate(node, map);
                 nodes.add(node);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -261,24 +262,38 @@ public class NodeDaoImpl implements NodeDao {
         return null;
     }
 
-//    @Override
-//    public Integer publishNode(String id) {
-//        String str = "update t_mgr_node set  status= ? " +
-//                "where domain =? and status=1 ";
-//        int update = jdbcIGA.update(str, preparedStatement -> {
-//
-//            preparedStatement.setObject(1, 0);
-//            preparedStatement.setObject(2, id);
-//        });
-//        return update;
-//    }
+    @Override
+    public List<Node> findById(String id) {
+        ArrayList<Node> nodes = new ArrayList<>();
+        String sql = "select id,manual," +
+                "node_code as nodeCode," +
+                "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status,type" +
+                " from t_mgr_node where id=?  ";
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id);
+        if (null == mapList || mapList.size() == 0) {
+            return null;
+        }
+        for (Map<String, Object> map : mapList) {
+            try {
+                Node node = new Node();
+                MyBeanUtils.populate(node, map);
+                nodes.add(node);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        if (null != nodes && nodes.size() > 0) {
+            return nodes;
+        }
+        return null;
+    }
 
 
     private List<Node> getNodes(ArrayList<Node> nodes, List<Map<String, Object>> mapList) {
         for (Map<String, Object> map : mapList) {
             try {
                 Node node = new Node();
-                BeanUtils.populate(node, map);
+                MyBeanUtils.populate(node, map);
                 nodes.add(node);
 
 
@@ -313,22 +328,22 @@ public class NodeDaoImpl implements NodeDao {
             if ("filter".equals(entry.getKey())) {
                 HashMap<String, Object> map = (HashMap<String, Object>) entry.getValue();
                 for (Map.Entry<String, Object> str : map.entrySet()) {
-                    if (str.getKey().equals("deptTreeType")) {
+                    if ("deptTreeType".equals(str.getKey())) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
                             if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "=")) {
-                                stb.append("and dept_tree_type " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                stb.append("and dept_tree_type ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                                 param.add(soe.getValue());
                             }
                         }
 
 
                     }
-                    if (str.getKey().equals("nodeCode")) {
+                    if ("nodeCode".equals(str.getKey())) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
                             if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "=")) {
-                                stb.append(" and node_code " + FilterCodeEnum.getDescByCode(soe.getKey()) + " ? ");
+                                stb.append(" and node_code ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                                 param.add(soe.getValue());
                             }
                         }
@@ -341,7 +356,6 @@ public class NodeDaoImpl implements NodeDao {
 
             }
 
-//            System.out.println("key = " + entry.getKey() + ", value = " + entry.getValue());
         }
     }
 

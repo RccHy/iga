@@ -10,6 +10,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.sql.DataSource;
 
+/**
+ * @author 1
+ */
 @Configuration
 public class JdbcTemplateConfig {
 

@@ -10,7 +10,6 @@ public interface PersonDao {
 
     List<Person> getAll(String tenantId);
 
-
     List<Person> savePerson(List<Person> list, String tenantId);
 
     List<Person> updatePerson(List<Person> list, String tenantId);

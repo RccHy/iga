@@ -11,16 +11,6 @@ extend type Mutation {
     updateSchemaField(entity:InputDeptType!):DeptType
 }
 
-###分页结构###
-#type DeptTypeConnection{
-#    edges: [DeptTypeEdge]
-#    totalCount: Int
-#}
-#
-#type DeptTypeEdge{
-#    node: DeptType
-#}
-
 # 组织机构类别实体
 type DeptType{
     # 主键
