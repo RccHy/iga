@@ -179,8 +179,12 @@ public class NodeRulesCalculationServiceImpl {
                     if (null != nodeRulesRange.getRange()) {
                         if (!mergeDept.containsKey(rangeNodeCode)) {
                             logger.error(" 规则{} 中的  code:{} 无法找到挂载节点 ", nodeRulesRange.getNodeRulesId(), rangeNodeCode);
+                            ArrayList<ErrorData> list = new ArrayList<>();
+                            list.add(new ErrorData((null == treeType ? "" : treeType.getId()), nodeRulesRange.getNodeRulesId(), nodeCode, nodeRulesRange.getId()));
+                            errorData.put(domain.getDomainName(), list);
+                            errorTree.put(domain.getDomainName(), mainTree);
 
-                            throw new Exception(" 规则" + nodeRulesRange.getNodeRulesId() + " 中的 : " + rangeNodeCode + "无法找到挂载节点 ");
+                            throw new Exception("节点"+ nodeCode +" 规则 : " + rangeNodeCode + "无法找到挂载节点 ");
                         }
                         // 排除当前节点 以及 其子节点
                         if (0 == nodeRulesRange.getRange()) {
@@ -194,8 +198,11 @@ public class NodeRulesCalculationServiceImpl {
                         }
                     } else {
                         logger.error(" 规则{} 中的  code:{} 排除规则为空 ", nodeRulesRange.getNodeRulesId(), rangeNodeCode);
-
-                        throw new Exception(" 规则" + nodeRulesRange.getNodeRulesId() + " 中的 : " + rangeNodeCode + "排除规则为空 ");
+                        ArrayList<ErrorData> list = new ArrayList<>();
+                        list.add(new ErrorData((null == treeType ? "" : treeType.getId()), nodeRulesRange.getNodeRulesId(), nodeCode, nodeRulesRange.getId()));
+                        errorData.put(domain.getDomainName(), list);
+                        errorTree.put(domain.getDomainName(), mainTree);
+                        throw new Exception("节点"+ nodeCode +" 规则的 : " + rangeNodeCode + "排除规则为空 ");
                     }
                 }
 //                //   预留 支持通过表达式排除
@@ -276,7 +283,12 @@ public class NodeRulesCalculationServiceImpl {
                     if (!upstreamMap.containsKey(rangeNodeCode)) {
                         logger.error(" 节点 {}   规则{} 中的  code:{} 无法找到挂载节点 ", nodeCode, nodeRulesRange.getNodeRulesId(), rangeNodeCode);
 
-                        throw new Exception("节点 " + nodeCode + " 规则" + nodeRulesRange.getNodeRulesId() + " 中的 : " + rangeNodeCode + "无法找到挂载节点 ");
+                        errorTree.put(domain.getDomainName(), mainTree);
+                        ArrayList<ErrorData> list = new ArrayList<>();
+                        list.add(new ErrorData((null == treeType ? "" : treeType.getId()), nodeRulesRange.getNodeRulesId(),nodeCode));
+                        errorData.put(domain.getDomainName(), list);
+                        logger.error(" 节点 {}   规则{} 中的  code:{} 挂载规则非法 ", nodeCode, nodeRulesRange.getNodeRulesId(), rangeNodeCode);
+                        throw new Exception("节点 " + nodeCode + " 规则的 : " + rangeNodeCode + "无法找到挂载节点 ");
                     }
                     // 包含根节点一起挂载，修改根节点个parentCode
                     if (null != nodeRulesRange.getRange()) {
@@ -300,9 +312,13 @@ public class NodeRulesCalculationServiceImpl {
                             mergeDeptTree(nodeRulesRange.getNode(), nodeCode, childrenMap, mergeDeptMap, source);
                         }
                     } else {
+                        errorTree.put(domain.getDomainName(), mainTree);
+                        ArrayList<ErrorData> list = new ArrayList<>();
+                        list.add(new ErrorData((null == treeType ? "" : treeType.getId()), nodeRulesRange.getNodeRulesId(),nodeCode));
+                        errorData.put(domain.getDomainName(), list);
                         logger.error(" 节点 {}   规则{} 中的  code:{} 挂载规则非法 ", nodeCode, nodeRulesRange.getNodeRulesId(), rangeNodeCode);
 
-                        throw new Exception("节点 " + nodeCode + " 规则" + nodeRulesRange.getNodeRulesId() + " 中的 : " + rangeNodeCode + "没有挂载规则 ");
+                        throw new Exception("节点 " + nodeCode + " 规则的 : " + rangeNodeCode + "没有挂载规则 ");
                     }
                 }
             }

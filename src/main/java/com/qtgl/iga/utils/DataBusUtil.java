@@ -319,6 +319,11 @@ public class DataBusUtil {
                             ScriptEngine engine = sem.getEngineByName("js");
                             final Object eval = engine.eval(reg, bindings);
                             jsonObject.put(map.get(entry.getKey()), eval);
+                            if ("parentCode".equals(map.get(entry.getKey()))) {
+                                if((null == entry.getValue()) || ("".equals(entry.getValue()))){
+                                    jsonObject.put(map.get(entry.getKey()), "");
+                                }
+                            }
                         } catch (ScriptException e) {
                             logger.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
                             throw new Exception("表达式" + collect.get(map.get(entry.getKey())) + "不符合规范请检查");
@@ -431,6 +436,11 @@ public class DataBusUtil {
                         ScriptEngine engine = sem.getEngineByName("js");
                         final Object eval = engine.eval(reg, bindings);
                         jsonObject.put(map.get(entry.getKey()), eval);
+                        if ("parentCode".equals(map.get(entry.getKey()))) {
+                            if((null == entry.getValue()) || ("".equals(entry.getValue()))){
+                                jsonObject.put(map.get(entry.getKey()), "");
+                            }
+                        }
                     } catch (ScriptException e) {
                         logger.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
                         throw new Exception("表达式" + collect.get(map.get(entry.getKey())) + "不符合规范请检查");
@@ -550,6 +560,9 @@ public class DataBusUtil {
             result = response.getData();
             for (Map.Entry<String, Object> entry : result.entrySet()) {
                 logger.info("result  data --" + entry.getKey() + "------" + entry.getValue());
+                if("errors".equals(entry.getKey())){
+                    throw new Exception("查询数据失败,请检查上游源配置");
+                }
             }
 
             if (null == result || null == result.get("data")) {
@@ -592,6 +605,11 @@ public class DataBusUtil {
                         ScriptEngine engine = sem.getEngineByName("js");
                         final Object eval = engine.eval(reg, bindings);
                         jsonObject.put(map.get(entry.getKey()), eval);
+                        if ("parentCode".equals(map.get(entry.getKey()))) {
+                            if((null == entry.getValue()) || ("".equals(entry.getValue()))){
+                                jsonObject.put(map.get(entry.getKey()), "");
+                            }
+                        }
                     } catch (ScriptException e) {
                         logger.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
                         throw new Exception("表达式" + collect.get(map.get(entry.getKey())) + "不符合规范请检查");
