@@ -2,16 +2,7 @@ extend type Query {
     #查询同步日志
     taskLogs(offset:Int,first:Int,filter:TaskLogFilter):TaskLogConnection
 }
-#extend type Mutation {
-#    #新增节点规则明细作用域
-#    saveNodeRulesRange(entity:InputNodeRulesRange!):NodeRulesRange
-#    #根据id删除节点规则明细作用域
-#    deleteNodeRulesRange(id:ID!): NodeRulesRange
-#    #更新节点规则明细作用域
-#    updateNodeRulesRange(entity:InputNodeRulesRange!):NodeRulesRange
-#}
 
-# 节点规则明细作用域实体
 type TaskLog{
     #主键
     id :ID
