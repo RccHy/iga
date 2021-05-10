@@ -32,6 +32,17 @@ tenantId: "" 租户全局code(domain)
 
 安装成功返回：{"success": true}<br/>
 
+3:将iga注册进maker，可获取到 clientId 和 clientSecret<br/>
+
+4:通过maker数据集成【页面路径：/service/register】将iga的接口地址作为**数据服务**新增到网关中<br/>
+注册数据服务参数：<br/>
+**服务代码**：iga； <br/>
+**描述**：iga； <br/>
+**后端地址**：[https|http]://域名/iga/graphql<br/>
+配置完成后可获得**服务地址**
+5:通过4获取到的**服务地址**后，需要在apis项目添加配置才可正常使用治理功能。配置地址https://git.qtgl.com.cn/product/ketanyun-v2-support/-/wikis/%E7%A7%91%E6%8E%A2%E4%BA%91%E9%9B%86%E6%88%90%E9%85%8D%E7%BD%AE 搜索IGA_URL
+
+
 # 环境变量说明【Environment】：<br/>
 
 | 参数 | 参数说明 |  参考值 | 
