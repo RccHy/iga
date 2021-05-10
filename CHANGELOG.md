@@ -1,8 +1,8 @@
-### 20210509
+### 20210510
 
 **数据库：**
 
-- 执行iga/update/update.sql下 20210509的sql
+- 执行iga/update/update.sql下 20210510的sql
 
 **new：**
 
@@ -22,10 +22,10 @@
 - 无
 
 **image：**
-- docker.qtgl.com.cn/product/iga:20210509
+- docker.qtgl.com.cn/product/iga:20210510
 
 **依赖其他项目：**
-- docker.qtgl.com.cn/product/console:20210509
+- docker.qtgl.com.cn/product/console:20210510
 
 
 
