@@ -178,6 +178,7 @@ public class PersonServiceImpl implements PersonService {
                 if (flag) {
                     val.setSource(newPerson.getSource());
                     val.setUpdateTime(newPerson.getUpdateTime());
+                    log.info("对比后需要修改{}", val.toString());
                     if (result.containsKey("update")) {
                         result.get("update").add(val);
                     } else {
@@ -186,7 +187,7 @@ public class PersonServiceImpl implements PersonService {
                         }});
                     }
                 }
-                log.info("对比后需要修改{}", val.toString());
+
             } else if (!personFromUpstream.containsKey(key) && 1 != val.getDelMark() && "PULL".equalsIgnoreCase(val.getDataSource())) {
                 val.setUpdateTime(now);
                 if (result.containsKey("delete")) {

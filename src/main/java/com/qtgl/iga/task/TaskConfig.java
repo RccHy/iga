@@ -72,8 +72,7 @@ public class TaskConfig {
                                         Map<String, Object> arguments = new HashMap<>();
                                         arguments.put("status", 1);
                                         final List<NodeRules> nodeRules = nodeRulesService.findNodeRules(arguments, domainInfo.getId());
-                                        log.info("编辑中规则数:{}",nodeRules.size());
-                                        if (nodeRules.size() == 0) {
+                                        if (null==nodeRules||nodeRules.size() == 0) {
                                             TaskLog taskLog = new TaskLog();
                                             try {
                                                 taskLog.setId(UUID.randomUUID().toString());
@@ -100,7 +99,7 @@ public class TaskConfig {
                                                 final Map<String, List<OccupyDto>> occupyResult = occupyService.buildPerson(domainInfo);
                                                 log.info(Thread.currentThread().getName() + ": 人员身份同步完成{}==={}", occupyResult.size(), System.currentTimeMillis());
                                                 taskLog.setStatus("done");
-                                                taskLog.setPersonNo(occupyResult.size());
+                                                taskLog.setOccupyNo(occupyResult.size());
                                                 taskLogService.save(taskLog, domainInfo.getId(), "update");
                                                 log.info("{}同步结束,task:{}", domainInfo.getDomainName(), taskLog.getId());
                                             } catch (Exception e) {
@@ -110,6 +109,7 @@ public class TaskConfig {
                                                 e.printStackTrace();
                                             }
                                         }else{
+                                            log.info("编辑中规则数:{}",nodeRules.size());
                                             log.info("有编辑中规则，跳过数据同步");
                                         }
                                     }
