@@ -60,7 +60,7 @@ public class TaskConfig {
     public void deptTask() {
         try {
             // k8环境多节点部署环境下 仅01节点会执行定时任务
-            if (hostname.contains("-01")) {
+            if (hostname.contains("-0")) {
                 List<DomainInfo> domainInfos = domainInfoService.findAll();
                 domainInfos.forEach(domainInfo -> {
                             if (TaskThreadPool.executorServiceMap.containsKey(domainInfo.getDomainName())) {
