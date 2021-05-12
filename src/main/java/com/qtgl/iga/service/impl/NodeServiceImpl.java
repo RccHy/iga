@@ -4,10 +4,12 @@ import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.Node;
 import com.qtgl.iga.bo.NodeRulesRange;
+import com.qtgl.iga.bo.TaskLog;
 import com.qtgl.iga.config.TaskThreadPool;
 import com.qtgl.iga.dao.NodeDao;
 import com.qtgl.iga.dao.NodeRulesDao;
 import com.qtgl.iga.dao.NodeRulesRangeDao;
+import com.qtgl.iga.dao.TaskLogDao;
 import com.qtgl.iga.service.NodeService;
 import com.qtgl.iga.task.TaskConfig;
 import com.qtgl.iga.vo.NodeRulesVo;
@@ -34,6 +36,8 @@ public class NodeServiceImpl implements NodeService {
     NodeRulesDao nodeRulesDao;
     @Autowired
     NodeRulesRangeDao nodeRulesRangeDao;
+    @Autowired
+    TaskLogDao taskLogDao;
 
 
     @Override
@@ -237,12 +241,21 @@ public class NodeServiceImpl implements NodeService {
 
             // 加 type查询
             List<Node> nodes = nodeDao.findNodesByStatusAndType(1, type, domain, null);
-            for (Node node : nodes) {
-                HashMap<String, Object> map = new HashMap<>();
-                map.put("id", node.getId());
-                map.put("status", 1);
-                map.put("type", type);
-                deleteNode(map, domain);
+            if (null != nodes && nodes.size() > 0) {
+                for (Node node : nodes) {
+                    HashMap<String, Object> map = new HashMap<>();
+                    map.put("id", node.getId());
+                    map.put("status", 1);
+                    map.put("type", type);
+                    deleteNode(map, domain);
+                }
+            }
+        }
+        //查询是否在同步中
+        List<TaskLog> logList = taskLogDao.findAll(domain);
+        if (null != logList && logList.size() > 0) {
+            if ("doing".equals(logList.get(0).getStatus())) {
+                throw new Exception("数据正在同步,应用失败,请稍后再试");
             }
         }
         //将所有版本改为历史版本

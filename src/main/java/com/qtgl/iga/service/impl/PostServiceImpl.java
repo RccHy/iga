@@ -85,11 +85,11 @@ public class PostServiceImpl implements PostService {
         for (TreeBean rootBean : rootBeans) {
             mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, "task", rootBeans);
             // 判断重复(code)
-            calculationService.groupByCode(mainTreeBeans, 0, rootBeans,domain);
+            calculationService.groupByCode(mainTreeBeans, 0, rootBeans, domain);
         }
 //
         // 判断重复(code)
-        calculationService.groupByCode(mainTreeBeans, 0, rootBeans,domain);
+        calculationService.groupByCode(mainTreeBeans, 0, rootBeans, domain);
 
         //通过tenantId查询ssoApis库中的数据
         List<TreeBean> beans = postDao.findByTenantId(tenant.getId());
@@ -113,7 +113,7 @@ public class PostServiceImpl implements PostService {
         }
 
         // 判断重复(code)
-        calculationService.groupByCode(beans, 0, rootBeans,domain);
+        calculationService.groupByCode(beans, 0, rootBeans, domain);
 
         saveToSso(result, tenant.getId(), null);
 
@@ -183,7 +183,8 @@ public class PostServiceImpl implements PostService {
                 }
             }
         }
-        //同步到sso
+        //数据对比处理
+        mainTreeBeans.addAll(rootBeans);
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
         beans = dataProcessing(mainTreeMap, domain, "", beans, result, treeBeans, now);
 
@@ -191,7 +192,7 @@ public class PostServiceImpl implements PostService {
             beans.addAll(treeBeans);
         }
         // 判断重复(code)
-        calculationService.groupByCode(beans, status, rootBeans,domain);
+        calculationService.groupByCode(beans, status, rootBeans, domain);
 
         return beans;
 
@@ -449,7 +450,6 @@ public class PostServiceImpl implements PostService {
 
         Collection<TreeBean> values = ssoCollect.values();
         return new ArrayList<>(values);
-
     }
 
 
