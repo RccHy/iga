@@ -184,7 +184,6 @@ public class PostServiceImpl implements PostService {
             }
         }
         //数据对比处理
-        mainTreeBeans.addAll(rootBeans);
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
         beans = dataProcessing(mainTreeMap, domain, "", beans, result, treeBeans, now);
 

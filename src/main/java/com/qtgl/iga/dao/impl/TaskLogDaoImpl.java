@@ -28,16 +28,16 @@ public class TaskLogDaoImpl implements TaskLogDao {
             String sql = "select id,status,dept_no as deptNo,post_no as postNo,person_no as personNo" +
                     ",occupy_no occupyNo ,create_time as createTime , update_time as updateTime from t_mgr_task_log where domain=?  order by create_time desc";
             List<Map<String, Object>> taskLogMap = jdbcIGA.queryForList(sql, domain);
-           if(null!=taskLogMap && taskLogMap.size()>0){
-               for (Map<String, Object> map : taskLogMap) {
-                   TaskLog taskLog = new TaskLog();
-                   MyBeanUtils.populate(taskLog, map);
-                   taskLogs.add(taskLog);
-               }
-               return taskLogs;
-           }else {
-               return null;
-           }
+            if (null != taskLogMap && taskLogMap.size() > 0) {
+                for (Map<String, Object> map : taskLogMap) {
+                    TaskLog taskLog = new TaskLog();
+                    MyBeanUtils.populate(taskLog, map);
+                    taskLogs.add(taskLog);
+                }
+                return taskLogs;
+            } else {
+                return null;
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
