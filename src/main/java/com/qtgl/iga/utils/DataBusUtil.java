@@ -2,12 +2,12 @@ package com.qtgl.iga.utils;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.qtgl.iga.bo.DomainInfo;
-import com.qtgl.iga.bo.Token;
-import com.qtgl.iga.bo.UpstreamType;
-import com.qtgl.iga.bo.UpstreamTypeField;
+import com.qtgl.iga.bean.OccupyDto;
+import com.qtgl.iga.bean.TreeBean;
+import com.qtgl.iga.bo.*;
 import com.qtgl.iga.service.DomainInfoService;
 import com.qtgl.iga.service.UpstreamTypeService;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.beanutils.BeanMap;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -32,23 +32,24 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import javax.script.SimpleBindings;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Component
 public class DataBusUtil {
 
-    public static Logger logger = LoggerFactory.getLogger(DataBusUtil.class);
+
 
     @Autowired
     UpstreamTypeService upstreamTypeService;
@@ -76,14 +77,14 @@ public class DataBusUtil {
 
     private static String sendPostRequest(String url, JSONObject params) {
         url = UrlUtil.getUrl(url);
-        logger.info("pub post url:" + url);
+        log.info(" post url:" + url);
         try {
             String s = Request.Post(url).bodyString(params.toJSONString(), ContentType.APPLICATION_JSON).execute().returnContent().asString();
-            logger.info("pub post response:" + s);
+            log.info(" post response:" + s);
             return s;
         } catch (Exception e) {
             e.printStackTrace();
-            logger.info("pub post error:" + e);
+            log.info(" post error:" + e);
         }
         return null;
 
@@ -135,7 +136,7 @@ public class DataBusUtil {
                     .setClientId(byDomainName.getClientId()).setClientSecret(byDomainName.getClientSecret())
                     .setScope(scope.replace(",", " ")).buildBodyMessage();
         } catch (OAuthSystemException e) {
-            logger.error("token 获取 : ->" + e.getMessage());
+            log.error("token 获取 : ->" + e.getMessage());
             e.printStackTrace();
         }
         OAuthClient oAuthClient = new OAuthClient(new SSLConnectionClient());
@@ -143,7 +144,7 @@ public class DataBusUtil {
         try {
             oAuthClientResponse = oAuthClient.accessToken(oAuthClientRequest, "POST", OAuthJSONAccessTokenResponse.class);
         } catch (OAuthSystemException | OAuthProblemException e) {
-            logger.error("token 获取" + e.getMessage());
+            log.error("token 获取" + e.getMessage());
             e.printStackTrace();
         }
         assert oAuthClientResponse != null;
@@ -179,7 +180,7 @@ public class DataBusUtil {
             try {
                 throw new Exception("请求数据失败");
             } catch (Exception e) {
-                logger.error("请求url 失败" + e.getMessage());
+                log.error("请求url 失败" + e.getMessage());
                 e.printStackTrace();
             }
         }
@@ -187,7 +188,7 @@ public class DataBusUtil {
             try {
                 throw new Exception("获取url失败" + s);
             } catch (Exception e) {
-                logger.error("获取url 失败" + e.getMessage());
+                log.error("获取url 失败" + e.getMessage());
                 e.printStackTrace();
             }
         }
@@ -208,7 +209,7 @@ public class DataBusUtil {
     }
 
     private JSONArray invokeForData(String dataUrl, UpstreamType upstreamType) throws Exception {
-        logger.info("source url " + dataUrl);
+        log.info("source url " + dataUrl);
         //获取字段映射
         List<UpstreamTypeField> fields = upstreamTypeService.findFields(upstreamType.getId());
         typeFields.put(upstreamType.getId(), fields);
@@ -263,12 +264,12 @@ public class DataBusUtil {
                 query.addResultAttributes(edges);
 
 
-                logger.info("body " + query);
+                log.info("body " + query);
                 GraphqlResponse response = null;
                 try {
                     response = graphqlClient.doQuery(query);
                 } catch (IOException e) {
-                    logger.info("response :  ->" + e.getMessage());
+                    log.info("response :  ->" + e.getMessage());
                     e.printStackTrace();
                 }
 
@@ -276,7 +277,7 @@ public class DataBusUtil {
                 assert response != null;
                 result = response.getData();
                 for (Map.Entry<String, Object> entry : result.entrySet()) {
-                    logger.info("result  data --" + entry.getKey() + "------" + entry.getValue());
+                    log.info("result  data --" + entry.getKey() + "------" + entry.getValue());
                 }
 
                 if (null == result || null == result.get("data")) {
@@ -320,12 +321,12 @@ public class DataBusUtil {
                             final Object eval = engine.eval(reg, bindings);
                             jsonObject.put(map.get(entry.getKey()), eval);
                             if ("parentCode".equals(map.get(entry.getKey()))) {
-                                if((null == entry.getValue()) || ("".equals(entry.getValue()))){
+                                if ((null == entry.getValue()) || ("".equals(entry.getValue()))) {
                                     jsonObject.put(map.get(entry.getKey()), "");
                                 }
                             }
                         } catch (ScriptException e) {
-                            logger.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
+                            log.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
                             throw new Exception("表达式" + collect.get(map.get(entry.getKey())) + "不符合规范请检查");
 
                         }
@@ -384,19 +385,19 @@ public class DataBusUtil {
             }
 
 
-            logger.info("body " + query);
+            log.info("body " + query);
             GraphqlResponse response = null;
             try {
                 response = graphqlClient.doQuery(query);
             } catch (IOException e) {
-                logger.info("response :  ->" + e.getMessage());
+                log.info("response :  ->" + e.getMessage());
                 e.printStackTrace();
             }
 
             //获取数据，数据为map类型
             result = response.getData();
             for (Map.Entry<String, Object> entry : result.entrySet()) {
-                logger.info("result  data --" + entry.getKey() + "------" + entry.getValue());
+                log.info("result  data --" + entry.getKey() + "------" + entry.getValue());
             }
             if (null == result || null == result.get("data")) {
 
@@ -437,12 +438,12 @@ public class DataBusUtil {
                         final Object eval = engine.eval(reg, bindings);
                         jsonObject.put(map.get(entry.getKey()), eval);
                         if ("parentCode".equals(map.get(entry.getKey()))) {
-                            if((null == entry.getValue()) || ("".equals(entry.getValue()))){
+                            if ((null == entry.getValue()) || ("".equals(entry.getValue()))) {
                                 jsonObject.put(map.get(entry.getKey()), "");
                             }
                         }
                     } catch (ScriptException e) {
-                        logger.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
+                        log.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
                         throw new Exception("表达式" + collect.get(map.get(entry.getKey())) + "不符合规范请检查");
                     }
                 }
@@ -495,7 +496,7 @@ public class DataBusUtil {
 
 
     private Map invokeForMapData(String dataUrl, UpstreamType upstreamType, Integer offset, Integer first) throws Exception {
-        logger.info("source url " + dataUrl);
+        log.info("source url " + dataUrl);
         //获取字段映射
         List<UpstreamTypeField> fields = upstreamTypeService.findFields(upstreamType.getId());
         String[] type = upstreamType.getGraphqlUrl().split("/");
@@ -546,12 +547,12 @@ public class DataBusUtil {
             query.addResultAttributes("totalCount");
 
 
-            logger.info("body " + query);
+            log.info("body " + query);
             GraphqlResponse response = null;
             try {
                 response = graphqlClient.doQuery(query);
             } catch (IOException e) {
-                logger.info("response :  ->" + e.getMessage());
+                log.info("response :  ->" + e.getMessage());
                 e.printStackTrace();
             }
 
@@ -559,8 +560,8 @@ public class DataBusUtil {
             assert response != null;
             result = response.getData();
             for (Map.Entry<String, Object> entry : result.entrySet()) {
-                logger.info("result  data --" + entry.getKey() + "------" + entry.getValue());
-                if("errors".equals(entry.getKey())){
+                log.info("result  data --" + entry.getKey() + "------" + entry.getValue());
+                if ("errors".equals(entry.getKey())) {
                     throw new Exception("查询数据失败,请检查上游源配置");
                 }
             }
@@ -606,12 +607,12 @@ public class DataBusUtil {
                         final Object eval = engine.eval(reg, bindings);
                         jsonObject.put(map.get(entry.getKey()), eval);
                         if ("parentCode".equals(map.get(entry.getKey()))) {
-                            if((null == entry.getValue()) || ("".equals(entry.getValue()))){
+                            if ((null == entry.getValue()) || ("".equals(entry.getValue()))) {
                                 jsonObject.put(map.get(entry.getKey()), "");
                             }
                         }
                     } catch (ScriptException e) {
-                        logger.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
+                        log.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
                         throw new Exception("表达式" + collect.get(map.get(entry.getKey())) + "不符合规范请检查");
                     }
                 }
@@ -633,6 +634,157 @@ public class DataBusUtil {
 
         return (Map) result.get("data");
 
+
+    }
+
+
+    public String pub(Map<TreeBean, String> treeBeanMap, Map<String, List<Person>> personMap, Map<String, List<OccupyDto>> occupyMap, String type, DomainInfo domain) {
+        log.info("start pub {}",type);
+        JSONObject params = new JSONObject();
+        StringBuffer graphql = new StringBuffer("mutation  {");
+        if ("dept".equals(type) || "post".equals(type)) {
+            for (Map.Entry<TreeBean, String> entry : treeBeanMap.entrySet()) {
+                String pub = "{" +
+                        "    type : \"%s\",\n" +
+                        "    source : \"%s\", \n" +
+                        "    subject : \"%s\", \n" +
+                        "    id : \"%s\",         \n" +
+                        "    time : \"%s\",  \n" +
+                        "    datacontenttype : \"application/json\",        \n" +
+                        "    data : \"%s\", " +
+                        "}";
+                TreeBean k = entry.getKey();
+                String v = entry.getValue();
+
+                if (v.equals("obsolete")) {
+                    break;
+                }
+                if (v.equals("insert")) {
+                    pub = String.format(pub, type + ".created", domain.getClientId(),
+                            k.getCode(), k.getCode() + UUID.randomUUID(),
+                            k.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(k).replace("\"", "\\\""));
+                }
+                if (v.equals("update")) {
+                    pub = String.format(pub, type + ".updated", domain.getClientId(),
+                            k.getCode(), k.getCode() + UUID.randomUUID(),
+                            k.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(k).replace("\"", "\\\""));
+                }
+                if (v.equals("delete")) {
+                    pub = String.format(pub, type + ".deleted", domain.getClientId(),
+                            k.getCode(), k.getCode() + UUID.randomUUID(),
+                            k.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(k).replace("\"", "\\\""));
+                }
+                graphql.append(k.getCode() + ":pub(message:" + pub + "){id}\n");
+            }
+
+        } else if ("person".equals(type)) {
+            List<Person> insertPersonList = personMap.get("insert");
+            for (Person person : insertPersonList) {
+                String pub = "{" +
+                        "    type : \"%s\",\n" +
+                        "    source : \"%s\", \n" +
+                        "    subject : \"%s\", \n" +
+                        "    id : \"%s\",         \n" +
+                        "    time : \"%s\",  \n" +
+                        "    datacontenttype : \"application/json\",        \n" +
+                        "    data : \"%s\", " +
+                        "}";
+                pub = String.format(pub, "person.created", domain.getClientId(),
+                        person.getCardType() + ":" + person.getCardNo(), UUID.randomUUID(),
+                        person.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(person).replace("\"", "\\\""));
+                graphql.append(person.getCardNo() + ":pub(message:" + pub + "){id}\n");
+            }
+            List<Person> updatePersonList = personMap.get("update");
+            for (Person person : updatePersonList) {
+                String pub = "{" +
+                        "    type : \"%s\",\n" +
+                        "    source : \"%s\", \n" +
+                        "    subject : \"%s\", \n" +
+                        "    id : \"%s\",         \n" +
+                        "    time : \"%s\",  \n" +
+                        "    datacontenttype : \"application/json\",        \n" +
+                        "    data : \"%s\", " +
+                        "}";
+                pub = String.format(pub, "person.updated", domain.getClientId(),
+                        person.getCardType() + ":" + person.getCardNo(), UUID.randomUUID(),
+                        person.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(person).replace("\"", "\\\""));
+                graphql.append(person.getCardNo() + ":pub(message:" + pub + "){id}\n");
+            }
+            List<Person> deletePersonList = personMap.get("delete");
+            for (Person person : deletePersonList) {
+                String pub = "{" +
+                        "    type : \"%s\",\n" +
+                        "    source : \"%s\", \n" +
+                        "    subject : \"%s\", \n" +
+                        "    id : \"%s\",         \n" +
+                        "    time : \"%s\",  \n" +
+                        "    datacontenttype : \"application/json\",        \n" +
+                        "    data : \"%s\", " +
+                        "}";
+                pub = String.format(pub, "person.deleted", domain.getClientId(),
+                        person.getOpenId(), UUID.randomUUID(),
+                        person.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(person).replace("\"", "\\\""));
+                graphql.append(person.getOpenId() + ":pub(message:" + pub + "){id}\n");
+            }
+
+        } else if ("occupy".equals(type)) {
+                List<OccupyDto> insert = occupyMap.get("insert");
+            for (OccupyDto occupy : insert) {
+                String pub = "{" +
+                        "    type : \"%s\",\n" +
+                        "    source : \"%s\", \n" +
+                        "    subject : \"%s\", \n" +
+                        "    id : \"%s\",         \n" +
+                        "    time : \"%s\",  \n" +
+                        "    datacontenttype : \"application/json\",        \n" +
+                        "    data : \"%s\", " +
+                        "}";
+                pub = String.format(pub, "user.position.created", domain.getClientId(),
+                        occupy.getOccupyId() , UUID.randomUUID(),
+                        occupy.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(occupy).replace("\"", "\\\""));
+                graphql.append(occupy.getOccupyId() + ":pub(message:" + pub + "){id}\n");
+            }
+            List<OccupyDto> update = occupyMap.get("update");
+            for (OccupyDto occupy : update) {
+                String pub = "{" +
+                        "    type : \"%s\",\n" +
+                        "    source : \"%s\", \n" +
+                        "    subject : \"%s\", \n" +
+                        "    id : \"%s\",         \n" +
+                        "    time : \"%s\",  \n" +
+                        "    datacontenttype : \"application/json\",        \n" +
+                        "    data : \"%s\", " +
+                        "}";
+                pub = String.format(pub, "user.position.updated", domain.getClientId(),
+                        occupy.getOpenId(), UUID.randomUUID(),
+                        occupy.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(occupy).replace("\"", "\\\""));
+                graphql.append(occupy.getOpenId()+ ":pub(message:" + pub + "){id}\n");
+            }
+            List<OccupyDto> delete = occupyMap.get("delete");
+            for (OccupyDto occupy : delete) {
+                String pub = "{" +
+                        "    type : \"%s\",\n" +
+                        "    source : \"%s\", \n" +
+                        "    subject : \"%s\", \n" +
+                        "    id : \"%s\",         \n" +
+                        "    time : \"%s\",  \n" +
+                        "    datacontenttype : \"application/json\",        \n" +
+                        "    data : \"%s\", " +
+                        "}";
+                pub = String.format(pub, "user.position.deleted", domain.getClientId(),
+                        occupy.getOpenId(), UUID.randomUUID(),
+                        occupy.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(occupy).replace("\"", "\\\""));
+                graphql.append(occupy.getOpenId()+ ":pub(message:" + pub + "){id}\n");
+            }
+
+        }
+        graphql.append("}");
+        params.put("query", graphql);
+
+        log.debug("pub graphql: {}",graphql);
+
+        String token = getToken(domain.getDomainName());
+        return sendPostRequest(busUrl + "/graphql/builtin?access_token=" + token, params);
 
     }
 

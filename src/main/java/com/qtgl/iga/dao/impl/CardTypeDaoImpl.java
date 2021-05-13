@@ -23,7 +23,7 @@ public class CardTypeDaoImpl implements CardTypeDao {
 
     @Override
     public List<CardType> findAll(String domain) {
-        String sql = "select id, card_type_name as cardTypeName, card_type_code as cardTypeCode, card_type_reg as cardTypeReg  from card_type where tenant_id=?";
+        String sql = "select id, card_type_name as cardTypeName, card_type_code as cardTypeCode, card_type_reg as cardTypeReg  from card_type where tenant_id=? and card_type_type='USER'";
         List<Map<String, Object>> listMaps = jdbcSSOAPI.queryForList(sql, domain);
         List<CardType> cardTypes = new ArrayList<>();
         listMaps.forEach(map -> {

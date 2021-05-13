@@ -124,6 +124,7 @@ public class OccupyServiceImpl implements OccupyService {
                     continue;
                 }
                 final String personId = personFromSSOMap.get(personKey).getId();
+                occupyDto.setOpenId(personFromSSOMap.get(personKey).getOpenId());
                 occupyDto.setPersonId(personId);
                 occupyDto.setCreateTime(now);
                 occupyDto.setUpstreamType(upstreamType.getId());

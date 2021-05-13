@@ -9,10 +9,10 @@ public class TaskLog {
 
     private String id;
     private String status;
-    private Integer deptNo;
-    private Integer postNo;
-    private Integer personNo;
-    private Integer occupyNo;
+    private String deptNo;
+    private String postNo;
+    private String personNo;
+    private String occupyNo;
     private Long createTime;
     private Long updateTime;
     private String domain;

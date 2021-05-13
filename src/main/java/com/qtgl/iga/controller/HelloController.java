@@ -80,18 +80,24 @@ public class HelloController {
             //部门数据同步至sso
             final Map<TreeBean, String> deptResult = deptService.buildDeptUpdateResult(domainInfo);
             log.info(Thread.currentThread().getName() + ": 部门同步完成：{}==={}", deptResult.size(), System.currentTimeMillis());
+            String pubResult=busUtil.pub(deptResult, null,null,"dept",domainInfo);
+            log.info("dept pub:{}",pubResult);
 
             //岗位数据同步至sso
             final Map<TreeBean, String> treeBeanStringMap = postService.buildPostUpdateResult(domainInfo);
             log.info(Thread.currentThread().getName() + ": 岗位同步完成：{}==={}", treeBeanStringMap.size(), System.currentTimeMillis());
-
+              pubResult=busUtil.pub(treeBeanStringMap,null,null,"post",domainInfo);
+            log.info("post pub:{}",pubResult);
             //人员数据同步至sso
             Map<String, List<Person>> personResult = personService.buildPerson(domainInfo);
             log.info(Thread.currentThread().getName() + ": 人员同步完成{}==={}", personResult.size(), System.currentTimeMillis());
-
+            pubResult=busUtil.pub(null,personResult,null,"person",domainInfo);
+            log.info("person pub:{}",pubResult);
             //人员身份同步至sso
             final Map<String, List<OccupyDto>> occupyResult = occupyService.buildPerson(domainInfo);
             log.info(Thread.currentThread().getName() + ": 人员身份同步完成{}==={}", occupyResult.size(), System.currentTimeMillis());
+            pubResult=busUtil.pub(null,null,occupyResult,"occupy",domainInfo);
+            log.info("person pub:{}",pubResult);
 
             System.out.println("=======END=======" + DateUtil.getNow() + "=================");
         } catch (Exception e) {

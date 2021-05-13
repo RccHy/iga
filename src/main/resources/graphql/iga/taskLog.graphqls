@@ -11,16 +11,16 @@ type TaskLog{
     status :String
 
     #部门同步数量
-    deptNo :Int
+    deptNo :String
 
     #岗位同步数量
-    postNo :Int
+    postNo :String
 
     #人员同步数量
     personNo :Int
 
     #人员身份同步数量
-    occupyNo :Int
+    occupyNo :String
 
     #创建时间
     createTime :Timestamp
@@ -40,16 +40,16 @@ input InputTaskLog{
     status :String
 
     #部门同步数量
-    deptNo :Int
+    deptNo :String
 
     #岗位同步数量
-    postNo :Int
+    postNo :String
 
     #人员同步数量
-    personNo :Int
+    personNo :String
 
     #人员身份同步数量
-    occupyNo :Int
+    occupyNo :String
 
     #创建时间
     createTime :Timestamp
