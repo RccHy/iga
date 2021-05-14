@@ -312,8 +312,11 @@ public class DeptServiceImpl implements DeptService {
     //, String treeTypeId
     private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, List<TreeBean> ssoBeans, Map<TreeBean, String> result, ArrayList<TreeBean> insert, LocalDateTime now) {
         Map<String, TreeBean> ssoCollect = new HashMap<>();
-        if (null != ssoBeans && ssoBeans.size() > 0) {
-            ssoCollect = ssoBeans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
+//        if (null != ssoBeans && ssoBeans.size() > 0) {
+//            ssoCollect = ssoBeans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
+//        }
+        if (null != mainTree && mainTree.size() > 0) {
+            ssoCollect = mainTree;
         }
 
         //拉取的数据

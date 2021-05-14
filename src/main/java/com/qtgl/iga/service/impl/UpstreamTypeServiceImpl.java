@@ -82,7 +82,7 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
             return map;
         } catch (Exception e) {
             logger.error("当前类型{}中的{},获取数据失败", id.getDescription(), e.getMessage());
-            throw new Exception("当前类型" + id.getDescription() + "中的" + e.getMessage() + ",获取数据失败");
+            throw new Exception("当前类型" + id.getDescription() + ",获取数据失败");
         }
 
 

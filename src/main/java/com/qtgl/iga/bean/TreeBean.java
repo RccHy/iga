@@ -53,6 +53,10 @@ public class TreeBean {
     private Integer active;
 
     private String ruleId;
+    /**代表色*/
+    private String color;
+    /**是否包含规则*/
+    private Boolean isRuled;
 
 //    private String deptTreeTypeId;
 //    public DeptBean(Dept dept) {

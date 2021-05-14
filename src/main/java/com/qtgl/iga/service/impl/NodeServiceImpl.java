@@ -232,9 +232,9 @@ public class NodeServiceImpl implements NodeService {
         Object version = arguments.get("version");
         String type = (String) arguments.get("type");
         Boolean mark = (Boolean) arguments.get("mark");
-        if (null == version) {
-            throw new Exception("版本非法,请确认");
-        }
+//        if (null == version) {
+//            throw new Exception("版本非法,请确认");
+//        }
         //mark为true 则为回滚  false为应用
         if (mark) {
             //查询编辑中的node
@@ -252,16 +252,23 @@ public class NodeServiceImpl implements NodeService {
             }
         }
         //查询是否在同步中
-        List<TaskLog> logList = taskLogDao.findAll(domain);
+        List<TaskLog> logList = taskLogDao.findByStatus(domain, "doing");
         if (null != logList && logList.size() > 0) {
-            if ("doing".equals(logList.get(0).getStatus())) {
-                throw new Exception("数据正在同步,应用失败,请稍后再试");
-            }
+
+            throw new Exception("数据正在同步,应用失败,请稍后再试");
+
         }
         //将所有版本改为历史版本
 
         Integer nodeHistory = getInteger(null, type, domain, null);
 
+        //查询生产版本
+        if (null == version) {
+            List<Node> nodes = nodeDao.findNodesByStatusAndType(0, type, domain, null);
+            if (null != nodes && nodes.size() > 0) {
+                version = nodes.get(0).getCreateTime();
+            }
+        }
         //将传入版本改为正式版本
         Integer rangeNew = getInteger(null, type, domain, version);
         if ((nodeHistory >= 0) && (rangeNew >= 0)) {
@@ -387,6 +394,19 @@ public class NodeServiceImpl implements NodeService {
 
         }
         return status;
+    }
+
+    @Override
+    public List<Node> nodeStatus(Map<String, Object> arguments, String domain) throws Exception {
+        Integer status = (Integer) arguments.get("status");
+        String type = (String) arguments.get("type");
+        if (null == status) {
+            throw new Exception("状态不能为空");
+        }
+        if (null == type) {
+            throw new Exception("类型不能为空");
+        }
+        return nodeDao.findByStatus(status, domain, type);
     }
 
 

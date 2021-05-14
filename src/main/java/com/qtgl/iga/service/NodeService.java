@@ -31,4 +31,6 @@ public interface NodeService {
     Node rollbackNode(Map<String, Object> arguments, String id) throws Exception;
 
     Integer judgeEdit(Map<String, Object> arguments, DomainInfo domain, String type) throws Exception;
+
+    List<Node> nodeStatus(Map<String, Object> arguments, String id) throws Exception;
 }
