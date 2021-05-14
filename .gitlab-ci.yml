@@ -59,7 +59,7 @@ deploy:prod:
     name: prod
     url: https://cloud.ketanyun.cn/iga
   only:
-    - master
+    - dev
   when: manual      
 
 # Master 分支CI，并自动产生一个以当前日期为版本号的镜像
