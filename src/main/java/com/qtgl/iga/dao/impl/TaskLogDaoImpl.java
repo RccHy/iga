@@ -105,6 +105,30 @@ public class TaskLogDaoImpl implements TaskLogDao {
         return null;
     }
 
+    @Override
+    public List<TaskLog> findByStatus(String domain, String status) {
+        try {
+            List<TaskLog> taskLogs = new ArrayList<>();
+            String sql = "select id,status,dept_no as deptNo,post_no as postNo,person_no as personNo" +
+                    ",occupy_no occupyNo ,create_time as createTime , update_time as updateTime from t_mgr_task_log where domain=?  and status = ? ";
+            List<Map<String, Object>> taskLogMap = jdbcIGA.queryForList(sql, domain, status);
+            if (null != taskLogMap && taskLogMap.size() > 0) {
+                for (Map<String, Object> map : taskLogMap) {
+                    TaskLog taskLog = new TaskLog();
+                    MyBeanUtils.populate(taskLog, map);
+                    taskLogs.add(taskLog);
+                }
+                return taskLogs;
+            } else {
+                return null;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
     public Integer allCount(Map<String, Object> arguments, String domain) {
 
         String sql = "select count(1) from t_mgr_task_log where domain=? ";

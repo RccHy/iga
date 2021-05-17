@@ -425,8 +425,12 @@ public class NodeRulesCalculationServiceImpl {
             Map<String, List<TreeBean>> mainTreeChildren = TreeUtil.groupChildren(new ArrayList<>(mainDept));
 
             if (null != nodeRules && nodeRules.size() > 0) {
-
-
+                if (null != mainTreeMap) {
+                    TreeBean treeBean = mainTreeMap.get(code);
+                    if (null != treeBean) {
+                        treeBean.setIsRuled(true);
+                    }
+                }
                 // 过滤出继承下来的NodeRules
                 Map<String, NodeRules> inheritNodeRules = nodeRules.stream().filter(rules -> StringUtils.isNotEmpty(rules.getInheritId()))
                         .collect(Collectors.toMap(NodeRules::getId, v -> v));
@@ -488,6 +492,8 @@ public class NodeRulesCalculationServiceImpl {
                         dept.put("upstreamTypeId", upstreamType.getId());
                         dept.put("treeType", deptTreeType);
                         dept.put("ruleId", nodeRule.getId());
+                        dept.put("color", upstream.getColor());
+                        dept.put("isRuled", false);
                         upstreamDept.add(dept.toJavaObject(TreeBean.class));
 
                     }

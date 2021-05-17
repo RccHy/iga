@@ -5,7 +5,6 @@ import com.qtgl.iga.bo.Node;
 import com.qtgl.iga.dao.NodeDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import com.qtgl.iga.utils.MyBeanUtils;
-import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -270,6 +269,32 @@ public class NodeDaoImpl implements NodeDao {
                 "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status,type" +
                 " from t_mgr_node where id=?  ";
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id);
+        if (null == mapList || mapList.size() == 0) {
+            return null;
+        }
+        for (Map<String, Object> map : mapList) {
+            try {
+                Node node = new Node();
+                MyBeanUtils.populate(node, map);
+                nodes.add(node);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        if (null != nodes && nodes.size() > 0) {
+            return nodes;
+        }
+        return null;
+    }
+
+    @Override
+    public List<Node> findByStatus(Integer status, String domain,String type) {
+        ArrayList<Node> nodes = new ArrayList<>();
+        String sql = "select id,manual," +
+                "node_code as nodeCode," +
+                "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status,type" +
+                " from t_mgr_node where status=? and domain =? and type = ? ";
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, status,domain,type);
         if (null == mapList || mapList.size() == 0) {
             return null;
         }

@@ -343,6 +343,10 @@ public class PostServiceImpl implements PostService {
         if (null != ssoBeans && ssoBeans.size() > 0) {
             ssoCollect = ssoBeans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
         }
+//            ssoCollect = mainTree;
+
+
+        ssoCollect.putAll(mainTree);
         //拉取的数据
         Collection<TreeBean> mainDept = mainTree.values();
         ArrayList<TreeBean> pullBeans = new ArrayList<>(mainDept);

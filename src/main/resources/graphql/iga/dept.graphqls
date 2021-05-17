@@ -29,6 +29,10 @@ type Dept{
     type:String
     #标签
     tags:String
+    #代表色
+    color:String
+    #是否有规则
+    isRuled:Boolean
 #    #组织机构类型id
 #    deptTreeTypeId:String
 #    #ruleId

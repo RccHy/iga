@@ -19,4 +19,6 @@ public interface TaskLogDao {
 
 
     TaskLogConnection taskLogs(Map<String, Object> arguments, String domainId);
+
+    List<TaskLog> findByStatus(String domain, String status);
 }

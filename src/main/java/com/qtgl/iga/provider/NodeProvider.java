@@ -21,7 +21,8 @@ public class NodeProvider {
 
         return newTypeWiring("Query")
                 .dataFetcher("nodes", dataFetcher.findNodes())
-                .dataFetcher("nodesPlus", dataFetcher.findNodesPlus());
+                .dataFetcher("nodesPlus", dataFetcher.findNodesPlus())
+                .dataFetcher("nodeStatus", dataFetcher.nodeStatus());
     }
 
 

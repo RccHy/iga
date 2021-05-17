@@ -4,6 +4,9 @@ extend type Query {
 
     #查询plus
     nodesPlus(codes:[String]!,status:Int,treeType:String!,type:String!):[Node]
+
+    #查询是否有编辑中规则
+    nodeStatus(status:Int,type:String):[Node]
 }
 extend type Mutation {
     #新增节点规则
