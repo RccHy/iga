@@ -81,9 +81,10 @@ public class PostServiceImpl implements PostService {
 
 
         List<TreeBean> mainTreeBeans = new ArrayList<>();
+        Map<String, TreeBean> rootBeansMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
         final LocalDateTime now = LocalDateTime.now();
         for (TreeBean rootBean : rootBeans) {
-            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, "task", rootBeans);
+            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, "task", rootBeans, rootBeansMap);
             // 判断重复(code)
             calculationService.groupByCode(mainTreeBeans, 0, rootBeans, domain);
         }
@@ -111,7 +112,9 @@ public class PostServiceImpl implements PostService {
         if (null != beans) {
             beans.addAll(treeBeans);
         }
-
+        if (null != rootBeansMap && rootBeansMap.size() > 0) {
+            rootBeans = new ArrayList<>(rootBeansMap.values());
+        }
         // 判断重复(code)
         calculationService.groupByCode(beans, 0, rootBeans, domain);
 
@@ -162,9 +165,10 @@ public class PostServiceImpl implements PostService {
 
         List<TreeBean> mainTreeBeans = new ArrayList<>();
         final LocalDateTime now = LocalDateTime.now();
+        Map<String, TreeBean> rootBeansMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
 
         for (TreeBean rootBean : rootBeans) {
-            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, "system", rootBeans);
+            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, "system", rootBeans, rootBeansMap);
 //            // 判断重复(code)
 //            calculationService.groupByCode(mainTreeBeans, status, rootBeans);
         }
@@ -183,12 +187,18 @@ public class PostServiceImpl implements PostService {
                 }
             }
         }
+        Map<String, TreeBean> collect = beans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+        collect.putAll(rootBeansMap);
+        beans = new ArrayList<>(collect.values());
         //数据对比处理
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
         beans = dataProcessing(mainTreeMap, domain, "", beans, result, treeBeans, now);
 
         if (null != beans) {
             beans.addAll(treeBeans);
+        }
+        if (null != rootBeansMap && rootBeansMap.size() > 0) {
+            rootBeans = new ArrayList<>(rootBeansMap.values());
         }
         // 判断重复(code)
         calculationService.groupByCode(beans, status, rootBeans, domain);
@@ -346,7 +356,7 @@ public class PostServiceImpl implements PostService {
 //            ssoCollect = mainTree;
 
 
-        ssoCollect.putAll(mainTree);
+//        ssoCollect.putAll(mainTree);
         //拉取的数据
         Collection<TreeBean> mainDept = mainTree.values();
         ArrayList<TreeBean> pullBeans = new ArrayList<>(mainDept);
@@ -369,6 +379,8 @@ public class PostServiceImpl implements PostService {
                                     ssoBean.setSource(pullBean.getSource());
                                     ssoBean.setUpdateTime(now);
                                     ssoBean.setActive(pullBean.getActive());
+                                    ssoBean.setColor(pullBean.getColor());
+                                    ssoBean.setIsRuled(pullBean.getIsRuled());
                                     //新来的数据更实时
                                     boolean updateFlag = false;
                                     boolean delFlag = true;
@@ -440,10 +452,12 @@ public class PostServiceImpl implements PostService {
                     }
                     if (flag) {
                         ssoCollect.remove(ssoBean.getCode());
-                        if (0 == ssoBean.getDelMark()) {
-                            ssoBean.setUpdateTime(now);
-                            result.put(ssoBean, "delete");
+                        if (!("".equals(ssoBean.getCode()))) {
+                            if (0 == ssoBean.getDelMark()) {
+                                ssoBean.setUpdateTime(now);
+                                result.put(ssoBean, "delete");
 
+                            }
                         }
                     }
                 }

@@ -92,7 +92,7 @@ public class DeptServiceImpl implements DeptService {
         final LocalDateTime now = LocalDateTime.now();
         for (DeptTreeType deptType : deptTreeTypes) {
             // id 改为code
-            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE, "system", null);
+            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE, "system", null, null);
 //            // 判断重复(code)
 //            calculationService.groupByCode(mainTreeBeans, status, null);
 
@@ -165,7 +165,7 @@ public class DeptServiceImpl implements DeptService {
         final LocalDateTime now = LocalDateTime.now();
         for (DeptTreeType deptType : deptTreeTypes) {
             //  id 改为code
-            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE, "task", null);
+            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE, "task", null, null);
             // 判断重复(code)
             calculationService.groupByCode(mainTreeBeans, 0, null, domain);
 
@@ -341,6 +341,8 @@ public class DeptServiceImpl implements DeptService {
                                 ssoBean.setUpdateTime(now);
                                 ssoBean.setActive(pullBean.getActive());
                                 ssoBean.setTreeType(pullBean.getTreeType());
+                                ssoBean.setColor(pullBean.getColor());
+                                ssoBean.setIsRuled(pullBean.getIsRuled());
                                 //新来的数据更实时
                                 boolean updateFlag = false;
                                 boolean delFlag = true;

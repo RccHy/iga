@@ -402,7 +402,7 @@ public class NodeRulesCalculationServiceImpl {
      * @Description: 规则运算
      * @return: java.util.Map<java.lang.String, com.qtgl.iga.bean.TreeBean>
      */
-    public List<TreeBean> nodeRules(DomainInfo domain, String deptTreeType, String nodeCode, List<TreeBean> mainTree, Integer status, String type, String operator, List<TreeBean> rootBeans) throws Exception {
+    public List<TreeBean> nodeRules(DomainInfo domain, String deptTreeType, String nodeCode, List<TreeBean> mainTree, Integer status, String type, String operator, List<TreeBean> rootBeans, Map<String, TreeBean> rootBeansMap) throws Exception {
         //获取根节点的规则
         List<Node> nodes = nodeDao.getByCode(domain.getId(), deptTreeType, nodeCode, status, type);
         //获取组织机构信息
@@ -427,6 +427,12 @@ public class NodeRulesCalculationServiceImpl {
             if (null != nodeRules && nodeRules.size() > 0) {
                 if (null != mainTreeMap) {
                     TreeBean treeBean = mainTreeMap.get(code);
+                    if (null != treeBean) {
+                        treeBean.setIsRuled(true);
+                    }
+                }
+                if (null != rootBeansMap) {
+                    TreeBean treeBean = rootBeansMap.get(code);
                     if (null != treeBean) {
                         treeBean.setIsRuled(true);
                     }
@@ -620,7 +626,7 @@ public class NodeRulesCalculationServiceImpl {
 
                     // 将本次 add 进的 节点 进行 规则运算
                     for (Map.Entry<String, TreeBean> entry : mergeDeptMap.entrySet()) {
-                        mainTree = nodeRules(domain, deptTreeType, entry.getValue().getCode(), mainTree, status, type, operator, rootBeans);
+                        mainTree = nodeRules(domain, deptTreeType, entry.getValue().getCode(), mainTree, status, type, operator, rootBeans, rootBeansMap);
                     }
 
 
@@ -785,10 +791,9 @@ public class NodeRulesCalculationServiceImpl {
                     errorData.put(domainInfo.getDomainName(), list);
 
                     //岗位拼接根数据
-                    if ("".equals(treeBean.getTreeType()) && null != rootBeans) {
-                        mergeList.addAll(rootBeans);
-
-                    }
+//                    if ("".equals(treeBean.getTreeType()) && null != rootBeans) {
+//                        mergeList.addAll(rootBeans);
+//                    }
                     errorTree.put(domainInfo.getDomainName(), mergeList);
                     throw new Exception(" " + (null == deptTreeType ? "" : deptTreeType.getName()) + " 节点 (" + ("".equals(nodes.get(0).getNodeCode()) ? "根节点" : nodes.get(0).getNodeCode()) + " )" + "中的数据" + treeBean1.getName() + "(" + treeBean1.getCode() + ")" + " 与"
                             + (null == deptTreeType2 ? "" : deptTreeType2.getName()) + " 节点 (" + ("".equals(nodes2.get(0).getNodeCode()) ? "根节点" : nodes2.get(0).getNodeCode()) + " )" + "中的数据" + treeBean.getName() + "(" + treeBean.getCode() + ")" +
