@@ -17,7 +17,7 @@ type TaskLog{
     postNo :String
 
     #人员同步数量
-    personNo :Int
+    personNo :String
 
     #人员身份同步数量
     occupyNo :String

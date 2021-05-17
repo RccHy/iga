@@ -76,7 +76,7 @@ public class TaskLogDaoImpl implements TaskLogDao {
         List<TaskLogEdge> taskLogEdges = new ArrayList<>();
         try {
             String sql = "select id,status,dept_no as deptNo,post_no as postNo,person_no as personNo" +
-                    ",occupy_no occupyNo ,create_time as createTime , update_time as updateTime from t_mgr_task_log where domain=? ";
+                    ",occupy_no occupyNo ,create_time as createTime , update_time as updateTime from t_mgr_task_log where domain=? order by create_time desc";
             //拼接sql
             StringBuffer stb = new StringBuffer(sql);
             //存入参数
