@@ -170,7 +170,7 @@ public class PostDaoImpl implements PostDao {
     @Override
     public List<TreeBean> findRootData(String tenantId) {
         String sql = "select  user_type as code , name as name , parent_code as parentCode , " +
-                " tags ,data_source as dataSource , description , meta,source,post_type as postType,user_type_index as deptIndex  " +
+                " tags ,data_source as dataSource , description , meta,source,post_type as postType,user_type_index as deptIndex,del_mark as dekMark  " +
                 " from user_type where tenant_id=? and del_mark=0 and data_source=?";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId, "BUILTIN");
