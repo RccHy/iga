@@ -318,6 +318,7 @@ public class DeptServiceImpl implements DeptService {
         if (null != mainTree && mainTree.size() > 0) {
             ssoCollect = mainTree;
         }
+        mainTree.putAll(ssoBeans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept))));
 
         //拉取的数据
         Collection<TreeBean> mainDept = mainTree.values();
