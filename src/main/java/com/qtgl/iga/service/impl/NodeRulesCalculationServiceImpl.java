@@ -425,12 +425,12 @@ public class NodeRulesCalculationServiceImpl {
             Map<String, List<TreeBean>> mainTreeChildren = TreeUtil.groupChildren(new ArrayList<>(mainDept));
 
             if (null != nodeRules && nodeRules.size() > 0) {
-                if (null != mainTreeMap) {
-                    TreeBean treeBean = mainTreeMap.get(code);
-                    if (null != treeBean) {
-                        treeBean.setIsRuled(true);
-                    }
-                }
+//                if (null != mainTreeMap) {
+//                    TreeBean treeBean = mainTreeMap.get(code);
+//                    if (null != treeBean) {
+//                        treeBean.setIsRuled(true);
+//                    }
+//                }
                 if (null != rootBeansMap) {
                     TreeBean treeBean = rootBeansMap.get(code);
                     if (null != treeBean) {
@@ -442,6 +442,13 @@ public class NodeRulesCalculationServiceImpl {
                         .collect(Collectors.toMap(NodeRules::getId, v -> v));
                 // 遍历结束后 要对数据确权
                 for (NodeRules nodeRule : nodeRules) {
+                    //是否有规则过滤非继承数据打标识
+                    if (null != mainTreeMap && StringUtils.isBlank(nodeRule.getInheritId())) {
+                        TreeBean treeBean = mainTreeMap.get(code);
+                        if (null != treeBean) {
+                            treeBean.setIsRuled(true);
+                        }
+                    }
                     logger.info("开始'{}'节点拉取规则，上游:{}", code, nodeRule.getUpstreamTypesId());
                     // 每次循环都能拿到一个部门树，并计算出需要挂载的内容
                     //
