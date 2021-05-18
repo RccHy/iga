@@ -149,7 +149,7 @@ public class OccupyServiceImpl implements OccupyService {
         log.info("所有人员身份数据获取完成:{}", occupyDtoFromUpstream.size());
         //final List<OccupyDto> occupyDtos = (List<OccupyDto>) occupyDtoFromUpstream.values();
         // 获取sso中人员身份信息
-        final List<OccupyDto> occupiesFromSSO = occupyDao.findAll(tenant.getId());
+        final List<OccupyDto> occupiesFromSSO = occupyDao.findAll(tenant.getId(),null,null);
         log.info("数据库中人员身份数据获取完成:{}", occupiesFromSSO.size());
         Map<String, OccupyDto> occupiesFromSSOMap = occupiesFromSSO.stream().
                 collect(Collectors.toMap(occupy -> (occupy.getPersonId() + ":" + occupy.getPostCode() + ":" + occupy.getDeptCode()), occupy -> occupy, (v1, v2) -> v2));

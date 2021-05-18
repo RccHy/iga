@@ -33,7 +33,7 @@ public class OccupyDaoImpl implements OccupyDao {
 
 
     @Override
-    public List<OccupyDto> findAll(String tenantId) {
+    public List<OccupyDto> findAll(String tenantId,String deptCode,String postCode) {
         // 以人（identity）为主查询 人和身份的关联关系（identity_user）数据。再通过关联数据 查询身份信息详情。过滤掉 关键属性为空的数据行
         String sql = "select " +
                 "       iu.identity_id as personId," +

@@ -141,10 +141,12 @@ public class TaskConfig {
                                             } catch (Exception e) {
                                                 log.error("定时同步异常：" + e);
                                                 taskLog.setStatus("failed");
+                                                taskLog.setReason(e.getMessage());
                                                 taskLogService.save(taskLog, domainInfo.getId(), "update");
                                                 e.printStackTrace();
                                             }
                                         } else {
+                                            taskLog.setReason("有编辑中规则，跳过数据同步");
                                             taskLogService.save(taskLog, domainInfo.getId(), "skip");
                                             log.info("编辑中规则数:{}", nodeRules.size());
                                             log.info("有编辑中规则，跳过数据同步");

@@ -16,4 +16,8 @@ public class TaskLog {
     private Long createTime;
     private Long updateTime;
     private String domain;
+
+    private String reason;
+    //  忽略ignore    解决fix
+    private String mark;
 }

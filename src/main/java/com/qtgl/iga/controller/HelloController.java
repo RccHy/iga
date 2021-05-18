@@ -4,11 +4,10 @@ import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.Person;
+import com.qtgl.iga.bo.TaskLog;
 import com.qtgl.iga.config.TaskThreadPool;
-import com.qtgl.iga.dao.PersonDao;
 import com.qtgl.iga.service.*;
 import com.qtgl.iga.utils.DataBusUtil;
-import com.qtgl.iga.utils.DateUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -17,18 +16,13 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
-import javax.script.SimpleBindings;
 import javax.servlet.http.HttpServletRequest;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * @author 1
@@ -49,10 +43,12 @@ public class HelloController {
 
 
     @Autowired
-    DataBusUtil busUtil;
+    DataBusUtil dataBusUtil;
 
     @Autowired
     DomainInfoService domainInfoService;
+    @Autowired
+    TaskLogService taskLogService;
 
 
     @RequestMapping("/xc")
@@ -73,36 +69,81 @@ public class HelloController {
     @RequestMapping("/saveToSSO")
     @ResponseBody
     public void testDb() {
-        try {
-            System.out.println("=======START=======" + DateUtil.getNow() + "=================");
-            final List<DomainInfo> all = domainInfoService.findAll();
-            final DomainInfo domainInfo = all.get(0);
-            //部门数据同步至sso
-            final Map<TreeBean, String> deptResult = deptService.buildDeptUpdateResult(domainInfo);
-            log.info(Thread.currentThread().getName() + ": 部门同步完成：{}==={}", deptResult.size(), System.currentTimeMillis());
-            String pubResult=busUtil.pub(deptResult, null,null,"dept",domainInfo);
-            log.info("dept pub:{}",pubResult);
+        {
+            // 如果有编辑中的规则，则不进行数据同步
+            Map<String, Object> arguments = new HashMap<>();
+            arguments.put("status", 1);
+            TaskLog taskLog = new TaskLog();
+            taskLog.setId(UUID.randomUUID().toString());
+            final DomainInfo domainInfo = domainInfoService.findAll().get(0);
+            try {
+                taskLogService.save(taskLog, domainInfo.getId(), "save");
+                //部门数据同步至sso
+                Map<TreeBean, String> deptResult = deptService.buildDeptUpdateResult(domainInfo);
+                Map<String, List<Map.Entry<TreeBean, String>>> deptResultMap = deptResult.entrySet().stream().collect(Collectors.groupingBy(Map.Entry::getValue));
+                String deptNo = (deptResultMap.containsKey("insert") ? String.valueOf(deptResultMap.get("insert").size()) : "0") + "/"
+                        + (deptResultMap.containsKey("delete") ? String.valueOf(deptResultMap.get("delete").size()) : "0") + "/"
+                        + (deptResultMap.containsKey("update") ? String.valueOf(deptResultMap.get("update").size()) : "0");
 
-            //岗位数据同步至sso
-            final Map<TreeBean, String> treeBeanStringMap = postService.buildPostUpdateResult(domainInfo);
-            log.info(Thread.currentThread().getName() + ": 岗位同步完成：{}==={}", treeBeanStringMap.size(), System.currentTimeMillis());
-              pubResult=busUtil.pub(treeBeanStringMap,null,null,"post",domainInfo);
-            log.info("post pub:{}",pubResult);
-            //人员数据同步至sso
-            Map<String, List<Person>> personResult = personService.buildPerson(domainInfo);
-            log.info(Thread.currentThread().getName() + ": 人员同步完成{}==={}", personResult.size(), System.currentTimeMillis());
-            pubResult=busUtil.pub(null,personResult,null,"person",domainInfo);
-            log.info("person pub:{}",pubResult);
-            //人员身份同步至sso
-            final Map<String, List<OccupyDto>> occupyResult = occupyService.buildPerson(domainInfo);
-            log.info(Thread.currentThread().getName() + ": 人员身份同步完成{}==={}", occupyResult.size(), System.currentTimeMillis());
-            pubResult=busUtil.pub(null,null,occupyResult,"occupy",domainInfo);
-            log.info("person pub:{}",pubResult);
+                log.info(Thread.currentThread().getName() + ": 部门同步完成：{}==={}", deptNo, System.currentTimeMillis());
+                taskLog.setStatus("doing");
+                taskLog.setDeptNo(deptNo);
+                taskLogService.save(taskLog, domainInfo.getId(), "update");
+                // PUT   MQ
+                String pubResult = dataBusUtil.pub(deptResult, null, null, "dept", domainInfo);
+                log.info("dept pub:{}", pubResult);
 
-            System.out.println("=======END=======" + DateUtil.getNow() + "=================");
-        } catch (Exception e) {
-            log.error("定时同步异常：" + e);
-            e.printStackTrace();
+
+                //=============岗位数据同步至sso=================
+                final Map<TreeBean, String> postResult = postService.buildPostUpdateResult(domainInfo);
+                Map<String, List<Map.Entry<TreeBean, String>>> postResultMap = postResult.entrySet().stream().collect(Collectors.groupingBy(Map.Entry::getValue));
+                String postNo = (postResultMap.containsKey("insert") ? String.valueOf(postResultMap.get("insert").size()) : "0") + "/"
+                        + (postResultMap.containsKey("delete") ? String.valueOf(postResultMap.get("delete").size()) : "0") + "/"
+                        + (postResultMap.containsKey("update") ? String.valueOf(postResultMap.get("update").size()) : "0");
+                log.info(Thread.currentThread().getName() + ": 岗位同步完成：{}==={}", postNo, System.currentTimeMillis());
+                taskLog.setPersonNo(postNo);
+                taskLogService.save(taskLog, domainInfo.getId(), "update");
+
+                // PUT   MQ
+                pubResult = dataBusUtil.pub(deptResult, null, null, "post", domainInfo);
+                log.info("post pub:{}", pubResult);
+
+
+                //=============人员数据同步至sso=============
+                Map<String, List<Person>> personResult = personService.buildPerson(domainInfo);
+                String personNo = (personResult.containsKey("insert") ? String.valueOf(personResult.get("insert").size()) : "0") + "/"
+                        + (personResult.containsKey("delete") ? String.valueOf(personResult.get("delete").size()) : "0") + "/"
+                        + (personResult.containsKey("update") ? String.valueOf(personResult.get("update").size()) : "0");
+                log.info(Thread.currentThread().getName() + ": 人员同步完成{}==={}", personNo, System.currentTimeMillis());
+                taskLog.setPersonNo(personNo);
+                taskLogService.save(taskLog, domainInfo.getId(), "update");
+
+                // PUT   MQ
+                pubResult = dataBusUtil.pub(null, personResult, null, "person", domainInfo);
+                log.info("person pub:{}", pubResult);
+
+                //人员身份同步至sso
+                final Map<String, List<OccupyDto>> occupyResult = occupyService.buildPerson(domainInfo);
+                String occupyNo = (occupyResult.containsKey("insert") ? String.valueOf(occupyResult.get("insert").size()) : "0") + "/"
+                        + (occupyResult.containsKey("delete") ? String.valueOf(occupyResult.get("delete").size()) : "0") + "/"
+                        + (occupyResult.containsKey("update") ? String.valueOf(occupyResult.get("update").size()) : "0");
+                log.info(Thread.currentThread().getName() + ": 人员身份同步完成{}==={}", occupyNo, System.currentTimeMillis());
+                taskLog.setStatus("done");
+                taskLog.setOccupyNo(occupyNo);
+                taskLogService.save(taskLog, domainInfo.getId(), "update");
+
+                // PUT   MQ
+                pubResult = dataBusUtil.pub(null, null, occupyResult, "occupy", domainInfo);
+                log.info("occupy pub:{}", pubResult);
+
+                log.info("{}同步结束,task:{}", domainInfo.getDomainName(), taskLog.getId());
+            } catch (Exception e) {
+                log.error("定时同步异常：" + e);
+                taskLog.setStatus("failed");
+                taskLogService.save(taskLog, domainInfo.getId(), "update");
+                e.printStackTrace();
+            }
+
         }
 
     }
@@ -116,39 +157,5 @@ public class HelloController {
         postService.buildPostUpdateResult(byDomainName);
 
     }
-
-    public static void main(String[] args) throws ScriptException {
-
-        String str = "=red(1*)";
-        String pattern = "=[a-zA-Z0-9_]*([a-zA-Z0-9_]*)";
-
-        Pattern r = Pattern.compile(pattern);
-        Matcher m = r.matcher(str);
-        System.out.println(m.matches());
-        System.out.println(Pattern.matches("=[a-zA-Z0-9_*]*\\([a-zA-Z0-9_*+\\[ \\]]*\\)", "=rrr(1[0-9]*)"));
-
-
-        //        SimpleBindings bindings = new SimpleBindings();
-//        bindings.put("$code", "1000");
-//        String reg="(1+2)+$code";
-//        ScriptEngineManager sem = new ScriptEngineManager();
-//        ScriptEngine engine = sem.getEngineByName("js");
-//        final Object eval = engine.eval(reg, bindings);
-//        System.out.println(eval);
-//        String pattern = "\\$[a-zA-Z0-9_]+";
-//        String reg = "=[a-zA-Z0-9_]+";
-//
-//
-//        Pattern r = Pattern.compile(reg);
-//        Matcher m = r.matcher("=$Parent");
-//
-//        if (m.find()) {
-//            System.out.println("Found value: " + m.group(0));
-//        } else {
-//            System.out.println("NO MATCH");
-//        }
-
-    }
-
 
 }

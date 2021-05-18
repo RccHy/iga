@@ -2,16 +2,15 @@ package com.qtgl.iga.service.impl;
 
 
 import com.qtgl.iga.bean.TreeBean;
-
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.Tenant;
 import com.qtgl.iga.bo.UpstreamTypeField;
+import com.qtgl.iga.dao.OccupyDao;
 import com.qtgl.iga.dao.PostDao;
 import com.qtgl.iga.dao.TenantDao;
 import com.qtgl.iga.dao.UpstreamTypeDao;
 import com.qtgl.iga.service.NodeService;
 import com.qtgl.iga.service.PostService;
-
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
 import lombok.SneakyThrows;
@@ -22,7 +21,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -46,6 +44,8 @@ public class PostServiceImpl implements PostService {
     NodeService nodeService;
     @Autowired
     UpstreamTypeDao upstreamTypeDao;
+    @Autowired
+    OccupyDao occupyDao;
 
 
     @Value("${iga.hostname}")
@@ -105,10 +105,10 @@ public class PostServiceImpl implements PostService {
             }
             logBeans.addAll(beans);
         }
-        Map<String, TreeBean> collect = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+        Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
 
         //同步到sso
-        beans = dataProcessing(collect, domain, "", beans, result, treeBeans, now);
+        beans = dataProcessing(mainTreeMap, domain, "", beans, result, treeBeans, now);
         if (null != beans) {
             beans.addAll(treeBeans);
         }
@@ -117,8 +117,15 @@ public class PostServiceImpl implements PostService {
         }
         // 判断重复(code)
         calculationService.groupByCode(beans, 0, rootBeans, domain);
+        //
 
-        saveToSso(result, tenant.getId(), null);
+        Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
+        List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
+        if (delete.size() >= 1) {
+            logger.error("岗位删除数量{}超过设定阀值", delete.size());
+            throw new Exception("岗位删除数量" + delete.size() + "超过设定阀值");
+        }
+        saveToSso(collect, tenant.getId(), null);
 
         return result;
 
@@ -208,13 +215,13 @@ public class PostServiceImpl implements PostService {
     }
 
     /**
-     * @param result
+     * @param collect
      * @param tenantId
      * @Description: 增量插入sso数据库
      * @return: void
      */
-    private void saveToSso(Map<TreeBean, String> result, String tenantId, List<TreeBean> logBeans) {
-        Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
+    private void saveToSso(Map<String, List<Map.Entry<TreeBean, String>>> collect, String tenantId, List<TreeBean> logBeans) throws Exception {
+
 //        Map<String, TreeBean> logCollect = null;
 
         ArrayList<TreeBean> insertList = new ArrayList<>();
@@ -225,7 +232,18 @@ public class PostServiceImpl implements PostService {
 //            logCollect = logBeans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
 //        }
 
+        List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
+        //删除数据
+        if (null != delete && delete.size() > 0) {
+            for (Map.Entry<TreeBean, String> key : delete) {
+                logger.info("岗位对比后删除{}", key.getKey().toString());
+                deleteList.add(key.getKey());
+            }
+        }
+
+
         List<Map.Entry<TreeBean, String>> insert = collect.get("insert");
+
         if (null != insert && insert.size() > 0) {
             for (Map.Entry<TreeBean, String> key : insert) {
                 logger.debug("岗位对比后新增{}", key.getKey().toString());
@@ -286,21 +304,6 @@ public class PostServiceImpl implements PostService {
 //                if (flag) {
                 logger.info("岗位对比后需要修改{}", key.getKey().toString());
                 updateList.add(key.getKey());
-//                }
-            }
-        }
-        List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
-        //删除数据
-
-        if (null != delete && delete.size() > 0) {
-            for (Map.Entry<TreeBean, String> key : delete) {
-//                TreeBean newTreeBean = key.getKey();
-//                TreeBean oldTreeBean = logCollect.get(newTreeBean.getCode());
-//                if (oldTreeBean.getDelMark() == 0) {
-//                    if (null != oldTreeBean.getUpdateTime() && (newTreeBean.getCreateTime().isAfter(oldTreeBean.getUpdateTime()) || newTreeBean.getCreateTime().isEqual(oldTreeBean.getUpdateTime()))) {
-                logger.info("岗位对比后删除{}", key.getKey().toString());
-                deleteList.add(key.getKey());
-//                    }
 //                }
             }
         }

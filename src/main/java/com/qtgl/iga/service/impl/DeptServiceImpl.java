@@ -2,10 +2,7 @@ package com.qtgl.iga.service.impl;
 
 
 import com.qtgl.iga.bean.TreeBean;
-import com.qtgl.iga.bo.DeptTreeType;
-import com.qtgl.iga.bo.DomainInfo;
-import com.qtgl.iga.bo.Tenant;
-import com.qtgl.iga.bo.UpstreamTypeField;
+import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.service.NodeService;
@@ -19,6 +16,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.SimpleBindings;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -47,6 +47,10 @@ public class DeptServiceImpl implements DeptService {
     NodeRulesCalculationServiceImpl calculationService;
     @Autowired
     UpstreamTypeDao upstreamTypeDao;
+    @Autowired
+    OccupyDao occupyDao;
+    @Autowired
+    MonitorRulesDao monitorRulesDao;
 
     @Value("${iga.hostname}")
     String hostname;
@@ -178,27 +182,55 @@ public class DeptServiceImpl implements DeptService {
         }
         //code重复性校验
         calculationService.groupByCode(beans, 0, null, domain);
+
+        //  检测删除该部门 对 人员身份造成的影响。若影响范围过大，则停止操作。
+        Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
+        List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
+        // 获取 部门监控规则
+        final List<MonitorRules> deptMonitorRules = monitorRulesDao.findAll(domain.getDomainId(), "dept");
+        for (int i = 0; i < deptMonitorRules.size(); i++) {
+            SimpleBindings bindings = new SimpleBindings();
+            bindings.put("$count", beans.size());
+            bindings.put("$result", delete.size());
+            String reg = deptMonitorRules.get(i).getRules();
+            ScriptEngineManager sem = new ScriptEngineManager();
+            ScriptEngine engine = sem.getEngineByName("js");
+            Boolean eval = (Boolean) engine.eval(reg, bindings);
+            if (eval) {
+                logger.error("部门删除数量{}超过设定阀值", delete.size());
+                throw new Exception("部门删除数量" + delete.size() + "超过设定阀值");
+            }
+        }
+
+
         //保存到数据库
-        saveToSso(result, tenant.getId(), null);
+        saveToSso(collect, tenant.getId(), null);
         return result;
     }
 
 
     /**
-     * @param result
+     * @param collect
      * @param tenantId
      * @Description: 插入sso数据库
      * @return: void
      */
-    public void saveToSso(Map<TreeBean, String> result, String tenantId, List<TreeBean> logBeans) {
+    public void saveToSso(Map<String, List<Map.Entry<TreeBean, String>>> collect, String tenantId, List<TreeBean> logBeans) throws Exception {
         //插入数据
-        Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
         Map<String, TreeBean> logCollect = null;
         //声明存储插入,修改,删除数据的容器
         ArrayList<TreeBean> insertList = new ArrayList<>();
         ArrayList<TreeBean> updateList = new ArrayList<>();
         ArrayList<TreeBean> deleteList = new ArrayList<>();
 
+        List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
+        //删除数据
+        if (null != delete && delete.size() > 0) {
+            for (Map.Entry<TreeBean, String> key : delete) {
+                logger.info("部门对比后删除{}", key.getKey().toString());
+                deleteList.add(key.getKey());
+            }
+        }
 
 //        if (null != logBeans && logBeans.size() > 0) {
 //            //将数据根据code分组
@@ -267,19 +299,6 @@ public class DeptServiceImpl implements DeptService {
                 logger.info("部门对比后需要修改{}", key.getKey().toString());
                 updateList.add(key.getKey());
 //                }
-            }
-        }
-        List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
-        //删除数据
-        if (null != delete && delete.size() > 0) {
-            for (Map.Entry<TreeBean, String> key : delete) {
-//                TreeBean newTreeBean = key.getKey();
-//                assert logCollect != null;
-//                TreeBean oldTreeBean = logCollect.get(newTreeBean.getCode());
-                logger.info("部门对比后删除{}", key.getKey().toString());
-                deleteList.add(key.getKey());
-
-
             }
         }
 
