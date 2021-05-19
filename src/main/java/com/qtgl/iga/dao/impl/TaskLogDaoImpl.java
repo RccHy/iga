@@ -129,6 +129,17 @@ public class TaskLogDaoImpl implements TaskLogDao {
         return null;
     }
 
+    @Override
+    public TaskLog markLogs(Map<String, Object> arguments, String domainId) {
+        String sql = "update t_mgr_task_log  set mark = ? where id=? and domain=?";
+        int update = jdbcIGA.update(sql, preparedStatement -> {
+            preparedStatement.setObject(1, arguments.get("mark"));
+            preparedStatement.setObject(2, arguments.get("id"));
+            preparedStatement.setObject(3, domainId);
+        });
+        return update > 0 ? new TaskLog() : null;
+    }
+
     public Integer allCount(Map<String, Object> arguments, String domain) {
 
         String sql = "select count(1) from t_mgr_task_log where domain=? ";

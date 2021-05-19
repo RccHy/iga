@@ -1,6 +1,12 @@
 extend type Query {
     #查询同步日志
     taskLogs(offset:Int,first:Int,filter:TaskLogFilter):TaskLogConnection
+
+
+}
+extend type Mutation {
+    #给日志打标记
+    markLogs(id:ID!,mark:String!):TaskLog
 }
 
 type TaskLog{
@@ -31,6 +37,11 @@ type TaskLog{
     reason:String
     # 忽略、解决 标记
     mark:String
+
+    #理由
+    reason: String
+    #忽略ignore/解决solved 标记
+    mark : String
 
 }
 

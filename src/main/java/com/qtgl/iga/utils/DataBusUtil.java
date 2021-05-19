@@ -50,7 +50,6 @@ import java.util.stream.Collectors;
 public class DataBusUtil {
 
 
-
     @Autowired
     UpstreamTypeService upstreamTypeService;
 
@@ -639,7 +638,7 @@ public class DataBusUtil {
 
 
     public String pub(Map<TreeBean, String> treeBeanMap, Map<String, List<Person>> personMap, Map<String, List<OccupyDto>> occupyMap, String type, DomainInfo domain) {
-        log.info("start pub {}",type);
+        log.info("start pub {}", type);
         JSONObject params = new JSONObject();
         StringBuffer graphql = new StringBuffer("mutation  {");
         if ("dept".equals(type) || "post".equals(type)) {
@@ -679,109 +678,121 @@ public class DataBusUtil {
 
         } else if ("person".equals(type)) {
             List<Person> insertPersonList = personMap.get("insert");
-            for (Person person : insertPersonList) {
-                String pub = "{" +
-                        "    type : \"%s\",\n" +
-                        "    source : \"%s\", \n" +
-                        "    subject : \"%s\", \n" +
-                        "    id : \"%s\",         \n" +
-                        "    time : \"%s\",  \n" +
-                        "    datacontenttype : \"application/json\",        \n" +
-                        "    data : \"%s\", " +
-                        "}";
-                pub = String.format(pub, "person.created", domain.getClientId(),
-                        person.getCardType() + ":" + person.getCardNo(), UUID.randomUUID(),
-                        person.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(person).replace("\"", "\\\""));
-                graphql.append(person.getCardNo() + ":pub(message:" + pub + "){id}\n");
+            if (null != insertPersonList && insertPersonList.size() > 0) {
+                for (Person person : insertPersonList) {
+                    String pub = "{" +
+                            "    type : \"%s\",\n" +
+                            "    source : \"%s\", \n" +
+                            "    subject : \"%s\", \n" +
+                            "    id : \"%s\",         \n" +
+                            "    time : \"%s\",  \n" +
+                            "    datacontenttype : \"application/json\",        \n" +
+                            "    data : \"%s\", " +
+                            "}";
+                    pub = String.format(pub, "person.created", domain.getClientId(),
+                            person.getCardType() + ":" + person.getCardNo(), UUID.randomUUID(),
+                            person.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(person).replace("\"", "\\\""));
+                    graphql.append(person.getCardNo() + ":pub(message:" + pub + "){id}\n");
+                }
             }
             List<Person> updatePersonList = personMap.get("update");
-            for (Person person : updatePersonList) {
-                String pub = "{" +
-                        "    type : \"%s\",\n" +
-                        "    source : \"%s\", \n" +
-                        "    subject : \"%s\", \n" +
-                        "    id : \"%s\",         \n" +
-                        "    time : \"%s\",  \n" +
-                        "    datacontenttype : \"application/json\",        \n" +
-                        "    data : \"%s\", " +
-                        "}";
-                pub = String.format(pub, "person.updated", domain.getClientId(),
-                        person.getCardType() + ":" + person.getCardNo(), UUID.randomUUID(),
-                        person.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(person).replace("\"", "\\\""));
-                graphql.append(person.getCardNo() + ":pub(message:" + pub + "){id}\n");
+            if (null != updatePersonList && updatePersonList.size() > 0) {
+                for (Person person : updatePersonList) {
+                    String pub = "{" +
+                            "    type : \"%s\",\n" +
+                            "    source : \"%s\", \n" +
+                            "    subject : \"%s\", \n" +
+                            "    id : \"%s\",         \n" +
+                            "    time : \"%s\",  \n" +
+                            "    datacontenttype : \"application/json\",        \n" +
+                            "    data : \"%s\", " +
+                            "}";
+                    pub = String.format(pub, "person.updated", domain.getClientId(),
+                            person.getCardType() + ":" + person.getCardNo(), UUID.randomUUID(),
+                            person.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(person).replace("\"", "\\\""));
+                    graphql.append(person.getCardNo() + ":pub(message:" + pub + "){id}\n");
+                }
             }
             List<Person> deletePersonList = personMap.get("delete");
-            for (Person person : deletePersonList) {
-                String pub = "{" +
-                        "    type : \"%s\",\n" +
-                        "    source : \"%s\", \n" +
-                        "    subject : \"%s\", \n" +
-                        "    id : \"%s\",         \n" +
-                        "    time : \"%s\",  \n" +
-                        "    datacontenttype : \"application/json\",        \n" +
-                        "    data : \"%s\", " +
-                        "}";
-                pub = String.format(pub, "person.deleted", domain.getClientId(),
-                        person.getOpenId(), UUID.randomUUID(),
-                        person.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(person).replace("\"", "\\\""));
-                graphql.append(person.getOpenId() + ":pub(message:" + pub + "){id}\n");
+            if (null != deletePersonList && deletePersonList.size() > 0) {
+                for (Person person : deletePersonList) {
+                    String pub = "{" +
+                            "    type : \"%s\",\n" +
+                            "    source : \"%s\", \n" +
+                            "    subject : \"%s\", \n" +
+                            "    id : \"%s\",         \n" +
+                            "    time : \"%s\",  \n" +
+                            "    datacontenttype : \"application/json\",        \n" +
+                            "    data : \"%s\", " +
+                            "}";
+                    pub = String.format(pub, "person.deleted", domain.getClientId(),
+                            person.getOpenId(), UUID.randomUUID(),
+                            person.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(person).replace("\"", "\\\""));
+                    graphql.append(person.getOpenId() + ":pub(message:" + pub + "){id}\n");
+                }
             }
 
         } else if ("occupy".equals(type)) {
-                List<OccupyDto> insert = occupyMap.get("insert");
-            for (OccupyDto occupy : insert) {
-                String pub = "{" +
-                        "    type : \"%s\",\n" +
-                        "    source : \"%s\", \n" +
-                        "    subject : \"%s\", \n" +
-                        "    id : \"%s\",         \n" +
-                        "    time : \"%s\",  \n" +
-                        "    datacontenttype : \"application/json\",        \n" +
-                        "    data : \"%s\", " +
-                        "}";
-                pub = String.format(pub, "user.position.created", domain.getClientId(),
-                        occupy.getOccupyId() , UUID.randomUUID(),
-                        occupy.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(occupy).replace("\"", "\\\""));
-                graphql.append(occupy.getOccupyId() + ":pub(message:" + pub + "){id}\n");
+            List<OccupyDto> insert = occupyMap.get("insert");
+            if (null != insert && insert.size() > 0) {
+                for (OccupyDto occupy : insert) {
+                    String pub = "{" +
+                            "    type : \"%s\",\n" +
+                            "    source : \"%s\", \n" +
+                            "    subject : \"%s\", \n" +
+                            "    id : \"%s\",         \n" +
+                            "    time : \"%s\",  \n" +
+                            "    datacontenttype : \"application/json\",        \n" +
+                            "    data : \"%s\", " +
+                            "}";
+                    pub = String.format(pub, "user.position.created", domain.getClientId(),
+                            occupy.getOccupyId(), UUID.randomUUID(),
+                            occupy.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(occupy).replace("\"", "\\\""));
+                    graphql.append(occupy.getOccupyId() + ":pub(message:" + pub + "){id}\n");
+                }
             }
             List<OccupyDto> update = occupyMap.get("update");
-            for (OccupyDto occupy : update) {
-                String pub = "{" +
-                        "    type : \"%s\",\n" +
-                        "    source : \"%s\", \n" +
-                        "    subject : \"%s\", \n" +
-                        "    id : \"%s\",         \n" +
-                        "    time : \"%s\",  \n" +
-                        "    datacontenttype : \"application/json\",        \n" +
-                        "    data : \"%s\", " +
-                        "}";
-                pub = String.format(pub, "user.position.updated", domain.getClientId(),
-                        occupy.getOpenId(), UUID.randomUUID(),
-                        occupy.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(occupy).replace("\"", "\\\""));
-                graphql.append(occupy.getOpenId()+ ":pub(message:" + pub + "){id}\n");
+            if (null != update && update.size() > 0) {
+                for (OccupyDto occupy : update) {
+                    String pub = "{" +
+                            "    type : \"%s\",\n" +
+                            "    source : \"%s\", \n" +
+                            "    subject : \"%s\", \n" +
+                            "    id : \"%s\",         \n" +
+                            "    time : \"%s\",  \n" +
+                            "    datacontenttype : \"application/json\",        \n" +
+                            "    data : \"%s\", " +
+                            "}";
+                    pub = String.format(pub, "user.position.updated", domain.getClientId(),
+                            occupy.getOpenId(), UUID.randomUUID(),
+                            occupy.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(occupy).replace("\"", "\\\""));
+                    graphql.append(occupy.getOpenId() + ":pub(message:" + pub + "){id}\n");
+                }
             }
             List<OccupyDto> delete = occupyMap.get("delete");
-            for (OccupyDto occupy : delete) {
-                String pub = "{" +
-                        "    type : \"%s\",\n" +
-                        "    source : \"%s\", \n" +
-                        "    subject : \"%s\", \n" +
-                        "    id : \"%s\",         \n" +
-                        "    time : \"%s\",  \n" +
-                        "    datacontenttype : \"application/json\",        \n" +
-                        "    data : \"%s\", " +
-                        "}";
-                pub = String.format(pub, "user.position.deleted", domain.getClientId(),
-                        occupy.getOpenId(), UUID.randomUUID(),
-                        occupy.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(occupy).replace("\"", "\\\""));
-                graphql.append(occupy.getOpenId()+ ":pub(message:" + pub + "){id}\n");
+            if (null != delete && delete.size() > 0) {
+                for (OccupyDto occupy : delete) {
+                    String pub = "{" +
+                            "    type : \"%s\",\n" +
+                            "    source : \"%s\", \n" +
+                            "    subject : \"%s\", \n" +
+                            "    id : \"%s\",         \n" +
+                            "    time : \"%s\",  \n" +
+                            "    datacontenttype : \"application/json\",        \n" +
+                            "    data : \"%s\", " +
+                            "}";
+                    pub = String.format(pub, "user.position.deleted", domain.getClientId(),
+                            occupy.getOpenId(), UUID.randomUUID(),
+                            occupy.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(occupy).replace("\"", "\\\""));
+                    graphql.append(occupy.getOpenId() + ":pub(message:" + pub + "){id}\n");
+                }
             }
 
         }
         graphql.append("}");
         params.put("query", graphql);
 
-        log.debug("pub graphql: {}",graphql);
+        log.debug("pub graphql: {}", graphql);
 
         String token = getToken(domain.getDomainName());
         return sendPostRequest(busUrl + "/graphql/builtin?access_token=" + token, params);

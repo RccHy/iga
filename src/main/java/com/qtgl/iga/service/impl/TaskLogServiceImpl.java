@@ -34,4 +34,10 @@ public class TaskLogServiceImpl implements TaskLogService {
     public TaskLogConnection taskLogs(Map<String, Object> arguments, String domainId) {
         return taskLogDao.taskLogs(arguments, domainId);
     }
+
+    @Override
+    public TaskLog markLogs(Map<String, Object> arguments, String domainId) {
+
+        return taskLogDao.markLogs(arguments, domainId);
+    }
 }

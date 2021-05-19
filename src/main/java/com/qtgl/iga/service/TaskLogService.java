@@ -18,4 +18,6 @@ public interface TaskLogService {
     Integer save(TaskLog taskLog, String domain, String type);
 
     TaskLogConnection taskLogs(Map<String, Object> arguments, String id);
+
+    TaskLog markLogs(Map<String, Object> arguments, String id);
 }
