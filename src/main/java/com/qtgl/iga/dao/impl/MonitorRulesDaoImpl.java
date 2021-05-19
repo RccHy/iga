@@ -40,4 +40,6 @@ public class MonitorRulesDaoImpl implements MonitorRulesDao {
         }
         return monitorRulesList;
     }
+
+
 }

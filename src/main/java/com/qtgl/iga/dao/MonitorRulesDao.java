@@ -8,4 +8,6 @@ public interface MonitorRulesDao {
 
 
     public List<MonitorRules> findAll(String domain,String type);
+
+
 }

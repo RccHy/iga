@@ -40,4 +40,9 @@ public class TaskLogServiceImpl implements TaskLogService {
 
         return taskLogDao.markLogs(arguments, domainId);
     }
+
+    @Override
+    public TaskLog last(String domain) {
+        return taskLogDao.last(domain);
+    }
 }

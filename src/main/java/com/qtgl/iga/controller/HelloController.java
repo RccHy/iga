@@ -79,7 +79,8 @@ public class HelloController {
             try {
                 taskLogService.save(taskLog, domainInfo.getId(), "save");
                 //部门数据同步至sso
-                Map<TreeBean, String> deptResult = deptService.buildDeptUpdateResult(domainInfo);
+                TaskLog lastTaskLog = taskLogService.last(domainInfo.getId());
+                Map<TreeBean, String> deptResult = deptService.buildDeptUpdateResult(domainInfo,lastTaskLog);
                 Map<String, List<Map.Entry<TreeBean, String>>> deptResultMap = deptResult.entrySet().stream().collect(Collectors.groupingBy(Map.Entry::getValue));
                 String deptNo = (deptResultMap.containsKey("insert") ? String.valueOf(deptResultMap.get("insert").size()) : "0") + "/"
                         + (deptResultMap.containsKey("delete") ? String.valueOf(deptResultMap.get("delete").size()) : "0") + "/"
@@ -140,6 +141,7 @@ public class HelloController {
             } catch (Exception e) {
                 log.error("定时同步异常：" + e);
                 taskLog.setStatus("failed");
+                taskLog.setReason(e.getMessage());
                 taskLogService.save(taskLog, domainInfo.getId(), "update");
                 e.printStackTrace();
             }

@@ -20,4 +20,6 @@ public interface TaskLogService {
     TaskLogConnection taskLogs(Map<String, Object> arguments, String id);
 
     TaskLog markLogs(Map<String, Object> arguments, String id);
+
+    TaskLog last(String domain);
 }

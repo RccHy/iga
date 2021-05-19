@@ -7,7 +7,6 @@ import com.qtgl.iga.dao.TaskLogDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import com.qtgl.iga.utils.MyBeanUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 
@@ -139,6 +138,27 @@ public class TaskLogDaoImpl implements TaskLogDao {
         return update > 0 ? new TaskLog() : null;
     }
 
+    @Override
+    public TaskLog last(String domain) {
+        String sql = "select reason,status,data,max(create_time) from t_mgr_task_log where domain=? ";
+        List<TaskLog> taskLogs = new ArrayList<>();
+        try {
+            List<Map<String, Object>> taskLogMap = jdbcIGA.queryForList(sql, domain);
+            if ( taskLogMap.size() > 0) {
+                for (Map<String, Object> map : taskLogMap) {
+                    TaskLog taskLog = new TaskLog();
+                    MyBeanUtils.populate(taskLog, map);
+                    taskLogs.add(taskLog);
+                }
+                return taskLogs.get(0);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
     public Integer allCount(Map<String, Object> arguments, String domain) {
 
         String sql = "select count(1) from t_mgr_task_log where domain=? ";
@@ -157,11 +177,6 @@ public class TaskLogDaoImpl implements TaskLogDao {
         Iterator<Map.Entry<String, Object>> it = arguments.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, Object> entry = it.next();
-//            if ("id".equals(entry.getKey())) {
-//                stb.append("and id= ? ");
-//                param.add(entry.getValue());
-//            }
-
             if ("filter".equals(entry.getKey())) {
                 HashMap<String, Object> map = (HashMap<String, Object>) entry.getValue();
                 for (Map.Entry<String, Object> str : map.entrySet()) {

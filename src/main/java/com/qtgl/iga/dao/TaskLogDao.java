@@ -23,4 +23,6 @@ public interface TaskLogDao {
     List<TaskLog> findByStatus(String domain, String status);
 
     TaskLog markLogs(Map<String, Object> arguments, String domainId);
+
+     TaskLog last(String domain);
 }

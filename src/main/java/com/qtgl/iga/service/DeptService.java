@@ -2,6 +2,7 @@ package com.qtgl.iga.service;
 
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.DomainInfo;
+import com.qtgl.iga.bo.TaskLog;
 
 import java.util.List;
 import java.util.Map;
@@ -15,5 +16,5 @@ public interface DeptService {
 
     List<TreeBean> findDeptByDomainName(String domainName, String treeType, Integer delMark);
 
-    Map<TreeBean, String> buildDeptUpdateResult(DomainInfo domain);
+    Map<TreeBean, String> buildDeptUpdateResult(DomainInfo domain, TaskLog lastTaskLog) throws Exception;
 }

@@ -1,14 +1,18 @@
 package com.qtgl.iga.service.impl;
 
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.service.NodeService;
+import com.qtgl.iga.task.TaskConfig;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
-import lombok.SneakyThrows;
+import com.qtgl.iga.utils.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -139,9 +143,8 @@ public class DeptServiceImpl implements DeptService {
      * @param domain
      * @return
      */
-    @SneakyThrows
     @Override
-    public Map<TreeBean, String> buildDeptUpdateResult(DomainInfo domain) {
+    public Map<TreeBean, String> buildDeptUpdateResult(DomainInfo domain, TaskLog lastTaskLog) throws Exception {
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
             throw new Exception("租户不存在");
@@ -185,27 +188,59 @@ public class DeptServiceImpl implements DeptService {
 
         //  检测删除该部门 对 人员身份造成的影响。若影响范围过大，则停止操作。
         Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
-        List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
-        // 获取 部门监控规则
-        final List<MonitorRules> deptMonitorRules = monitorRulesDao.findAll(domain.getId(), "dept");
-        for (MonitorRules deptMonitorRule : deptMonitorRules) {
-            SimpleBindings bindings = new SimpleBindings();
-            bindings.put("$count", beans.size());
-            bindings.put("$result", null==delete?0:delete.size());
-            String reg = deptMonitorRule.getRules();
-            ScriptEngineManager sem = new ScriptEngineManager();
-            ScriptEngine engine = sem.getEngineByName("js");
-            Object eval = engine.eval(reg, bindings);
-            if ((Boolean) eval) {
-                logger.error("部门删除数量{}超过设定阀值", delete.size());
-                throw new Exception("部门删除数量" + delete.size() + "超过设定阀值");
-            }
-        }
-
+        monitorRules(domain, lastTaskLog, beans, collect);
 
         //保存到数据库
         saveToSso(collect, tenant.getId(), null);
         return result;
+    }
+
+    /**
+     * 监控规则
+     * 如果删除的数据 > 监控规则限制 则触发一下检测逻辑：
+     *    A：本次异常原因和上次已忽略的异常原因相同。则不触发异常，继续更新数据
+     *    B：如上次无异常，则记录下异常信息
+     * @param domain  租户信息
+     * @param lastTaskLog 上次日志信息
+     * @param beans
+     * @param collect
+     * @throws Exception
+     */
+    private void monitorRules(DomainInfo domain, TaskLog lastTaskLog, List<TreeBean> beans, Map<String, List<Map.Entry<TreeBean, String>>> collect) throws Exception {
+        List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
+        if (null != delete && delete.size() > 0) {
+            // 获取 部门监控规则
+            final List<MonitorRules> deptMonitorRules = monitorRulesDao.findAll(domain.getId(), "dept");
+            for (MonitorRules deptMonitorRule : deptMonitorRules) {
+                SimpleBindings bindings = new SimpleBindings();
+                bindings.put("$count", beans.size());
+                bindings.put("$result", delete.size());
+                String reg = deptMonitorRule.getRules();
+                ScriptEngineManager sem = new ScriptEngineManager();
+                ScriptEngine engine = sem.getEngineByName("js");
+                Object eval = engine.eval(reg, bindings);
+                if ((Boolean) eval) {
+                    boolean flag = true;
+                    // 如果上次日志状态 是【忽略】，则判断数据是否相同原因相同，相同则进行忽略
+                    if (lastTaskLog.getStatus().equals("ignore")) {
+                        JSONArray objects = JSONArray.parseArray(TaskConfig.errorData.get(domain.getId()));
+                        Map<String, JSONObject> map = TreeUtil.toMap(objects);
+                        for (Map.Entry<TreeBean, String> treeBean : delete) {
+                            if (!map.containsKey(treeBean.getKey().getCode())) {
+                                flag = true;
+                                break;
+                            }
+                            flag=false;
+                        }
+                    }
+                    if (flag) {
+                        logger.error("部门删除数量{},超出监控设定", delete.size());
+                        TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(delete)));
+                        throw new Exception("部门删除数量" + delete.size() + ",超出监控设定");
+                    }
+                }
+            }
+        }
     }
 
 
