@@ -18,6 +18,6 @@ public class TaskLog {
     private String domain;
 
     private String reason;
-    //  忽略ignore    解决fix
-    private String mark;
+    //  数据
+    private String data;
 }

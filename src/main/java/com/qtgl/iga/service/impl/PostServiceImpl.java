@@ -411,6 +411,10 @@ public class PostServiceImpl implements PostService {
                                                 //将删除标记置为false标识(不是用自己的delMark)
                                                 delFlag = false;
                                             }
+                                            //如果上游给出启用状态 则使用上游的 否则不改动
+                                            if ("active".equals(sourceField)) {
+                                                ssoBean.setActive(pullBean.getActive());
+                                            }
                                             Object newValue = ClassCompareUtil.getGetMethod(pullBean, sourceField);
                                             Object oldValue = ClassCompareUtil.getGetMethod(ssoBean, sourceField);
                                             if (null == oldValue && null == newValue) {

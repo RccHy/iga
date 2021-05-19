@@ -23,7 +23,7 @@ type NodeRules{
     inheritId:String
     # 规则类型 0推送 1拉取 2手动
     type:Int
-    #是否启用
+    #是否启用  0为false 1为true
     active:Boolean
     # 生效/失效 操作时间
     activeTime:Timestamp

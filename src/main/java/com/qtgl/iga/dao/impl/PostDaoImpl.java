@@ -40,7 +40,7 @@ public class PostDaoImpl implements PostDao {
         //
         String sql = "select  user_type as code , name, parent_code as parentCode , " +
                 " update_time as createTime," +
-                "source,data_source as dataSource,user_type_index as deptIndex,del_mark as delMark,update_time as updateTime,post_type as type from user_type where tenant_id = ? ";
+                "source,data_source as dataSource,user_type_index as deptIndex,del_mark as delMark,update_time as updateTime,post_type as type,active from user_type where tenant_id = ? ";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, id);
         return getUserTypes(mapList);
@@ -170,7 +170,7 @@ public class PostDaoImpl implements PostDao {
     @Override
     public List<TreeBean> findRootData(String tenantId) {
         String sql = "select  user_type as code , name as name , parent_code as parentCode , " +
-                " tags ,data_source as dataSource , description , meta,source,post_type as postType,user_type_index as deptIndex,del_mark as delMark  " +
+                " tags ,data_source as dataSource , description , meta,source,post_type as postType,user_type_index as deptIndex,del_mark as delMark ,active " +
                 " from user_type where tenant_id=? and del_mark=0 and data_source=?";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId, "BUILTIN");
@@ -197,7 +197,7 @@ public class PostDaoImpl implements PostDao {
     @Override
     public List<TreeBean> findPostType(String id) {
         String sql = "select  user_type as code , name as name , parent_code as parentCode , " +
-                " tags ,data_source as dataSource , description , meta,source,post_type as postType,user_type_index as deptIndex  " +
+                " tags ,data_source as dataSource , description , meta,source,post_type as postType,user_type_index as deptIndex,active  " +
                 " from user_type where tenant_id=? and del_mark=0";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, id);
@@ -298,7 +298,7 @@ public class PostDaoImpl implements PostDao {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
                             preparedStatement.setObject(1, 1);
-                            preparedStatement.setObject(2, 1);
+                            preparedStatement.setObject(2, 0);
                             preparedStatement.setObject(3, LocalDateTime.now());
                             preparedStatement.setObject(4, deleteList.get(i).getCode());
                             preparedStatement.setObject(5, deleteList.get(i).getCreateTime());

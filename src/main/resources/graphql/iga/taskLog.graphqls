@@ -6,7 +6,7 @@ extend type Query {
 }
 extend type Mutation {
     #给日志打标记
-    markLogs(id:ID!,mark:String!):TaskLog
+    markLogs(id:ID!,status:String!):TaskLog
 }
 
 type TaskLog{
@@ -35,8 +35,8 @@ type TaskLog{
     updateTime :Timestamp
     # 跳过、失败 的原因
     reason:String
-    # 忽略、解决 标记
-    mark:String
+    # 数据
+    data:String
 
 
 }
@@ -69,8 +69,8 @@ input InputTaskLog{
     updateTime :Timestamp
     # 跳过、失败 的原因
     reason:String
-    # 忽略、解决 标记
-    mark:String
+    # 数据
+    data:String
 }
 
 input TaskLogFilter{
