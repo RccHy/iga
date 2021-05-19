@@ -24,8 +24,6 @@ import org.mountcloud.graphql.request.query.DefaultGraphqlQuery;
 import org.mountcloud.graphql.request.query.GraphqlQuery;
 import org.mountcloud.graphql.request.result.ResultAttributtes;
 import org.mountcloud.graphql.response.GraphqlResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -48,6 +46,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 public class DataBusUtil {
+
 
 
     @Autowired
@@ -638,7 +637,7 @@ public class DataBusUtil {
 
 
     public String pub(Map<TreeBean, String> treeBeanMap, Map<String, List<Person>> personMap, Map<String, List<OccupyDto>> occupyMap, String type, DomainInfo domain) {
-        log.info("start pub {}", type);
+        log.info("start pub {}",type);
         JSONObject params = new JSONObject();
         StringBuffer graphql = new StringBuffer("mutation  {");
         if ("dept".equals(type) || "post".equals(type)) {

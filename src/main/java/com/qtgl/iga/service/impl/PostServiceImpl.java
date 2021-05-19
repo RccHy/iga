@@ -3,12 +3,10 @@ package com.qtgl.iga.service.impl;
 
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.DomainInfo;
+import com.qtgl.iga.bo.MonitorRules;
 import com.qtgl.iga.bo.Tenant;
 import com.qtgl.iga.bo.UpstreamTypeField;
-import com.qtgl.iga.dao.OccupyDao;
-import com.qtgl.iga.dao.PostDao;
-import com.qtgl.iga.dao.TenantDao;
-import com.qtgl.iga.dao.UpstreamTypeDao;
+import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.NodeService;
 import com.qtgl.iga.service.PostService;
 import com.qtgl.iga.utils.ClassCompareUtil;
@@ -22,6 +20,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.SimpleBindings;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -46,6 +47,8 @@ public class PostServiceImpl implements PostService {
     UpstreamTypeDao upstreamTypeDao;
     @Autowired
     OccupyDao occupyDao;
+    @Autowired
+    MonitorRulesDao monitorRulesDao;
 
 
     @Value("${iga.hostname}")
@@ -121,9 +124,20 @@ public class PostServiceImpl implements PostService {
 
         Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
-        if (delete.size() >= 1) {
-            logger.error("岗位删除数量{}超过设定阀值", delete.size());
-            throw new Exception("岗位删除数量" + delete.size() + "超过设定阀值");
+        // 获取 岗位监控规则
+        final List<MonitorRules> deptMonitorRules = monitorRulesDao.findAll(domain.getId(), "post");
+        for (MonitorRules deptMonitorRule : deptMonitorRules) {
+            SimpleBindings bindings = new SimpleBindings();
+            bindings.put("$count", beans.size());
+            bindings.put("$result", null==delete?0:delete.size());
+            String reg = deptMonitorRule.getRules();
+            ScriptEngineManager sem = new ScriptEngineManager();
+            ScriptEngine engine = sem.getEngineByName("js");
+            Boolean eval = (Boolean) engine.eval(reg, bindings);
+            if (eval) {
+                logger.error("岗位删除数量{}超过设定阀值", delete.size());
+                throw new Exception("岗位删除数量" + delete.size() + "超过设定阀值");
+            }
         }
         saveToSso(collect, tenant.getId(), null);
 

@@ -187,16 +187,16 @@ public class DeptServiceImpl implements DeptService {
         Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
         // 获取 部门监控规则
-        final List<MonitorRules> deptMonitorRules = monitorRulesDao.findAll(domain.getDomainId(), "dept");
-        for (int i = 0; i < deptMonitorRules.size(); i++) {
+        final List<MonitorRules> deptMonitorRules = monitorRulesDao.findAll(domain.getId(), "dept");
+        for (MonitorRules deptMonitorRule : deptMonitorRules) {
             SimpleBindings bindings = new SimpleBindings();
             bindings.put("$count", beans.size());
-            bindings.put("$result", delete.size());
-            String reg = deptMonitorRules.get(i).getRules();
+            bindings.put("$result", null==delete?0:delete.size());
+            String reg = deptMonitorRule.getRules();
             ScriptEngineManager sem = new ScriptEngineManager();
             ScriptEngine engine = sem.getEngineByName("js");
-            Boolean eval = (Boolean) engine.eval(reg, bindings);
-            if (eval) {
+            Object eval = engine.eval(reg, bindings);
+            if ((Boolean) eval) {
                 logger.error("部门删除数量{}超过设定阀值", delete.size());
                 throw new Exception("部门删除数量" + delete.size() + "超过设定阀值");
             }

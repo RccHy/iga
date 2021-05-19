@@ -12,6 +12,16 @@ alter table t_mgr_task_log modify person_no varchar(50) null;
 alter table t_mgr_task_log modify occupy_no varchar(50) null;
 alter table t_mgr_task_log add reason varchar(500) null comment '跳过、失败的原因';
 alter table t_mgr_task_log add mark varchar(50) null comment '忽略ignore/解决solved 标记 ';
+create table t_mgr_monitor_rules
+(
+	id varchar(50) null,
+	rules varchar(500) null comment '规则信息',
+	type varchar(50) null comment '监控类型 dept/post/person/occupy',
+	domain varchar(50) null
+)
+comment '同步监控规则表';
+
+
 
 
 
