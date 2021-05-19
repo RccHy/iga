@@ -38,10 +38,6 @@ type TaskLog{
     # 忽略、解决 标记
     mark:String
 
-    #理由
-    reason: String
-    #忽略ignore/解决solved 标记
-    mark : String
 
 }
 
