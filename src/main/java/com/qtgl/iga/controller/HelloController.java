@@ -96,7 +96,7 @@ public class HelloController {
 
 
                 //=============岗位数据同步至sso=================
-                final Map<TreeBean, String> postResult = postService.buildPostUpdateResult(domainInfo);
+                final Map<TreeBean, String> postResult = postService.buildPostUpdateResult(domainInfo,lastTaskLog);
                 Map<String, List<Map.Entry<TreeBean, String>>> postResultMap = postResult.entrySet().stream().collect(Collectors.groupingBy(Map.Entry::getValue));
                 String postNo = (postResultMap.containsKey("insert") ? String.valueOf(postResultMap.get("insert").size()) : "0") + "/"
                         + (postResultMap.containsKey("delete") ? String.valueOf(postResultMap.get("delete").size()) : "0") + "/"
@@ -111,7 +111,7 @@ public class HelloController {
 
 
                 //=============人员数据同步至sso=============
-                Map<String, List<Person>> personResult = personService.buildPerson(domainInfo);
+                Map<String, List<Person>> personResult = personService.buildPerson(domainInfo,lastTaskLog);
                 String personNo = (personResult.containsKey("insert") ? String.valueOf(personResult.get("insert").size()) : "0") + "/"
                         + (personResult.containsKey("delete") ? String.valueOf(personResult.get("delete").size()) : "0") + "/"
                         + (personResult.containsKey("update") ? String.valueOf(personResult.get("update").size()) : "0");
@@ -124,7 +124,7 @@ public class HelloController {
                 log.info("person pub:{}", pubResult);
 
                 //人员身份同步至sso
-                final Map<String, List<OccupyDto>> occupyResult = occupyService.buildPerson(domainInfo);
+                final Map<String, List<OccupyDto>> occupyResult = occupyService.buildPerson(domainInfo,lastTaskLog);
                 String occupyNo = (occupyResult.containsKey("insert") ? String.valueOf(occupyResult.get("insert").size()) : "0") + "/"
                         + (occupyResult.containsKey("delete") ? String.valueOf(occupyResult.get("delete").size()) : "0") + "/"
                         + (occupyResult.containsKey("update") ? String.valueOf(occupyResult.get("update").size()) : "0");
@@ -147,16 +147,6 @@ public class HelloController {
             }
 
         }
-
-    }
-
-    @RequestMapping("/post")
-    @ResponseBody
-    public void testPost() {
-        HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
-        DomainInfo byDomainName = domainInfoService.getByDomainName(request.getServerName());
-
-        postService.buildPostUpdateResult(byDomainName);
 
     }
 

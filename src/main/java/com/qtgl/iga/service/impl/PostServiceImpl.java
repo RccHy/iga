@@ -1,16 +1,18 @@
 package com.qtgl.iga.service.impl;
 
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.TreeBean;
-import com.qtgl.iga.bo.DomainInfo;
-import com.qtgl.iga.bo.MonitorRules;
-import com.qtgl.iga.bo.Tenant;
-import com.qtgl.iga.bo.UpstreamTypeField;
+import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.NodeService;
 import com.qtgl.iga.service.PostService;
+import com.qtgl.iga.task.TaskConfig;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
+import com.qtgl.iga.utils.TreeUtil;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -57,10 +59,9 @@ public class PostServiceImpl implements PostService {
     final String TYPE = "post";
 
 
-    @SneakyThrows
     @Override
     @Transactional
-    public Map<TreeBean, String> buildPostUpdateResult(DomainInfo domain) {
+    public Map<TreeBean, String> buildPostUpdateResult(DomainInfo domain,TaskLog lastTaskLog) throws Exception {
         //获取默认数据
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
@@ -75,8 +76,8 @@ public class PostServiceImpl implements PostService {
                 }
             }
         } else {
-            logger.error("租户 :{} 无BUILTIN岗位，请先创建", tenant.getId());
-            throw new Exception("无BUILTIN岗位，请先创建");
+            logger.error("租户 :{} 无初始化岗位信息", tenant.getId());
+            throw new Exception("无初始化岗位信息");
         }
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
@@ -123,27 +124,16 @@ public class PostServiceImpl implements PostService {
         //
 
         Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
+        // 验证监控规则
         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
-        // 获取 岗位监控规则
-        final List<MonitorRules> deptMonitorRules = monitorRulesDao.findAll(domain.getId(), "post");
-        for (MonitorRules deptMonitorRule : deptMonitorRules) {
-            SimpleBindings bindings = new SimpleBindings();
-            bindings.put("$count", beans.size());
-            bindings.put("$result", null==delete?0:delete.size());
-            String reg = deptMonitorRule.getRules();
-            ScriptEngineManager sem = new ScriptEngineManager();
-            ScriptEngine engine = sem.getEngineByName("js");
-            Boolean eval = (Boolean) engine.eval(reg, bindings);
-            if (eval) {
-                logger.error("岗位删除数量{}超过设定阀值", delete.size());
-                throw new Exception("岗位删除数量" + delete.size() + "超过设定阀值");
-            }
-        }
+        calculationService.monitorRules(domain, lastTaskLog, beans.size(), delete,"post");
         saveToSso(collect, tenant.getId(), null);
 
         return result;
 
     }
+
+
 
     @Override
     public List<TreeBean> findPosts(Map<String, Object> arguments, DomainInfo domain) throws Exception {

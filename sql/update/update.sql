@@ -18,7 +18,11 @@ create table t_mgr_monitor_rules
 	id varchar(50) null,
 	rules varchar(500) null comment '规则信息',
 	type varchar(50) null comment '监控类型 dept/post/person/occupy',
-	domain varchar(50) null
+	domain varchar(50) null,
+	active bit default b'1' not null comment '是否启用',
+	active_time timestamp        null comment '是否启用时间',
+	create_time timestamp        null comment '创建启用时间',
+    update_time timestamp        null comment '修改时间'
 )
 comment '同步监控规则表';
 

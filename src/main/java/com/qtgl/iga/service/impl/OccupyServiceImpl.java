@@ -3,7 +3,6 @@ package com.qtgl.iga.service.impl;
 import com.alibaba.druid.util.StringUtils;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.qtgl.iga.bean.ErrorData;
 import com.qtgl.iga.bean.OccupyConnection;
 import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bean.OccupyEdge;
@@ -47,6 +46,8 @@ public class OccupyServiceImpl implements OccupyService {
 
     @Autowired
     DataBusUtil dataBusUtil;
+    @Autowired
+    NodeRulesCalculationServiceImpl calculationService;
 
 
     /**
@@ -61,11 +62,11 @@ public class OccupyServiceImpl implements OccupyService {
      * @return
      */
     @Override
-    public Map<String, List<OccupyDto>> buildPerson(DomainInfo domain) {
+    public Map<String, List<OccupyDto>> buildPerson(DomainInfo domain, TaskLog lastTaskLog) throws Exception {
 
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
-            throw new RuntimeException("租户不存在");
+            throw new Exception("租户不存在");
         }
 
 
@@ -75,7 +76,7 @@ public class OccupyServiceImpl implements OccupyService {
         arguments.put("status", 0);
         List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
         if (null == nodes || nodes.size() <= 0) {
-            throw new RuntimeException("无人员身份管理规则信息");
+            throw new Exception("无人员身份管理规则信息");
         }
         String nodeId = nodes.get(0).getId();
 
@@ -149,7 +150,7 @@ public class OccupyServiceImpl implements OccupyService {
         log.info("所有人员身份数据获取完成:{}", occupyDtoFromUpstream.size());
         //final List<OccupyDto> occupyDtos = (List<OccupyDto>) occupyDtoFromUpstream.values();
         // 获取sso中人员身份信息
-        final List<OccupyDto> occupiesFromSSO = occupyDao.findAll(tenant.getId(),null,null);
+        final List<OccupyDto> occupiesFromSSO = occupyDao.findAll(tenant.getId(), null, null);
         log.info("数据库中人员身份数据获取完成:{}", occupiesFromSSO.size());
         Map<String, OccupyDto> occupiesFromSSOMap = occupiesFromSSO.stream().
                 collect(Collectors.toMap(occupy -> (occupy.getPersonId() + ":" + occupy.getPostCode() + ":" + occupy.getDeptCode()), occupy -> occupy, (v1, v2) -> v2));
@@ -238,6 +239,10 @@ public class OccupyServiceImpl implements OccupyService {
                 log.debug("人员身份对比后新增{}", val.toString());
             }
         });
+
+        // 验证监控规则
+        calculationService.monitorRules(domain, lastTaskLog, occupiesFromSSO.size(), result.get("delete"));
+
 
         occupyDao.saveToSso(result, tenant.getId());
 

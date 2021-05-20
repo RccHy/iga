@@ -3,6 +3,7 @@ package com.qtgl.iga.utils;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.TreeBean;
+import com.qtgl.iga.bo.Person;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -58,7 +59,6 @@ public class TreeUtil<T> {
                         (value -> value)));
         return map;
     }
-
 
     public static Map<String, TreeBean> toMap(List<TreeBean> treeBeans) {
 
