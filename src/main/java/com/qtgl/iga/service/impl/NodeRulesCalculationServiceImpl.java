@@ -327,6 +327,14 @@ public class NodeRulesCalculationServiceImpl {
                 }
             }
         }
+        //处理父节点
+        ArrayList<TreeBean> treeBeans = new ArrayList<>(mergeDeptMap.values());
+        for (TreeBean treeBean : treeBeans) {
+            if (!mergeDeptMap.containsKey(treeBean.getParentCode())) {
+                treeBean.setParentCode("");
+                mergeDeptMap.put(treeBean.getCode(), treeBean);
+            }
+        }
     }
 
 

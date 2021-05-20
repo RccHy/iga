@@ -3,6 +3,7 @@ package com.qtgl.iga.bo;
 
 import lombok.Data;
 
+
 @Data
 public class MonitorRules {
 
@@ -11,6 +12,10 @@ public class MonitorRules {
     private String rules;
     private String type;
     private String domain;
+    private Boolean active;
+    private Long activeTime;
+    private Long createTime;
+    private Long updateTime;
 
 
 }
