@@ -376,7 +376,8 @@ public class NodeRulesCalculationServiceImpl {
                     }
                     if (flag) {
                         logger.error("{}删除数量{},超出监控设定", type, delete.size());
-                        TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(delete)));
+                        List<TreeBean> treeBeanList = delete.stream().map(Map.Entry::getKey).collect(Collectors.toList());
+                        TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(treeBeanList)));
                         throw new Exception(type + "删除数量" + delete.size() + ",超出监控设定");
                     }
                 }
@@ -445,8 +446,7 @@ public class NodeRulesCalculationServiceImpl {
                     }
                     if (flag) {
                         logger.error("{}删除数量{},超出监控设定", type, delete.size());
-//                        List<TreeBean> treeBeanList = delete.stream().map(Map.Entry::getKey).collect(Collectors.toList());
-//                        TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(treeBeanList)));
+                        TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(delete)));
                         throw new Exception(type + "删除数量" + delete.size() + ",超出监控设定");
                     }
                 }
