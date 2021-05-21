@@ -99,8 +99,15 @@ public class DeptServiceImpl implements DeptService {
         List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
         final LocalDateTime now = LocalDateTime.now();
         for (DeptTreeType deptType : deptTreeTypes) {
+
+            List<TreeBean> ssoApiBeans = deptDao.findBySourceAndTreeType("API", deptType.getCode(), tenant.getId());
+//            Map<String, List<TreeBean>> ssoApiBeansMap = null;
+//            if (null != ssoApiBeans) {
+//                ssoApiBeansMap = ssoApiBeans.stream().collect(Collectors.groupingBy(TreeBean::getParentCode));
+//            }
+
             // id 改为code
-            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE, "system", null, null);
+            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE, "system", null, null, ssoApiBeans);
 //            // 判断重复(code)
 //            calculationService.groupByCode(mainTreeBeans, status, null);
 
@@ -171,8 +178,15 @@ public class DeptServiceImpl implements DeptService {
         List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
         final LocalDateTime now = LocalDateTime.now();
         for (DeptTreeType deptType : deptTreeTypes) {
+
+            List<TreeBean> ssoApiBeans = deptDao.findBySourceAndTreeType("API", deptType.getCode(), tenant.getId());
+//            Map<String, List<TreeBean>> ssoApiBeansMap = null;
+//            if (null != ssoApiBeans) {
+//                ssoApiBeansMap = ssoApiBeans.stream().collect(Collectors.groupingBy(TreeBean::getParentCode));
+//            }
+
             //  id 改为code
-            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE, "task", null, null);
+            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE, "task", null, null, ssoApiBeans);
             // 判断重复(code)
             calculationService.groupByCode(mainTreeBeans, 0, null, domain);
 
@@ -188,8 +202,8 @@ public class DeptServiceImpl implements DeptService {
 
         //  检测删除该部门 对 人员身份造成的影响。若影响范围过大，则停止操作。
         Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
-         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
-        calculationService.monitorRules(domain, lastTaskLog, beans.size(), delete,"dept");
+        List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
+        calculationService.monitorRules(domain, lastTaskLog, beans.size(), delete, "dept");
 
         //保存到数据库
         saveToSso(collect, tenant.getId(), null);
@@ -343,6 +357,9 @@ public class DeptServiceImpl implements DeptService {
                             //修改
                             if (null == ssoBean.getCreateTime() || pullBean.getCreateTime().isAfter(ssoBean.getCreateTime())) {
                                 //使用sso的对象,将需要修改的值赋值
+//                                if (!"API".equals(ssoBean.getDataSource())) {
+
+//                                }
                                 ssoBean.setDataSource("PULL");
                                 ssoBean.setSource(pullBean.getSource());
                                 ssoBean.setUpdateTime(now);
@@ -354,8 +371,10 @@ public class DeptServiceImpl implements DeptService {
                                 boolean updateFlag = false;
                                 //标识上游是否给出删除标记
                                 boolean delFlag = true;
-
-                                List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(pullBean.getUpstreamTypeId());
+                                List<UpstreamTypeField> fields = null;
+                                if (null != pullBean.getUpstreamTypeId()) {
+                                    fields = DataBusUtil.typeFields.get(pullBean.getUpstreamTypeId());
+                                }
                                 //获取对应上游源的映射字段
                                 if (null != fields && fields.size() > 0) {
                                     for (UpstreamTypeField field : fields) {

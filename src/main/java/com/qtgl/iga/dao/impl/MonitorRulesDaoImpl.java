@@ -93,19 +93,33 @@ public class MonitorRulesDaoImpl implements MonitorRulesDao {
 
     @Override
     public MonitorRules updateMonitorRules(MonitorRules monitorRules) {
-        String sql = "update t_mgr_monitor_rules  set rules = ?,type = ?,active =?,update_time =?  ";
-        if (monitorRules.getActive()) {
-            sql = sql + " active_time = now() ";
+        if(monitorRules.getActive()){
+            String sql = "update t_mgr_monitor_rules  set rules = ?,type = ?,active =?,update_time =? ,active_time=? ";
+
+            sql = sql + " where id=? and domain=? ";
+            int update = jdbcIGA.update(sql, preparedStatement -> {
+                preparedStatement.setObject(1, monitorRules.getRules());
+                preparedStatement.setObject(2, monitorRules.getType());
+                preparedStatement.setObject(3, monitorRules.getActive());
+                preparedStatement.setObject(4, new Timestamp(System.currentTimeMillis()));
+                preparedStatement.setObject(5, new Timestamp(System.currentTimeMillis()));
+                preparedStatement.setObject(6, monitorRules.getId());
+                preparedStatement.setObject(7, monitorRules.getDomain());
+            });
+            return update > 0 ? monitorRules : null;
+        }else {
+            String sql = "update t_mgr_monitor_rules  set rules = ?,type = ?,active =?,update_time =?  ";
+
+            sql = sql + " where id=? and domain=? ";
+            int update = jdbcIGA.update(sql, preparedStatement -> {
+                preparedStatement.setObject(1, monitorRules.getRules());
+                preparedStatement.setObject(2, monitorRules.getType());
+                preparedStatement.setObject(3, monitorRules.getActive());
+                preparedStatement.setObject(4, new Timestamp(System.currentTimeMillis()));
+                preparedStatement.setObject(5, monitorRules.getId());
+                preparedStatement.setObject(6, monitorRules.getDomain());
+            });
+            return update > 0 ? monitorRules : null;
         }
-        sql = sql + " where id=? and domain=? ";
-        int update = jdbcIGA.update(sql, preparedStatement -> {
-            preparedStatement.setObject(1, monitorRules.getRules());
-            preparedStatement.setObject(2, monitorRules.getType());
-            preparedStatement.setObject(3, monitorRules.getActive());
-            preparedStatement.setObject(4, System.currentTimeMillis());
-            preparedStatement.setObject(5, monitorRules.getId());
-            preparedStatement.setObject(6, monitorRules.getDomain());
-        });
-        return update > 0 ? monitorRules : null;
     }
 }
