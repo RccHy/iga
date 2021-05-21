@@ -346,9 +346,10 @@ public class NodeRulesCalculationServiceImpl {
         if (null != delete && delete.size() > 0) {
             // 获取 监控规则
             final List<MonitorRules> deptMonitorRules = monitorRulesDao.findAll(domain.getId(), type);
-            type = "岗位";
             if ("dept".equals(type)) {
                 type = "组织机构";
+            }else{
+                type = "岗位";
             }
             for (MonitorRules deptMonitorRule : deptMonitorRules) {
                 SimpleBindings bindings = new SimpleBindings();
@@ -361,8 +362,8 @@ public class NodeRulesCalculationServiceImpl {
                 if ((Boolean) eval) {
                     boolean flag = true;
                     // 如果上次日志状态 是【忽略】，则判断数据是否相同原因相同，相同则进行忽略
-                    if (lastTaskLog.getStatus().equals("ignore")) {
-                        JSONArray objects = JSONArray.parseArray(TaskConfig.errorData.get(domain.getId()));
+                    if (null!=lastTaskLog.getStatus()&&lastTaskLog.getStatus().equals("ignore")) {
+                        JSONArray objects = JSONArray.parseArray(lastTaskLog.getData());
                         Map<String, JSONObject> map = TreeUtil.toMap(objects);
                         for (Map.Entry<TreeBean, String> treeBean : delete) {
                             if (!map.containsKey(treeBean.getKey().getCode())) {
@@ -408,8 +409,8 @@ public class NodeRulesCalculationServiceImpl {
                 if ((Boolean) eval) {
                     boolean flag = true;
                     // 如果上次日志状态 是【忽略】，则判断数据是否相同原因相同，相同则进行忽略
-                    if (lastTaskLog.getStatus().equals("ignore")) {
-                        JSONArray objects = JSONArray.parseArray(TaskConfig.errorData.get(domain.getId()));
+                    if (null!=lastTaskLog.getStatus()&&lastTaskLog.getStatus().equals("ignore")) {
+                        JSONArray objects = JSONArray.parseArray(lastTaskLog.getData());
                         if (delete.get(0).getClass().getName().equals("Person")) {
                             type = "人员";
                             List<JSONObject> personList = objects.toJavaList(JSONObject.class);
@@ -443,7 +444,8 @@ public class NodeRulesCalculationServiceImpl {
                     }
                     if (flag) {
                         logger.error("{}删除数量{},超出监控设定", type, delete.size());
-                        TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(delete)));
+                         List<TreeBean> treeBeanList = delete.stream().map(Map.Entry::getKey).collect(Collectors.toList());
+                        TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(treeBeanList)));
                         throw new Exception(type + "删除数量" + delete.size() + ",超出监控设定");
                     }
                 }
@@ -672,6 +674,7 @@ public class NodeRulesCalculationServiceImpl {
 
                     logger.info("部门节点:{}的规则运算完成", nodeCode);
 
+
                     //判空
                     this.judgeData(mergeDeptMap);
                     //循环引用判断
@@ -723,6 +726,7 @@ public class NodeRulesCalculationServiceImpl {
                                 // 完全不继承 第一个数据源， 需处理掉 主树当前节点下所有的子集
                                 TreeUtil.removeTree(nodeCode, mainTreeChildren, mainTreeMap);
                             }
+
                             //mainTree = new ArrayList<>(mainTreeMap.values());
                         } else {
                             //完全不继承 非一个数据源， 直接去重 向主树合并

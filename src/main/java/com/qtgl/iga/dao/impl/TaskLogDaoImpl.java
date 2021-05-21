@@ -140,7 +140,7 @@ public class TaskLogDaoImpl implements TaskLogDao {
 
     @Override
     public TaskLog last(String domain) {
-        String sql = "select reason,status,data,max(create_time) from t_mgr_task_log where domain=? ";
+        String sql = "select id,reason,status,data from t_mgr_task_log where domain=? order by create_time desc limit 1";
         List<TaskLog> taskLogs = new ArrayList<>();
         try {
             List<Map<String, Object>> taskLogMap = jdbcIGA.queryForList(sql, domain);

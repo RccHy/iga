@@ -73,8 +73,8 @@ public class TaskConfig {
                                     public void run() {
                                         // 如果 获取最近一次同步任务状况
                                         TaskLog lastTaskLog = taskLogService.last(domainInfo.getId());
-                                       //  最近一次同步任务 状态不为 失败 。 如果是失败应该先解决问题
-                                        if (!lastTaskLog.getStatus().equals("failed")) {
+                                        //  最近一次同步任务 状态不为 失败 。 如果是失败应该先解决问题
+                                        if (null != lastTaskLog.getId() && !lastTaskLog.getStatus().equals("failed")) {
                                             errorData.remove(domainInfo.getId());
                                             // 如果有编辑中的规则，则不进行数据同步
                                             Map<String, Object> arguments = new HashMap<>();
@@ -99,12 +99,15 @@ public class TaskConfig {
                                                     taskLog.setDeptNo(deptNo);
                                                     taskLogService.save(taskLog, domainInfo.getId(), "update");
                                                     // PUT   MQ
-                                                    String pubResult = dataBusUtil.pub(deptResult, null, null, "dept", domainInfo);
-                                                    log.info("dept pub:{}", pubResult);
+                                                    String pubResult ="";
+                                                    if (deptResult.size() > 0) {
+                                                         pubResult = dataBusUtil.pub(deptResult, null, null, "dept", domainInfo);
+                                                        log.info("dept pub:{}", pubResult);
+                                                    }
 
 
                                                     //=============岗位数据同步至sso=================
-                                                    final Map<TreeBean, String> postResult = postService.buildPostUpdateResult(domainInfo,lastTaskLog);
+                                                    final Map<TreeBean, String> postResult = postService.buildPostUpdateResult(domainInfo, lastTaskLog);
                                                     Map<String, List<Map.Entry<TreeBean, String>>> postResultMap = postResult.entrySet().stream().collect(Collectors.groupingBy(Map.Entry::getValue));
                                                     String postNo = (postResultMap.containsKey("insert") ? String.valueOf(postResultMap.get("insert").size()) : "0") + "/"
                                                             + (postResultMap.containsKey("delete") ? String.valueOf(postResultMap.get("delete").size()) : "0") + "/"
@@ -114,12 +117,14 @@ public class TaskConfig {
                                                     taskLogService.save(taskLog, domainInfo.getId(), "update");
 
                                                     // PUT   MQ
-                                                    pubResult = dataBusUtil.pub(deptResult, null, null, "post", domainInfo);
-                                                    log.info("post pub:{}", pubResult);
+                                                    if (postResult.size() > 0) {
+                                                        pubResult = dataBusUtil.pub(postResult, null, null, "post", domainInfo);
+                                                        log.info("post pub:{}", pubResult);
+                                                    }
 
 
                                                     //=============人员数据同步至sso=============
-                                                    Map<String, List<Person>> personResult = personService.buildPerson(domainInfo,lastTaskLog);
+                                                    Map<String, List<Person>> personResult = personService.buildPerson(domainInfo, lastTaskLog);
                                                     String personNo = (personResult.containsKey("insert") ? String.valueOf(personResult.get("insert").size()) : "0") + "/"
                                                             + (personResult.containsKey("delete") ? String.valueOf(personResult.get("delete").size()) : "0") + "/"
                                                             + (personResult.containsKey("update") ? String.valueOf(personResult.get("update").size()) : "0");
@@ -128,11 +133,13 @@ public class TaskConfig {
                                                     taskLogService.save(taskLog, domainInfo.getId(), "update");
 
                                                     // PUT   MQ
-                                                    pubResult = dataBusUtil.pub(null, personResult, null, "person", domainInfo);
-                                                    log.info("person pub:{}", pubResult);
+                                                    if (personResult.size() > 0) {
+                                                        pubResult = dataBusUtil.pub(null, personResult, null, "person", domainInfo);
+                                                        log.info("person pub:{}", pubResult);
+                                                    }
 
                                                     //人员身份同步至sso
-                                                    final Map<String, List<OccupyDto>> occupyResult = occupyService.buildPerson(domainInfo,lastTaskLog);
+                                                    final Map<String, List<OccupyDto>> occupyResult = occupyService.buildPerson(domainInfo, lastTaskLog);
                                                     String occupyNo = (occupyResult.containsKey("insert") ? String.valueOf(occupyResult.get("insert").size()) : "0") + "/"
                                                             + (occupyResult.containsKey("delete") ? String.valueOf(occupyResult.get("delete").size()) : "0") + "/"
                                                             + (occupyResult.containsKey("update") ? String.valueOf(occupyResult.get("update").size()) : "0");
@@ -142,8 +149,10 @@ public class TaskConfig {
                                                     taskLogService.save(taskLog, domainInfo.getId(), "update");
 
                                                     // PUT   MQ
-                                                    pubResult = dataBusUtil.pub(null, null, occupyResult, "occupy", domainInfo);
-                                                    log.info("occupy pub:{}", pubResult);
+                                                    if (occupyResult.size() > 0) {
+                                                        pubResult = dataBusUtil.pub(null, null, occupyResult, "occupy", domainInfo);
+                                                        log.info("occupy pub:{}", pubResult);
+                                                    }
 
                                                     log.info("{}同步结束,task:{}", domainInfo.getDomainName(), taskLog.getId());
                                                 } catch (Exception e) {

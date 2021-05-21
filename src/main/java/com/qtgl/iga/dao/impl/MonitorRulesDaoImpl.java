@@ -27,7 +27,7 @@ public class MonitorRulesDaoImpl implements MonitorRulesDao {
     public List<MonitorRules> findAll(String domain, String type) {
         List<MonitorRules> monitorRulesList = new ArrayList<>();
         try {
-            String sql = "select id , rules ,type , domain,active,active_time as activeTime,create_time as createTime,update_time as updateTime  from  t_mgr_monitor_rules where domain=? and type=?";
+            String sql = "select id , rules ,type , domain,active,active_time as activeTime,create_time as createTime,update_time as updateTime  from  t_mgr_monitor_rules where domain=? and type=? and active=true";
             List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, domain, type);
             if (null != mapList && mapList.size() > 0) {
                 for (Map<String, Object> map : mapList) {

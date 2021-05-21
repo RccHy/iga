@@ -48,7 +48,6 @@ import java.util.stream.Collectors;
 public class DataBusUtil {
 
 
-
     @Autowired
     UpstreamTypeService upstreamTypeService;
 
@@ -73,20 +72,18 @@ public class DataBusUtil {
     public static ConcurrentHashMap<String, List<UpstreamTypeField>> typeFields = new ConcurrentHashMap<>();
 
 
-    private static String sendPostRequest(String url, JSONObject params) {
+    private static String sendPostRequest(String url, JSONObject params) throws Exception {
         url = UrlUtil.getUrl(url);
         log.info(" post url:" + url);
+        String s = null;
         try {
-            String s = Request.Post(url).bodyString(params.toJSONString(), ContentType.APPLICATION_JSON).execute().returnContent().asString();
-            log.info(" post response:" + s);
-            return s;
-        } catch (Exception e) {
+            s = Request.Post(url).bodyString(params.toJSONString(), ContentType.APPLICATION_JSON).execute().returnContent().asString();
+        } catch (IOException e) {
             e.printStackTrace();
-            log.info(" post error:" + e);
+            throw new Exception(" post请求失败， url:" + url+";params:"+params);
         }
-        return null;
-
-
+        log.info(" post response:" + s);
+        return s;
     }
 
 
@@ -152,7 +149,7 @@ public class DataBusUtil {
         return accessToken;
     }
 
-    private String invokeUrl(String url, String[] split) {
+    private String invokeUrl(String url, String[] split) throws Exception {
         JSONObject params = new JSONObject();
         String graphql = "query  services($filter :Filter){   " +
                 "  services(filter:$filter){" +
@@ -173,22 +170,8 @@ public class DataBusUtil {
         url = UrlUtil.getUrl(url);
 
         String s = sendPostRequest(url, params);
-
-        if (null == s) {
-            try {
-                throw new Exception("请求数据失败");
-            } catch (Exception e) {
-                log.error("请求url 失败" + e.getMessage());
-                e.printStackTrace();
-            }
-        }
         if (null == s || s.contains("errors")) {
-            try {
-                throw new Exception("获取url失败" + s);
-            } catch (Exception e) {
-                log.error("获取url 失败" + e.getMessage());
-                e.printStackTrace();
-            }
+            throw new Exception("获取数据失败：" + s);
         }
         JSONObject jsonObject = JSONArray.parseObject(s);
 
@@ -636,8 +619,8 @@ public class DataBusUtil {
     }
 
 
-    public String pub(Map<TreeBean, String> treeBeanMap, Map<String, List<Person>> personMap, Map<String, List<OccupyDto>> occupyMap, String type, DomainInfo domain) {
-        log.info("start pub {}",type);
+    public String pub(Map<TreeBean, String> treeBeanMap, Map<String, List<Person>> personMap, Map<String, List<OccupyDto>> occupyMap, String type, DomainInfo domain) throws Exception {
+        log.info("start pub {}", type);
         JSONObject params = new JSONObject();
         StringBuffer graphql = new StringBuffer("mutation  {");
         if ("dept".equals(type) || "post".equals(type)) {
