@@ -1,9 +1,10 @@
 extend type Query {
     #查询组织机构
     #(treeType:String)
-    depts(status:Int):[Dept]
+    #scenes true为需要复制,false为不需要
+    depts(status:Int,scenes:Boolean!):[Dept]
     #查询岗位
-    posts(status:Int):[Dept]
+    posts(status:Int,scenes:Boolean!):[Dept]
     #查询人员  offset:跳过几条  first:取几条
     persons(upstreamTypeId:String,offset:Int,first:Int):PersonConnection
     #查询人员身份  offset:跳过几条  first:取几条

@@ -72,9 +72,13 @@ public class DeptServiceImpl implements DeptService {
      */
     @Override
     public List<TreeBean> findDept(Map<String, Object> arguments, DomainInfo domain) throws Exception {
-        Integer status = nodeService.judgeEdit(arguments, domain, TYPE);
-        if (status == null) {
-            return null;
+        Integer status = (Integer) arguments.get("status");
+        //是否需要复制规则
+        if((Boolean)arguments.get("scenes")){
+             status = nodeService.judgeEdit(arguments, domain, TYPE);
+            if (status == null) {
+                return null;
+            }
         }
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
@@ -101,15 +105,11 @@ public class DeptServiceImpl implements DeptService {
         for (DeptTreeType deptType : deptTreeTypes) {
 
             List<TreeBean> ssoApiBeans = deptDao.findBySourceAndTreeType("API", deptType.getCode(), tenant.getId());
-//            Map<String, List<TreeBean>> ssoApiBeansMap = null;
-//            if (null != ssoApiBeans) {
-//                ssoApiBeansMap = ssoApiBeans.stream().collect(Collectors.groupingBy(TreeBean::getParentCode));
-//            }
-
+            if(null!=ssoApiBeans&&ssoApiBeans.size()>0){
+                mainTreeBeans.addAll(ssoApiBeans);
+            }
             // id 改为code
             mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE, "system", null, null, ssoApiBeans);
-//            // 判断重复(code)
-//            calculationService.groupByCode(mainTreeBeans, status, null);
 
         }
 
@@ -121,7 +121,7 @@ public class DeptServiceImpl implements DeptService {
             beans.addAll(insert);
         }
         //code重复性校验
-        calculationService.groupByCode(beans, status, null, domain);
+        calculationService.groupByCode(beans, status, domain);
 
 
         return beans;
@@ -180,15 +180,11 @@ public class DeptServiceImpl implements DeptService {
         for (DeptTreeType deptType : deptTreeTypes) {
 
             List<TreeBean> ssoApiBeans = deptDao.findBySourceAndTreeType("API", deptType.getCode(), tenant.getId());
-//            Map<String, List<TreeBean>> ssoApiBeansMap = null;
-//            if (null != ssoApiBeans) {
-//                ssoApiBeansMap = ssoApiBeans.stream().collect(Collectors.groupingBy(TreeBean::getParentCode));
-//            }
 
             //  id 改为code
             mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE, "task", null, null, ssoApiBeans);
             // 判断重复(code)
-            calculationService.groupByCode(mainTreeBeans, 0, null, domain);
+            calculationService.groupByCode(mainTreeBeans, 0, domain);
 
         }
         //同步到sso
@@ -198,7 +194,7 @@ public class DeptServiceImpl implements DeptService {
             beans.addAll(treeBeans);
         }
         //code重复性校验
-        calculationService.groupByCode(beans, 0, null, domain);
+        calculationService.groupByCode(beans, 0, domain);
 
         //  检测删除该部门 对 人员身份造成的影响。若影响范围过大，则停止操作。
         Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));

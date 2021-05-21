@@ -94,15 +94,15 @@ public class PostServiceImpl implements PostService {
         final LocalDateTime now = LocalDateTime.now();
         for (TreeBean rootBean : rootBeans) {
 
-            Map<String, List<TreeBean>> ssoApiBeansMap = ssoBeans.stream().collect(Collectors.groupingBy(TreeBean::getParentCode));
+            mainTreeBeans.addAll(ssoBeans);
 
             mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, "task", rootBeans, rootBeansMap, ssoBeans);
             // 判断重复(code)
-            calculationService.groupByCode(mainTreeBeans, 0, rootBeans, domain);
+            calculationService.groupByCode(mainTreeBeans, 0, domain);
         }
 //
         // 判断重复(code)
-        calculationService.groupByCode(mainTreeBeans, 0, rootBeans, domain);
+        calculationService.groupByCode(mainTreeBeans, 0, domain);
 
         //通过tenantId查询ssoApis库中的数据
         List<TreeBean> beans = postDao.findByTenantId(tenant.getId());
@@ -128,7 +128,7 @@ public class PostServiceImpl implements PostService {
             rootBeans = new ArrayList<>(rootBeansMap.values());
         }
         // 判断重复(code)
-        calculationService.groupByCode(beans, 0, rootBeans, domain);
+        calculationService.groupByCode(beans, 0, domain);
         //
 
         Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
@@ -144,9 +144,13 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public List<TreeBean> findPosts(Map<String, Object> arguments, DomainInfo domain) throws Exception {
-        Integer status = nodeService.judgeEdit(arguments, domain, TYPE);
-        if (status == null) {
-            return null;
+        Integer status = (Integer) arguments.get("status");
+        //是否需要复制规则
+        if((Boolean)arguments.get("scenes")){
+            status = nodeService.judgeEdit(arguments, domain, TYPE);
+            if (status == null) {
+                return null;
+            }
         }
         //获取默认数据
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
@@ -185,9 +189,10 @@ public class PostServiceImpl implements PostService {
         final LocalDateTime now = LocalDateTime.now();
         Map<String, TreeBean> rootBeansMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
 
+        mainTreeBeans.addAll(ssoBeans);
         for (TreeBean rootBean : rootBeans) {
 
-            Map<String, List<TreeBean>> ssoApiBeansMap = ssoBeans.stream().collect(Collectors.groupingBy(TreeBean::getParentCode));
+
 
             mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, "system", rootBeans, rootBeansMap, ssoBeans);
 
@@ -218,7 +223,7 @@ public class PostServiceImpl implements PostService {
             rootBeans = new ArrayList<>(rootBeansMap.values());
         }
         // 判断重复(code)
-        calculationService.groupByCode(beans, status, rootBeans, domain);
+        calculationService.groupByCode(beans, status, domain);
 
         return beans;
 

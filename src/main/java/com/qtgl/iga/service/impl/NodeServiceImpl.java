@@ -270,9 +270,11 @@ public class NodeServiceImpl implements NodeService {
             }
         }
         //将传入版本改为正式版本
-        Integer rangeNew = getInteger(null, type, domain, version);
-        if ((nodeHistory >= 0) && (rangeNew >= 0)) {
-            return new Node();
+        if( null!=version){
+            Integer rangeNew = getInteger(null, type, domain, version);
+            if ((nodeHistory >= 0) && (rangeNew >= 0)) {
+                return new Node();
+            }
         }
         return null;
     }
