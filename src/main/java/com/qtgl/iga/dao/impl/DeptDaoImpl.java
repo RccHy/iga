@@ -323,20 +323,20 @@ public class DeptDaoImpl implements DeptDao {
     }
 
     @Override
-    public List<TreeBean> findBySourceAndTreeType(String api, String treeType,String tenantId) {
+    public List<TreeBean> findBySourceAndTreeType(String api, String treeType, String tenantId) {
         String sql = "select dept_code as code , dept_name as name , parent_code as parentCode , " +
                 " update_time as createTime , source, tree_type as treeType,data_source as dataSource, abbreviation,tags,type,independent,update_time as updateTime,del_mark as delMark,active  from dept where tenant_id = ? and data_source=?  and del_mark=0 ";
         List<Object> param = new ArrayList<>();
         param.add(tenantId);
         param.add(api);
 
-        if(null!=treeType){
+        if (null != treeType) {
             sql = sql + " and tree_type= ? ";
             param.add(treeType);
         }
 
 
-        List<Map<String, Object>> mapList = jdbcSSOAPI.queryForList(sql,param.toArray());
+        List<Map<String, Object>> mapList = jdbcSSOAPI.queryForList(sql, param.toArray());
 
         return getDeptBeans(mapList);
     }

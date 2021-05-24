@@ -395,7 +395,7 @@ public class NodeRulesCalculationServiceImpl {
      * @param delete
      * @throws Exception
      */
-    public void  monitorRules(DomainInfo domain, TaskLog lastTaskLog, Integer count, List delete) throws Exception {
+    public void monitorRules(DomainInfo domain, TaskLog lastTaskLog, Integer count, List delete) throws Exception {
         if (null != delete && delete.size() > 0) {
             // 获取 监控规则
             final List<MonitorRules> deptMonitorRules = monitorRulesDao.findAll(domain.getId(), "person");
@@ -684,7 +684,7 @@ public class NodeRulesCalculationServiceImpl {
 
 
             /*
-                 和主树进行合并校验
+                 和主树进行合并校验 (组织机构针对于同组织机构树做运算)
                 1: 确认权威源， 根据源的排序，在合并时候，判断是否要修改同级别，同code 的节点来源。
                 2： 如果子节点不继承父级规则，则由父级规则之前合并进来的子树先进行删除
              */
@@ -701,7 +701,9 @@ public class NodeRulesCalculationServiceImpl {
                                         String key = deptEntry.getKey();
                                         TreeBean value = deptEntry.getValue();
                                         if (mergeDeptMap.containsKey(key) &&
-                                                mergeDeptMap.get(key).getParentCode().equals(value.getParentCode())
+                                                mergeDeptMap.get(key).getParentCode().equals(value.getParentCode()) &&
+                                                ((null == mergeDeptMap.get(key).getTreeType() ? "" : mergeDeptMap.get(key).getTreeType())
+                                                        .equals(null == value.getTreeType() ? "" : value.getTreeType()))
                                         ) {
 
                                             //如果为BUILTIN数据移除merge中的数据
@@ -720,7 +722,12 @@ public class NodeRulesCalculationServiceImpl {
                                     for (Map.Entry<String, TreeBean> deptEntry : mergeDeptMap2.entrySet()) {
                                         String key = deptEntry.getKey();
                                         TreeBean value = deptEntry.getValue();
-                                        if (mainTreeMap.containsKey(key) && mainTreeMap.get(key).getParentCode().equals(value.getParentCode())) {
+
+                                        if (mainTreeMap.containsKey(key) &&
+                                                mainTreeMap.get(key).getParentCode().equals(value.getParentCode()) &&
+                                                ((null == mergeDeptMap.get(key).getTreeType() ? "" : mergeDeptMap.get(key).getTreeType())
+                                                        .equals(null == value.getTreeType() ? "" : value.getTreeType()))
+                                        ) {
                                             //如果为API数据移除mainTree中的数据
                                             if ("API".equals(value.getDataSource())) {
                                                 mainTreeMap.remove(key);
@@ -746,7 +753,9 @@ public class NodeRulesCalculationServiceImpl {
                                     String key = deptEntry.getKey();
                                     TreeBean value = deptEntry.getValue();
                                     if (mergeDeptMap.containsKey(key) &&
-                                            mergeDeptMap.get(key).getParentCode().equals(value.getParentCode())
+                                            mergeDeptMap.get(key).getParentCode().equals(value.getParentCode()) &&
+                                            ((null == mergeDeptMap.get(key).getTreeType() ? "" : mergeDeptMap.get(key).getTreeType())
+                                                    .equals(null == value.getTreeType() ? "" : value.getTreeType()))
                                     ) {
 
                                         //如果为BUILTIN数据移除merge中的数据
@@ -766,7 +775,11 @@ public class NodeRulesCalculationServiceImpl {
                                 for (Map.Entry<String, TreeBean> deptEntry : mergeDeptMap2.entrySet()) {
                                     String key = deptEntry.getKey();
                                     TreeBean value = deptEntry.getValue();
-                                    if (mainTreeMap.containsKey(key) && mainTreeMap.get(key).getParentCode().equals(value.getParentCode())) {
+                                    if (mainTreeMap.containsKey(key) &&
+                                            mainTreeMap.get(key).getParentCode().equals(value.getParentCode()) &&
+                                            ((null == mergeDeptMap.get(key).getTreeType() ? "" : mergeDeptMap.get(key).getTreeType())
+                                                    .equals(null == value.getTreeType() ? "" : value.getTreeType()))
+                                    ) {
                                         //如果为BUILTIN数据移除merge中的数据
                                         if ("BUILTIN".equals(value.getDataSource())) {
                                             mergeDeptMap.remove(key);
@@ -869,9 +882,11 @@ public class NodeRulesCalculationServiceImpl {
     }
 
     public JSONArray judgeTime(JSONArray upstreamTree, LocalDateTime timestamp) {
+        //判断上游是否给出创建时间和修改时间
         String str = upstreamTree.toString();
         boolean flag = str.contains("createTime");
         boolean upFlag = str.contains("updateTime");
+        //未给出则手动赋值
         if (!flag) {
 
             List<TreeBean> mainList = JSON.parseArray(str, TreeBean.class);
@@ -887,39 +902,54 @@ public class NodeRulesCalculationServiceImpl {
         }
     }
 
+    /**
+     * @param mergeDeptMap
+     * @param status
+     * @param domain
+     * @param mainTree
+     * @Description: 循环依赖判断
+     * @return: void
+     */
     public void circularData(Map<String, TreeBean> mergeDeptMap, Integer status, DomainInfo domain, List<TreeBean> mainTree) throws Exception {
         Collection<TreeBean> values = mergeDeptMap.values();
         ArrayList<TreeBean> mergeList = new ArrayList<>(values);
         for (TreeBean treeBean : mergeList) {
             for (TreeBean bean : mergeList) {
                 if (treeBean.getCode().equals(bean.getParentCode()) && treeBean.getParentCode().equals(bean.getCode())) {
-//                    if (null == bean.getTreeType()) {
-//                        bean.setTreeType("");
-//                        mainTree.addAll(rootBeans);
-//                    }
+
+                    //存放异常信息的容器
+                    ArrayList<ErrorData> list = new ArrayList<>();
+
                     DeptTreeType deptTreeType = deptTreeTypeDao.findByCode(bean.getTreeType());
-                    UpstreamType upstreamType = upstreamTypeDao.findById(bean.getUpstreamTypeId());
-                    NodeRules nodeRules = rulesDao.findNodeRulesById(bean.getRuleId(), status);
-                    List<Node> nodes = nodeDao.findById(nodeRules.getNodeId());
+
+                    if (("API".equals(bean.getDataSource())) || ("BUILTIN".equals(bean.getDataSource()))) {
+                        list.add(new ErrorData((null == deptTreeType ? "" : deptTreeType.getId()), bean.getRuleId(), bean.getCode()));
+                    } else {
+
+                        NodeRules nodeRules = rulesDao.findNodeRulesById(bean.getRuleId(), status);
+                        List<Node> nodes = nodeDao.findById(nodeRules.getNodeId());
+                        list.add(new ErrorData((null == deptTreeType ? "" : deptTreeType.getId()), bean.getRuleId(), nodes.get(0).getNodeCode()));
+
+                    }
 
                     if (null == treeBean.getTreeType()) {
                         treeBean.setTreeType("");
-//                        mainTree.addAll(mergeList);
                     }
                     DeptTreeType deptTreeType2 = deptTreeTypeDao.findByCode(treeBean.getTreeType());
-                    UpstreamType upstreamType2 = upstreamTypeDao.findById(treeBean.getUpstreamTypeId());
-                    NodeRules nodeRules2 = rulesDao.findNodeRulesById(treeBean.getRuleId(), status);
-                    List<Node> nodes2 = nodeDao.findById(nodeRules2.getNodeId());
-                    logger.error("{} 节点 {}   规则{} 中的 数据 {} code:{} 与 机构{} 节点 {}   规则{} 中的 数据 {} code:{} 循环依赖 ",
-                            bean.getTreeType(), ("".equals(nodes.get(0).getNodeCode()) ? "根节点" : nodes.get(0).getNodeCode()), bean.getRuleId(), bean.getName(), bean.getCode(),
-                            treeBean.getTreeType(), ("".equals(nodes2.get(0).getNodeCode()) ? "根节点" : nodes2.get(0).getNodeCode()), treeBean.getRuleId(), treeBean.getName(), treeBean.getCode());
-                    errorTree.put(domain.getDomainName(), mainTree);
-                    ArrayList<ErrorData> list = new ArrayList<>();
-                    list.add(new ErrorData((null == deptTreeType ? "" : deptTreeType.getId()), bean.getRuleId(), nodes.get(0).getNodeCode()));
-                    list.add(new ErrorData((null == deptTreeType2 ? "" : deptTreeType2.getId()), treeBean.getRuleId(), nodes2.get(0).getNodeCode()));
+                    if (("API".equals(treeBean.getDataSource())) || ("BUILTIN".equals(treeBean.getDataSource()))) {
+                        list.add(new ErrorData((null == deptTreeType2 ? "" : deptTreeType2.getId()), treeBean.getRuleId(), treeBean.getCode()));
+                    } else {
+                        NodeRules nodeRules2 = rulesDao.findNodeRulesById(treeBean.getRuleId(), status);
+                        List<Node> nodes2 = nodeDao.findById(nodeRules2.getNodeId());
+                        list.add(new ErrorData((null == deptTreeType2 ? "" : deptTreeType2.getId()), treeBean.getRuleId(), nodes2.get(0).getNodeCode()));
+                    }
+                    logger.error(" {} 节点 {}   规则{} 中的 数据 {} code:{} 与 机构{} 节点 {}   规则{} 中的 数据 {} code:{} 循环依赖 ",
+                            null == deptTreeType ? "" : deptTreeType.getName(), ("".equals(bean.getCode()) ? "根节点" : bean.getCode()), null == bean.getRuleId() ? " " : bean.getRuleId(), bean.getName(), bean.getCode(),
+                            null == deptTreeType2 ? "" : deptTreeType2.getName(), ("".equals(treeBean.getCode()) ? "根节点" : treeBean.getCode()), null == bean.getRuleId() ? " " : bean.getRuleId(), treeBean.getName(), treeBean.getCode());
                     errorData.put(domain.getDomainName(), list);
-                    throw new Exception(" " + (null == deptTreeType ? "" : deptTreeType.getName()) + " 节点 (" + ("".equals(nodes.get(0).getNodeCode()) ? "根节点" : nodes.get(0).getNodeCode()) + " )" + "中的数据" + bean.getName() + "(" + bean.getCode() + ")" + " 与"
-                            + (null == deptTreeType2 ? "" : deptTreeType2.getName()) + " 节点 (" + ("".equals(nodes2.get(0).getNodeCode()) ? "根节点" : nodes2.get(0).getNodeCode()) + " )" + "中的数据" + treeBean.getName() + "(" + treeBean.getCode() + ")" +
+                    errorTree.put(domain.getDomainName(), mainTree);
+                    throw new Exception(" " + (null == deptTreeType ? "" : deptTreeType.getName()) + " 节点 (" + ("".equals(bean.getCode()) ? "根节点" : bean.getCode()) + " )" + "中的数据" + bean.getName() + "(" + bean.getCode() + ")" + " 与"
+                            + (null == deptTreeType2 ? "" : deptTreeType2.getName()) + " 节点 (" + ("".equals(treeBean.getCode()) ? "根节点" : treeBean.getCode()) + " )" + "中的数据" + treeBean.getName() + "(" + treeBean.getCode() + ")" +
                             "循环依赖");
                 }
             }
@@ -933,30 +963,39 @@ public class NodeRulesCalculationServiceImpl {
             for (TreeBean bean : mergeList) {
                 if (treeBean.getCode().equals(bean.getParentCode()) && treeBean.getParentCode().equals(bean.getCode())) {
 
-//                    if (null == bean.getTreeType()) {
-//                        bean.setTreeType("");
-//                        mainTree.addAll(rootBeans);
-//                    }
+                    //存放异常信息的容器
+                    ArrayList<ErrorData> list = new ArrayList<>();
+
                     DeptTreeType deptTreeType = deptTreeTypeDao.findByCode(bean.getTreeType());
-                    NodeRules nodeRules = rulesDao.findNodeRulesById(bean.getRuleId(), status);
-                    List<Node> nodes = nodeDao.findById(nodeRules.getNodeId());
+
+                    if (("API".equals(bean.getDataSource())) || ("BUILTIN".equals(bean.getDataSource()))) {
+                        list.add(new ErrorData((null == deptTreeType ? "" : deptTreeType.getId()), bean.getRuleId(), bean.getCode()));
+                    } else {
+
+                        NodeRules nodeRules = rulesDao.findNodeRulesById(bean.getRuleId(), status);
+                        List<Node> nodes = nodeDao.findById(nodeRules.getNodeId());
+                        list.add(new ErrorData((null == deptTreeType ? "" : deptTreeType.getId()), bean.getRuleId(), nodes.get(0).getNodeCode()));
+
+                    }
 
                     if (null == treeBean.getTreeType()) {
                         treeBean.setTreeType("");
                     }
                     DeptTreeType deptTreeType2 = deptTreeTypeDao.findByCode(treeBean.getTreeType());
-                    NodeRules nodeRules2 = rulesDao.findNodeRulesById(treeBean.getRuleId(), status);
-                    List<Node> nodes2 = nodeDao.findById(nodeRules2.getNodeId());
-                    logger.error("{} 节点 {}   规则{} 中的 数据 {} code:{} 与 机构{} 节点 {}   规则{} 中的 数据 {} code:{} 循环依赖 ",
-                            bean.getTreeType(), ("".equals(nodes.get(0).getNodeCode()) ? "根节点" : nodes.get(0).getNodeCode()), bean.getRuleId(), bean.getName(), bean.getCode(),
-                            treeBean.getTreeType(), ("".equals(nodes2.get(0).getNodeCode()) ? "根节点" : nodes2.get(0).getNodeCode()), treeBean.getRuleId(), treeBean.getName(), treeBean.getCode());
-                    errorTree.put(domain.getDomainName(), mainTree);
-                    ArrayList<ErrorData> list = new ArrayList<>();
-                    list.add(new ErrorData((null == deptTreeType ? "" : deptTreeType.getId()), bean.getRuleId(), nodes.get(0).getNodeCode()));
-                    list.add(new ErrorData((null == deptTreeType2 ? "" : deptTreeType2.getId()), treeBean.getRuleId(), nodes2.get(0).getNodeCode()));
+                    if (("API".equals(treeBean.getDataSource())) || ("BUILTIN".equals(treeBean.getDataSource()))) {
+                        list.add(new ErrorData((null == deptTreeType2 ? "" : deptTreeType2.getId()), treeBean.getRuleId(), treeBean.getCode()));
+                    } else {
+                        NodeRules nodeRules2 = rulesDao.findNodeRulesById(treeBean.getRuleId(), status);
+                        List<Node> nodes2 = nodeDao.findById(nodeRules2.getNodeId());
+                        list.add(new ErrorData((null == deptTreeType2 ? "" : deptTreeType2.getId()), treeBean.getRuleId(), nodes2.get(0).getNodeCode()));
+                    }
+                    logger.error(" {} 节点 {}   规则{} 中的 数据 {} code:{} 与 机构{} 节点 {}   规则{} 中的 数据 {} code:{} 循环依赖 ",
+                            null == deptTreeType ? "" : deptTreeType.getName(), ("".equals(bean.getCode()) ? "根节点" : bean.getCode()), null == bean.getRuleId() ? " " : bean.getRuleId(), bean.getName(), bean.getCode(),
+                            null == deptTreeType2 ? "" : deptTreeType2.getName(), ("".equals(treeBean.getCode()) ? "根节点" : treeBean.getCode()), null == bean.getRuleId() ? " " : bean.getRuleId(), treeBean.getName(), treeBean.getCode());
                     errorData.put(domain.getDomainName(), list);
-                    throw new Exception(" " + (null == deptTreeType ? "" : deptTreeType.getName()) + " 节点 (" + ("".equals(nodes.get(0).getNodeCode()) ? "根节点" : nodes.get(0).getNodeCode()) + " )" + "中的数据" + bean.getName() + "(" + bean.getCode() + ")" + " 与"
-                            + (null == deptTreeType2 ? "" : deptTreeType2.getName()) + " 节点 (" + ("".equals(nodes2.get(0).getNodeCode()) ? "根节点" : nodes2.get(0).getNodeCode()) + " )" + "中的数据" + treeBean.getName() + "(" + treeBean.getCode() + ")" +
+                    errorTree.put(domain.getDomainName(), mainTree);
+                    throw new Exception(" " + (null == deptTreeType ? "" : deptTreeType.getName()) + " 节点 (" + ("".equals(bean.getCode()) ? "根节点" : bean.getCode()) + " )" + "中的数据" + bean.getName() + "(" + bean.getCode() + ")" + " 与"
+                            + (null == deptTreeType2 ? "" : deptTreeType2.getName()) + " 节点 (" + ("".equals(treeBean.getCode()) ? "根节点" : treeBean.getCode()) + " )" + "中的数据" + treeBean.getName() + "(" + treeBean.getCode() + ")" +
                             "循环依赖");
 
 
@@ -966,7 +1005,11 @@ public class NodeRulesCalculationServiceImpl {
 
     }
 
-
+    /**
+     * @param map
+     * @Description: code, name 判空校验
+     * @return: void
+     */
     public void judgeData(Map<String, TreeBean> map) throws Exception {
         Collection<TreeBean> values = map.values();
         ArrayList<TreeBean> mainList = new ArrayList<>(values);
@@ -977,6 +1020,13 @@ public class NodeRulesCalculationServiceImpl {
         }
     }
 
+    /**
+     * @param treeBeans
+     * @param status
+     * @param domainInfo
+     * @Description: code重复性校验
+     * @return: void
+     */
     public void groupByCode(List<TreeBean> treeBeans, Integer status, DomainInfo domainInfo) throws Exception {
         HashMap<String, List<TreeBean>> resultBeans = new HashMap<>();
         ArrayList<TreeBean> mergeList = new ArrayList<>();

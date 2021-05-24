@@ -2,7 +2,6 @@ package com.qtgl.iga.provider;
 
 import com.qtgl.iga.config.GraphQLConfig;
 import com.qtgl.iga.dataFetcher.MonitorRulesDataFetcher;
-import com.qtgl.iga.dataFetcher.NodeRulesDataFetcher;
 import graphql.schema.idl.TypeRuntimeWiring;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;

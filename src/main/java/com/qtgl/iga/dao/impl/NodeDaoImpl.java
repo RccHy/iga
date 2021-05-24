@@ -288,13 +288,13 @@ public class NodeDaoImpl implements NodeDao {
     }
 
     @Override
-    public List<Node> findByStatus(Integer status, String domain,String type) {
+    public List<Node> findByStatus(Integer status, String domain, String type) {
         ArrayList<Node> nodes = new ArrayList<>();
         String sql = "select id,manual," +
                 "node_code as nodeCode," +
                 "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status,type" +
                 " from t_mgr_node where status=? and domain =? and type = ? ";
-        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, status,domain,type);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, status, domain, type);
         if (null == mapList || mapList.size() == 0) {
             return null;
         }

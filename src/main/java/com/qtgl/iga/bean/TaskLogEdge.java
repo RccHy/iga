@@ -1,7 +1,7 @@
 package com.qtgl.iga.bean;
 
-        import com.qtgl.iga.bo.TaskLog;
-        import lombok.Data;
+import com.qtgl.iga.bo.TaskLog;
+import lombok.Data;
 
 /**
  * <FileName> TaskLogEdge

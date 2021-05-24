@@ -22,5 +22,5 @@ public interface DeptDao {
 
     Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, String tenantId);
 
-    List<TreeBean> findBySourceAndTreeType(String api, String code,String tenantId);
+    List<TreeBean> findBySourceAndTreeType(String api, String code, String tenantId);
 }

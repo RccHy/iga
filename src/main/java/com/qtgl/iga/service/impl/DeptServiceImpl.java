@@ -1,18 +1,13 @@
 package com.qtgl.iga.service.impl;
 
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.service.NodeService;
-import com.qtgl.iga.task.TaskConfig;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
-import com.qtgl.iga.utils.TreeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,9 +15,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-import javax.script.SimpleBindings;
+
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -74,8 +67,8 @@ public class DeptServiceImpl implements DeptService {
     public List<TreeBean> findDept(Map<String, Object> arguments, DomainInfo domain) throws Exception {
         Integer status = (Integer) arguments.get("status");
         //是否需要复制规则
-        if((Boolean)arguments.get("scenes")){
-             status = nodeService.judgeEdit(arguments, domain, TYPE);
+        if ((Boolean) arguments.get("scenes")) {
+            status = nodeService.judgeEdit(arguments, domain, TYPE);
             if (status == null) {
                 return null;
             }
@@ -105,7 +98,7 @@ public class DeptServiceImpl implements DeptService {
         for (DeptTreeType deptType : deptTreeTypes) {
 
             List<TreeBean> ssoApiBeans = deptDao.findBySourceAndTreeType("API", deptType.getCode(), tenant.getId());
-            if(null!=ssoApiBeans&&ssoApiBeans.size()>0){
+            if (null != ssoApiBeans && ssoApiBeans.size() > 0) {
                 mainTreeBeans.addAll(ssoApiBeans);
             }
             // id 改为code
@@ -122,7 +115,6 @@ public class DeptServiceImpl implements DeptService {
         }
         //code重复性校验
         calculationService.groupByCode(beans, status, domain);
-
 
         return beans;
 

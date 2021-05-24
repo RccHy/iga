@@ -93,7 +93,7 @@ public class MonitorRulesDaoImpl implements MonitorRulesDao {
 
     @Override
     public MonitorRules updateMonitorRules(MonitorRules monitorRules) {
-        if(monitorRules.getActive()){
+        if (monitorRules.getActive()) {
             String sql = "update t_mgr_monitor_rules  set rules = ?,type = ?,active =?,update_time =? ,active_time=? ";
 
             sql = sql + " where id=? and domain=? ";
@@ -107,7 +107,7 @@ public class MonitorRulesDaoImpl implements MonitorRulesDao {
                 preparedStatement.setObject(7, monitorRules.getDomain());
             });
             return update > 0 ? monitorRules : null;
-        }else {
+        } else {
             String sql = "update t_mgr_monitor_rules  set rules = ?,type = ?,active =?,update_time =?  ";
 
             sql = sql + " where id=? and domain=? ";

@@ -5,13 +5,11 @@ import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.Node;
 import com.qtgl.iga.bo.NodeRulesRange;
 import com.qtgl.iga.bo.TaskLog;
-import com.qtgl.iga.config.TaskThreadPool;
 import com.qtgl.iga.dao.NodeDao;
 import com.qtgl.iga.dao.NodeRulesDao;
 import com.qtgl.iga.dao.NodeRulesRangeDao;
 import com.qtgl.iga.dao.TaskLogDao;
 import com.qtgl.iga.service.NodeService;
-import com.qtgl.iga.task.TaskConfig;
 import com.qtgl.iga.vo.NodeRulesVo;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -22,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 
 import java.util.*;
-import java.util.concurrent.ExecutorService;
 
 @Service
 @Transactional
@@ -270,7 +267,7 @@ public class NodeServiceImpl implements NodeService {
             }
         }
         //将传入版本改为正式版本
-        if( null!=version){
+        if (null != version) {
             Integer rangeNew = getInteger(null, type, domain, version);
             if ((nodeHistory >= 0) && (rangeNew >= 0)) {
                 return new Node();

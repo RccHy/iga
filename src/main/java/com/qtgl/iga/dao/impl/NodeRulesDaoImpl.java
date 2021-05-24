@@ -5,7 +5,6 @@ import com.qtgl.iga.bo.NodeRules;
 import com.qtgl.iga.dao.NodeRulesDao;
 import com.qtgl.iga.utils.MyBeanUtils;
 import com.qtgl.iga.vo.NodeRulesVo;
-import org.apache.commons.beanutils.BeanUtils;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;

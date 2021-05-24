@@ -146,7 +146,7 @@ public class PostServiceImpl implements PostService {
     public List<TreeBean> findPosts(Map<String, Object> arguments, DomainInfo domain) throws Exception {
         Integer status = (Integer) arguments.get("status");
         //是否需要复制规则
-        if((Boolean)arguments.get("scenes")){
+        if ((Boolean) arguments.get("scenes")) {
             status = nodeService.judgeEdit(arguments, domain, TYPE);
             if (status == null) {
                 return null;
@@ -191,7 +191,6 @@ public class PostServiceImpl implements PostService {
 
         mainTreeBeans.addAll(ssoBeans);
         for (TreeBean rootBean : rootBeans) {
-
 
 
             mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, "system", rootBeans, rootBeansMap, ssoBeans);

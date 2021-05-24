@@ -1,10 +1,7 @@
 package com.qtgl.iga.dataFetcher;
 
 
-import com.alibaba.fastjson.JSON;
 import com.qtgl.iga.bo.DomainInfo;
-import com.qtgl.iga.bo.NodeRulesRange;
-import com.qtgl.iga.service.NodeRulesRangeService;
 import com.qtgl.iga.service.TaskLogService;
 import com.qtgl.iga.utils.CertifiedConnector;
 import graphql.schema.DataFetcher;

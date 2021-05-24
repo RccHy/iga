@@ -99,9 +99,9 @@ public class TaskConfig {
                                                     taskLog.setDeptNo(deptNo);
                                                     taskLogService.save(taskLog, domainInfo.getId(), "update");
                                                     // PUT   MQ
-                                                    String pubResult ="";
+                                                    String pubResult = "";
                                                     if (deptResult.size() > 0) {
-                                                         pubResult = dataBusUtil.pub(deptResult, null, null, "dept", domainInfo);
+                                                        pubResult = dataBusUtil.pub(deptResult, null, null, "dept", domainInfo);
                                                         log.info("dept pub:{}", pubResult);
                                                     }
 

@@ -3,16 +3,11 @@ package com.qtgl.iga.dao.impl;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.dao.PostDao;
 import com.qtgl.iga.utils.MyBeanUtils;
-import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.cglib.beans.BeanMap;
-import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.annotation.Resource;
