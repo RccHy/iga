@@ -175,8 +175,6 @@ public class DeptServiceImpl implements DeptService {
 
             //  id 改为code
             mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE, "task", null, null, ssoApiBeans);
-            // 判断重复(code)
-            calculationService.groupByCode(mainTreeBeans, 0, domain);
 
         }
         //同步到sso
@@ -194,7 +192,7 @@ public class DeptServiceImpl implements DeptService {
         calculationService.monitorRules(domain, lastTaskLog, beans.size(), delete, "dept");
 
         //保存到数据库
-        saveToSso(collect, tenant.getId(), null);
+        saveToSso(collect, tenant.getId());
         return result;
     }
 
@@ -205,7 +203,7 @@ public class DeptServiceImpl implements DeptService {
      * @Description: 插入sso数据库
      * @return: void
      */
-    public void saveToSso(Map<String, List<Map.Entry<TreeBean, String>>> collect, String tenantId, List<TreeBean> logBeans) throws Exception {
+    public void saveToSso(Map<String, List<Map.Entry<TreeBean, String>>> collect, String tenantId) {
         //插入数据
         Map<String, TreeBean> logCollect = null;
         //声明存储插入,修改,删除数据的容器

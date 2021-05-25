@@ -1,19 +1,13 @@
 package com.qtgl.iga.service.impl;
 
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.NodeService;
 import com.qtgl.iga.service.PostService;
-import com.qtgl.iga.task.TaskConfig;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
-import com.qtgl.iga.utils.TreeUtil;
-import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,9 +16,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-import javax.script.SimpleBindings;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -96,18 +87,14 @@ public class PostServiceImpl implements PostService {
 
         for (TreeBean rootBean : rootBeans) {
 
-
             mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, "task", rootBeans, rootBeansMap, ssoBeans);
-            // 判断重复(code)
-            calculationService.groupByCode(mainTreeBeans, 0, domain);
+
         }
-//
         // 判断重复(code)
         calculationService.groupByCode(mainTreeBeans, 0, domain);
 
         //通过tenantId查询ssoApis库中的数据
         List<TreeBean> beans = postDao.findByTenantId(tenant.getId());
-        ArrayList<TreeBean> logBeans = new ArrayList<>();
 
         //将null赋为""
         if (null != beans && beans.size() > 0) {
@@ -116,7 +103,6 @@ public class PostServiceImpl implements PostService {
                     bean.setParentCode("");
                 }
             }
-            logBeans.addAll(beans);
         }
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
 
@@ -136,7 +122,7 @@ public class PostServiceImpl implements PostService {
         // 验证监控规则
         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
         calculationService.monitorRules(domain, lastTaskLog, beans.size(), delete, "post");
-        saveToSso(collect, tenant.getId(), null);
+        saveToSso(collect, tenant.getId());
 
         return result;
 
@@ -176,11 +162,6 @@ public class PostServiceImpl implements PostService {
             throw new Exception("请检查根树是否合法");
         }
         rootBeans.addAll(ssoBeans);
-
-        //sso dept库的数据(通过domain 关联tenant查询)
-        if (null == tenant) {
-            throw new Exception("租户不存在");
-        }
 
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
@@ -235,17 +216,13 @@ public class PostServiceImpl implements PostService {
      * @Description: 增量插入sso数据库
      * @return: void
      */
-    private void saveToSso(Map<String, List<Map.Entry<TreeBean, String>>> collect, String tenantId, List<TreeBean> logBeans) throws Exception {
+    private void saveToSso(Map<String, List<Map.Entry<TreeBean, String>>> collect, String tenantId) {
 
-//        Map<String, TreeBean> logCollect = null;
 
         ArrayList<TreeBean> insertList = new ArrayList<>();
         ArrayList<TreeBean> updateList = new ArrayList<>();
         ArrayList<TreeBean> deleteList = new ArrayList<>();
 
-//        if (null != logBeans && logBeans.size() > 0) {
-//            logCollect = logBeans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
-//        }
 
         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
         //删除数据
@@ -278,48 +255,9 @@ public class PostServiceImpl implements PostService {
         //修改数据
         if (null != update && update.size() > 0) {
             for (Map.Entry<TreeBean, String> key : update) {
-//                key.getKey().setDataSource("PULL");
-//                //统计修改字段
-//                TreeBean newTreeBean = key.getKey();
-//                TreeBean oldTreeBean = logCollect.get(newTreeBean.getCode());
-//                oldTreeBean.setSource(newTreeBean.getSource());
-//                oldTreeBean.setUpdateTime(newTreeBean.getUpdateTime());
-//                oldTreeBean.setActive(newTreeBean.getActive());
-//                //根据upstreamTypeId查询fileds
-//                boolean flag = false;
-//                boolean delFlag = true;
-//
-//
-//                List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(newTreeBean.getUpstreamTypeId());
-//                if (null != fields && fields.size() > 0) {
-//                    for (UpstreamTypeField field : fields) {
-//                        String sourceField = field.getSourceField();
-//                        if ("delMark".equals(sourceField)) {
-//                            delFlag = false;
-//                        }
-//                        Object newValue = ClassCompareUtil.getGetMethod(newTreeBean, sourceField);
-//                        Object oldValue = ClassCompareUtil.getGetMethod(oldTreeBean, sourceField);
-//                        if (null == oldValue && null == newValue) {
-//                            continue;
-//                        }
-//                        if (null != oldValue && oldValue.equals(newValue)) {
-//                            continue;
-//                        }
-//                        flag = true;
-//                        ClassCompareUtil.setValue(oldTreeBean, oldTreeBean.getClass(), sourceField, oldValue, newValue);
-//                        logger.debug("岗位信息更新{}:字段{}: {} -> {} ", newTreeBean.getCode(), sourceField, oldValue, newValue);
-//                    }
-//                }
-//
-//                if (delFlag && oldTreeBean.getDelMark().equals(1)) {
-//                    flag = true;
-//                    logger.info("岗位信息{}从删除恢复", oldTreeBean.getCode());
-//                }
 
-//                if (flag) {
                 logger.info("岗位对比后需要修改{}", key.getKey().toString());
                 updateList.add(key.getKey());
-//                }
             }
         }
 
