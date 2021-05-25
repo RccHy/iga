@@ -99,6 +99,9 @@ public class DeptDaoImpl implements DeptDao {
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }
+                if (null == dept.getParentCode()) {
+                    dept.setParentCode("");
+                }
                 list.add(dept);
             }
             return list;

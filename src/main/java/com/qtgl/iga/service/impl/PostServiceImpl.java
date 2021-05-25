@@ -92,9 +92,10 @@ public class PostServiceImpl implements PostService {
         List<TreeBean> mainTreeBeans = new ArrayList<>();
         Map<String, TreeBean> rootBeansMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
         final LocalDateTime now = LocalDateTime.now();
+        mainTreeBeans.addAll(ssoBeans);
+
         for (TreeBean rootBean : rootBeans) {
 
-            mainTreeBeans.addAll(ssoBeans);
 
             mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, "task", rootBeans, rootBeansMap, ssoBeans);
             // 判断重复(code)
