@@ -173,6 +173,9 @@ public class DeptServiceImpl implements DeptService {
 
             List<TreeBean> ssoApiBeans = deptDao.findBySourceAndTreeType("API", deptType.getCode(), tenant.getId());
 
+            if (null != ssoApiBeans && ssoApiBeans.size() > 0) {
+                mainTreeBeans.addAll(ssoApiBeans);
+            }
             //  id 改为code
             mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE, "task", null, null, ssoApiBeans);
 
