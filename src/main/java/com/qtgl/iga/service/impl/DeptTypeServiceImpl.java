@@ -29,17 +29,17 @@ public class DeptTypeServiceImpl implements DeptTypeService {
     }
 
     @Override
-    public DeptType deleteSchemaField(Map<String, Object> arguments, String domain) throws Exception {
-        return deptTypeDao.deleteSchemaField(arguments, domain);
+    public DeptType deleteDeptTypes(Map<String, Object> arguments, String domain) throws Exception {
+        return deptTypeDao.deleteDeptTypes(arguments, domain);
     }
 
     @Override
-    public DeptType saveSchemaField(DeptType deptType, String domain) throws Exception {
-        return deptTypeDao.saveSchemaField(deptType, domain);
+    public DeptType saveDeptTypes(DeptType deptType, String domain) throws Exception {
+        return deptTypeDao.saveDeptTypes(deptType, domain);
     }
 
     @Override
-    public DeptType updateSchemaField(DeptType deptType) throws Exception {
-        return deptTypeDao.updateSchemaField(deptType);
+    public DeptType updateDeptTypes(DeptType deptType) throws Exception {
+        return deptTypeDao.updateDeptTypes(deptType);
     }
 }

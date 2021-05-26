@@ -10,9 +10,9 @@ public interface DeptTypeService {
 
     List<DeptType> getAllDeptTypes(Map<String, Object> arguments, String domain);
 
-    DeptType deleteSchemaField(Map<String, Object> arguments, String domain) throws Exception;
+    DeptType deleteDeptTypes(Map<String, Object> arguments, String domain) throws Exception;
 
-    DeptType saveSchemaField(DeptType deptType, String domain) throws Exception;
+    DeptType saveDeptTypes(DeptType deptType, String domain) throws Exception;
 
-    DeptType updateSchemaField(DeptType deptType) throws Exception;
+    DeptType updateDeptTypes(DeptType deptType) throws Exception;
 }

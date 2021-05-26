@@ -25,9 +25,9 @@ public class DeptTypeProvider {
 
     public TypeRuntimeWiring.Builder buildMutationRuntimeWiring() throws Exception {
         return newTypeWiring("Mutation")
-                .dataFetcher("saveSchemaField", dataFetcher.saveSchemaField())
-                .dataFetcher("deleteSchemaField", dataFetcher.deleteSchemaField())
-                .dataFetcher("updateSchemaField", dataFetcher.updateSchemaField());
+                .dataFetcher("saveSchemaField", dataFetcher.saveDeptTypes())
+                .dataFetcher("deleteSchemaField", dataFetcher.deleteDeptTypes())
+                .dataFetcher("updateSchemaField", dataFetcher.updateDeptTypes());
 
     }
 

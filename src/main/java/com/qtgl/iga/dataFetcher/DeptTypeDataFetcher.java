@@ -36,24 +36,24 @@ public class DeptTypeDataFetcher {
     }
 
 
-    public DataFetcher deleteSchemaField() throws Exception {
+    public DataFetcher deleteDeptTypes() throws Exception {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
             // 获取传入参数
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
-            return deptTypeService.deleteSchemaField(arguments, domain.getId());
+            return deptTypeService.deleteDeptTypes(arguments, domain.getId());
         };
     }
 
-    public DataFetcher saveSchemaField() {
+    public DataFetcher saveDeptTypes() {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
             // 获取传入参数
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
             DeptType deptType = JSON.parseObject(JSON.toJSONString(arguments.get("entity")), DeptType.class);
-            DeptType data = deptTypeService.saveSchemaField(deptType, domain.getId());
+            DeptType data = deptTypeService.saveDeptTypes(deptType, domain.getId());
             if (null != data) {
                 return data;
             }
@@ -61,7 +61,7 @@ public class DeptTypeDataFetcher {
         };
     }
 
-    public DataFetcher updateSchemaField() {
+    public DataFetcher updateDeptTypes() {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
@@ -69,7 +69,7 @@ public class DeptTypeDataFetcher {
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
             DeptType deptType = JSON.parseObject(JSON.toJSONString(arguments.get("entity")), DeptType.class);
             deptType.setDomain(domain.getId());
-            DeptType data = deptTypeService.updateSchemaField(deptType);
+            DeptType data = deptTypeService.updateDeptTypes(deptType);
             if (null != data) {
                 return data;
             }
