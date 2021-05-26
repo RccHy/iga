@@ -625,6 +625,11 @@ public class DataBusUtil {
         StringBuffer graphql = new StringBuffer("mutation  {");
         if ("dept".equals(type) || "post".equals(type)) {
             for (Map.Entry<TreeBean, String> entry : treeBeanMap.entrySet()) {
+                TreeBean k = entry.getKey();
+                String v = entry.getValue();
+                if (v.equals("obsolete")) {
+                    break;
+                }
                 String pub = "{" +
                         "    type : \"%s\",\n" +
                         "    source : \"%s\", \n" +
@@ -634,12 +639,6 @@ public class DataBusUtil {
                         "    datacontenttype : \"application/json\",        \n" +
                         "    data : \"%s\", " +
                         "}";
-                TreeBean k = entry.getKey();
-                String v = entry.getValue();
-
-                if (v.equals("obsolete")) {
-                    break;
-                }
                 if (v.equals("insert")) {
                     pub = String.format(pub, type + ".created", domain.getClientId(),
                             k.getCode(), k.getCode() + UUID.randomUUID(),
@@ -770,6 +769,9 @@ public class DataBusUtil {
                 }
             }
 
+        }
+        if(graphql.equals("mutation  {")){
+            return "";
         }
         graphql.append("}");
         params.put("query", graphql);

@@ -17,4 +17,6 @@ public interface PostTypeDao {
     PostType updatePostType(PostType postType) throws Exception;
 
     PostType findById(String id);
+
+    void initialization(String domain);
 }

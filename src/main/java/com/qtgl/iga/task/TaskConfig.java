@@ -74,7 +74,7 @@ public class TaskConfig {
                                         // 如果 获取最近一次同步任务状况
                                         TaskLog lastTaskLog = taskLogService.last(domainInfo.getId());
                                         //  最近一次同步任务 状态不为 失败 。 如果是失败应该先解决问题
-                                        if (null != lastTaskLog.getId() && !lastTaskLog.getStatus().equals("failed")) {
+                                        if (null!=lastTaskLog&&null != lastTaskLog.getId() && !lastTaskLog.getStatus().equals("failed")) {
                                             errorData.remove(domainInfo.getId());
                                             // 如果有编辑中的规则，则不进行数据同步
                                             Map<String, Object> arguments = new HashMap<>();

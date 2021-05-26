@@ -1,7 +1,6 @@
 package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bo.DeptTreeType;
-
 import com.qtgl.iga.dao.DeptTreeTypeDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import org.springframework.cglib.beans.BeanMap;
@@ -183,6 +182,24 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
             return deptTreeType;
         }
         return null;
+    }
+
+    @Override
+    public void initialization(String domain) {
+        String sql = "INSERT INTO t_mgr_dept_tree_type (id, code, name, description, multiple_root_node, create_time, update_time,\n" +
+                "                                  create_user, domain, tree_index)\n" +
+                "VALUES (UUID(), '01', '单位类型组织机构', null, null, now(), now(), 'iga',?, 1)\n" +
+                "     , (UUID(), '02', '党务类型组织机构', null, null, now(), now(), 'iga',?, 2)\n" +
+                "     , (UUID(), '03', '学术类型组织机构', null, null, now(), now(), 'iga',?, 3)\n" +
+                "     , (UUID(), '04', '小组类型组织机构', null, null, now(), now(), 'iga',?, 4);";
+
+        jdbcIGA.update(sql, preparedStatement -> {
+            preparedStatement.setObject(1, domain);
+            preparedStatement.setObject(2, domain);
+            preparedStatement.setObject(3, domain);
+            preparedStatement.setObject(4, domain);
+
+        });
     }
 
     private void dealData(Map<String, Object> arguments, StringBuffer stb, List<Object> param) {
