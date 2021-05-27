@@ -770,7 +770,7 @@ public class DataBusUtil {
             }
 
         }
-        if(graphql.equals("mutation  {")){
+        if(graphql.toString().equals("mutation  {")){
             return "";
         }
         graphql.append("}");

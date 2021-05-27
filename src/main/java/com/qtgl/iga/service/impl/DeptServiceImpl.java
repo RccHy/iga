@@ -345,10 +345,15 @@ public class DeptServiceImpl implements DeptService {
                         if (null != pullBean.getCreateTime()) {
                             //修改
                             if (null == ssoBean.getCreateTime() || pullBean.getCreateTime().isAfter(ssoBean.getCreateTime())) {
-                                //使用sso的对象,将需要修改的值赋值
-//                                if (!"API".equals(ssoBean.getDataSource())) {
 
-//                                }
+                                //标识数据是否需要修改
+                                boolean updateFlag = false;
+                                //标识上游是否给出删除标记
+                                boolean delFlag = true;
+                                //使用sso的对象,将需要修改的值赋值
+                                if ("API".equals(ssoBean.getDataSource())) {
+                                    updateFlag=true;
+                                }
                                 ssoBean.setDataSource("PULL");
                                 ssoBean.setSource(pullBean.getSource());
                                 ssoBean.setUpdateTime(now);
@@ -356,10 +361,7 @@ public class DeptServiceImpl implements DeptService {
                                 ssoBean.setTreeType(pullBean.getTreeType());
                                 ssoBean.setColor(pullBean.getColor());
                                 ssoBean.setIsRuled(pullBean.getIsRuled());
-                                //标识数据是否需要修改
-                                boolean updateFlag = false;
-                                //标识上游是否给出删除标记
-                                boolean delFlag = true;
+
                                 List<UpstreamTypeField> fields = null;
                                 if (null != pullBean.getUpstreamTypeId()) {
                                     fields = DataBusUtil.typeFields.get(pullBean.getUpstreamTypeId());

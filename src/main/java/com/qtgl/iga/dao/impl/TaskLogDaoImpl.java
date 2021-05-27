@@ -82,9 +82,15 @@ public class TaskLogDaoImpl implements TaskLogDao {
             param.add(domainId);
             dealData(arguments, stb, param);
 
-            stb.append(" order by create_time desc limit ?,?");
-            param.add(null == arguments.get("offset") ? 0 : arguments.get("offset"));
-            param.add(null == arguments.get("first") ? 0 : arguments.get("first"));
+            stb.append(" order by create_time desc ");
+            //查询所有
+            if (!(arguments.get("offset").equals(-1)) && !(arguments.get("first").equals(-1))) {
+
+                stb.append(" limit ?,? ");
+                param.add(null == arguments.get("offset") ? 0 : arguments.get("offset"));
+                param.add(null == arguments.get("first") ? 0 : arguments.get("first"));
+            }
+
             System.out.println(stb.toString());
             List<Map<String, Object>> taskLogMap = jdbcIGA.queryForList(stb.toString(), param.toArray());
             for (Map<String, Object> map : taskLogMap) {
@@ -144,7 +150,7 @@ public class TaskLogDaoImpl implements TaskLogDao {
         List<TaskLog> taskLogs = new ArrayList<>();
         try {
             List<Map<String, Object>> taskLogMap = jdbcIGA.queryForList(sql, domain);
-            if ( taskLogMap.size() > 0) {
+            if (taskLogMap.size() > 0) {
                 for (Map<String, Object> map : taskLogMap) {
                     TaskLog taskLog = new TaskLog();
                     MyBeanUtils.populate(taskLog, map);
