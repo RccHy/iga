@@ -259,11 +259,21 @@ public class NodeServiceImpl implements NodeService {
 
         Integer nodeHistory = getInteger(null, type, domain, null);
 
-        //查询生产版本
         if (null == version) {
-            List<Node> nodes = nodeDao.findNodesByStatusAndType(0, type, domain, null);
-            if (null != nodes && nodes.size() > 0) {
-                version = nodes.get(0).getCreateTime();
+            if (mark) {
+                //回滚查询生产版本
+                List<Node> nodes = nodeDao.findNodesByStatusAndType(0, type, domain, null);
+                if (null != nodes && nodes.size() > 0) {
+                    version = nodes.get(0).getCreateTime();
+                }
+            } else {
+                //应用查询编辑中版本
+
+                List<Node> nodes = nodeDao.findNodesByStatusAndType(1, type, domain, null);
+                if (null != nodes && nodes.size() > 0) {
+                    version = nodes.get(0).getCreateTime();
+                }
+
             }
         }
         //将传入版本改为正式版本
