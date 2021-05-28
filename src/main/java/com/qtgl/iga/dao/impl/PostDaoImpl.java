@@ -222,12 +222,12 @@ public class PostDaoImpl implements PostDao {
     @Override
     public Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, String tenantId) {
         String insertStr = "insert into user_type (id,user_type, name, parent_code, can_login ,tenant_id ,tags," +
-                " data_source, description, meta,create_time,del_mark,active,active_time,update_time,source,user_type_index,post_type) values" +
-                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                " data_source, description, meta,create_time,del_mark,active,active_time,update_time,source,user_type_index,post_type,formal) values" +
+                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
         String updateStr = "update user_type set  name=?, parent_code=?, del_mark=? ,tenant_id =?" +
                 ", data_source=?, description=?, meta=?,update_time=?,tags=?,source=?" +
-                ", user_type_index = ?,post_type=?,active=?  where user_type =? and update_time<= ?";
+                ", user_type_index = ?,post_type=?,active=?,formal=?  where user_type =? and update_time<= ?";
 
         String deleteStr = "update user_type set   del_mark= ? , active = ?,active_time= ?  " +
                 "where user_type =?  and update_time<= ? ";
@@ -255,6 +255,7 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(16, insertList.get(i).getSource());
                             preparedStatement.setObject(17, insertList.get(i).getDeptIndex());
                             preparedStatement.setObject(18, insertList.get(i).getType());
+                            preparedStatement.setObject(19, insertList.get(i).getFormal());
                         }
 
                         @Override
@@ -280,8 +281,9 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(11, updateList.get(i).getDeptIndex());
                             preparedStatement.setObject(12, updateList.get(i).getType());
                             preparedStatement.setObject(13, updateList.get(i).getActive());
-                            preparedStatement.setObject(14, updateList.get(i).getCode());
-                            preparedStatement.setObject(15, updateList.get(i).getUpdateTime());
+                            preparedStatement.setObject(14, updateList.get(i).getFormal());
+                            preparedStatement.setObject(15, updateList.get(i).getCode());
+                            preparedStatement.setObject(16, updateList.get(i).getUpdateTime());
 
                         }
 

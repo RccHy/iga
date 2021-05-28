@@ -631,6 +631,13 @@ public class NodeRulesCalculationServiceImpl {
                             dept.put("ruleId", nodeRule.getId());
                             dept.put("color", upstream.getColor());
                             dept.put("isRuled", false);
+                            if("post".equals(type)){
+                                if(("01".equals(dept.getString(TreeEnum.PARENTCODE.getCode()))||("02".equals(dept.getString(TreeEnum.PARENTCODE.getCode()))))){
+                                    dept.put("formal", true);
+                                }else {
+                                    dept.put("formal",false);
+                                }
+                            }
 //                        dept.put("source",upstreamType.getDescription());
                             upstreamDept.add(dept.toJavaObject(TreeBean.class));
 

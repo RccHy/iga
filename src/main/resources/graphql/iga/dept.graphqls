@@ -34,10 +34,10 @@ type Dept{
     color:String
     #是否有规则
     isRuled:Boolean
-#    #组织机构类型id
-#    deptTreeTypeId:String
-#    #ruleId
-#    ruleId:String
+    #    #组织机构类型id
+    #    deptTreeTypeId:String
+    #    #ruleId
+    #    ruleId:String
 
 }
 

@@ -1,10 +1,8 @@
 package com.qtgl.iga.service.impl;
 import java.sql.Timestamp;
 
-import com.qtgl.iga.bo.DeptTreeType;
 import com.qtgl.iga.bo.DeptType;
 import com.qtgl.iga.bo.DomainInfo;
-import com.qtgl.iga.bo.PostType;
 import com.qtgl.iga.dao.DeptTreeTypeDao;
 import com.qtgl.iga.dao.DeptTypeDao;
 import com.qtgl.iga.dao.DomainInfoDao;

@@ -96,6 +96,10 @@ public class TreeBean {
      * 是否包含规则
      */
     private Boolean isRuled;
+    /**
+     * 是否身份岗
+     */
+    private Boolean formal;
 
 //    private String deptTreeTypeId;
 //    public DeptBean(Dept dept) {
