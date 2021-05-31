@@ -357,7 +357,6 @@ public class DeptServiceImpl implements DeptService {
                                 ssoBean.setDataSource("PULL");
                                 ssoBean.setSource(pullBean.getSource());
                                 ssoBean.setUpdateTime(now);
-                                ssoBean.setActive(pullBean.getActive());
                                 ssoBean.setTreeType(pullBean.getTreeType());
                                 ssoBean.setColor(pullBean.getColor());
                                 ssoBean.setIsRuled(pullBean.getIsRuled());
