@@ -295,8 +295,9 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
                 }
                 nodeRules.add(nodeRule);
             }
+            return nodeRules;
         }
-        return nodeRules;
+        return null;
     }
 
     @Override

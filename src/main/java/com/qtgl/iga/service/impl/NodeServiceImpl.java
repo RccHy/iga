@@ -234,8 +234,12 @@ public class NodeServiceImpl implements NodeService {
 //        }
         //mark为true 则为回滚  false为应用
         if (mark) {
+            //查询有无生产版本
+            List<Node> proNodes = nodeDao.findNodesByStatusAndType(0, type, domain, null);
+            if (null == proNodes) {
+                return null;
+            }
             //查询编辑中的node
-
             // 加 type查询
             List<Node> nodes = nodeDao.findNodesByStatusAndType(1, type, domain, null);
             if (null != nodes && nodes.size() > 0) {
