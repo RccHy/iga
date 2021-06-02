@@ -52,11 +52,11 @@ public class UpstreamServiceImpl implements UpstreamService {
                 List<NodeRules> oldNodeRules = nodeRulesDao.findNodeRulesByUpStreamTypeId(upstreamType.getId(), 2);
                 //编辑和正式的规则提示
                 if (null != nodeRules && nodeRules.size() > 0) {
-                    throw new Exception("删除上游源类型失败,有绑定的nodeRules规则,请查看后再删除");
+                    throw new RuntimeException("删除上游源类型失败,有绑定的nodeRules规则,请查看后再删除");
                 }
                 //历史版本,提示
                 if (null != oldNodeRules && oldNodeRules.size() > 0) {
-                    throw new Exception("删除上游源类型失败,有历史版本的nodeRules规则");
+                    throw new RuntimeException("删除上游源类型失败,有历史版本的nodeRules规则");
                 }
 
             }
@@ -66,21 +66,19 @@ public class UpstreamServiceImpl implements UpstreamService {
         //删除上游源数据类型
         if (null != byUpstreamId && byUpstreamId.size() > 0) {
             Integer integer = upstreamTypeDao.deleteByUpstreamId((String) arguments.get("id"), domain);
-            if (integer > 0) {
-                //删除上游源数据
-                Integer flag = upstreamDao.deleteUpstream((String) arguments.get("id"));
-                if (flag > 0) {
-                    return new Upstream();
-                } else {
-                    throw new RuntimeException("删除上游源失败");
-                }
-            } else {
+            if (integer < 0) {
+
                 throw new RuntimeException("删除上游源类型失败");
             }
 
         }
-
-        return null;
+        //删除上游源数据
+        Integer flag = upstreamDao.deleteUpstream((String) arguments.get("id"));
+        if (flag > 0) {
+            return new Upstream();
+        } else {
+            throw new RuntimeException("删除上游源失败");
+        }
 
     }
 
