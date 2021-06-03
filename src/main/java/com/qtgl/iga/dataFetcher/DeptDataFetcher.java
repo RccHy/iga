@@ -15,6 +15,7 @@ import com.qtgl.iga.service.PostService;
 import com.qtgl.iga.service.impl.NodeRulesCalculationServiceImpl;
 import com.qtgl.iga.utils.CertifiedConnector;
 import com.qtgl.iga.utils.GraphqlError;
+import com.sun.istack.internal.NotNull;
 import graphql.execution.DataFetcherResult;
 import graphql.schema.DataFetcher;
 import org.slf4j.Logger;
@@ -61,6 +62,8 @@ public class DeptDataFetcher {
                 Object object = getObject(e, NodeRulesCalculationServiceImpl.errorData.get(domain.getDomainName()), NodeRulesCalculationServiceImpl.errorTree.get(domain.getDomainName()));
 //                NodeRulesCalculationServiceImpl.errorData.put(domain.getDomainName(),null);
 //                NodeRulesCalculationServiceImpl.errorTree.put(domain.getDomainName(),null);
+                NodeRulesCalculationServiceImpl.errorTree.put(domain.getDomainName(),new ArrayList<>());
+                NodeRulesCalculationServiceImpl.errorData.put(domain.getDomainName(),new ArrayList<>());
                 return object;
 
 
@@ -96,6 +99,9 @@ public class DeptDataFetcher {
 
 
                 Object object = getObject(e, NodeRulesCalculationServiceImpl.errorData.get(domain.getDomainName()), NodeRulesCalculationServiceImpl.errorTree.get(domain.getDomainName()));
+
+                NodeRulesCalculationServiceImpl.errorTree.put(domain.getDomainName(),new ArrayList<>());
+                NodeRulesCalculationServiceImpl.errorData.put(domain.getDomainName(),new ArrayList<>());
 //                NodeRulesCalculationServiceImpl.errorData = null;
 //                NodeRulesCalculationServiceImpl.errorTree = null;
                 return object;

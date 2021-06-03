@@ -100,7 +100,11 @@ public class DeptServiceImpl implements DeptService {
             List<TreeBean> ssoApiBeans = deptDao.findBySourceAndTreeType("API", deptType.getCode(), tenant.getId());
             if (null != ssoApiBeans && ssoApiBeans.size() > 0) {
                 mainTreeBeans.addAll(ssoApiBeans);
+                for (TreeBean ssoApiBean : ssoApiBeans) {
+                    mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), ssoApiBean.getCode(), mainTreeBeans, status, TYPE, "system", null, null, ssoApiBeans);
+                }
             }
+
             // id 改为code
             mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE, "system", null, null, ssoApiBeans);
 
@@ -175,6 +179,9 @@ public class DeptServiceImpl implements DeptService {
 
             if (null != ssoApiBeans && ssoApiBeans.size() > 0) {
                 mainTreeBeans.addAll(ssoApiBeans);
+                for (TreeBean ssoApiBean : ssoApiBeans) {
+                    mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), ssoApiBean.getCode(), mainTreeBeans, 0, TYPE, "task", null, null, ssoApiBeans);
+                }
             }
             //  id 改为code
             mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE, "task", null, null, ssoApiBeans);
@@ -352,7 +359,7 @@ public class DeptServiceImpl implements DeptService {
                                 boolean delFlag = true;
                                 //使用sso的对象,将需要修改的值赋值
                                 if ("API".equals(ssoBean.getDataSource())) {
-                                    updateFlag=true;
+                                    updateFlag = true;
                                 }
                                 ssoBean.setDataSource("PULL");
                                 ssoBean.setSource(pullBean.getSource());

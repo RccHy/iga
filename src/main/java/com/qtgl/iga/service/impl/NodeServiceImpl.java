@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 
+import java.sql.Timestamp;
 import java.util.*;
 
 @Service
@@ -226,7 +227,10 @@ public class NodeServiceImpl implements NodeService {
 
     @Override
     public Node applyNode(Map<String, Object> arguments, String domain) throws Exception {
-        Object version = arguments.get("version");
+        Timestamp version = null;
+        if (null != arguments.get("version")) {
+            version = new Timestamp(((Date) arguments.get("version")).getTime());
+        }
         String type = (String) arguments.get("type");
         Boolean mark = (Boolean) arguments.get("mark");
 //        if (null == version) {
@@ -239,6 +243,33 @@ public class NodeServiceImpl implements NodeService {
             if (null == proNodes) {
                 return null;
             }
+
+        }
+        //查询是否在同步中
+        List<TaskLog> logList = taskLogDao.findByStatus(domain, "doing");
+        if (null != logList && logList.size() > 0) {
+
+            throw new Exception("数据正在同步,应用失败,请稍后再试");
+
+        }
+        if (null == version) {
+            if (mark) {
+                //回滚查询生产版本
+                List<Node> nodes = nodeDao.findNodesByStatusAndType(0, type, domain, null);
+                if (null != nodes && nodes.size() > 0) {
+                    version = new Timestamp(nodes.get(0).getCreateTime());
+                }
+            } else {
+                //应用查询编辑中版本
+
+                List<Node> nodes = nodeDao.findNodesByStatusAndType(1, type, domain, null);
+                if (null != nodes && nodes.size() > 0) {
+                    version = new Timestamp(nodes.get(0).getCreateTime());
+                }
+
+            }
+        }
+        if (mark) {
             //查询编辑中的node
             // 加 type查询
             List<Node> nodes = nodeDao.findNodesByStatusAndType(1, type, domain, null);
@@ -252,34 +283,8 @@ public class NodeServiceImpl implements NodeService {
                 }
             }
         }
-        //查询是否在同步中
-        List<TaskLog> logList = taskLogDao.findByStatus(domain, "doing");
-        if (null != logList && logList.size() > 0) {
-
-            throw new Exception("数据正在同步,应用失败,请稍后再试");
-
-        }
         //将所有版本改为历史版本
-
         Integer nodeHistory = getInteger(null, type, domain, null);
-
-        if (null == version) {
-            if (mark) {
-                //回滚查询生产版本
-                List<Node> nodes = nodeDao.findNodesByStatusAndType(0, type, domain, null);
-                if (null != nodes && nodes.size() > 0) {
-                    version = nodes.get(0).getCreateTime();
-                }
-            } else {
-                //应用查询编辑中版本
-
-                List<Node> nodes = nodeDao.findNodesByStatusAndType(1, type, domain, null);
-                if (null != nodes && nodes.size() > 0) {
-                    version = nodes.get(0).getCreateTime();
-                }
-
-            }
-        }
         //将传入版本改为正式版本
         if (null != version) {
             Integer rangeNew = getInteger(null, type, domain, version);
@@ -290,7 +295,7 @@ public class NodeServiceImpl implements NodeService {
         return null;
     }
 
-    private Integer getInteger(Integer status, String type, String domain, Object version) {
+    private Integer getInteger(Integer status, String type, String domain, Timestamp version) {
 
         List<Node> nodes = nodeDao.findNodesByStatusAndType(status, type, domain, version);
         if (null != nodes && nodes.size() > 0) {
