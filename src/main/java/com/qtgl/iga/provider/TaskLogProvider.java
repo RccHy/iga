@@ -2,7 +2,6 @@ package com.qtgl.iga.provider;
 
 
 import com.qtgl.iga.config.GraphQLConfig;
-import com.qtgl.iga.dataFetcher.NodeRulesRangeDataFetcher;
 import com.qtgl.iga.dataFetcher.TaskLogDataFetcher;
 import graphql.schema.idl.TypeRuntimeWiring;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,13 +24,11 @@ public class TaskLogProvider {
     }
 
 
-//    public TypeRuntimeWiring.Builder buildMutationRuntimeWiring() {
-//        return newTypeWiring("Mutation")
-//                .dataFetcher("saveNodeRulesRange", dataFetcher.saveNodeRulesRange())
-//                .dataFetcher("deleteNodeRulesRange", dataFetcher.deleteNodeRulesRange())
-//                .dataFetcher("updateNodeRulesRange", dataFetcher.updateNodeRulesRange());
-//
-//    }
+    public TypeRuntimeWiring.Builder buildMutationRuntimeWiring() {
+        return newTypeWiring("Mutation")
+                .dataFetcher("markLogs", dataFetcher.markLogs());
+
+    }
 
     @Autowired
     private GraphQLConfig graphQLConfig;
@@ -40,7 +37,7 @@ public class TaskLogProvider {
     private void init() {
         String key = this.getClass().getName();
         graphQLConfig.builderConcurrentMap.put(key + "-Query", buildQueryRuntimeWiring());
-//        graphQLConfig.builderConcurrentMap.put(key + "-Mutation", buildMutationRuntimeWiring());
+        graphQLConfig.builderConcurrentMap.put(key + "-Mutation", buildMutationRuntimeWiring());
     }
 }
 

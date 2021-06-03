@@ -25,12 +25,12 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
     public List<DeptType> getAllDeptTypes(Map<String, Object> arguments, String domain) {
         String sql = "select id, code, name, description," +
                 "create_time as createTime, update_time as updateTime, " +
-                "create_user as createUser, domain from t_mgr_dept_type where 1 = 1 ";
+                "create_user as createUser, domain from t_mgr_dept_type where 1 = 1 and domain =? ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
         List<Object> param = new ArrayList<>();
-
+        param.add(domain);
         dealData(arguments, stb, param);
 
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
@@ -50,7 +50,7 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
     }
 
     @Override
-    public DeptType deleteSchemaField(Map<String, Object> arguments, String domain) throws Exception {
+    public DeptType deleteDeptTypes(Map<String, Object> arguments, String domain) throws Exception {
         Object[] objects = new Object[2];
         objects[0] = arguments.get("id");
         objects[1] = domain;
@@ -81,11 +81,11 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
     }
 
     @Override
-    public DeptType saveSchemaField(DeptType deptType, String domain) throws Exception {
+    public DeptType saveDeptTypes(DeptType deptType, String domain) throws Exception {
         //判重
-        Object[] param = new Object[]{deptType.getCode(), deptType.getName()};
+        Object[] param = new Object[]{deptType.getCode(), deptType.getName(),domain};
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select id,code,name,description,create_time as createTime" +
-                ",update_time as updateTime,create_user as createUser, domain from t_mgr_dept_type where code =? or name = ?", param);
+                ",update_time as updateTime,create_user as createUser, domain from t_mgr_dept_type where code =? or name = ? and domain =? ", param);
         if (null != mapList && mapList.size() > 0) {
             throw new Exception("code 或 name 不能重复,添加组织机构类别失败");
         }
@@ -112,7 +112,7 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
     }
 
     @Override
-    public DeptType updateSchemaField(DeptType deptType) throws Exception {
+    public DeptType updateDeptTypes(DeptType deptType) throws Exception {
         //判重
         Object[] param = new Object[]{deptType.getCode(), deptType.getName(), deptType.getId()};
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select id,code,name,description,create_time as createTime," +

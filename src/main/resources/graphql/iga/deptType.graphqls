@@ -4,11 +4,11 @@ extend type Query {
 }
 extend type Mutation {
     #新增组织机构类型类型
-    saveSchemaField(entity:InputDeptType!):DeptType
+    saveDeptTypes(entity:InputDeptType!):DeptType
     #根据id删除组织机构类型类型
-    deleteSchemaField(id:ID!): DeptType
+    deleteDeptTypes(id:ID!): DeptType
     #更新组织机构类型类型
-    updateSchemaField(entity:InputDeptType!):DeptType
+    updateDeptTypes(entity:InputDeptType!):DeptType
 }
 
 # 组织机构类别实体

@@ -154,6 +154,27 @@ public class PostTypeDaoImpl implements PostTypeDao {
         return null;
     }
 
+    @Override
+    public void initialization(String domain) {
+
+        String sql = "INSERT INTO t_mgr_post_type (id, code, name, description, create_time, update_time, create_user, domain)\n" +
+                "VALUES (uuid(), '01', '人员类别岗位', null, now(), now(), 'iga', ?)," +
+                "       (uuid(), '02', '职务岗位', null, now(), now(), 'iga', ?)," +
+                "       (uuid(), '03', '管理岗位', null, now(), now(), 'iga', ?)," +
+                "       (uuid(), '04', '党务岗位', null, now(), now(), 'iga', ?),  " +
+                "       (uuid(), '05', '业务岗位', null, now(), now(), 'iga', ?);";
+
+
+        jdbcIGA.update(sql, preparedStatement -> {
+            preparedStatement.setObject(1, domain);
+            preparedStatement.setObject(2, domain);
+            preparedStatement.setObject(3, domain);
+            preparedStatement.setObject(4, domain);
+            preparedStatement.setObject(5, domain);
+        });
+
+    }
+
     private void dealData(Map<String, Object> arguments, StringBuffer stb, List<Object> param) {
         Iterator<Map.Entry<String, Object>> it = arguments.entrySet().iterator();
         while (it.hasNext()) {

@@ -37,6 +37,12 @@ public class GraphqlError implements GraphQLError {
 
     }
 
+    public GraphqlError(String message, Map<String, Object> extensions) {
+        this.message = message;
+        this.extensions = extensions;
+
+    }
+
     @Override
     public String getMessage() {
         return this.message;

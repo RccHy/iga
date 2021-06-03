@@ -2,22 +2,19 @@ package com.qtgl.iga.service.impl;
 
 
 import com.qtgl.iga.bean.TreeBean;
-import com.qtgl.iga.bo.DeptTreeType;
-import com.qtgl.iga.bo.DomainInfo;
-import com.qtgl.iga.bo.Tenant;
-import com.qtgl.iga.bo.UpstreamTypeField;
+import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.service.NodeService;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
-import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -47,6 +44,10 @@ public class DeptServiceImpl implements DeptService {
     NodeRulesCalculationServiceImpl calculationService;
     @Autowired
     UpstreamTypeDao upstreamTypeDao;
+    @Autowired
+    OccupyDao occupyDao;
+    @Autowired
+    MonitorRulesDao monitorRulesDao;
 
     @Value("${iga.hostname}")
     String hostname;
@@ -64,9 +65,13 @@ public class DeptServiceImpl implements DeptService {
      */
     @Override
     public List<TreeBean> findDept(Map<String, Object> arguments, DomainInfo domain) throws Exception {
-        Integer status = nodeService.judgeEdit(arguments, domain, TYPE);
-        if (status == null) {
-            return null;
+        Integer status = (Integer) arguments.get("status");
+        //是否需要复制规则
+        if ((Boolean) arguments.get("scenes")) {
+            status = nodeService.judgeEdit(arguments, domain, TYPE);
+            if (status == null) {
+                return null;
+            }
         }
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
@@ -91,10 +96,13 @@ public class DeptServiceImpl implements DeptService {
         List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
         final LocalDateTime now = LocalDateTime.now();
         for (DeptTreeType deptType : deptTreeTypes) {
+
+            List<TreeBean> ssoApiBeans = deptDao.findBySourceAndTreeType("API", deptType.getCode(), tenant.getId());
+            if (null != ssoApiBeans && ssoApiBeans.size() > 0) {
+                mainTreeBeans.addAll(ssoApiBeans);
+            }
             // id 改为code
-            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE, "system", null);
-//            // 判断重复(code)
-//            calculationService.groupByCode(mainTreeBeans, status, null);
+            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE, "system", null, null, ssoApiBeans);
 
         }
 
@@ -106,8 +114,7 @@ public class DeptServiceImpl implements DeptService {
             beans.addAll(insert);
         }
         //code重复性校验
-        calculationService.groupByCode(beans, status, null, domain);
-
+        calculationService.groupByCode(beans, status, domain);
 
         return beans;
 
@@ -135,9 +142,8 @@ public class DeptServiceImpl implements DeptService {
      * @param domain
      * @return
      */
-    @SneakyThrows
     @Override
-    public Map<TreeBean, String> buildDeptUpdateResult(DomainInfo domain) {
+    public Map<TreeBean, String> buildDeptUpdateResult(DomainInfo domain, TaskLog lastTaskLog) throws Exception {
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
             throw new Exception("租户不存在");
@@ -164,10 +170,14 @@ public class DeptServiceImpl implements DeptService {
         List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
         final LocalDateTime now = LocalDateTime.now();
         for (DeptTreeType deptType : deptTreeTypes) {
+
+            List<TreeBean> ssoApiBeans = deptDao.findBySourceAndTreeType("API", deptType.getCode(), tenant.getId());
+
+            if (null != ssoApiBeans && ssoApiBeans.size() > 0) {
+                mainTreeBeans.addAll(ssoApiBeans);
+            }
             //  id 改为code
-            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE, "task", null);
-            // 判断重复(code)
-            calculationService.groupByCode(mainTreeBeans, 0, null, domain);
+            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE, "task", null, null, ssoApiBeans);
 
         }
         //同步到sso
@@ -177,28 +187,41 @@ public class DeptServiceImpl implements DeptService {
             beans.addAll(treeBeans);
         }
         //code重复性校验
-        calculationService.groupByCode(beans, 0, null, domain);
+        calculationService.groupByCode(beans, 0, domain);
+
+        //  检测删除该部门 对 人员身份造成的影响。若影响范围过大，则停止操作。
+        Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
+        List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
+        calculationService.monitorRules(domain, lastTaskLog, beans.size(), delete, "dept");
+
         //保存到数据库
-        saveToSso(result, tenant.getId(), null);
+        saveToSso(collect, tenant.getId());
         return result;
     }
 
 
     /**
-     * @param result
+     * @param collect
      * @param tenantId
      * @Description: 插入sso数据库
      * @return: void
      */
-    public void saveToSso(Map<TreeBean, String> result, String tenantId, List<TreeBean> logBeans) {
+    public void saveToSso(Map<String, List<Map.Entry<TreeBean, String>>> collect, String tenantId) {
         //插入数据
-        Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
         Map<String, TreeBean> logCollect = null;
         //声明存储插入,修改,删除数据的容器
         ArrayList<TreeBean> insertList = new ArrayList<>();
         ArrayList<TreeBean> updateList = new ArrayList<>();
         ArrayList<TreeBean> deleteList = new ArrayList<>();
 
+        List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
+        //删除数据
+        if (null != delete && delete.size() > 0) {
+            for (Map.Entry<TreeBean, String> key : delete) {
+                logger.info("部门对比后删除{}", key.getKey().toString());
+                deleteList.add(key.getKey());
+            }
+        }
 
 //        if (null != logBeans && logBeans.size() > 0) {
 //            //将数据根据code分组
@@ -269,19 +292,6 @@ public class DeptServiceImpl implements DeptService {
 //                }
             }
         }
-        List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
-        //删除数据
-        if (null != delete && delete.size() > 0) {
-            for (Map.Entry<TreeBean, String> key : delete) {
-//                TreeBean newTreeBean = key.getKey();
-//                assert logCollect != null;
-//                TreeBean oldTreeBean = logCollect.get(newTreeBean.getCode());
-                logger.info("部门对比后删除{}", key.getKey().toString());
-                deleteList.add(key.getKey());
-
-
-            }
-        }
 
 
         Integer flag = deptDao.renewData(insertList, updateList, deleteList, tenantId);
@@ -311,6 +321,7 @@ public class DeptServiceImpl implements DeptService {
      */
     //, String treeTypeId
     private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, List<TreeBean> ssoBeans, Map<TreeBean, String> result, ArrayList<TreeBean> insert, LocalDateTime now) {
+        //将sso的数据转化为map方便对比
         Map<String, TreeBean> ssoCollect = new HashMap<>();
         if (null != ssoBeans && ssoBeans.size() > 0) {
             ssoCollect = ssoBeans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
@@ -334,21 +345,39 @@ public class DeptServiceImpl implements DeptService {
                         if (null != pullBean.getCreateTime()) {
                             //修改
                             if (null == ssoBean.getCreateTime() || pullBean.getCreateTime().isAfter(ssoBean.getCreateTime())) {
+
+                                //标识数据是否需要修改
+                                boolean updateFlag = false;
+                                //标识上游是否给出删除标记
+                                boolean delFlag = true;
+                                //使用sso的对象,将需要修改的值赋值
+                                if ("API".equals(ssoBean.getDataSource())) {
+                                    updateFlag=true;
+                                }
                                 ssoBean.setDataSource("PULL");
                                 ssoBean.setSource(pullBean.getSource());
                                 ssoBean.setUpdateTime(now);
-                                ssoBean.setActive(pullBean.getActive());
                                 ssoBean.setTreeType(pullBean.getTreeType());
-                                //新来的数据更实时
-                                boolean updateFlag = false;
-                                boolean delFlag = true;
+                                ssoBean.setColor(pullBean.getColor());
+                                ssoBean.setIsRuled(pullBean.getIsRuled());
 
-                                List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(pullBean.getUpstreamTypeId());
+                                List<UpstreamTypeField> fields = null;
+                                if (null != pullBean.getUpstreamTypeId()) {
+                                    fields = DataBusUtil.typeFields.get(pullBean.getUpstreamTypeId());
+                                }
+                                //获取对应上游源的映射字段
                                 if (null != fields && fields.size() > 0) {
                                     for (UpstreamTypeField field : fields) {
                                         String sourceField = field.getSourceField();
+                                        //如果上游给出删除标记 则使用上游的
                                         if ("delMark".equals(sourceField)) {
+                                            ssoBean.setDelMark(pullBean.getDelMark());
+                                            //将删除标记置为false标识(不是用自己的delMark)
                                             delFlag = false;
+                                        }
+                                        //如果上游给出启用状态 则使用上游的 否则不改动
+                                        if ("active".equals(sourceField)) {
+                                            ssoBean.setActive(pullBean.getActive());
                                         }
                                         Object newValue = ClassCompareUtil.getGetMethod(pullBean, sourceField);
                                         Object oldValue = ClassCompareUtil.getGetMethod(ssoBean, sourceField);
@@ -358,17 +387,22 @@ public class DeptServiceImpl implements DeptService {
                                         if (null != oldValue && oldValue.equals(newValue)) {
                                             continue;
                                         }
+                                        //将修改表示改为true 标识数据需要修改
                                         updateFlag = true;
+                                        //将值更新到sso对象
                                         ClassCompareUtil.setValue(ssoBean, ssoBean.getClass(), sourceField, oldValue, newValue);
                                         logger.debug("部门信息更新{}:字段{}: {} -> {} ", pullBean.getCode(), sourceField, oldValue, newValue);
                                     }
                                 }
+                                //如果上游没给出删除标识,并且sso数据显示数据已被删除,则直接从删除恢复
+                                //该操作主要是给删除标识手动赋值
                                 if (delFlag && ssoBean.getDelMark().equals(1)) {
+                                    ssoBean.setDelMark(0);
                                     updateFlag = true;
                                     logger.info("部门信息{}从删除恢复", ssoBean.getCode());
                                 }
                                 if (updateFlag) {
-
+                                    //将数据放入修改集合
                                     logger.info("部门对比后需要修改{}", ssoBean.toString());
 
                                     ssoCollect.put(ssoBean.getCode(), ssoBean);
@@ -376,22 +410,25 @@ public class DeptServiceImpl implements DeptService {
                                 }
 
                             } else {
+                                //如果数据不是最新的则忽略
                                 result.put(pullBean, "obsolete");
                             }
                         } else {
+                            //上游创建时间为null,则默认忽略
                             result.put(pullBean, "obsolete");
                         }
                         flag = false;
                     }
 
                 }
-                //没有相等的应该是新增
+                //没有相等的应该是新增(对比code没有对应的标识为新增)
                 if (flag) {
                     //新增
                     insert.add(pullBean);
                     result.put(pullBean, "insert");
                 }
             } else {
+                //数据库数据为空的话,则默认全部新增
                 insert.add(pullBean);
                 result.put(pullBean, "insert");
             }
@@ -399,16 +436,21 @@ public class DeptServiceImpl implements DeptService {
         if (null != ssoBeans) {
             //查询数据库需要删除的数据
             for (TreeBean ssoBean : ssoBeans) {
+                //仅能操作拉取的数据
                 if ("PULL".equals(ssoBean.getDataSource())) {
                     boolean flag = true;
                     for (TreeBean pullBean : pullBeans) {
+                        //如果sso与拉取的都有则说明为修改或者忽略,关闭删除标记
                         if (ssoBean.getCode().equals(pullBean.getCode())) {
                             flag = false;
                             break;
                         }
                     }
                     if (flag) {
+                        //移除集合中删除对象
                         ssoCollect.remove(ssoBean.getCode());
+                        //如果为启用的再走删除并更新修改时间,
+                        //本身就是删除的则不做处理
                         if (0 == ssoBean.getDelMark()) {
                             ssoBean.setUpdateTime(now);
                             result.put(ssoBean, "delete");

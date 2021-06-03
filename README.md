@@ -23,14 +23,25 @@ iga/sql/update/update.sql
 2：安装接口: http://ip:端口/iga/api/event <br/>
 入参参考：<br/>
 {
-clientId: "", // 应用client_id <br/>
-authCode: "", // 授权code,用于调用网关接口获取租户及应用启用信息 <br/>
-timestamp: ,  //时间戳 <br/>
-eventType: "create_tenant", //消息事件类型，值：「create_tenant:租户启用|disable_tenant: 禁用租户|delete_tenant: 删除租户 <br/>
+"clientId": "", // 应用client_id <br/>
+"authCode": "", // 授权code,用于调用网关接口获取租户及应用启用信息 用client secret的值<br/>
+"timestamp": ,  //时间戳 <br/>
+"eventType": "create_tenant", //消息事件类型，值：「create_tenant:租户启用|disable_tenant: 禁用租户|delete_tenant: 删除租户 <br/>
 tenantId: "" 租户全局code(domain)
 }<br/>
 
 安装成功返回：{"success": true}<br/>
+
+curl 参考：
+curl --location --request POST 'http://ip:端口/iga/api/event' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "eventType": "create_tenant",
+    "tenantId": "租户",
+    "authCode": "XXX",
+    "clientId": "XXX",
+    "timestamp": XXX
+}'
 
 3:将iga注册进maker，可获取到 clientId 和 clientSecret<br/>
 
@@ -39,8 +50,8 @@ tenantId: "" 租户全局code(domain)
 **服务代码**：iga； <br/>
 **描述**：iga； <br/>
 **后端地址**：[https|http]://域名/iga/graphql<br/>
-配置完成后可获得**服务地址**
-5:通过4获取到的**服务地址**后，需要在apis项目添加配置才可正常使用治理功能。配置地址https://git.qtgl.com.cn/product/ketanyun-v2-support/-/wikis/%E7%A7%91%E6%8E%A2%E4%BA%91%E9%9B%86%E6%88%90%E9%85%8D%E7%BD%AE 搜索IGA_URL
+配置完成后可获得**服务地址**<br/>
+
 
 
 # 环境变量说明【Environment】：<br/>

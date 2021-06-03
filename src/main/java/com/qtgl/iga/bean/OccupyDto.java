@@ -37,5 +37,6 @@ public class OccupyDto {
 
 
     private String upstreamType;
+    private String openId;
 
 }

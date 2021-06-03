@@ -13,20 +13,8 @@ stages:
   - build
   - deploy
 
-build:prod:
-  stage: build
-  before_script:
-    - export COMMIT_TIME=$(date +%Y%m%d)
-  script:
-    - "mvn package $MAVEN_CLI_OPTS -DJIB_TO_IMAGE=docker.qtgl.com.cn/product/iga:${COMMIT_TIME}   -Djib.to.auth.username=${K8S_SECRET_JIB_TO_USER} -Djib.to.auth.password=${K8S_SECRET_JIB_TO_PASSWORD} -DJIB_FROM_IMAGE='docker.qtgl.com.cn/openjdk:8-jre-alpine' -Djib.from.auth.username=${K8S_SECRET_JIB_FROM_USER} -Djib.from.auth.password=${K8S_SECRET_JIB_FROM_PASSWORD} "
-  only:
-    - master
-  artifacts:
-    paths:
-      - target/*.jar
-  image: maven:3.3.9-jdk-8
-
-build:dev:
+# Dev 分支CI
+build:devel:
   stage: build
   script:
     - "mvn package $MAVEN_CLI_OPTS -DJIB_TO_IMAGE='docker.qtgl.com.cn/product/iga:latest'   -Djib.to.auth.username=${K8S_SECRET_JIB_TO_USER} -Djib.to.auth.password=${K8S_SECRET_JIB_TO_PASSWORD} -DJIB_FROM_IMAGE='docker.qtgl.com.cn/openjdk:8-jre-alpine' -Djib.from.auth.username=${K8S_SECRET_JIB_FROM_USER} -Djib.from.auth.password=${K8S_SECRET_JIB_FROM_PASSWORD} "
@@ -37,22 +25,7 @@ build:dev:
       - target/*.jar
   image: maven:3.3.9-jdk-8
 
-deploy:dev:
-  image: bitnami/kubectl:1.17.4
-  stage: deploy
-  script:
-     - kubectl delete -f k8s-deploy.yaml --ignore-not-found=true
-     - kubectl apply -f k8s-deploy.yaml
-     - kubectl apply -f k8s-service.yaml
-  # disable artifacts downloading from previous steps
-  dependencies: [ ]
-  environment:
-    name: dev
-    url: https://cloud.ketanyun.cn/iga
-  only:
-    - dev
-
-
+# Dev 分支CD, 自动发布只devel环境
 deploy:devel:
   image: bitnami/kubectl:1.17.4
   stage: deploy
@@ -71,3 +44,39 @@ deploy:devel:
   only:
     - dev
   #when: manual
+
+# dev 分支CD, 手动发布到Cloud环境
+deploy:prod:
+  image: bitnami/kubectl:1.17.4
+  stage: deploy
+  script:
+     - kubectl delete -f k8s-deploy.yaml --ignore-not-found=true
+     - kubectl apply -f k8s-deploy.yaml
+     - kubectl apply -f k8s-service.yaml
+  # disable artifacts downloading from previous steps
+  dependencies: [ ]
+  environment:
+    name: prod
+    url: https://cloud.ketanyun.cn/iga
+  only:
+    - dev
+  when: manual      
+
+# Master 分支CI，并自动产生一个以当前日期为版本号的镜像
+build:prod:
+  stage: build
+  before_script:
+    - export COMMIT_TIME=$(date +%Y%m%d)
+  script:
+    - "mvn package $MAVEN_CLI_OPTS -DJIB_TO_IMAGE=docker.qtgl.com.cn/product/iga:${COMMIT_TIME}   -Djib.to.auth.username=${K8S_SECRET_JIB_TO_USER} -Djib.to.auth.password=${K8S_SECRET_JIB_TO_PASSWORD} -DJIB_FROM_IMAGE='docker.qtgl.com.cn/openjdk:8-jre-alpine' -Djib.from.auth.username=${K8S_SECRET_JIB_FROM_USER} -Djib.from.auth.password=${K8S_SECRET_JIB_FROM_PASSWORD} "
+  only:
+    - master
+  artifacts:
+    paths:
+      - target/*.jar
+  image: maven:3.3.9-jdk-8
+
+
+
+
+

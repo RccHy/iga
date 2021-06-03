@@ -7,7 +7,6 @@ import com.qtgl.iga.dao.TaskLogDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import com.qtgl.iga.utils.MyBeanUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 
@@ -25,14 +24,19 @@ public class TaskLogDaoImpl implements TaskLogDao {
     public List<TaskLog> findAll(String domain) {
         try {
             List<TaskLog> taskLogs = new ArrayList<>();
-            String sql = "select * from t_mgr_task_log where domain=? order by create_time desc";
+            String sql = "select id,status,dept_no as deptNo,post_no as postNo,person_no as personNo" +
+                    ",occupy_no occupyNo ,create_time as createTime , update_time as updateTime ,reason,data  from t_mgr_task_log where domain=?  order by create_time desc";
             List<Map<String, Object>> taskLogMap = jdbcIGA.queryForList(sql, domain);
-            for (Map<String, Object> map : taskLogMap) {
-                TaskLog taskLog = new TaskLog();
-                MyBeanUtils.populate(taskLog, map);
-                taskLogs.add(taskLog);
+            if (null != taskLogMap && taskLogMap.size() > 0) {
+                for (Map<String, Object> map : taskLogMap) {
+                    TaskLog taskLog = new TaskLog();
+                    MyBeanUtils.populate(taskLog, map);
+                    taskLogs.add(taskLog);
+                }
+                return taskLogs;
+            } else {
+                return null;
             }
-            return taskLogs;
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -43,16 +47,20 @@ public class TaskLogDaoImpl implements TaskLogDao {
     @Override
     public Integer save(TaskLog taskLog, String domain, String type) {
         int update = 0;
-        if ("save".equals(type)) {
-            String sql = "INSERT INTO t_mgr_task_log (id, status, dept_no, post_no, person_no, occupy_no, create_time, domain)" +
-                    " VALUES (?, ?, ?, ?, ?, ?, now(), ?);";
-            update = jdbcIGA.update(sql, taskLog.getId(), "doing", 0, 0, 0, 0, domain);
+        if ("skip".equals(type)) {
+            String sql = "INSERT INTO t_mgr_task_log (id, status,  create_time,update_time, reason,domain,data)" +
+                    " VALUES (?, ?, now(),now(), ?,?,?);";
+            update = jdbcIGA.update(sql, taskLog.getId(), "skip", taskLog.getReason(), domain, taskLog.getData());
+        } else if ("save".equals(type)) {
+            String sql = "INSERT INTO t_mgr_task_log (id, status,  create_time, domain,data )" +
+                    " VALUES ( ?, ?, now(), ? ,? );";
+            update = jdbcIGA.update(sql, taskLog.getId(), "doing", domain, taskLog.getData());
         } else {
             String sql = "UPDATE t_mgr_task_log " +
-                    "SET status = ?, dept_no = ?, post_no = ?, person_no = ?, occupy_no = ?, update_time = now()  WHERE id = ?;";
+                    "SET reason=?,status = ?, dept_no = ?, post_no = ?, person_no = ?, occupy_no = ?, update_time = now(),data =?  WHERE id = ?;";
 
-            update = jdbcIGA.update(sql, taskLog.getStatus(), taskLog.getDeptNo(), taskLog.getPostNo(),
-                    taskLog.getPersonNo(), taskLog.getOccupyNo(), taskLog.getId());
+            update = jdbcIGA.update(sql, taskLog.getReason(), taskLog.getStatus(), taskLog.getDeptNo(), taskLog.getPostNo(),
+                    taskLog.getPersonNo(), taskLog.getOccupyNo(), taskLog.getData(), taskLog.getId());
         }
 
         return update;
@@ -66,7 +74,7 @@ public class TaskLogDaoImpl implements TaskLogDao {
         List<TaskLogEdge> taskLogEdges = new ArrayList<>();
         try {
             String sql = "select id,status,dept_no as deptNo,post_no as postNo,person_no as personNo" +
-                    ",occupy_no occupyNo ,create_time as createTime , update_time as updateTime from t_mgr_task_log where domain=? ";
+                    ",occupy_no occupyNo ,create_time as createTime , update_time as updateTime,reason,data from t_mgr_task_log where domain=? ";
             //拼接sql
             StringBuffer stb = new StringBuffer(sql);
             //存入参数
@@ -74,9 +82,15 @@ public class TaskLogDaoImpl implements TaskLogDao {
             param.add(domainId);
             dealData(arguments, stb, param);
 
-            stb.append(" order by create_time desc limit ?,?");
-            param.add(null == arguments.get("offset") ? 0 : arguments.get("offset"));
-            param.add(null == arguments.get("first") ? 0 : arguments.get("first"));
+            stb.append(" order by create_time desc ");
+            //查询所有
+            if (!(arguments.get("offset").equals(-1)) && !(arguments.get("first").equals(-1))) {
+
+                stb.append(" limit ?,? ");
+                param.add(null == arguments.get("offset") ? 0 : arguments.get("offset"));
+                param.add(null == arguments.get("first") ? 0 : arguments.get("first"));
+            }
+
             System.out.println(stb.toString());
             List<Map<String, Object>> taskLogMap = jdbcIGA.queryForList(stb.toString(), param.toArray());
             for (Map<String, Object> map : taskLogMap) {
@@ -88,6 +102,62 @@ public class TaskLogDaoImpl implements TaskLogDao {
             }
             taskLogConnection.setEdges(taskLogEdges);
             return taskLogConnection;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    @Override
+    public List<TaskLog> findByStatus(String domain, String status) {
+        try {
+            List<TaskLog> taskLogs = new ArrayList<>();
+            String sql = "select id,status,dept_no as deptNo,post_no as postNo,person_no as personNo" +
+                    ",occupy_no occupyNo ,create_time as createTime , update_time as updateTime,reason,data from t_mgr_task_log where domain=?  and status = ? ";
+            List<Map<String, Object>> taskLogMap = jdbcIGA.queryForList(sql, domain, status);
+            if (null != taskLogMap && taskLogMap.size() > 0) {
+                for (Map<String, Object> map : taskLogMap) {
+                    TaskLog taskLog = new TaskLog();
+                    MyBeanUtils.populate(taskLog, map);
+                    taskLogs.add(taskLog);
+                }
+                return taskLogs;
+            } else {
+                return null;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    @Override
+    public TaskLog markLogs(Map<String, Object> arguments, String domainId) {
+        String sql = "update t_mgr_task_log  set status = ? where id=? and domain=?";
+        int update = jdbcIGA.update(sql, preparedStatement -> {
+            preparedStatement.setObject(1, arguments.get("status"));
+            preparedStatement.setObject(2, arguments.get("id"));
+            preparedStatement.setObject(3, domainId);
+        });
+        return update > 0 ? new TaskLog() : null;
+    }
+
+    @Override
+    public TaskLog last(String domain) {
+        String sql = "select id,reason,status,data from t_mgr_task_log where domain=? order by create_time desc limit 1";
+        List<TaskLog> taskLogs = new ArrayList<>();
+        try {
+            List<Map<String, Object>> taskLogMap = jdbcIGA.queryForList(sql, domain);
+            if (taskLogMap.size() > 0) {
+                for (Map<String, Object> map : taskLogMap) {
+                    TaskLog taskLog = new TaskLog();
+                    MyBeanUtils.populate(taskLog, map);
+                    taskLogs.add(taskLog);
+                }
+                return taskLogs.get(0);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -113,11 +183,6 @@ public class TaskLogDaoImpl implements TaskLogDao {
         Iterator<Map.Entry<String, Object>> it = arguments.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, Object> entry = it.next();
-//            if ("id".equals(entry.getKey())) {
-//                stb.append("and id= ? ");
-//                param.add(entry.getValue());
-//            }
-
             if ("filter".equals(entry.getKey())) {
                 HashMap<String, Object> map = (HashMap<String, Object>) entry.getValue();
                 for (Map.Entry<String, Object> str : map.entrySet()) {

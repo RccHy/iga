@@ -4,12 +4,12 @@ import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.Node;
 import com.qtgl.iga.bo.NodeRulesRange;
-import com.qtgl.iga.config.TaskThreadPool;
+import com.qtgl.iga.bo.TaskLog;
 import com.qtgl.iga.dao.NodeDao;
 import com.qtgl.iga.dao.NodeRulesDao;
 import com.qtgl.iga.dao.NodeRulesRangeDao;
+import com.qtgl.iga.dao.TaskLogDao;
 import com.qtgl.iga.service.NodeService;
-import com.qtgl.iga.task.TaskConfig;
 import com.qtgl.iga.vo.NodeRulesVo;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -20,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 
 import java.util.*;
-import java.util.concurrent.ExecutorService;
 
 @Service
 @Transactional
@@ -34,6 +33,8 @@ public class NodeServiceImpl implements NodeService {
     NodeRulesDao nodeRulesDao;
     @Autowired
     NodeRulesRangeDao nodeRulesRangeDao;
+    @Autowired
+    TaskLogDao taskLogDao;
 
 
     @Override
@@ -228,31 +229,63 @@ public class NodeServiceImpl implements NodeService {
         Object version = arguments.get("version");
         String type = (String) arguments.get("type");
         Boolean mark = (Boolean) arguments.get("mark");
-        if (null == version) {
-            throw new Exception("版本非法,请确认");
-        }
+//        if (null == version) {
+//            throw new Exception("版本非法,请确认");
+//        }
         //mark为true 则为回滚  false为应用
         if (mark) {
+            //查询有无生产版本
+            List<Node> proNodes = nodeDao.findNodesByStatusAndType(0, type, domain, null);
+            if (null == proNodes) {
+                return null;
+            }
             //查询编辑中的node
-
             // 加 type查询
             List<Node> nodes = nodeDao.findNodesByStatusAndType(1, type, domain, null);
-            for (Node node : nodes) {
-                HashMap<String, Object> map = new HashMap<>();
-                map.put("id", node.getId());
-                map.put("status", 1);
-                map.put("type", type);
-                deleteNode(map, domain);
+            if (null != nodes && nodes.size() > 0) {
+                for (Node node : nodes) {
+                    HashMap<String, Object> map = new HashMap<>();
+                    map.put("id", node.getId());
+                    map.put("status", 1);
+                    map.put("type", type);
+                    deleteNode(map, domain);
+                }
             }
+        }
+        //查询是否在同步中
+        List<TaskLog> logList = taskLogDao.findByStatus(domain, "doing");
+        if (null != logList && logList.size() > 0) {
+
+            throw new Exception("数据正在同步,应用失败,请稍后再试");
+
         }
         //将所有版本改为历史版本
 
         Integer nodeHistory = getInteger(null, type, domain, null);
 
+        if (null == version) {
+            if (mark) {
+                //回滚查询生产版本
+                List<Node> nodes = nodeDao.findNodesByStatusAndType(0, type, domain, null);
+                if (null != nodes && nodes.size() > 0) {
+                    version = nodes.get(0).getCreateTime();
+                }
+            } else {
+                //应用查询编辑中版本
+
+                List<Node> nodes = nodeDao.findNodesByStatusAndType(1, type, domain, null);
+                if (null != nodes && nodes.size() > 0) {
+                    version = nodes.get(0).getCreateTime();
+                }
+
+            }
+        }
         //将传入版本改为正式版本
-        Integer rangeNew = getInteger(null, type, domain, version);
-        if ((nodeHistory >= 0) && (rangeNew >= 0)) {
-            return new Node();
+        if (null != version) {
+            Integer rangeNew = getInteger(null, type, domain, version);
+            if ((nodeHistory >= 0) && (rangeNew >= 0)) {
+                return new Node();
+            }
         }
         return null;
     }
@@ -374,6 +407,19 @@ public class NodeServiceImpl implements NodeService {
 
         }
         return status;
+    }
+
+    @Override
+    public List<Node> nodeStatus(Map<String, Object> arguments, String domain) throws Exception {
+        Integer status = (Integer) arguments.get("status");
+        String type = (String) arguments.get("type");
+        if (null == status) {
+            throw new Exception("状态不能为空");
+        }
+        if (null == type) {
+            throw new Exception("类型不能为空");
+        }
+        return nodeDao.findByStatus(status, domain, type);
     }
 
 

@@ -1,0 +1,46 @@
+extend type Query {
+    #查询监控规则明细列表
+    monitorRules(type:String!):[MonitorRules]
+}
+extend type Mutation {
+    #新增监控规则明细
+    saveMonitorRules(entity:InputMonitorRules!):MonitorRules
+    #根据id删除监控规则明细
+    deleteMonitorRules(id:ID!): MonitorRules
+    #更新监控规则明细
+    updateMonitorRules(entity:InputMonitorRules!):MonitorRules
+}
+
+# 节点规则明细实体
+type MonitorRules{
+    id:String
+    rules: String
+    type: String
+    active:Boolean
+    activeTime:Timestamp
+    createTime:Timestamp
+    updateTime:Timestamp
+}
+
+
+# 节点规则明细入参
+input InputMonitorRules{
+    id:String
+    rules: String
+    type: String
+    active:Boolean
+    activeTime:Timestamp
+    createTime:Timestamp
+    updateTime:Timestamp
+}
+
+input MonitorRulesFilter{
+    type:integerFilter
+    status:integerFilter
+
+}
+
+
+
+
+

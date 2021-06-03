@@ -1,6 +1,12 @@
 extend type Query {
     #查询同步日志
     taskLogs(offset:Int,first:Int,filter:TaskLogFilter):TaskLogConnection
+
+
+}
+extend type Mutation {
+    #给日志打标记
+    markLogs(id:ID!,status:String!):TaskLog
 }
 
 type TaskLog{
@@ -11,22 +17,27 @@ type TaskLog{
     status :String
 
     #部门同步数量
-    deptNo :Int
+    deptNo :String
 
     #岗位同步数量
-    postNo :Int
+    postNo :String
 
     #人员同步数量
-    personNo :Int
+    personNo :String
 
     #人员身份同步数量
-    occupyNo :Int
+    occupyNo :String
 
     #创建时间
     createTime :Timestamp
 
     #修改时间
     updateTime :Timestamp
+    # 跳过、失败 的原因
+    reason:String
+    # 数据
+    data:String
+
 
 }
 
@@ -40,22 +51,26 @@ input InputTaskLog{
     status :String
 
     #部门同步数量
-    deptNo :Int
+    deptNo :String
 
     #岗位同步数量
-    postNo :Int
+    postNo :String
 
     #人员同步数量
-    personNo :Int
+    personNo :String
 
     #人员身份同步数量
-    occupyNo :Int
+    occupyNo :String
 
     #创建时间
     createTime :Timestamp
 
     #修改时间
     updateTime :Timestamp
+    # 跳过、失败 的原因
+    reason:String
+    # 数据
+    data:String
 }
 
 input TaskLogFilter{

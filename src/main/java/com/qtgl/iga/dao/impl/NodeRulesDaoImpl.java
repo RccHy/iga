@@ -5,7 +5,6 @@ import com.qtgl.iga.bo.NodeRules;
 import com.qtgl.iga.dao.NodeRulesDao;
 import com.qtgl.iga.utils.MyBeanUtils;
 import com.qtgl.iga.vo.NodeRulesVo;
-import org.apache.commons.beanutils.BeanUtils;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -243,7 +242,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, param.toArray());
         ArrayList<NodeRules> list = new ArrayList<>();
 
-        if (null != mapList) {
+        if (null != mapList && mapList.size() > 0) {
             try {
                 for (Map<String, Object> map : mapList) {
                     NodeRules nodeRules = new NodeRules();
@@ -296,8 +295,9 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
                 }
                 nodeRules.add(nodeRule);
             }
+            return nodeRules;
         }
-        return nodeRules;
+        return null;
     }
 
     @Override

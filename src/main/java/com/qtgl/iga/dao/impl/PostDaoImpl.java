@@ -3,16 +3,11 @@ package com.qtgl.iga.dao.impl;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.dao.PostDao;
 import com.qtgl.iga.utils.MyBeanUtils;
-import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.cglib.beans.BeanMap;
-import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.annotation.Resource;
@@ -40,7 +35,7 @@ public class PostDaoImpl implements PostDao {
         //
         String sql = "select  user_type as code , name, parent_code as parentCode , " +
                 " update_time as createTime," +
-                "source,data_source as dataSource,user_type_index as deptIndex,del_mark as delMark,update_time as updateTime,post_type as type from user_type where tenant_id = ? ";
+                "source,data_source as dataSource,user_type_index as deptIndex,del_mark as delMark,update_time as updateTime,post_type as type,active from user_type where tenant_id = ? ";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, id);
         return getUserTypes(mapList);
@@ -55,6 +50,9 @@ public class PostDaoImpl implements PostDao {
                     MyBeanUtils.populate(dept, map);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
+                }
+                if (null == dept.getParentCode()) {
+                    dept.setParentCode("");
                 }
                 list.add(dept);
             }
@@ -170,7 +168,7 @@ public class PostDaoImpl implements PostDao {
     @Override
     public List<TreeBean> findRootData(String tenantId) {
         String sql = "select  user_type as code , name as name , parent_code as parentCode , " +
-                " tags ,data_source as dataSource , description , meta,source,post_type as postType,user_type_index as deptIndex  " +
+                " tags ,data_source as dataSource , description , meta,source,post_type as postType,user_type_index as deptIndex,del_mark as delMark ,active " +
                 " from user_type where tenant_id=? and del_mark=0 and data_source=?";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId, "BUILTIN");
@@ -197,7 +195,7 @@ public class PostDaoImpl implements PostDao {
     @Override
     public List<TreeBean> findPostType(String id) {
         String sql = "select  user_type as code , name as name , parent_code as parentCode , " +
-                " tags ,data_source as dataSource , description , meta,source,post_type as postType,user_type_index as deptIndex  " +
+                " tags ,data_source as dataSource , description , meta,source,post_type as postType,user_type_index as deptIndex,active  " +
                 " from user_type where tenant_id=? and del_mark=0";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, id);
@@ -224,12 +222,12 @@ public class PostDaoImpl implements PostDao {
     @Override
     public Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, String tenantId) {
         String insertStr = "insert into user_type (id,user_type, name, parent_code, can_login ,tenant_id ,tags," +
-                " data_source, description, meta,create_time,del_mark,active,active_time,update_time,source,user_type_index,post_type) values" +
-                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                " data_source, description, meta,create_time,del_mark,active,active_time,update_time,source,user_type_index,post_type,formal) values" +
+                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
         String updateStr = "update user_type set  name=?, parent_code=?, del_mark=? ,tenant_id =?" +
                 ", data_source=?, description=?, meta=?,update_time=?,tags=?,source=?" +
-                ", user_type_index = ?,post_type=?,active=?  where user_type =? and update_time<= ?";
+                ", user_type_index = ?,post_type=?,active=?,formal=?  where user_type =? and update_time<= ?";
 
         String deleteStr = "update user_type set   del_mark= ? , active = ?,active_time= ?  " +
                 "where user_type =?  and update_time<= ? ";
@@ -257,6 +255,7 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(16, insertList.get(i).getSource());
                             preparedStatement.setObject(17, insertList.get(i).getDeptIndex());
                             preparedStatement.setObject(18, insertList.get(i).getType());
+                            preparedStatement.setObject(19, insertList.get(i).getFormal());
                         }
 
                         @Override
@@ -282,8 +281,9 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(11, updateList.get(i).getDeptIndex());
                             preparedStatement.setObject(12, updateList.get(i).getType());
                             preparedStatement.setObject(13, updateList.get(i).getActive());
-                            preparedStatement.setObject(14, updateList.get(i).getCode());
-                            preparedStatement.setObject(15, updateList.get(i).getUpdateTime());
+                            preparedStatement.setObject(14, updateList.get(i).getFormal());
+                            preparedStatement.setObject(15, updateList.get(i).getCode());
+                            preparedStatement.setObject(16, updateList.get(i).getUpdateTime());
 
                         }
 
@@ -298,7 +298,7 @@ public class PostDaoImpl implements PostDao {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
                             preparedStatement.setObject(1, 1);
-                            preparedStatement.setObject(2, 1);
+                            preparedStatement.setObject(2, 0);
                             preparedStatement.setObject(3, LocalDateTime.now());
                             preparedStatement.setObject(4, deleteList.get(i).getCode());
                             preparedStatement.setObject(5, deleteList.get(i).getCreateTime());
