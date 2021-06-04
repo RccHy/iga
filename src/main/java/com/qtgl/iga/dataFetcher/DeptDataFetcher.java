@@ -15,7 +15,6 @@ import com.qtgl.iga.service.PostService;
 import com.qtgl.iga.service.impl.NodeRulesCalculationServiceImpl;
 import com.qtgl.iga.utils.CertifiedConnector;
 import com.qtgl.iga.utils.GraphqlError;
-import com.sun.istack.internal.NotNull;
 import graphql.execution.DataFetcherResult;
 import graphql.schema.DataFetcher;
 import org.slf4j.Logger;
