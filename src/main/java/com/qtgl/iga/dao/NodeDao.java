@@ -29,7 +29,7 @@ public interface NodeDao {
 
     List<Node> findById(String id);
 
-    List<Node> findByStatus(Integer status, String domain,String type);
+    List<Node> findByStatus(Integer status, String domain, String type);
 
 
 //    Integer publishNode(String id);
