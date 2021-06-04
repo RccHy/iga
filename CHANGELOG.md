@@ -1,9 +1,9 @@
-#### 20210603
+#### 20210604
 
 
 **数据库：**
 
-- 执行iga/update/update.sql下 20210603的sql
+- 执行iga/update/update.sql下 20210604的sql
 
 **new：**
 - 执行**安装接口**同时对岗位类型、组织机构类型、单位类型数据进行初始化
@@ -18,7 +18,7 @@
 - 【**不兼容修改**，若在20210510版本上配置过对应的正则需调整规则配置】挂载节点表达式正则函数调整由原来的=Reg()改为=Reg("")；调整方式，直接对已有正则的规则进行修改。
 
 **image：**
-- docker.qtgl.com.cn/product/iga:20210603
+- docker.qtgl.com.cn/product/iga:20210604
 
 **依赖其他项目：**
 - docker.qtgl.com.cn/product/console:20210603
