@@ -128,7 +128,12 @@ public class PostServiceImpl implements PostService {
 
     }
 
-
+    /**
+     * @param arguments
+     * @param domain
+     * @Description: 根据状态(0 : 正式版本, 1 : 编辑版本) 获取规则拉取岗位数据(以遍历根结构数据的方式,逻辑根节点手动添加)  覆盖方式  BUILTIN源覆盖PULL源
+     * @return: java.util.List<com.qtgl.iga.bean.TreeBean>
+     */
     @Override
     public List<TreeBean> findPosts(Map<String, Object> arguments, DomainInfo domain) throws Exception {
         Integer status = (Integer) arguments.get("status");

@@ -57,7 +57,7 @@ public class DeptServiceImpl implements DeptService {
 
     /**
      * graphql 查询方法实现
-     *
+     * @Description: 根据状态租户查询对应规则拉取对应部门数据,首先遍历SSO中API数据的规则,然后遍历非API数据,覆盖方式 以PULL源覆盖API源
      * @param arguments 查询参数
      * @param domain    租户信息
      * @return

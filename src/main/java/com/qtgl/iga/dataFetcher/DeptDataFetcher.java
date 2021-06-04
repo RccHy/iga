@@ -60,26 +60,13 @@ public class DeptDataFetcher {
                 logger.error(domain.getDomainName() + e.getMessage());
 //                List<TreeBean> treeBeans = deptService.findDept(arguments, domain);
                 Object object = getObject(e, NodeRulesCalculationServiceImpl.errorData.get(domain.getDomainName()), NodeRulesCalculationServiceImpl.errorTree.get(domain.getDomainName()));
-//                NodeRulesCalculationServiceImpl.errorData.put(domain.getDomainName(),null);
-//                NodeRulesCalculationServiceImpl.errorTree.put(domain.getDomainName(),null);
+                //清空数据
                 NodeRulesCalculationServiceImpl.errorTree.put(domain.getDomainName(),new ArrayList<>());
                 NodeRulesCalculationServiceImpl.errorData.put(domain.getDomainName(),new ArrayList<>());
                 return object;
 
 
             }
-//            catch (ScriptException e) {
-//                e.printStackTrace();
-//                logger.error(domain.getDomainName() + e.getMessage());
-////                List<TreeBean> treeBeans = deptService.findDept(arguments, domain);
-//                Object object = getObject(e, NodeRulesCalculationServiceImpl.errorData, NodeRulesCalculationServiceImpl.errorTree);
-//                NodeRulesCalculationServiceImpl.errorData = null;
-//                NodeRulesCalculationServiceImpl.errorTree = null;
-//                return object;
-//
-//
-//            }
-
         };
     }
 
@@ -102,8 +89,6 @@ public class DeptDataFetcher {
 
                 NodeRulesCalculationServiceImpl.errorTree.put(domain.getDomainName(),new ArrayList<>());
                 NodeRulesCalculationServiceImpl.errorData.put(domain.getDomainName(),new ArrayList<>());
-//                NodeRulesCalculationServiceImpl.errorData = null;
-//                NodeRulesCalculationServiceImpl.errorTree = null;
                 return object;
             }
         };

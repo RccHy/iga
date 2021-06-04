@@ -225,8 +225,18 @@ public class NodeServiceImpl implements NodeService {
         return nodeDao.findNodesByCode(code, domain, type);
     }
 
+
+    /**
+     * @param arguments
+     * @param domain
+     * @Description: 根据传入版本回滚或应用对应版本(不传入回滚以当前生产版本作为回滚版本 ( 无生产版本, 则提示无法回滚))
+     * 回滚:先获取传入的版本(不传入的话,则取当前生产版本),然后将所有版本置为历史版本,最后根据版本号将对应版本应用为生产版本
+     * 应用:获取传入的版本(不传入的话,则取编辑中版本),然后将所有版本置为历史版本,最后根据版本号将对应版本应用为生产版本
+     * @return: com.qtgl.iga.bo.Node
+     */
     @Override
     public Node applyNode(Map<String, Object> arguments, String domain) throws Exception {
+        //传入的版本数据类型转换为数据库对应类型
         Timestamp version = null;
         if (null != arguments.get("version")) {
             version = new Timestamp(((Date) arguments.get("version")).getTime());

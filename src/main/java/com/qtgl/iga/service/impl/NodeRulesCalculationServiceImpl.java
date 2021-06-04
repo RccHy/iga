@@ -575,7 +575,6 @@ public class NodeRulesCalculationServiceImpl {
                         }
                         logger.info("开始'{}'节点拉取规则，上游:{}", code, nodeRule.getUpstreamTypesId());
                         // 每次循环都能拿到一个部门树，并计算出需要挂载的内容
-                        //
                         if (null == nodeRule.getUpstreamTypesId()) {
                             logger.error("对应拉取节点'{}'无上有源类型数据", code);
                             throw new Exception("对应拉取节点'" + code + "'无上有源类型数据");
@@ -612,9 +611,8 @@ public class NodeRulesCalculationServiceImpl {
                         logger.error("节点'{}'数据获取完成", code);
 
 
-                        /////////////////
                         List<TreeBean> upstreamDept = new ArrayList<>();
-                        //
+                        //遍历拉取的数据,标准化数据,以及赋值逻辑运算所需的值
                         for (Object o : upstreamTree) {
                             JSONObject dept = (JSONObject) o;
                             if (null == dept.getString(TreeEnum.PARENTCODE.getCode())) {
@@ -638,7 +636,6 @@ public class NodeRulesCalculationServiceImpl {
                                     dept.put("formal", false);
                                 }
                             }
-//                        dept.put("source",upstreamType.getDescription());
                             upstreamDept.add(dept.toJavaObject(TreeBean.class));
 
                         }
