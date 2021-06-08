@@ -38,4 +38,5 @@ public class NodeDto extends Node {
         this.setStatus(node.getStatus());
         this.setType(node.getType());
     }
+
 }

@@ -60,8 +60,8 @@ public class DeptDataFetcher {
 //                List<TreeBean> treeBeans = deptService.findDept(arguments, domain);
                 Object object = getObject(e, NodeRulesCalculationServiceImpl.errorData.get(domain.getDomainName()), NodeRulesCalculationServiceImpl.errorTree.get(domain.getDomainName()));
                 //清空数据
-                NodeRulesCalculationServiceImpl.errorTree.put(domain.getDomainName(),new ArrayList<>());
-                NodeRulesCalculationServiceImpl.errorData.put(domain.getDomainName(),new ArrayList<>());
+                NodeRulesCalculationServiceImpl.errorTree.put(domain.getDomainName(), new ArrayList<>());
+                NodeRulesCalculationServiceImpl.errorData.put(domain.getDomainName(), new ArrayList<>());
                 return object;
 
 
@@ -86,8 +86,8 @@ public class DeptDataFetcher {
 
                 Object object = getObject(e, NodeRulesCalculationServiceImpl.errorData.get(domain.getDomainName()), NodeRulesCalculationServiceImpl.errorTree.get(domain.getDomainName()));
 
-                NodeRulesCalculationServiceImpl.errorTree.put(domain.getDomainName(),new ArrayList<>());
-                NodeRulesCalculationServiceImpl.errorData.put(domain.getDomainName(),new ArrayList<>());
+                NodeRulesCalculationServiceImpl.errorTree.put(domain.getDomainName(), new ArrayList<>());
+                NodeRulesCalculationServiceImpl.errorData.put(domain.getDomainName(), new ArrayList<>());
                 return object;
             }
         };

@@ -46,6 +46,10 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
         if (null != nodeRules && nodeRules.size() > 0) {
             throw new Exception("删除上游源类型失败,有绑定的node规则,请查看后再删除");
         }
+        List<NodeRules> oldRules = nodeRulesDao.findNodeRulesByUpStreamTypeId((String) arguments.get("id"), 2);
+        if (null != oldRules && oldRules.size() > 0) {
+            throw new Exception("删除上游源类型失败,有绑定的历史node规则");
+        }
         return upstreamTypeDao.deleteUpstreamType((String) arguments.get("id"), domain);
     }
 
