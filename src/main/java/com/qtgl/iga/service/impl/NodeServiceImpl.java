@@ -256,10 +256,12 @@ public class NodeServiceImpl implements NodeService {
 
         }
         //查询是否在同步中
-        List<TaskLog> logList = taskLogDao.findByStatus(domain, "doing");
+        List<TaskLog> logList = taskLogDao.findByStatus(domain);
         if (null != logList && logList.size() > 0) {
+            if ("doing".equals(logList.get(0).getStatus())) {
+                throw new Exception("数据正在同步,应用失败,请稍后再试");
 
-            throw new Exception("数据正在同步,应用失败,请稍后再试");
+            }
 
         }
         if (null == version) {
