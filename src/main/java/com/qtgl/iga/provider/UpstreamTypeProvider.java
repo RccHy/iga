@@ -12,7 +12,7 @@ import static graphql.schema.idl.TypeRuntimeWiring.newTypeWiring;
 
 /**
  * <FileName> UpStreamTypeProvider
- * <Desc> 上游源类型
+ * <Desc> 权威源类型
  **/
 
 @Component

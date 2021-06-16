@@ -1,24 +1,24 @@
 extend type Query {
 
-    #查询上游源类型注册信息
+    #查询权威源类型注册信息
     upstreamTypes(id:ID,filter:UpstreamTypeFilter):[UpstreamType]
-    #根据上游源类型获取数据
+    #根据权威源类型获取数据
     upstreamTypesData(id:ID):UpstreamTypeData
 }
 extend type Mutation {
 
 
-    #新增上游源类型
+    #新增权威源类型
     saveUpstreamType(entity:InputUpstreamType!):UpstreamType
-    #根据id删除上游源类型
+    #根据id删除权威源类型
     deleteUpstreamType(id:ID!): UpstreamType
-    #更新上游源类型
+    #更新权威源类型
     updateUpstreamType(entity:InputUpstreamType!):UpstreamType
 }
 
 
 
-#上游源类型信息实体
+#权威源类型信息实体
 type UpstreamType{
     # 主键
     id:ID
@@ -58,11 +58,11 @@ type UpstreamType{
 }
 
 
-#上游源类型字段映射实体
+#权威源类型字段映射实体
 type UpstreamTypeField{
     # 主键
     id:ID
-    # 上游源数据类型注册外键
+    # 权威源数据类型注册外键
     upstreamTypeId:String
     # 源字段名称
     sourceField:String
@@ -76,11 +76,11 @@ type UpstreamTypeField{
 }
 
 
-#上游源类型字段映射实体
+#权威源类型字段映射实体
 input InputUpstreamTypeField{
     # 主键
     id:ID
-    # 上游源数据类型注册外键
+    # 权威源数据类型注册外键
     upstreamTypeId:String
     # 源字段名称
     sourceField:String
@@ -93,7 +93,7 @@ input InputUpstreamTypeField{
 
 }
 
-# 上游源类型入参
+# 权威源类型入参
 input InputUpstreamType{
     # 主键
     id:ID

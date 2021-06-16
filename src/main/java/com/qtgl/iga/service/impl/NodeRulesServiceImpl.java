@@ -8,6 +8,8 @@ import com.qtgl.iga.dao.NodeRulesDao;
 import com.qtgl.iga.dao.NodeRulesRangeDao;
 import com.qtgl.iga.service.NodeRulesService;
 import com.qtgl.iga.service.NodeService;
+import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.exception.CustomException;
 import com.qtgl.iga.vo.NodeRulesVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -61,7 +63,7 @@ public class NodeRulesServiceImpl implements NodeRulesService {
         if (null != ranges && ranges.size() > 0) {
             Integer i = nodeRulesRangeDao.deleteNodeRulesRangeByRuleId((String) arguments.get("id"));
             if (!(i > 0)) {
-                throw new Exception("删除range失败");
+                throw new CustomException(ResultCode.FAILED, "删除range失败");
             }
         }
         //  查询rule  删除编辑中
@@ -73,7 +75,7 @@ public class NodeRulesServiceImpl implements NodeRulesService {
             nodeRulesVo.setNodeRulesRanges(ranges);
             return nodeRulesVo;
         } else {
-            throw new Exception("删除rule失败");
+            throw new CustomException(ResultCode.FAILED, "删除rule失败");
         }
 
     }
@@ -106,7 +108,7 @@ public class NodeRulesServiceImpl implements NodeRulesService {
         //清除所有range
         Integer integer = nodeRulesRangeDao.deleteNodeRulesRangeByRuleId(nodeRules.getId());
         if (!(integer > 0)) {
-            throw new Exception("删除range失败");
+            throw new CustomException(ResultCode.FAILED, "删除range失败");
         }
         List<NodeRulesRange> ranges = null;
         if (null != nodeRules.getNodeRulesRanges()) {
@@ -118,7 +120,7 @@ public class NodeRulesServiceImpl implements NodeRulesService {
 //                nodeRulesRange = nodeRulesRangeDao.updateRulesRange(rulesRange);
 //            }
                 if (null == nodeRulesRange) {
-                    throw new Exception("操作节点作用域失败");
+                    throw new CustomException(ResultCode.FAILED, "操作节点作用域失败");
                 }
                 ranges.add(nodeRulesRange);
 

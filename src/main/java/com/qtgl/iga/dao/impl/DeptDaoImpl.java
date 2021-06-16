@@ -4,6 +4,8 @@ import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.Dept;
 import com.qtgl.iga.dao.DeptDao;
 import com.qtgl.iga.utils.MyBeanUtils;
+import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.exception.CustomException;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -317,7 +319,7 @@ public class DeptDaoImpl implements DeptDao {
             } catch (Exception e) {
                 transactionStatus.setRollbackOnly();
                 // transactionStatus.rollbackToSavepoint(savepoint);
-                throw new RuntimeException("同步终止，部门同步异常！");
+                throw new CustomException(ResultCode.FAILED, "同步终止，部门同步异常！");
 
             }
 

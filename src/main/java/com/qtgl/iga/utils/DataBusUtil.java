@@ -7,6 +7,8 @@ import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.service.DomainInfoService;
 import com.qtgl.iga.service.UpstreamTypeService;
+import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.exception.CustomException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.beanutils.BeanMap;
 import org.apache.commons.lang3.ArrayUtils;
@@ -80,7 +82,8 @@ public class DataBusUtil {
             s = Request.Post(url).bodyString(params.toJSONString(), ContentType.APPLICATION_JSON).execute().returnContent().asString();
         } catch (IOException e) {
             e.printStackTrace();
-            throw new Exception(" post请求失败， url:" + url+";params:"+params);
+//            throw new Exception(" post请求失败， url:" + url+";params:"+params);
+            throw new CustomException(ResultCode.FAILED, "post请求失败， url:" + url + ";params:" + params);
         }
         log.info(" post response:" + s);
         return s;
@@ -171,7 +174,7 @@ public class DataBusUtil {
 
         String s = sendPostRequest(url, params);
         if (null == s || s.contains("errors")) {
-            throw new Exception("获取数据失败：" + s);
+            throw new CustomException(ResultCode.GET_DATA_ERROR, null, null, s);
         }
         JSONObject jsonObject = JSONArray.parseObject(s);
 
@@ -263,7 +266,8 @@ public class DataBusUtil {
 
                 if (null == result || null == result.get("data")) {
                     try {
-                        throw new Exception("数据获取失败");
+//                        throw new Exception("数据获取失败");
+                        throw new CustomException(ResultCode.FAILED, "数据获取失败");
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -308,7 +312,7 @@ public class DataBusUtil {
                             }
                         } catch (ScriptException e) {
                             log.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
-                            throw new Exception("表达式" + collect.get(map.get(entry.getKey())) + "不符合规范请检查");
+                            throw new CustomException(ResultCode.EXPRESSION_ERROR, null, null, collect.get(map.get(entry.getKey())));
 
                         }
                     }
@@ -382,7 +386,7 @@ public class DataBusUtil {
             }
             if (null == result || null == result.get("data")) {
 
-                throw new Exception("映射字段有误,数据获取失败");
+                throw new CustomException(ResultCode.FAILED, "映射字段有误,数据获取失败");
 
             }
             JSONObject.parseObject(result.get("data").toString()).getJSONArray(upstreamType.getSynType());
@@ -425,7 +429,7 @@ public class DataBusUtil {
                         }
                     } catch (ScriptException e) {
                         log.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
-                        throw new Exception("表达式" + collect.get(map.get(entry.getKey())) + "不符合规范请检查");
+                        throw new CustomException(ResultCode.EXPRESSION_ERROR, null, null, collect.get(map.get(entry.getKey())));
                     }
                 }
                 if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
@@ -543,13 +547,13 @@ public class DataBusUtil {
             for (Map.Entry<String, Object> entry : result.entrySet()) {
                 log.info("result  data --" + entry.getKey() + "------" + entry.getValue());
                 if ("errors".equals(entry.getKey())) {
-                    throw new Exception("查询数据失败,请检查上游源配置");
+                    throw new CustomException(ResultCode.FAILED, "查询数据失败,请检查权威源配置");
                 }
             }
 
             if (null == result || null == result.get("data")) {
 
-                throw new Exception("映射字段错误,数据获取失败");
+                throw new CustomException(ResultCode.FAILED, "映射字段错误,数据获取失败");
 
             }
 
@@ -594,7 +598,7 @@ public class DataBusUtil {
                         }
                     } catch (ScriptException e) {
                         log.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
-                        throw new Exception("表达式" + collect.get(map.get(entry.getKey())) + "不符合规范请检查");
+                        throw new CustomException(ResultCode.EXPRESSION_ERROR, null, null, collect.get(map.get(entry.getKey())));
                     }
                 }
                 LinkedHashMap<String, Object> stringObjectLinkedHashMap = new LinkedHashMap<>();
@@ -770,7 +774,7 @@ public class DataBusUtil {
             }
 
         }
-        if(graphql.toString().equals("mutation  {")){
+        if (graphql.toString().equals("mutation  {")) {
             return "";
         }
         graphql.append("}");

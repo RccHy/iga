@@ -5,13 +5,13 @@ import lombok.Data;
 
 /**
  * <FileName> UpstreamTypeVo
- * <Desc> 上游源类型表
+ * <Desc> 权威源类型表
  **/
 @Data
 public class UpstreamTypeVo extends UpstreamType {
 
 
-    //上游源
+    //权威源
     private Upstream upstream;
 
 

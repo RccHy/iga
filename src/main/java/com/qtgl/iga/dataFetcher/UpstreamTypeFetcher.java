@@ -7,6 +7,9 @@ import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.UpstreamType;
 import com.qtgl.iga.service.UpstreamTypeService;
 import com.qtgl.iga.utils.CertifiedConnector;
+import com.qtgl.iga.utils.exception.GraphqlExceptionUtils;
+import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.exception.CustomException;
 import graphql.schema.DataFetcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +28,11 @@ public class UpstreamTypeFetcher {
     @Autowired
     UpstreamTypeService upStreamTypeService;
 
-
+    /**
+     * 查询权威源类型
+     *
+     * @return
+     */
     public DataFetcher upstreamTypes() {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
@@ -33,20 +40,45 @@ public class UpstreamTypeFetcher {
             // 获取传入参数
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
             //2。解析查询参数  进行查询
-            return upStreamTypeService.findAll(arguments, domain.getId());
+            try {
+                return upStreamTypeService.findAll(arguments, domain.getId());
+            } catch (CustomException e) {
+                e.printStackTrace();
+                logger.error(domain.getDomainName() + e.getMessage());
+
+                return GraphqlExceptionUtils.getObject("查询权威源类型失败", e);
+            }
         };
     }
 
+    /**
+     * 删除权威源类型
+     *
+     * @return
+     * @throws Exception
+     */
     public DataFetcher deleteUpstreamType() throws Exception {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
             // 获取传入参数
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
-            return upStreamTypeService.deleteUpstreamType(arguments, domain.getId());
+            try {
+                return upStreamTypeService.deleteUpstreamType(arguments, domain.getId());
+            } catch (CustomException e) {
+                e.printStackTrace();
+                logger.error(domain.getDomainName() + e.getMessage());
+
+                return GraphqlExceptionUtils.getObject("删除权威源类型失败", e);
+            }
         };
     }
 
+    /**
+     * 添加权威源类型
+     *
+     * @return
+     */
     public DataFetcher saveUpstreamType() {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
@@ -56,14 +88,26 @@ public class UpstreamTypeFetcher {
 
             UpstreamType upstreamType = JSON.parseObject(JSON.toJSONString(arguments.get("entity")), UpstreamType.class);
 
-            UpstreamType data = upStreamTypeService.saveUpstreamType(upstreamType, domain.getId());
-            if (null != data) {
-                return data;
+            try {
+                UpstreamType data = upStreamTypeService.saveUpstreamType(upstreamType, domain.getId());
+                if (null != data) {
+                    return data;
+                }
+                throw new CustomException(ResultCode.FAILED, "添加权威源类型失败");
+            } catch (CustomException e) {
+                e.printStackTrace();
+                logger.error(domain.getDomainName() + e.getMessage());
+
+                return GraphqlExceptionUtils.getObject("添加权威源类型失败", e);
             }
-            throw new Exception("添加失败");
         };
     }
 
+    /**
+     * 修改权威源类型
+     *
+     * @return
+     */
     public DataFetcher updateUpstreamType() {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
@@ -72,14 +116,26 @@ public class UpstreamTypeFetcher {
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
             UpstreamType upstreamType = JSON.parseObject(JSON.toJSONString(arguments.get("entity")), UpstreamType.class);
             upstreamType.setDomain(domain.getId());
-            UpstreamType data = upStreamTypeService.updateUpstreamType(upstreamType);
-            if (null != data) {
-                return data;
+            try {
+                UpstreamType data = upStreamTypeService.updateUpstreamType(upstreamType);
+                if (null != data) {
+                    return data;
+                }
+                throw new CustomException(ResultCode.FAILED, "修改权威源类型失败");
+            } catch (CustomException e) {
+                e.printStackTrace();
+                logger.error(domain.getDomainName() + e.getMessage());
+
+                return GraphqlExceptionUtils.getObject("修改权威源类型失败", e);
             }
-            throw new Exception("修改失败");
         };
     }
 
+    /**
+     * 获取权威源拉取的数据
+     *
+     * @return
+     */
     public DataFetcher upstreamTypesData() {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
@@ -87,7 +143,13 @@ public class UpstreamTypeFetcher {
             // 获取传入参数
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
             //2。解析查询参数  进行查询
-            HashMap<Object, Object> map = upStreamTypeService.upstreamTypesData(arguments, domain.getDomainName());
+            HashMap<Object, Object> map = null;
+            try {
+                map = upStreamTypeService.upstreamTypesData(arguments, domain.getDomainName());
+            } catch (CustomException e) {
+                e.printStackTrace();
+                return GraphqlExceptionUtils.getObject("查询失败", e);
+            }
 
             return map;
         };

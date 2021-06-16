@@ -110,7 +110,7 @@ public class TaskLogDaoImpl implements TaskLogDao {
     }
 
     @Override
-    public List<TaskLog> findByStatus(String domain ) {
+    public List<TaskLog> findByStatus(String domain) {
         try {
             List<TaskLog> taskLogs = new ArrayList<>();
             String sql = "select id,status,dept_no as deptNo,post_no as postNo,person_no as personNo" +

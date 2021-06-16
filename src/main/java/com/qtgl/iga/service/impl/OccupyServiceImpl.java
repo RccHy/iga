@@ -11,6 +11,8 @@ import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.OccupyService;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
+import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.exception.CustomException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -66,7 +68,7 @@ public class OccupyServiceImpl implements OccupyService {
 
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
-            throw new Exception("租户不存在");
+            throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
 
 
@@ -76,7 +78,7 @@ public class OccupyServiceImpl implements OccupyService {
         arguments.put("status", 0);
         List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
         if (null == nodes || nodes.size() <= 0) {
-            throw new Exception("无人员身份管理规则信息");
+            throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
         }
         String nodeId = nodes.get(0).getId();
 
@@ -141,7 +143,7 @@ public class OccupyServiceImpl implements OccupyService {
                 }
                 String key = personId + ":" + occupyDto.getPostCode() + ":" + occupyDto.getDeptCode();
                 if (occupyDtoFromUpstream.containsKey(key)) {
-                    log.warn("上游源人员身份数据覆盖:{}->{}", occupyDtoFromUpstream.get(key).toString(), occupyDto);
+                    log.warn("权威源人员身份数据覆盖:{}->{}", occupyDtoFromUpstream.get(key).toString(), occupyDto);
                 }
                 occupyDtoFromUpstream.put(key, occupyDto);
             }
@@ -263,7 +265,7 @@ public class OccupyServiceImpl implements OccupyService {
                 dataMap = dataBusUtil.getDataByBus(upstreamType, offset, first);
             } catch (Exception e) {
                 log.error("人员身份治理中类型:{} 中 {} ", upstreamType.getDescription(), e.getMessage());
-                throw new Exception("人员身份治理中类型:" + upstreamType.getDescription() + "中" + e.getMessage());
+                throw new CustomException(ResultCode.OCCUPY_ERROR, null, null, upstreamType.getDescription(), e.getMessage());
             }
 
             Map deptMap = (Map) dataMap.get(upstreamType.getSynType());
@@ -287,7 +289,7 @@ public class OccupyServiceImpl implements OccupyService {
             return occupyConnection;
         } else {
             log.error("数据类型不合法,请检查");
-            throw new Exception("数据类型不合法,请检查");
+            throw new CustomException(ResultCode.FAILED, "数据类型不合法,请检查");
         }
     }
 }

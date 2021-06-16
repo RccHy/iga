@@ -22,6 +22,8 @@ public class GraphqlError implements GraphQLError {
     private Map<String, Object> extensions;
     private List<ErrorData> errorData;
 
+    private String detail;
+
     public GraphqlError(List<SourceLocation> locations, List<Object> absolutePath, String message, ErrorClassification errorType, Map<String, Object> extensions) {
         this.locations = locations;
         this.absolutePath = absolutePath;
@@ -37,11 +39,21 @@ public class GraphqlError implements GraphQLError {
 
     }
 
+    public GraphqlError(String message, String detail) {
+        this.message = message;
+        this.detail = detail;
+    }
+
     public GraphqlError(String message, Map<String, Object> extensions) {
         this.message = message;
         this.extensions = extensions;
 
     }
+//    public GraphqlError(String message, String extensions) {
+//        this.message = message;
+//        this.extensions = extensions;
+//
+//    }
 
     @Override
     public String getMessage() {

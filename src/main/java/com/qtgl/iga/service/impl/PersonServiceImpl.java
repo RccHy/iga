@@ -11,6 +11,8 @@ import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.PersonService;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
+import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.exception.CustomException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,21 +45,21 @@ public class PersonServiceImpl implements PersonService {
     DataBusUtil dataBusUtil;
     @Autowired
     PersonDao personDao;
-     @Autowired
+    @Autowired
     NodeRulesCalculationServiceImpl calculationService;
 
 
     /**
-     *  1:  循环遍历参与治理的所有上游源
-     * 2： 拉取上游源数据并根据 证件类型+证件 号码进行和重，并验证证件类型对应的号码是否符合 正则表达式
+     * 1:  循环遍历参与治理的所有权威源
+     * 2： 拉取权威源数据并根据 证件类型+证件 号码进行和重，并验证证件类型对应的号码是否符合 正则表达式
      * 3： 如果有手动合重规则，运算手动合重规则【待确认】
      */
 
     @Override
-    public Map<String, List<Person>> buildPerson(DomainInfo domain,TaskLog taskLog) throws Exception {
+    public Map<String, List<Person>> buildPerson(DomainInfo domain, TaskLog taskLog) throws Exception {
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
-            throw new Exception("租户不存在");
+            throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
         // 所有证件类型
         List<CardType> cardTypes = cardTypeDao.findAll(tenant.getId());
@@ -70,7 +72,7 @@ public class PersonServiceImpl implements PersonService {
         arguments.put("status", 0);
         List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
         if (null == nodes || nodes.size() <= 0) {
-            throw new Exception("无人员管理规则信息");
+            throw new CustomException(ResultCode.FAILED, "无人员管理规则信息");
         }
         String nodeId = nodes.get(0).getId();
         //
@@ -87,6 +89,7 @@ public class PersonServiceImpl implements PersonService {
                 dataByBus = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
             } catch (Exception e) {
                 log.error("人员治理中类型 : " + upstreamType.getUpstreamId() + "表达式异常");
+//                throw new CustomException(ResultCode.PERSON_ERROR,null,null,upstreamType.getUpstreamId(),"表达式异常");
             }
             List<Person> personBeanList = dataByBus.toJavaList(Person.class);
             if (null != personBeanList) {
@@ -221,7 +224,7 @@ public class PersonServiceImpl implements PersonService {
 
 
         // 验证监控规则
-       calculationService.monitorRules( domain, taskLog ,  personFromSSO.size(),  result.get("delete"));
+        calculationService.monitorRules(domain, taskLog, personFromSSO.size(), result.get("delete"));
 
         // sso 批量新增
         personDao.saveToSso(result, tenant.getId());
@@ -243,7 +246,7 @@ public class PersonServiceImpl implements PersonService {
                 dataMap = dataBusUtil.getDataByBus(upstreamType, offset, first);
             } catch (Exception e) {
                 log.error("人员治理中类型:{} 中 {} ", upstreamType.getDescription(), e.getMessage());
-                throw new Exception("人员治理中类型:" + upstreamType.getDescription() + "中" + e.getMessage());
+                throw new CustomException(ResultCode.PERSON_ERROR, null, null, upstreamType.getDescription(), e.getMessage());
             }
 
             Map deptMap = (Map) dataMap.get(upstreamType.getSynType());
@@ -266,7 +269,7 @@ public class PersonServiceImpl implements PersonService {
 
             return personConnection;
         } else {
-            throw new Exception("数据类型不合法,请检查");
+            throw new CustomException(ResultCode.FAILED, "数据类型不合法,请检查");
         }
 
     }

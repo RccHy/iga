@@ -3,6 +3,8 @@ package com.qtgl.iga.dao.impl;
 import com.qtgl.iga.bo.DeptTreeType;
 import com.qtgl.iga.dao.DeptTreeTypeDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
+import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.exception.CustomException;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -35,7 +37,6 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
         List<Object> param = new ArrayList<>();
 
         dealData(arguments, stb, param);
-        System.out.println(stb.toString());
         stb.append("order by tree_index");
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
         ArrayList<DeptTreeType> list = new ArrayList<>();
@@ -61,7 +62,7 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
         Object[] param = new Object[]{deptTreeType.getCode(), deptTreeType.getName()};
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_dept_tree_type where code =? or name = ?", param);
         if (null != mapList && mapList.size() > 0) {
-            throw new Exception("code 或 name 不能重复,添加组织机构树类别失败");
+            throw new CustomException(ResultCode.FAILED, "code 或 name 不能重复,添加组织机构树类别失败");
         }
         String sql = "insert into t_mgr_dept_tree_type  values(?,?,?,?,?,?,?,?,?,?)";
         //生成主键和时间
@@ -104,7 +105,7 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
             }
         }
         if (null == list || list.size() > 1 || list.size() == 0) {
-            throw new Exception("数据异常，删除失败");
+            throw new CustomException(ResultCode.FAILED, "数据异常，删除失败");
         }
         DeptTreeType deptTreeType = list.get(0);
 
@@ -125,7 +126,7 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
         Object[] param = new Object[]{deptTreeType.getCode(), deptTreeType.getName(), deptTreeType.getId()};
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_dept_tree_type where (code = ? or name = ?) and id != ?  ", param);
         if (null != mapList && mapList.size() > 0) {
-            throw new Exception("code 或 name 不能重复,修改组织机构类别树失败");
+            throw new CustomException(ResultCode.FAILED, "code 或 name 不能重复,修改组织机构类别树失败");
         }
         String sql = "update t_mgr_dept_tree_type  set code = ?,name = ?,description = ?,multiple_root_node = ?,create_time = ?," +
                 "update_time = ?,create_user = ?,domain= ?,tree_index=?  where id=?";

@@ -6,7 +6,7 @@ import java.sql.Timestamp;
 
 /**
  * <FileName> UpstreamDept
- * <Desc> 上游源部门数据
+ * <Desc> 权威源部门数据
  *
  * @author 1
  */
@@ -17,7 +17,7 @@ public class UpstreamDept {
      */
     private String id;
     /**
-     * 上游源类型id
+     * 权威源类型id
      */
     private String upstreamTypeId;
     /**

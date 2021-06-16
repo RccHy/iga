@@ -5,6 +5,8 @@ import com.qtgl.iga.bo.*;
 
 import com.qtgl.iga.dao.UpstreamTypeDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
+import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.exception.CustomException;
 import com.qtgl.iga.vo.UpstreamTypeVo;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
@@ -36,16 +38,13 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
         List<Object> param = new ArrayList<>();
-//        if(null!= arguments.get("active")){
-//            stb.append(" and active = ?  ");
-//            param.add(arguments.get("active"));
-//        }
+
         dealData(arguments, stb, param);
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
         ArrayList<UpstreamTypeVo> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {
-                //上游源类型赋值
+                //权威源类型赋值
                 UpstreamTypeVo upstreamTypeVo = new UpstreamTypeVo();
                 BeanMap beanMap = BeanMap.create(upstreamTypeVo);
                 beanMap.putAll(map);
@@ -55,7 +54,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
                 ArrayList<UpstreamTypeField> upstreamTypeFields = getUpstreamTypeFields(filedList);
                 upstreamTypeVo.setUpstreamTypeFields(upstreamTypeFields);
 
-                //上游源查询
+                //权威源查询
 
                 Upstream upstream = getUpstream(upstreamTypeVo.getUpstreamId());
                 upstreamTypeVo.setUpstream(upstream);
@@ -156,7 +155,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         Timestamp date = new Timestamp(System.currentTimeMillis());
         upStreamType.setCreateTime(date);
         upStreamType.setDomain(domain);
-        //添加上游源类型
+        //添加权威源类型
         int update = jdbcIGA.update(sql, preparedStatement -> {
             preparedStatement.setObject(1, id);
             preparedStatement.setObject(2, upStreamType.getUpstreamId());
@@ -234,7 +233,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
             }
         }
         if (null == streamTypes || streamTypes.size() > 1) {
-            throw new Exception("数据异常，删除失败");
+            throw new CustomException(ResultCode.FAILED, "数据异常，删除失败");
         }
 
 
@@ -280,7 +279,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         });
         int[] ints = updateUpstreamTypeFields(upStreamType);
         if (null == ints) {
-            throw new RuntimeException("修改失败");
+            throw new CustomException(ResultCode.FAILED, "修改权威源类型失败");
         }
 
         return (update <= 0 || Arrays.toString(ints).contains("-1")) ? null : upStreamType;

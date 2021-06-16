@@ -86,9 +86,9 @@ public class TreeUtil<T> {
         List<TreeBean> children = childrenMap.get(code);
         if (null != children) {
             for (TreeBean deptJson : children) {
-                if(("API".equals(deptJson.getDataSource()))||("BUILTIN".equals(deptJson.getDataSource()))){
-                   continue;
-                }else {
+                if (("API".equals(deptJson.getDataSource())) || ("BUILTIN".equals(deptJson.getDataSource()))) {
+                    continue;
+                } else {
                     mergeDept.remove(deptJson.getCode());
                 }
                 removeTree(deptJson.getCode(), childrenMap, mergeDept);

@@ -4,6 +4,8 @@ package com.qtgl.iga.dao.impl;
 import com.qtgl.iga.bo.Upstream;
 import com.qtgl.iga.dao.UpstreamDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
+import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.exception.CustomException;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -61,7 +63,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
         Object[] param = new Object[]{upstream.getAppCode(), upstream.getAppName()};
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_upstream where app_code =? or app_name = ?", param);
         if (null != mapList && mapList.size() > 0) {
-            throw new Exception("appCode 或 appName 不能重复,添加失败" + upstream.getAppCode() + "---" + upstream.getAppName());
+            throw new CustomException(ResultCode.REPEAT_UPSTREAM_ERROR, null, null, upstream.getAppCode(), upstream.getAppName());
         }
         String sql = "insert into t_mgr_upstream  values(?,?,?,?,?,?,?,?,?,?,?)";
         //生成主键和时间
@@ -90,7 +92,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
     @Transactional
     public Integer deleteUpstream(String id) {
 
-        //删除上游源数据
+        //删除权威源数据
         String sql = "delete from t_mgr_upstream  where id =?";
 
 
@@ -101,7 +103,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
 
     @Override
     public ArrayList<Upstream> getUpstreams(String id, String domain) {
-        //查询上游源状态
+        //查询权威源状态
         Object[] objects = new Object[2];
         objects[0] = id;
         objects[1] = domain;
@@ -126,7 +128,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
         Object[] param = new Object[]{upstream.getAppCode(), upstream.getAppName(), upstream.getId()};
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_upstream where (app_code = ? or app_name = ?) and id != ?  ", param);
         if (null != mapList && mapList.size() > 0) {
-            throw new Exception("code 或 name 不能重复,修改失败");
+            throw new CustomException(ResultCode.FAILED, "code 或 name 不能重复,修改失败");
         }
 
 

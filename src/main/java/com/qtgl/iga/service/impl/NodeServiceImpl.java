@@ -10,6 +10,8 @@ import com.qtgl.iga.dao.NodeRulesDao;
 import com.qtgl.iga.dao.NodeRulesRangeDao;
 import com.qtgl.iga.dao.TaskLogDao;
 import com.qtgl.iga.service.NodeService;
+import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.exception.CustomException;
 import com.qtgl.iga.vo.NodeRulesVo;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -60,19 +62,19 @@ public class NodeServiceImpl implements NodeService {
         node.setDomain(domain);
         NodeDto save = nodeDao.save(node);
         if (null == save) {
-            throw new Exception("添加节点失败");
+            throw new CustomException(ResultCode.FAILED, "添加节点失败");
         }
         if (null != node.getNodeRules() && node.getNodeRules().size() > 0) {
 
             //添加节点规则明细
             NodeDto nodeRule = nodeRulesDao.saveNodeRules(save);
             if (null == nodeRule) {
-                throw new Exception("添加节点规则明细失败");
+                throw new CustomException(ResultCode.FAILED, "添加节点规则明细失败");
             }
             //添加节点规则明细作用域
             NodeDto range = nodeRulesRangeDao.saveNodeRuleRange(nodeRule);
             if (null == range) {
-                throw new Exception("添加节点规则明细作用域失败");
+                throw new CustomException(ResultCode.FAILED, "添加节点规则明细作用域失败");
             }
             return range;
         }
@@ -92,7 +94,7 @@ public class NodeServiceImpl implements NodeService {
     }
 
     @Override
-    public NodeDto deleteNode(Map<String, Object> arguments, String id) throws Exception {
+    public NodeDto deleteNode(Map<String, Object> arguments, String id) {
         //根据id查询规则是否为禁用状态
         Integer i = 0;
         Integer flag = 0;
@@ -116,7 +118,7 @@ public class NodeServiceImpl implements NodeService {
                 if (flag >= 0) {
                     rule.setNodeRulesRanges(byRulesId);
                 } else {
-                    throw new Exception("删除节点规则作用域失败");
+                    throw new CustomException(ResultCode.FAILED, "删除节点规则作用域失败");
                 }
             }
         }
@@ -126,7 +128,7 @@ public class NodeServiceImpl implements NodeService {
             nodeDto.setNodeRules(rules);
         }
         if (i < 0 && null != rules) {
-            throw new Exception("删除节点规则失败");
+            throw new CustomException(ResultCode.FAILED, "删除节点规则失败");
         }
         //如果节点规则明细为空,直接删除node并返回
         if (i >= 0 || null == rules) {
@@ -259,7 +261,7 @@ public class NodeServiceImpl implements NodeService {
         List<TaskLog> logList = taskLogDao.findByStatus(domain);
         if (null != logList && logList.size() > 0) {
             if ("doing".equals(logList.get(0).getStatus())) {
-                throw new Exception("数据正在同步,应用失败,请稍后再试");
+                throw new CustomException(ResultCode.FAILED, "数据正在同步,应用失败,请稍后再试");
 
             }
 
@@ -321,21 +323,21 @@ public class NodeServiceImpl implements NodeService {
                                 Integer rangeHistory = nodeRulesRangeDao.makeNodeRulesRangesToHistory(range.getId(), null == version ? 2 : 0);
                                 if (rangeHistory < 0) {
                                     logger.error("应用失败 range {}", range);
-                                    throw new RuntimeException("应用失败");
+                                    throw new CustomException(ResultCode.FAILED, "应用range失败");
                                 }
                             }
                         }
                         Integer ruleHistory = nodeRulesDao.makeNodeRulesToHistory(rule.getId(), null == version ? 2 : 0);
                         if (ruleHistory < 0) {
                             logger.error("应用失败rule  {}", rule);
-                            throw new RuntimeException("应用失败");
+                            throw new CustomException(ResultCode.FAILED, "应用rule失败");
                         }
                     }
                 }
                 Integer nodeHistory = nodeDao.makeNodeToHistory(domain, null == version ? 2 : 0, node.getId());
                 if (nodeHistory < 0) {
                     logger.error("应用失败  {}", nodes);
-                    throw new RuntimeException("应用失败");
+                    throw new CustomException(ResultCode.FAILED, "应用node失败");
                 }
             }
         }
@@ -343,12 +345,19 @@ public class NodeServiceImpl implements NodeService {
         return 1;
     }
 
-
+    /**
+     * 弃用方法
+     *
+     * @param arguments
+     * @param domain
+     * @return
+     * @throws Exception
+     */
     @Override
     public Node rollbackNode(Map<String, Object> arguments, String domain) throws Exception {
         Object version = arguments.get("version");
         if (null == version) {
-            throw new Exception("版本非法,请确认");
+            throw new CustomException(ResultCode.FAILED, "版本非法,请确认");
         }
         //  删除编辑中的node
         //查询编辑中的node
@@ -359,7 +368,7 @@ public class NodeServiceImpl implements NodeService {
             map.put("status", 1);
             NodeDto nodeDto = deleteNode(map, domain);
             if (null == nodeDto) {
-                throw new RuntimeException("回滚失败");
+                throw new CustomException(ResultCode.FAILED, "回滚失败");
             }
         }
         return new Node();
@@ -377,7 +386,7 @@ public class NodeServiceImpl implements NodeService {
         List<NodeDto> nodeList = null;
         Integer status = (Integer) arguments.get("status");
         if (null == status) {
-            throw new Exception("状态不能为空");
+            throw new CustomException(ResultCode.FAILED, "状态不能为空");
         }
         if (1 == status) {
             //判断同步任务状态
@@ -431,10 +440,10 @@ public class NodeServiceImpl implements NodeService {
         Integer status = (Integer) arguments.get("status");
         String type = (String) arguments.get("type");
         if (null == status) {
-            throw new Exception("状态不能为空");
+            throw new CustomException(ResultCode.FAILED, "状态不能为空");
         }
         if (null == type) {
-            throw new Exception("类型不能为空");
+            throw new CustomException(ResultCode.FAILED, "类型不能为空");
         }
         return nodeDao.findByStatus(status, domain, type);
     }

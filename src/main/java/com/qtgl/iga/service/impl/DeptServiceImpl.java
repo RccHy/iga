@@ -8,6 +8,8 @@ import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.service.NodeService;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
+import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.exception.CustomException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,7 +78,7 @@ public class DeptServiceImpl implements DeptService {
         }
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
-            throw new Exception("租户不存在");
+            throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
         //通过tenantId查询ssoApis库中的数据
         List<TreeBean> beans = deptDao.findByTenantId(tenant.getId(), null, null);
@@ -151,7 +153,7 @@ public class DeptServiceImpl implements DeptService {
     public Map<TreeBean, String> buildDeptUpdateResult(DomainInfo domain, TaskLog lastTaskLog) throws Exception {
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
-            throw new Exception("租户不存在");
+            throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
         //通过tenantId查询ssoApis库中的数据
         List<TreeBean> beans = deptDao.findByTenantId(tenant.getId(), null, null);
@@ -350,6 +352,8 @@ public class DeptServiceImpl implements DeptService {
                 for (TreeBean ssoBean : ssoBeans) {
                     if (pullBean.getCode().equals(ssoBean.getCode())) {
                         //
+                        ssoBean.setIsRuled(pullBean.getIsRuled());
+                        ssoBean.setColor(pullBean.getColor());
                         if (null != pullBean.getCreateTime()) {
                             //修改
                             if (null == ssoBean.getCreateTime() || pullBean.getCreateTime().isAfter(ssoBean.getCreateTime())) {
@@ -373,7 +377,7 @@ public class DeptServiceImpl implements DeptService {
                                 if (null != pullBean.getUpstreamTypeId()) {
                                     fields = DataBusUtil.typeFields.get(pullBean.getUpstreamTypeId());
                                 }
-                                //获取对应上游源的映射字段
+                                //获取对应权威源的映射字段
                                 if (null != fields && fields.size() > 0) {
                                     for (UpstreamTypeField field : fields) {
                                         String sourceField = field.getSourceField();

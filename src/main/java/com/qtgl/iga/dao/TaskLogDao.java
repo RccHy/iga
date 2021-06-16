@@ -24,5 +24,5 @@ public interface TaskLogDao {
 
     TaskLog markLogs(Map<String, Object> arguments, String domainId);
 
-     TaskLog last(String domain);
+    TaskLog last(String domain);
 }

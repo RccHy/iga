@@ -3,6 +3,8 @@ package com.qtgl.iga.dao.impl;
 import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.dao.OccupyDao;
 import com.qtgl.iga.utils.MyBeanUtils;
+import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.exception.CustomException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -181,7 +183,7 @@ public class OccupyDaoImpl implements OccupyDao {
             } catch (Exception e) {
                 e.printStackTrace();
                 transactionStatus.setRollbackOnly();
-                throw new RuntimeException("同步终止，人员身份同步异常！");
+                throw new CustomException(ResultCode.FAILED, "同步终止，人员身份同步异常！");
             }
 
         });
