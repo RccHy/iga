@@ -564,12 +564,12 @@ public class NodeRulesCalculationServiceImpl {
 
                 if (null != nodeRules && nodeRules.size() > 0) {
 
-                    if (null != mainTreeMap) {
-                        TreeBean treeBean = mainTreeMap.get(code);
-                        if (null != treeBean) {
-                            treeBean.setIsRuled(true);
-                        }
-                    }
+//                    if (null != mainTreeMap) {
+//                        TreeBean treeBean = mainTreeMap.get(code);
+//                        if (null != treeBean) {
+//                            treeBean.setIsRuled(true);
+//                        }
+//                    }
                     // 过滤出继承下来的NodeRules
                     Map<String, NodeRules> inheritNodeRules = nodeRules.stream().filter(rules -> StringUtils.isNotEmpty(rules.getInheritId()))
                             .collect(Collectors.toMap(NodeRules::getId, v -> v));
@@ -603,6 +603,9 @@ public class NodeRulesCalculationServiceImpl {
                         try {
                             upstreamTree = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
                         } catch (CustomException e) {
+                            e.setData(mainTree);
+                            throw e;
+                        } catch (Exception e) {
 //                        errorTree.put(domain.getId(),mainTree);
 //                        ArrayList<ErrorData> list = new ArrayList<>();
 //                        list.add(new ErrorData(upstreamType.getId()));
@@ -610,6 +613,7 @@ public class NodeRulesCalculationServiceImpl {
 //                        throw new Exception(" " + (null == treeType ? "" : treeType.getName()) + " 节点 (" + ("".equals(nodeCode) ? "根节点" : nodeCode) + " )" + "中的类型"+upstreamType.getDescription()
 //                                + "表达式异常");
                             logger.error("{} 节点 {} 中的类型 {} 表达式异常", (null == treeType ? "" : treeType.getName()), ("".equals(nodeCode) ? "根节点" : nodeCode), upstreamType.getDescription());
+                            throw new CustomException(ResultCode.EXPRESSION_ERROR, null, null, null == treeType ? "" : treeType.getName(), "".equals(nodeCode) ? "根节点" : nodeCode, upstreamType.getDescription());
                         }
 
                         //验证树的合法性

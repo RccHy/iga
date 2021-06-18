@@ -89,7 +89,8 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
         } catch (CustomException e) {
             logger.error("当前类型{}中的{},获取数据失败", id.getDescription(), e.getMessage());
 //            throw new Exception("当前类型" + id.getDescription() + ",获取数据失败");
-            throw new CustomException(ResultCode.GET_DATA_ERROR, null, null, id.getDescription()+"-----"+e.getMessage());
+//            throw new CustomException(ResultCode.GET_DATA_ERROR, null, null, id.getDescription(), e.getMessage());
+            throw e;
         }
 
 
