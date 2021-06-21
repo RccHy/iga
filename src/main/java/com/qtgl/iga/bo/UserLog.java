@@ -1,11 +1,9 @@
 package com.qtgl.iga.bo;
 
 
-import com.qtgl.iga.bean.OccupyDto;
 import lombok.Data;
 
 import java.io.Serializable;
-import java.time.ZoneId;
 import java.util.Date;
 
 
@@ -52,16 +50,6 @@ public class UserLog implements Serializable {
     public UserLog() {
     }
 
-    public UserLog(OccupyDto occupyDto) {
-
-        this.userId = occupyDto.getOccupyId();
-        this.startTime = null == occupyDto.getStartTime() ? null : Date.from(occupyDto.getStartTime().atZone(ZoneId.systemDefault()).toInstant());
-        this.endTime = null == occupyDto.getStartTime() ? null : Date.from(occupyDto.getEndTime().atZone(ZoneId.systemDefault()).toInstant());
-//        this.createTime = null == occupyDto.getStartTime() ? null : Date.from(occupyDto.getCreateTime().atZone(ZoneId.systemDefault()).toInstant());
-        this.source = occupyDto.getSource();
-        this.dataSource = occupyDto.getDataSource();
-
-    }
 
 
 }

@@ -1,13 +1,13 @@
 package com.qtgl.iga.dao;
 
 
-import com.qtgl.iga.bo.UserLog;
+import com.qtgl.iga.bean.OccupyDto;
 
 import java.util.ArrayList;
 
 public interface UserLogDao {
 
 
-    ArrayList<UserLog> saveUserLog(ArrayList<UserLog> list, String tenantId);
+    ArrayList<OccupyDto> saveUserLog(ArrayList<OccupyDto> list, String tenantId);
 
 }

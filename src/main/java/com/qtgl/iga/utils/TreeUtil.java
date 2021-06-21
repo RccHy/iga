@@ -50,13 +50,16 @@ public class TreeUtil<T> {
     }
 
     public static Map<String, JSONObject> toMap(JSONArray jsonArray) {
-        List<JSONObject> treeList = jsonArray.toJavaList(JSONObject.class);
+        if (null != jsonArray) {
+            List<JSONObject> treeList = jsonArray.toJavaList(JSONObject.class);
 
-        Map<String, JSONObject> map = treeList.stream()
-                .collect(Collectors.toMap(
-                        (code -> code.getString(TreeEnum.CODE.getCode())),
-                        (value -> value)));
-        return map;
+            Map<String, JSONObject> map = treeList.stream()
+                    .collect(Collectors.toMap(
+                            (code -> code.getString(TreeEnum.CODE.getCode())),
+                            (value -> value)));
+            return map;
+        }
+        return null;
     }
 
     public static Map<String, TreeBean> toMap(List<TreeBean> treeBeans) {

@@ -1,6 +1,6 @@
 package com.qtgl.iga.dao.impl;
 
-import com.qtgl.iga.bo.UserLog;
+import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.dao.UserLogDao;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -26,7 +26,7 @@ public class UserLogDaoImpl implements UserLogDao {
 
 
     @Override
-    public ArrayList<UserLog> saveUserLog(ArrayList<UserLog> list, String tenantId) {
+    public ArrayList<OccupyDto> saveUserLog(ArrayList<OccupyDto> list, String tenantId) {
         if (null != list && list.size() > 0) {
             String str = "insert into user_log (id,user_id, start_time, end_time, create_time , source, data_source,tenant_id) values" +
                     "(?,?,?,?,?,?,?,?)";
@@ -37,7 +37,7 @@ public class UserLogDaoImpl implements UserLogDao {
                 @Override
                 public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
                     preparedStatement.setObject(1, UUID.randomUUID().toString().replace("-", ""));
-                    preparedStatement.setObject(2, list.get(i).getUserId());
+                    preparedStatement.setObject(2, list.get(i).getOccupyId());
                     preparedStatement.setObject(3, list.get(i).getStartTime());
                     preparedStatement.setObject(4, list.get(i).getEndTime());
                     preparedStatement.setObject(5, date);

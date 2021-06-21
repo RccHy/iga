@@ -372,12 +372,14 @@ public class NodeRulesCalculationServiceImpl {
                     if (null != lastTaskLog.getStatus() && lastTaskLog.getStatus().equals("ignore")) {
                         JSONArray objects = JSONArray.parseArray(lastTaskLog.getData());
                         Map<String, JSONObject> map = TreeUtil.toMap(objects);
-                        for (Map.Entry<TreeBean, String> treeBean : delete) {
-                            if (!map.containsKey(treeBean.getKey().getCode())) {
-                                flag = true;
-                                break;
+                        if (null != map) {
+                            for (Map.Entry<TreeBean, String> treeBean : delete) {
+                                if (!map.containsKey(treeBean.getKey().getCode())) {
+                                    flag = true;
+                                    break;
+                                }
+                                flag = false;
                             }
-                            flag = false;
                         }
                     }
                     if (flag) {
