@@ -523,4 +523,31 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         return jdbcIGA.update(sql, params);
     }
 
+    @Override
+    public List<UpstreamType> findByUpstreamIdAndDescription(UpstreamType upstreamTypeVo) {
+        String sql = "select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_type_id as deptTypeId," +
+                "enable_prefix as enablePrefix,active,active_time as activeTime,root,create_time as createTime," +
+                "update_time as updateTime, graphql_url as graphqlUrl,service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId , " +
+                "is_page as isPage,syn_way as synWay  from  t_mgr_upstream_types where description= ? and  upstream_id = ? ";
+        List<Object> param = new ArrayList<>();
+        param.add(upstreamTypeVo.getDescription());
+        param.add(upstreamTypeVo.getUpstreamId());
+        if (null != upstreamTypeVo && upstreamTypeVo.getId() != null) {
+            sql = sql + " and id != ?";
+            param.add(upstreamTypeVo.getId());
+        }
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, param.toArray());
+        ArrayList<UpstreamType> typeList = new ArrayList<>();
+        if (null != mapList && mapList.size() > 0) {
+            for (Map<String, Object> map : mapList) {
+                UpstreamType upstreamType = new UpstreamType();
+                BeanMap beanMap = BeanMap.create(upstreamType);
+                beanMap.putAll(map);
+                typeList.add(upstreamType);
+            }
+            return typeList;
+        }
+        return null;
+    }
+
 }

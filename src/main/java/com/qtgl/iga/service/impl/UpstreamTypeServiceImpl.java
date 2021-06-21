@@ -60,6 +60,11 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
         if (null == upstreamType.getUpstreamId()) {
             throw new CustomException(ResultCode.FAILED, "请选择或先添加权威源");
         }
+        //校验名称重复
+        List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType);
+        if(null!=upstreamTypeList&&upstreamTypeList.size()>0){
+            throw new CustomException(ResultCode.FAILED,"权威源类型描述重复");
+        }
         return upstreamTypeDao.saveUpstreamType(upstreamType, domain);
     }
 
@@ -68,7 +73,12 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
         //查看是否有关联node_rules
         List<NodeRules> nodeRules = nodeRulesDao.findNodeRulesByUpStreamTypeId(upstreamType.getId(), null);
         if (null != nodeRules && nodeRules.size() > 0) {
-            throw new CustomException(ResultCode.FAILED, "操作权威源类型失败,有绑定的node规则,请查看后再操作");
+            throw new CustomException(ResultCode.FAILED, "有绑定的node规则,请查看后再操作");
+        }
+        //校验名称重复
+        List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType);
+        if(null!=upstreamTypeList&&upstreamTypeList.size()>0){
+            throw new CustomException(ResultCode.FAILED,"权威源类型描述重复");
         }
         return upstreamTypeDao.updateUpstreamType(upstreamType);
     }

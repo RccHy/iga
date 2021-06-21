@@ -25,4 +25,6 @@ public interface UpstreamTypeDao {
     List<UpstreamTypeField> findFields(String upstreamId);
 
     Integer deleteByUpstreamId(String id, String domain);
+
+    List<UpstreamType> findByUpstreamIdAndDescription(UpstreamType upstreamType);
 }

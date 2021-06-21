@@ -54,11 +54,11 @@ public class UpstreamServiceImpl implements UpstreamService {
                 List<NodeRules> oldNodeRules = nodeRulesDao.findNodeRulesByUpStreamTypeId(upstreamType.getId(), 2);
                 //编辑和正式的规则提示
                 if (null != nodeRules && nodeRules.size() > 0) {
-                    throw new CustomException(ResultCode.FAILED, "删除权威源类型失败,有绑定的nodeRules规则,请查看后再删除");
+                    throw new CustomException(ResultCode.FAILED, "有绑定的nodeRules规则,请查看后再删除");
                 }
                 //历史版本,提示
                 if (null != oldNodeRules && oldNodeRules.size() > 0) {
-                    throw new CustomException(ResultCode.FAILED, "删除权威源类型失败,有历史版本的nodeRules规则");
+                    throw new CustomException(ResultCode.FAILED, "有历史版本的nodeRules规则");
                 }
 
             }
@@ -115,6 +115,11 @@ public class UpstreamServiceImpl implements UpstreamService {
         if (null != upstreamTypes) {
             for (UpstreamType upstreamType : upstreamTypes) {
                 upstreamType.setUpstreamId(upstream.getId());
+                //校验名称重复
+                List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType);
+                if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
+                    throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
+                }
                 UpstreamType upstreamTypeDb = upstreamTypeDao.saveUpstreamType(upstreamType, id);
                 if (null != upstreamTypeDb) {
                     list.add(upstreamTypeDb);
@@ -172,7 +177,7 @@ public class UpstreamServiceImpl implements UpstreamService {
                 //查看是否有关联node_rules
                 List<NodeRules> nodeRules = nodeRulesDao.findNodeRulesByUpStreamTypeId(upstreamType.getId(), null);
                 if (null != nodeRules && nodeRules.size() > 0) {
-                    throw new CustomException(ResultCode.FAILED, "操作权威源类型失败,有绑定的node规则,请查看后再操作");
+                    throw new CustomException(ResultCode.FAILED, "有绑定的node规则,请查看后再操作");
                 }
             }
         }
@@ -186,6 +191,11 @@ public class UpstreamServiceImpl implements UpstreamService {
             List<UpstreamType> upstreamTypes = upstreamDto.getUpstreamTypes();
             for (UpstreamType upstreamType : upstreamTypes) {
                 UpstreamType upstreamResult = null;
+                //校验名称重复
+                List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType);
+                if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
+                    throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
+                }
                 if (null != upstreamType.getId()) {
                     upstreamResult = upstreamTypeDao.updateUpstreamType(upstreamType);
                 } else {
