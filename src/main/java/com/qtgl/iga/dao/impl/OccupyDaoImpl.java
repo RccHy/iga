@@ -81,8 +81,8 @@ public class OccupyDaoImpl implements OccupyDao {
                 if (occupyMap.containsKey("install")) {
                     List<OccupyDto> list = occupyMap.get("install");
                     String sql = "INSERT INTO user " +
-                            "               (id, user_type, card_type, card_no, del_mark, start_time, end_time, create_time, update_time, tenant_id, dept_code, source, data_source, active, active_time,user_index) " +
-                            "               VALUES (?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?)";
+                            "               (id, user_type, card_type, card_no, del_mark, start_time, end_time, create_time, update_time, tenant_id, dept_code, source, data_source, active, active_time,user_index,post_code) " +
+                            "               VALUES (?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?,?)";
                     int[] ints = jdbcSSO.batchUpdate(sql, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
@@ -101,6 +101,7 @@ public class OccupyDaoImpl implements OccupyDao {
                             preparedStatement.setObject(13, 1);
                             preparedStatement.setObject(14, LocalDateTime.now());
                             preparedStatement.setObject(15, list.get(i).getIndex());
+                            preparedStatement.setObject(16, list.get(i).getPostCode());
                         }
 
                         @Override
