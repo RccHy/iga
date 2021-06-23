@@ -97,7 +97,7 @@ public class OccupyDaoImpl implements OccupyDao {
                             preparedStatement.setObject(9, tenantId);
                             preparedStatement.setObject(10, list.get(i).getDeptCode());
                             preparedStatement.setObject(11, list.get(i).getSource());
-                            preparedStatement.setObject(12, "pull");
+                            preparedStatement.setObject(12, "PULL");
                             preparedStatement.setObject(13, 1);
                             preparedStatement.setObject(14, LocalDateTime.now());
                             preparedStatement.setObject(15, list.get(i).getIndex());
