@@ -255,10 +255,10 @@ public class OccupyServiceImpl implements OccupyService {
         occupyDao.saveToSso(result, tenant.getId());
         //插入人员身份日志表
         ArrayList<OccupyDto> userLogs = new ArrayList<>();
-        if(result.get("install")!=null){
+        if (result.get("install") != null) {
             userLogs.addAll(result.get("install"));
         }
-        if(result.get("update")!=null){
+        if (result.get("update") != null) {
             userLogs.addAll(result.get("update"));
         }
         userLogDao.saveUserLog(userLogs, tenant.getId());
