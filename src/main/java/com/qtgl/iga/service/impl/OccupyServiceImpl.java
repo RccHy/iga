@@ -100,11 +100,11 @@ public class OccupyServiceImpl implements OccupyService {
             //todo 异常
             try {
                 dataByBus = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
+            } catch (CustomException e) {
+                throw e;
             } catch (Exception e) {
-
                 log.error("人员身份类型中 : " + upstreamType.getUpstreamId() + "表达式异常");
-//                throw new Exception("人员身份类型中 : "+upstreamType.getUpstreamId()+"表达式异常");
-
+                throw new CustomException(ResultCode.OCCUPY_ERROR, null, null, upstreamType.getDescription(), e.getMessage());
             }
             final List<OccupyDto> occupies = dataByBus.toJavaList(OccupyDto.class);
             for (OccupyDto occupyDto : occupies) {
@@ -278,6 +278,8 @@ public class OccupyServiceImpl implements OccupyService {
             Map dataMap = null;
             try {
                 dataMap = dataBusUtil.getDataByBus(upstreamType, offset, first);
+            } catch (CustomException e) {
+                throw e;
             } catch (Exception e) {
                 log.error("人员身份治理中类型:{} 中 {} ", upstreamType.getDescription(), e.getMessage());
                 throw new CustomException(ResultCode.OCCUPY_ERROR, null, null, upstreamType.getDescription(), e.getMessage());

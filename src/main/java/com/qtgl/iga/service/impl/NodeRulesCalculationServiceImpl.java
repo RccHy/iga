@@ -644,6 +644,7 @@ public class NodeRulesCalculationServiceImpl {
                             dept.put("ruleId", nodeRule.getId());
                             dept.put("color", upstream.getColor());
                             dept.put("isRuled", false);
+                            dept.put("source",upstream.getAppName() + "(" + upstream.getAppCode() + ")");
                             if ("post".equals(type)) {
                                 if (("01".equals(dept.getString(TreeEnum.PARENTCODE.getCode())) || ("02".equals(dept.getString(TreeEnum.PARENTCODE.getCode()))))) {
                                     dept.put("formal", true);

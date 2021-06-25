@@ -232,11 +232,6 @@ public class DeptServiceImpl implements DeptService {
                 deleteList.add(key.getKey());
             }
         }
-
-//        if (null != logBeans && logBeans.size() > 0) {
-//            //将数据根据code分组
-//            logCollect = logBeans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
-//        }
         List<Map.Entry<TreeBean, String>> insert = collect.get("insert");
         if (null != insert && insert.size() > 0) {
             for (Map.Entry<TreeBean, String> key : insert) {
@@ -253,7 +248,6 @@ public class DeptServiceImpl implements DeptService {
             logger.info("忽略 {} 条已过时数据{}", list.size(), obsolete.toString());
 
         }
-
         List<Map.Entry<TreeBean, String>> update = collect.get("update");
         //修改数据
         if (null != update && update.size() > 0) {
