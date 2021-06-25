@@ -112,7 +112,7 @@ public class DeptServiceImpl implements DeptService {
             mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE, "system", null, null, ssoApiBeans);
 
         }
-
+        logger.error("---------mainTreeBeans{}",mainTreeBeans);
         //同步到sso
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
         beans = dataProcessing(mainTreeMap, domain, beans, result, insert, now);
@@ -122,7 +122,7 @@ public class DeptServiceImpl implements DeptService {
         }
         //code重复性校验
         calculationService.groupByCode(beans, status, domain);
-
+        logger.error("--------------------beans   {}",beans);
         return beans;
 
     }

@@ -851,6 +851,7 @@ public class NodeRulesCalculationServiceImpl {
                             Collection<TreeBean> values = mergeDeptMap.values();
 
                             mainTree.addAll(new ArrayList<>(values));
+                            logger.error("节点{},合并了数据{}",nodeCode,values);
                         }
 
                         //拼接到mainTree后校验总树是否有重复
