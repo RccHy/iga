@@ -37,15 +37,7 @@ public class UpstreamServiceImpl implements UpstreamService {
 
     @Override
     public Upstream deleteUpstream(Map<String, Object> arguments, String domain) throws Exception {
-//        //查询权威源启用状态
-//        ArrayList<Upstream> upstreamList = upstreamDao.getUpstreams((String) arguments.get("id"), domain);
-//        if (null == upstreamList || upstreamList.size() > 1 || upstreamList.size() == 0) {
-//            throw new RuntimeException("数据异常，删除失败");
-//        }
-//        Upstream upstream = upstreamList.get(0);
-//        if (null != upstream.getActive() && upstream.getActive()) {
-//            throw new RuntimeException("权威源已启用,不能进行删除操作");
-//        }
+
         //查看是否有关联node_rules
         List<UpstreamType> byUpstreamId = upstreamTypeDao.findByUpstreamId((String) arguments.get("id"));
         if (null != byUpstreamId && byUpstreamId.size() > 0) {
@@ -91,13 +83,7 @@ public class UpstreamServiceImpl implements UpstreamService {
 
     @Override
     public Upstream updateUpstream(Upstream upstream) throws Exception {
-//        if (null != upstream.getActive() && !upstream.getActive()) {
-//            //判断类型是否都未启用
-//            List<UpstreamType> byUpstreamId = upstreamTypeDao.findByUpstreamId(upstream.getId());
-//            if (null != byUpstreamId && byUpstreamId.size() != 0) {
-//                throw new Exception("权威源修改失败,请检查相关权威源类型状态");
-//            }
-//        }
+
         return upstreamDao.updateUpstream(upstream);
     }
 
@@ -161,14 +147,6 @@ public class UpstreamServiceImpl implements UpstreamService {
     @Override
     public UpstreamDto updateUpstreamAndTypes(UpstreamDto upstreamDto) throws Exception {
 
-//        // 是否禁用
-//        if (null != upstreamDto.getActive() && !upstreamDto.getActive()) {
-//            //判断类型是否都未启用
-//            List<UpstreamType> byUpstreamId = upstreamTypeDao.findByUpstreamId(upstreamDto.getId());
-//            if (null != byUpstreamId && byUpstreamId.size() != 0) {
-//                throw new Exception("权威源操作失败,请检查相关权威源启用状态");
-//            }
-//        }
 
         //修改权威源类型
         //1.判断node绑定状态

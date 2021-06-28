@@ -160,7 +160,6 @@ public class OccupyServiceImpl implements OccupyService {
                 collect(Collectors.toMap(occupy -> (occupy.getPersonId() + ":" + occupy.getPostCode() + ":" + occupy.getDeptCode()), occupy -> occupy, (v1, v2) -> v2));
         Map<String, List<OccupyDto>> result = new HashMap<>();
         //人员身份日志存储容器
-//        ArrayList<UserLog> userLogs = new ArrayList<>();
         occupiesFromSSOMap.forEach((key, val) -> {
             // 对比出需要修改的occupy
             if (occupyDtoFromUpstream.containsKey(key) &&
@@ -216,7 +215,6 @@ public class OccupyServiceImpl implements OccupyService {
                         }});
                     }
                 }
-//                userLogs.add(new UserLog(val));
                 log.debug("人员身份对比后需要修改{}-{}", val, occupyDtoFromUpstream.get(key));
             } else if (!occupyDtoFromUpstream.containsKey(key) && 1 != val.getDelMark() && "PULL".equalsIgnoreCase(val.getDataSource())) {
                 val.setUpdateTime(LocalDateTime.now());
@@ -243,8 +241,7 @@ public class OccupyServiceImpl implements OccupyService {
                         this.add(val);
                     }});
                 }
-//                userLogs.add(new UserLog(val));
-                log.debug("人员身份对比后新增{}", val.toString());
+                log.debug("人员身份对比后新增{}", val);
             }
         });
 

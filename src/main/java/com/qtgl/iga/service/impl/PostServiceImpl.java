@@ -23,7 +23,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-//@Transactional
 public class PostServiceImpl implements PostService {
 
 
@@ -89,7 +88,7 @@ public class PostServiceImpl implements PostService {
 
         for (TreeBean rootBean : rootBeans) {
 
-            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, "task", rootBeans, rootBeansMap, ssoBeans);
+            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE);
 
         }
         // 判断重复(code)
@@ -182,7 +181,7 @@ public class PostServiceImpl implements PostService {
         for (TreeBean rootBean : rootBeans) {
 
 
-            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, "system", rootBeans, rootBeansMap, ssoBeans);
+            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE);
 
         }
 
@@ -389,7 +388,7 @@ public class PostServiceImpl implements PostService {
                                 }
                                 if (updateFlag) {
                                     //将数据放入修改集合
-                                    logger.info("岗位对比后需要修改{}", ssoBean.toString());
+                                    logger.info("岗位对比后需要修改{}", ssoBean);
 
                                     ssoCollect.put(ssoBean.getCode(), ssoBean);
                                     result.put(ssoBean, "update");

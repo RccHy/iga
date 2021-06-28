@@ -116,9 +116,7 @@ public class NodeRulesServiceImpl implements NodeRulesService {
             for (NodeRulesRange rulesRange : nodeRules.getNodeRulesRanges()) {
                 NodeRulesRange nodeRulesRange;
                 nodeRulesRange = nodeRulesRangeDao.saveNodeRuleRange(rulesRange);
-//            else {
-//                nodeRulesRange = nodeRulesRangeDao.updateRulesRange(rulesRange);
-//            }
+
                 if (null == nodeRulesRange) {
                     throw new CustomException(ResultCode.FAILED, "操作节点作用域失败");
                 }

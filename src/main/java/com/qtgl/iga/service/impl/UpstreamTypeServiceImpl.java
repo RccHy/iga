@@ -62,8 +62,8 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
         }
         //校验名称重复
         List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType);
-        if(null!=upstreamTypeList&&upstreamTypeList.size()>0){
-            throw new CustomException(ResultCode.FAILED,"权威源类型描述重复");
+        if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
+            throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
         }
         return upstreamTypeDao.saveUpstreamType(upstreamType, domain);
     }
@@ -77,8 +77,8 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
         }
         //校验名称重复
         List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType);
-        if(null!=upstreamTypeList&&upstreamTypeList.size()>0){
-            throw new CustomException(ResultCode.FAILED,"权威源类型描述重复");
+        if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
+            throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
         }
         return upstreamTypeDao.updateUpstreamType(upstreamType);
     }
@@ -98,8 +98,6 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
             return map;
         } catch (CustomException e) {
             logger.error("当前类型{}中的{},获取数据失败", id.getDescription(), e.getMessage());
-//            throw new Exception("当前类型" + id.getDescription() + ",获取数据失败");
-//            throw new CustomException(ResultCode.GET_DATA_ERROR, null, null, id.getDescription(), e.getMessage());
             throw e;
         }
 

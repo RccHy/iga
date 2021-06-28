@@ -38,8 +38,6 @@ public class UpstreamDaoImpl implements UpstreamDao {
         List<Object> param = new ArrayList<>();
 
         dealData(arguments, stb, param);
-//        getChild(arguments,param,stb);
-        System.out.println(stb.toString());
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
 
         ArrayList<Upstream> list = new ArrayList<>();
@@ -123,7 +121,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
 
     @Override
     @Transactional
-    public Upstream updateUpstream(Upstream upstream) throws Exception {
+    public Upstream updateUpstream(Upstream upstream) {
         //判重
         Object[] param = new Object[]{upstream.getAppCode(), upstream.getAppName(), upstream.getId()};
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_upstream where (app_code = ? or app_name = ?) and id != ?  ", param);

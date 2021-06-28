@@ -96,7 +96,6 @@ public class DeptDaoImpl implements DeptDao {
             for (Map<String, Object> map : mapList) {
                 TreeBean dept = new TreeBean();
                 try {
-                    //ConvertUtils.register(new IntegerConverter(null), Integer.class);
                     MyBeanUtils.populate(dept, map);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
@@ -232,7 +231,6 @@ public class DeptDaoImpl implements DeptDao {
         String deleteStr = "update dept set   del_mark= ? , active = ?,active_time= ?  " +
                 "where dept_code =? and update_time<= ? ";
         return txTemplate.execute(transactionStatus -> {
-//            Object savepoint = transactionStatus.createSavepoint();
 
             try {
                 if (null != insertList && insertList.size() > 0) {

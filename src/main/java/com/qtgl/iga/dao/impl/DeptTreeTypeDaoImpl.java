@@ -89,7 +89,7 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
 
     @Override
     @Transactional
-    public DeptTreeType deleteDeptTreeType(String id, String domain) throws Exception {
+    public DeptTreeType deleteDeptTreeType(String id, String domain) {
         Object[] objects = new Object[2];
         objects[0] = id;
         objects[1] = domain;

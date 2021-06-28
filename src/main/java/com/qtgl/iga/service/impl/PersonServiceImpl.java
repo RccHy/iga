@@ -89,7 +89,6 @@ public class PersonServiceImpl implements PersonService {
                 dataByBus = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
             } catch (Exception e) {
                 log.error("人员治理中类型 : " + upstreamType.getUpstreamId() + "表达式异常");
-//                throw new CustomException(ResultCode.PERSON_ERROR,null,null,upstreamType.getUpstreamId(),"表达式异常");
             }
             List<Person> personBeanList = dataByBus.toJavaList(Person.class);
             if (null != personBeanList) {
@@ -101,19 +100,16 @@ public class PersonServiceImpl implements PersonService {
                     if (StringUtils.isEmpty(personBean.getCardNo()) && StringUtils.isEmpty(personBean.getCardType())) {
                         log.warn(personBean.getName() + "证件类型、号码为空");
                         continue;
-                        //throw new Exception(userBean.getName() + "证件类型、号码为空");
                     }
                     if (cardTypeMap.containsKey(personBean.getCardType())) {
                         String cardTypeReg = cardTypeMap.get(personBean.getCardType()).getCardTypeReg();
                         if (!Pattern.matches(cardTypeReg, personBean.getCardNo())) {
                             log.warn(personBean.getName() + "证件号码不符合规则");
                             continue;
-                            //throw new Exception(userBean.getName() + "证件号码不符合规则");
                         }
                     } else {
                         log.warn(personBean.getName() + "证件类型无效");
                         continue;
-                        //throw new Exception(userBean.getName() + "证件类型无效");
                     }
                     personBean.setSource(upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")");
                     personBean.setUpstreamType(upstreamType.getId());
@@ -183,7 +179,7 @@ public class PersonServiceImpl implements PersonService {
                 if (flag) {
                     val.setSource(newPerson.getSource());
                     val.setUpdateTime(newPerson.getUpdateTime());
-                    log.info("对比后需要修改{}", val.toString());
+                    log.info("对比后需要修改{}", val);
                     if (result.containsKey("update")) {
                         result.get("update").add(val);
                     } else {
@@ -203,7 +199,7 @@ public class PersonServiceImpl implements PersonService {
                     }});
                 }
 
-                log.info("人员对比后删除{}", val.toString());
+                log.info("人员对比后删除{}", val);
             }
         });
 

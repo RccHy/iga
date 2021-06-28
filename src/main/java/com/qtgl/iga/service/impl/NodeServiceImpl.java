@@ -436,7 +436,7 @@ public class NodeServiceImpl implements NodeService {
     }
 
     @Override
-    public List<Node> nodeStatus(Map<String, Object> arguments, String domain) throws Exception {
+    public List<Node> nodeStatus(Map<String, Object> arguments, String domain) {
         Integer status = (Integer) arguments.get("status");
         String type = (String) arguments.get("type");
         if (null == status) {
