@@ -105,7 +105,7 @@ public class DeptServiceImpl implements DeptService {
             List<TreeBean> ssoApiBeans = deptDao.findBySourceAndTreeType("API", deptType.getCode(), tenant.getId());
             if (null != ssoApiBeans && ssoApiBeans.size() > 0) {
                 mainTreeBeans.addAll(ssoApiBeans);
-                rulesCalculationService.groupByCode(mainTreeBeans,status,domain);
+                rulesCalculationService.groupByCode(mainTreeBeans, status, domain);
                 for (TreeBean ssoApiBean : ssoApiBeans) {
                     mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), ssoApiBean.getCode(), mainTreeBeans, status, TYPE);
                 }
@@ -180,7 +180,7 @@ public class DeptServiceImpl implements DeptService {
 
             if (null != ssoApiBeans && ssoApiBeans.size() > 0) {
                 mainTreeBeans.addAll(ssoApiBeans);
-                rulesCalculationService.groupByCode(mainTreeBeans,0,domain);
+                rulesCalculationService.groupByCode(mainTreeBeans, 0, domain);
                 for (TreeBean ssoApiBean : ssoApiBeans) {
                     mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), ssoApiBean.getCode(), mainTreeBeans, 0, TYPE);
                 }
