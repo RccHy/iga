@@ -42,7 +42,7 @@ public class UserLogDaoImpl implements UserLogDao {
                     preparedStatement.setObject(4, list.get(i).getEndTime());
                     preparedStatement.setObject(5, date);
                     preparedStatement.setObject(6, list.get(i).getSource());
-                    preparedStatement.setObject(7, list.get(i).getDataSource());
+                    preparedStatement.setObject(7, "PULL");
                     preparedStatement.setObject(8, tenantId);
                 }
 

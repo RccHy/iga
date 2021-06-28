@@ -265,7 +265,7 @@ public class OccupyServiceImpl implements OccupyService {
 
 
     @Override
-    public OccupyConnection findOccupies(Map<String, Object> arguments, DomainInfo domain) throws Exception {
+    public OccupyConnection findOccupies(Map<String, Object> arguments, DomainInfo domain) {
         List<OccupyEdge> upstreamDept = new ArrayList<>();
         String upstreamTypeId = (String) arguments.get("upstreamTypeId");
         Integer offset = (Integer) arguments.get("offset");
