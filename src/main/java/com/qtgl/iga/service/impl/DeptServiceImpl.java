@@ -8,6 +8,8 @@ import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.service.NodeService;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
+import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.exception.CustomException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +50,8 @@ public class DeptServiceImpl implements DeptService {
     OccupyDao occupyDao;
     @Autowired
     MonitorRulesDao monitorRulesDao;
+    @Autowired
+    NodeRulesCalculationServiceImpl rulesCalculationService;
 
     @Value("${iga.hostname}")
     String hostname;
@@ -57,11 +61,12 @@ public class DeptServiceImpl implements DeptService {
 
     /**
      * graphql 查询方法实现
-     * @Description: 根据状态租户查询对应规则拉取对应部门数据,首先遍历SSO中API数据的规则,然后遍历非API数据,覆盖方式 以PULL源覆盖API源
+     *
      * @param arguments 查询参数
      * @param domain    租户信息
      * @return
      * @throws Exception
+     * @Description: 根据状态租户查询对应规则拉取对应部门数据, 首先遍历SSO中API数据的规则, 然后遍历非API数据, 覆盖方式 以PULL源覆盖API源
      */
     @Override
     public List<TreeBean> findDept(Map<String, Object> arguments, DomainInfo domain) throws Exception {
@@ -75,7 +80,7 @@ public class DeptServiceImpl implements DeptService {
         }
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
-            throw new Exception("租户不存在");
+            throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
         //通过tenantId查询ssoApis库中的数据
         List<TreeBean> beans = deptDao.findByTenantId(tenant.getId(), null, null);
@@ -100,16 +105,16 @@ public class DeptServiceImpl implements DeptService {
             List<TreeBean> ssoApiBeans = deptDao.findBySourceAndTreeType("API", deptType.getCode(), tenant.getId());
             if (null != ssoApiBeans && ssoApiBeans.size() > 0) {
                 mainTreeBeans.addAll(ssoApiBeans);
+                rulesCalculationService.groupByCode(mainTreeBeans, status, domain);
                 for (TreeBean ssoApiBean : ssoApiBeans) {
-                    mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), ssoApiBean.getCode(), mainTreeBeans, status, TYPE, "system", null, null, ssoApiBeans);
+                    mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), ssoApiBean.getCode(), mainTreeBeans, status, TYPE);
                 }
             }
 
             // id 改为code
-            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE, "system", null, null, ssoApiBeans);
+            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE);
 
         }
-
         //同步到sso
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
         beans = dataProcessing(mainTreeMap, domain, beans, result, insert, now);
@@ -119,7 +124,6 @@ public class DeptServiceImpl implements DeptService {
         }
         //code重复性校验
         calculationService.groupByCode(beans, status, domain);
-
         return beans;
 
     }
@@ -150,11 +154,10 @@ public class DeptServiceImpl implements DeptService {
     public Map<TreeBean, String> buildDeptUpdateResult(DomainInfo domain, TaskLog lastTaskLog) throws Exception {
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
-            throw new Exception("租户不存在");
+            throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
         //通过tenantId查询ssoApis库中的数据
         List<TreeBean> beans = deptDao.findByTenantId(tenant.getId(), null, null);
-//        ArrayList<TreeBean> logBeans = new ArrayList<>();
         if (null != beans && beans.size() > 0) {
             //将null赋为""
             for (TreeBean bean : beans) {
@@ -162,8 +165,6 @@ public class DeptServiceImpl implements DeptService {
                     bean.setParentCode("");
                 }
             }
-            //保存数据库数据插入时做对比
-//            logBeans.addAll(beans);
         }
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
@@ -179,12 +180,13 @@ public class DeptServiceImpl implements DeptService {
 
             if (null != ssoApiBeans && ssoApiBeans.size() > 0) {
                 mainTreeBeans.addAll(ssoApiBeans);
+                rulesCalculationService.groupByCode(mainTreeBeans, 0, domain);
                 for (TreeBean ssoApiBean : ssoApiBeans) {
-                    mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), ssoApiBean.getCode(), mainTreeBeans, 0, TYPE, "task", null, null, ssoApiBeans);
+                    mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), ssoApiBean.getCode(), mainTreeBeans, 0, TYPE);
                 }
             }
             //  id 改为code
-            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE, "task", null, null, ssoApiBeans);
+            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE);
 
         }
         //同步到sso
@@ -214,8 +216,6 @@ public class DeptServiceImpl implements DeptService {
      * @return: void
      */
     public void saveToSso(Map<String, List<Map.Entry<TreeBean, String>>> collect, String tenantId) {
-        //插入数据
-        Map<String, TreeBean> logCollect = null;
         //声明存储插入,修改,删除数据的容器
         ArrayList<TreeBean> insertList = new ArrayList<>();
         ArrayList<TreeBean> updateList = new ArrayList<>();
@@ -229,11 +229,6 @@ public class DeptServiceImpl implements DeptService {
                 deleteList.add(key.getKey());
             }
         }
-
-//        if (null != logBeans && logBeans.size() > 0) {
-//            //将数据根据code分组
-//            logCollect = logBeans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
-//        }
         List<Map.Entry<TreeBean, String>> insert = collect.get("insert");
         if (null != insert && insert.size() > 0) {
             for (Map.Entry<TreeBean, String> key : insert) {
@@ -247,56 +242,17 @@ public class DeptServiceImpl implements DeptService {
             for (Map.Entry<TreeBean, String> key : obsolete) {
                 list.add(key.getKey());
             }
-            logger.info("忽略 {} 条已过时数据{}", list.size(), obsolete.toString());
+            logger.info("忽略 {} 条已过时数据{}", list.size(), obsolete);
 
         }
-
         List<Map.Entry<TreeBean, String>> update = collect.get("update");
         //修改数据
         if (null != update && update.size() > 0) {
             for (Map.Entry<TreeBean, String> key : update) {
-//                key.getKey().setDataSource("PULL");
-//                TreeBean newTreeBean = key.getKey();
-//                //与数据库对象对比映射字段
-//                TreeBean oldTreeBean = logCollect.get(newTreeBean.getCode());
-//                oldTreeBean.setSource(newTreeBean.getSource());
-//                oldTreeBean.setUpdateTime(newTreeBean.getUpdateTime());
-//                oldTreeBean.setActive(newTreeBean.getActive());
-//                //根据upstreamTypeId查询fields
-//                boolean flag = false;
-//                boolean delFlag = true;
-//
-//
-//                List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(newTreeBean.getUpstreamTypeId());
-//                if (null != fields && fields.size() > 0) {
-//                    for (UpstreamTypeField field : fields) {
-//                        String sourceField = field.getSourceField();
-//                        if ("delMark".equals(sourceField)) {
-//                            delFlag = false;
-//                        }
-//                        Object newValue = ClassCompareUtil.getGetMethod(newTreeBean, sourceField);
-//                        Object oldValue = ClassCompareUtil.getGetMethod(oldTreeBean, sourceField);
-//                        if (null == oldValue && null == newValue) {
-//                            continue;
-//                        }
-//                        if (null != oldValue && oldValue.equals(newValue)) {
-//                            continue;
-//                        }
-//                        flag = true;
-//                        ClassCompareUtil.setValue(oldTreeBean, oldTreeBean.getClass(), sourceField, oldValue, newValue);
-//                        logger.debug("部门信息更新{}:字段{}: {} -> {} ", newTreeBean.getCode(), sourceField, oldValue, newValue);
-//                    }
-//                }
 
-//                if (delFlag && oldTreeBean.getDelMark().equals(1)) {
-//                    flag = true;
-//                    logger.info("部门信息{}从删除恢复", oldTreeBean.getCode());
-//                }
-
-//                if (flag) {
                 logger.info("部门对比后需要修改{}", key.getKey().toString());
                 updateList.add(key.getKey());
-//                }
+
             }
         }
 
@@ -342,13 +298,14 @@ public class DeptServiceImpl implements DeptService {
         for (TreeBean pullBean : pullBeans) {
             //标记新增还是修改
             boolean flag = true;
-            //赋值treeTypeId
-//            treeBean.setTreeType(treeTypeId);
+
             if (null != ssoBeans) {
                 //遍历数据库数据
                 for (TreeBean ssoBean : ssoBeans) {
                     if (pullBean.getCode().equals(ssoBean.getCode())) {
                         //
+                        ssoBean.setIsRuled(pullBean.getIsRuled());
+                        ssoBean.setColor(pullBean.getColor());
                         if (null != pullBean.getCreateTime()) {
                             //修改
                             if (null == ssoBean.getCreateTime() || pullBean.getCreateTime().isAfter(ssoBean.getCreateTime())) {
@@ -372,7 +329,7 @@ public class DeptServiceImpl implements DeptService {
                                 if (null != pullBean.getUpstreamTypeId()) {
                                     fields = DataBusUtil.typeFields.get(pullBean.getUpstreamTypeId());
                                 }
-                                //获取对应上游源的映射字段
+                                //获取对应权威源的映射字段
                                 if (null != fields && fields.size() > 0) {
                                     for (UpstreamTypeField field : fields) {
                                         String sourceField = field.getSourceField();
@@ -410,7 +367,7 @@ public class DeptServiceImpl implements DeptService {
                                 }
                                 if (updateFlag) {
                                     //将数据放入修改集合
-                                    logger.info("部门对比后需要修改{}", ssoBean.toString());
+                                    logger.info("部门对比后需要修改{}", ssoBean);
 
                                     ssoCollect.put(ssoBean.getCode(), ssoBean);
                                     result.put(ssoBean, "update");

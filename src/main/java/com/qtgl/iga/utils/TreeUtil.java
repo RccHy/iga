@@ -50,13 +50,16 @@ public class TreeUtil<T> {
     }
 
     public static Map<String, JSONObject> toMap(JSONArray jsonArray) {
-        List<JSONObject> treeList = jsonArray.toJavaList(JSONObject.class);
+        if (null != jsonArray) {
+            List<JSONObject> treeList = jsonArray.toJavaList(JSONObject.class);
 
-        Map<String, JSONObject> map = treeList.stream()
-                .collect(Collectors.toMap(
-                        (code -> code.getString(TreeEnum.CODE.getCode())),
-                        (value -> value)));
-        return map;
+            Map<String, JSONObject> map = treeList.stream()
+                    .collect(Collectors.toMap(
+                            (code -> code.getString(TreeEnum.CODE.getCode())),
+                            (value -> value)));
+            return map;
+        }
+        return null;
     }
 
     public static Map<String, TreeBean> toMap(List<TreeBean> treeBeans) {
@@ -86,9 +89,9 @@ public class TreeUtil<T> {
         List<TreeBean> children = childrenMap.get(code);
         if (null != children) {
             for (TreeBean deptJson : children) {
-                if(("API".equals(deptJson.getDataSource()))||("BUILTIN".equals(deptJson.getDataSource()))){
-                   continue;
-                }else {
+                if (("API".equals(deptJson.getDataSource())) || ("BUILTIN".equals(deptJson.getDataSource()))) {
+                    continue;
+                } else {
                     mergeDept.remove(deptJson.getCode());
                 }
                 removeTree(deptJson.getCode(), childrenMap, mergeDept);

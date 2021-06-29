@@ -3,6 +3,8 @@ package com.qtgl.iga.dao.impl;
 import com.qtgl.iga.bo.PostType;
 import com.qtgl.iga.dao.PostTypeDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
+import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.exception.CustomException;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -67,7 +69,7 @@ public class PostTypeDaoImpl implements PostTypeDao {
             }
         }
         if (null == list || list.size() > 1 || list.size() == 0) {
-            throw new Exception("数据异常，删除失败");
+            throw new CustomException(ResultCode.FAILED,"数据异常，删除失败");
         }
         PostType postType = list.get(0);
 
@@ -87,7 +89,7 @@ public class PostTypeDaoImpl implements PostTypeDao {
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select id,code,name,description,create_time as createTime" +
                 ",update_time as updateTime,create_user as createUser, domain from t_mgr_post_type where code =? or name = ?", param);
         if (null != mapList && mapList.size() > 0) {
-            throw new Exception("code 或 name 不能重复,添加组织机构类别失败");
+            throw new CustomException(ResultCode.FAILED,"code 或 name 不能重复,添加组织机构类别失败");
         }
 
         String sql = "insert into t_mgr_post_type  values(?,?,?,?,?,?,?,?)";
@@ -118,7 +120,7 @@ public class PostTypeDaoImpl implements PostTypeDao {
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select id,code,name,description,create_time as createTime," +
                 "update_time as updateTime,create_user as createUser, domain from t_mgr_post_type where (code = ? or name = ?) and id != ?  ", param);
         if (null != mapList && mapList.size() > 0) {
-            throw new Exception("code 或 name 不能重复,修改组织机构类别失败");
+            throw new CustomException(ResultCode.FAILED,"code 或 name 不能重复,修改组织机构类别失败");
         }
         String sql = "update t_mgr_post_type  set code = ?,name = ?,description = ?,create_time = ?," +
                 "update_time = ?,create_user = ?,domain= ?  where id=?";

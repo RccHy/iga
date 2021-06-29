@@ -5,6 +5,8 @@ import com.qtgl.iga.bo.Node;
 import com.qtgl.iga.dao.DeptTreeTypeDao;
 import com.qtgl.iga.dao.NodeDao;
 import com.qtgl.iga.service.DeptTreeTypeService;
+import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.exception.CustomException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,7 +45,7 @@ public class DeptTreeTypeServiceImpl implements DeptTreeTypeService {
         //查询是否有绑定的node
         List<Node> nodeList = nodeDao.findByTreeTypeId((String) arguments.get("id"), 0);
         if (null != nodeList && nodeList.size() > 0) {
-            throw new Exception("删除组织机构树类型失败,有绑定的node,请查看后再删除");
+            throw new CustomException(ResultCode.FAILED, "删除组织机构树类型失败,有绑定的node,请查看后再删除");
         }
         return deptTreeTypeDao.deleteDeptTreeType((String) arguments.get("id"), domain);
     }

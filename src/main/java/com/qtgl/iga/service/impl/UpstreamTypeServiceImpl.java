@@ -9,6 +9,8 @@ import com.qtgl.iga.dao.UpstreamDao;
 import com.qtgl.iga.dao.UpstreamTypeDao;
 import com.qtgl.iga.service.UpstreamTypeService;
 import com.qtgl.iga.utils.DataBusUtil;
+import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.exception.CustomException;
 import com.qtgl.iga.vo.UpstreamTypeVo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +46,11 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
         //查看是否有关联node_rules
         List<NodeRules> nodeRules = nodeRulesDao.findNodeRulesByUpStreamTypeId((String) arguments.get("id"), null);
         if (null != nodeRules && nodeRules.size() > 0) {
-            throw new Exception("删除上游源类型失败,有绑定的node规则,请查看后再删除");
+            throw new CustomException(ResultCode.FAILED, "删除权威源类型失败,有绑定的node规则,请查看后再删除");
+        }
+        List<NodeRules> oldRules = nodeRulesDao.findNodeRulesByUpStreamTypeId((String) arguments.get("id"), 2);
+        if (null != oldRules && oldRules.size() > 0) {
+            throw new CustomException(ResultCode.FAILED, "删除权威源类型失败,有绑定的历史node规则");
         }
         return upstreamTypeDao.deleteUpstreamType((String) arguments.get("id"), domain);
     }
@@ -52,7 +58,12 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
     @Override
     public UpstreamType saveUpstreamType(UpstreamType upstreamType, String domain) throws Exception {
         if (null == upstreamType.getUpstreamId()) {
-            throw new Exception("请选择或先添加上游源");
+            throw new CustomException(ResultCode.FAILED, "请选择或先添加权威源");
+        }
+        //校验名称重复
+        List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType);
+        if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
+            throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
         }
         return upstreamTypeDao.saveUpstreamType(upstreamType, domain);
     }
@@ -62,7 +73,12 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
         //查看是否有关联node_rules
         List<NodeRules> nodeRules = nodeRulesDao.findNodeRulesByUpStreamTypeId(upstreamType.getId(), null);
         if (null != nodeRules && nodeRules.size() > 0) {
-            throw new Exception("操作上游源类型失败,有绑定的node规则,请查看后再操作");
+            throw new CustomException(ResultCode.FAILED, "有绑定的node规则,请查看后再操作");
+        }
+        //校验名称重复
+        List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType);
+        if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
+            throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
         }
         return upstreamTypeDao.updateUpstreamType(upstreamType);
     }
@@ -80,9 +96,9 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
             HashMap<Object, Object> map = new HashMap<>();
             map.put("data", dataBusUtil.getDataByBus(id, domainName));
             return map;
-        } catch (Exception e) {
+        } catch (CustomException e) {
             logger.error("当前类型{}中的{},获取数据失败", id.getDescription(), e.getMessage());
-            throw new Exception("当前类型" + id.getDescription() + ",获取数据失败");
+            throw e;
         }
 
 

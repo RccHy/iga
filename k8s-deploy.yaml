@@ -21,6 +21,8 @@ spec:
         image: docker.qtgl.com.cn/product/iga:latest
         imagePullPolicy: Always
         env:
+          - name: TZ
+            value: "Asia/Shanghai"
           - name: IGA_DATASOURCE_URL
             valueFrom:
               secretKeyRef:

@@ -3,6 +3,8 @@ package com.qtgl.iga.dao.impl;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.dao.PostDao;
 import com.qtgl.iga.utils.MyBeanUtils;
+import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.exception.CustomException;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -315,7 +317,7 @@ public class PostDaoImpl implements PostDao {
                 transactionStatus.setRollbackOnly();
                 // transactionStatus.rollbackToSavepoint(savepoint);
                 e.printStackTrace();
-                throw new RuntimeException("同步终止，岗位同步异常！");
+                throw new CustomException(ResultCode.FAILED,"同步终止，岗位同步异常！");
             }
         });
     }

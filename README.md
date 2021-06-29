@@ -79,3 +79,30 @@ curl --location --request POST 'http://ip:端口/iga/api/event' \
   
 * TODO：
 SSO_URL、BUS_URL 多组环境下，支持标准的相对路径配置。
+
+# 异常说明(具体报错原因查看对应提示)
+
+| 错误代码              | 状态码 | 描述                                      |
+| --------------------- | ------ | ----------------------------------------- |
+| SUCCESS               | 1000   | 操作成功                                  |
+| UNMOUNT               | 1001   | 节点规则无法找到挂载节点                  |
+| NO_MOUNT              | 1002   | 节点规则没有挂载规则                      |
+| NULL_MOUNT            | 1003   | 配置节点为空                              |
+| ILLEGAL_MOUNT         | 1004   | 节点中的挂载规则 表达式非法,请检查        |
+| ILLEGAL_EXCLUSION     | 1010   | 节点中的排除规则 表达式非法,请检查        |
+| NO_EXCLUSION          | 1011   | 节点规则无法找到排除节点                  |
+| NULL_EXCLUSION        | 1012   | 节点规则的排除规则为空                    |
+| MONITOR_ERROR         | 1020   | 删除数量超出监控设定                     |
+| NO_UPSTREAM_TYPE      | 1030   | 对应拉取节点无权威源类型数据              |
+| CYCLE_ERROR           | 1040   | 节点中的数据与节点中的数据循环依赖        |
+| REPEAT_ERROR          | 1041   | 节点中的数据节点中的数据重复              |
+| ILLEGAL_DATA          | 1050   | 含非法数据(名称或CODE为空的数据),请检查   |
+| PERSON_ERROR          | 1070   | 人员治理中类型:对应权威源类型拉取报错     |
+| OCCUPY_ERROR          | 1071   | 人员身份治理中类型:对应权威源类型拉取报错 |
+| EXPRESSION_ERROR      | 1080   | 表达式不符合规范请检查                    |
+| GET_DATA_ERROR        | 1081   | 获取数据失败                              |
+| ADD_UPSTREAM_ERROR    | 1082   | 添加权威源失败                            |
+| UPDATE_UPSTREAM_ERROR | 1083   | 修改权威源失败                            |
+| REPEAT_UPSTREAM_ERROR | 1084   | appCode 或 appName 不能重复,添加失败      |
+| FAILED                | 1100   | 操作失败                                  |
+

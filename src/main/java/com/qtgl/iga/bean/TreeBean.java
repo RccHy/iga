@@ -4,13 +4,14 @@ package com.qtgl.iga.bean;
 import lombok.Data;
 
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
  * @author 1
  */
 @Data
-public class TreeBean {
+public class TreeBean implements Serializable {
     /**
      * 代码
      */
@@ -57,7 +58,7 @@ public class TreeBean {
      */
     private LocalDateTime updateTime;
     /**
-     * 上游源类型
+     * 权威源类型
      */
     private String upstreamTypeId;
     /**

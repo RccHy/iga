@@ -6,7 +6,7 @@ import java.sql.Timestamp;
 
 /**
  * <FileName> UpstreamTypeField
- * <Desc> 上游源类型字段映射表
+ * <Desc> 权威源类型字段映射表
  *
  * @author 1
  */
@@ -18,7 +18,7 @@ public class UpstreamTypeField {
     private String id;
 
     /**
-     * 上游源数据类型注册外键
+     * 权威源数据类型注册外键
      */
     private String upstreamTypeId;
 

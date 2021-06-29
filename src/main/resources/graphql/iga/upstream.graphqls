@@ -1,32 +1,32 @@
 extend type Query {
 
-    #查询上游源注册信息
+    #查询权威源注册信息
     upstreams(id:ID,filter:UpstreamFilter):[Upstream]
 
-    #新版查询上游源及类型(带类型)
+    #新版查询权威源及类型(带类型)
     upstreamsAndTypes(id:ID,filter:UpstreamFilter):[Upstream]
 
 }
 extend type Mutation {
 
 
-    #新增上游源注册
+    #新增权威源注册
     saveUpstream(entity:InputUpstream!):Upstream
 
-    #新版上游源注册(带类型)
+    #新版权威源注册(带类型)
     #    saveUpstreamAndTypes(entity:InputUpstream!):upstream
-    #根据id删除上游源注册
+    #根据id删除权威源注册
     deleteUpstream(id:ID!): Upstream
-    #更新上游源注册
+    #更新权威源注册
     updateUpstream(entity:InputUpstream!):Upstream
 
-    #更新上游源及类型
+    #更新权威源及类型
     #    updateUpstreamAndTypes(entity:InputUpstream!):upstream
 }
 
 
 
-#上游源注册信息实体
+#权威源注册信息实体
 type Upstream{
     # 主键
     id:ID
@@ -48,14 +48,14 @@ type Upstream{
     active:Boolean
     # 代表色
     color:String
-    #上游源类型
+    #权威源类型
     upstreamTypes:[UpstreamType]
 
 }
 
 
 
-# 上游源注册入参
+# 权威源注册入参
 input InputUpstream{
     # 主键
     id:ID
@@ -77,7 +77,7 @@ input InputUpstream{
     active:Boolean
     # 代表色
     color:String
-    #上游源类型
+    #权威源类型
     upstreamTypes:[InputUpstreamType]
 
 }

@@ -30,6 +30,4 @@ public class PubDto {
     private String clientid;
 
 
-
-
 }

@@ -8,6 +8,8 @@ import com.qtgl.iga.service.NodeService;
 import com.qtgl.iga.service.PostService;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
+import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.exception.CustomException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +23,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-//@Transactional
 public class PostServiceImpl implements PostService {
 
 
@@ -56,7 +57,7 @@ public class PostServiceImpl implements PostService {
         //获取默认数据
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
-            throw new Exception("租户不存在");
+            throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
         //  查sso BUILTIN 的岗位
         //  置空 mainTree
@@ -73,7 +74,7 @@ public class PostServiceImpl implements PostService {
             }
         } else {
             logger.error("请检查根树是否合法{}", tenant.getId());
-            throw new Exception("请检查根树是否合法");
+            throw new CustomException(ResultCode.FAILED, "请检查根树是否合法");
         }
         rootBeans.addAll(ssoBeans);
         //轮训比对标记(是否有主键id)
@@ -87,7 +88,7 @@ public class PostServiceImpl implements PostService {
 
         for (TreeBean rootBean : rootBeans) {
 
-            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, "task", rootBeans, rootBeansMap, ssoBeans);
+            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE);
 
         }
         // 判断重复(code)
@@ -148,7 +149,7 @@ public class PostServiceImpl implements PostService {
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
             logger.error("请检查根树是否合法{}", domain.getId());
-            throw new Exception("租户不存在");
+            throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
         //  置空 mainTree
         ArrayList<TreeBean> rootBeans = new ArrayList<>();
@@ -164,7 +165,7 @@ public class PostServiceImpl implements PostService {
             }
         } else {
             logger.error("请检查根树是否合法{}", tenant.getId());
-            throw new Exception("请检查根树是否合法");
+            throw new CustomException(ResultCode.FAILED, "请检查根树是否合法");
         }
         rootBeans.addAll(ssoBeans);
 
@@ -180,7 +181,7 @@ public class PostServiceImpl implements PostService {
         for (TreeBean rootBean : rootBeans) {
 
 
-            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, "system", rootBeans, rootBeansMap, ssoBeans);
+            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE);
 
         }
 
@@ -297,7 +298,7 @@ public class PostServiceImpl implements PostService {
         if (null != byDomainName) {
             return postDao.findPostType(byDomainName.getId());
         } else {
-            throw new Exception("租户不存在");
+            throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
 
 
@@ -350,7 +351,7 @@ public class PostServiceImpl implements PostService {
                                 if (null != pullBean.getUpstreamTypeId()) {
                                     fields = DataBusUtil.typeFields.get(pullBean.getUpstreamTypeId());
                                 }
-                                //获取对应上游源的映射字段
+                                //获取对应权威源的映射字段
                                 if (null != fields && fields.size() > 0) {
                                     for (UpstreamTypeField field : fields) {
                                         String sourceField = field.getSourceField();
@@ -387,7 +388,7 @@ public class PostServiceImpl implements PostService {
                                 }
                                 if (updateFlag) {
                                     //将数据放入修改集合
-                                    logger.info("岗位对比后需要修改{}", ssoBean.toString());
+                                    logger.info("岗位对比后需要修改{}", ssoBean);
 
                                     ssoCollect.put(ssoBean.getCode(), ssoBean);
                                     result.put(ssoBean, "update");

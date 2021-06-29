@@ -11,6 +11,8 @@ import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.PersonService;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
+import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.exception.CustomException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,21 +45,21 @@ public class PersonServiceImpl implements PersonService {
     DataBusUtil dataBusUtil;
     @Autowired
     PersonDao personDao;
-     @Autowired
+    @Autowired
     NodeRulesCalculationServiceImpl calculationService;
 
 
     /**
-     *  1:  循环遍历参与治理的所有上游源
-     * 2： 拉取上游源数据并根据 证件类型+证件 号码进行和重，并验证证件类型对应的号码是否符合 正则表达式
+     * 1:  循环遍历参与治理的所有权威源
+     * 2： 拉取权威源数据并根据 证件类型+证件 号码进行和重，并验证证件类型对应的号码是否符合 正则表达式
      * 3： 如果有手动合重规则，运算手动合重规则【待确认】
      */
 
     @Override
-    public Map<String, List<Person>> buildPerson(DomainInfo domain,TaskLog taskLog) throws Exception {
+    public Map<String, List<Person>> buildPerson(DomainInfo domain, TaskLog taskLog) throws Exception {
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
-            throw new Exception("租户不存在");
+            throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
         // 所有证件类型
         List<CardType> cardTypes = cardTypeDao.findAll(tenant.getId());
@@ -70,7 +72,7 @@ public class PersonServiceImpl implements PersonService {
         arguments.put("status", 0);
         List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
         if (null == nodes || nodes.size() <= 0) {
-            throw new Exception("无人员管理规则信息");
+            throw new CustomException(ResultCode.FAILED, "无人员管理规则信息");
         }
         String nodeId = nodes.get(0).getId();
         //
@@ -98,19 +100,16 @@ public class PersonServiceImpl implements PersonService {
                     if (StringUtils.isEmpty(personBean.getCardNo()) && StringUtils.isEmpty(personBean.getCardType())) {
                         log.warn(personBean.getName() + "证件类型、号码为空");
                         continue;
-                        //throw new Exception(userBean.getName() + "证件类型、号码为空");
                     }
                     if (cardTypeMap.containsKey(personBean.getCardType())) {
                         String cardTypeReg = cardTypeMap.get(personBean.getCardType()).getCardTypeReg();
                         if (!Pattern.matches(cardTypeReg, personBean.getCardNo())) {
                             log.warn(personBean.getName() + "证件号码不符合规则");
                             continue;
-                            //throw new Exception(userBean.getName() + "证件号码不符合规则");
                         }
                     } else {
                         log.warn(personBean.getName() + "证件类型无效");
                         continue;
-                        //throw new Exception(userBean.getName() + "证件类型无效");
                     }
                     personBean.setSource(upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")");
                     personBean.setUpstreamType(upstreamType.getId());
@@ -180,7 +179,7 @@ public class PersonServiceImpl implements PersonService {
                 if (flag) {
                     val.setSource(newPerson.getSource());
                     val.setUpdateTime(newPerson.getUpdateTime());
-                    log.info("对比后需要修改{}", val.toString());
+                    log.info("对比后需要修改{}", val);
                     if (result.containsKey("update")) {
                         result.get("update").add(val);
                     } else {
@@ -200,7 +199,7 @@ public class PersonServiceImpl implements PersonService {
                     }});
                 }
 
-                log.info("人员对比后删除{}", val.toString());
+                log.info("人员对比后删除{}", val);
             }
         });
 
@@ -221,7 +220,7 @@ public class PersonServiceImpl implements PersonService {
 
 
         // 验证监控规则
-       calculationService.monitorRules( domain, taskLog ,  personFromSSO.size(),  result.get("delete"));
+        calculationService.monitorRules(domain, taskLog, personFromSSO.size(), result.get("delete"));
 
         // sso 批量新增
         personDao.saveToSso(result, tenant.getId());
@@ -241,9 +240,9 @@ public class PersonServiceImpl implements PersonService {
             Map dataMap = null;
             try {
                 dataMap = dataBusUtil.getDataByBus(upstreamType, offset, first);
-            } catch (Exception e) {
-                log.error("人员治理中类型:{} 中 {} ", upstreamType.getDescription(), e.getMessage());
-                throw new Exception("人员治理中类型:" + upstreamType.getDescription() + "中" + e.getMessage());
+            } catch (CustomException e) {
+                log.error("人员治理中:{} 类型 {} ", upstreamType.getDescription(), e.getMessage());
+                throw new CustomException(ResultCode.PERSON_ERROR, null, null, upstreamType.getDescription(), e.getErrorMsg());
             }
 
             Map deptMap = (Map) dataMap.get(upstreamType.getSynType());
@@ -266,7 +265,7 @@ public class PersonServiceImpl implements PersonService {
 
             return personConnection;
         } else {
-            throw new Exception("数据类型不合法,请检查");
+            throw new CustomException(ResultCode.FAILED, "数据类型不合法,请检查");
         }
 
     }

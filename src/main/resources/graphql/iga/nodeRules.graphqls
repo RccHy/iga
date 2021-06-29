@@ -1,6 +1,6 @@
 extend type Query {
     #查询节点规则明细列表
-    nodeRules(id:ID,status:Int,filter:NodeRulesFilter):[NodeRules]
+    nodeRules(id:ID,status:Int!,filter:NodeRulesFilter):[NodeRules]
 }
 extend type Mutation {
     #新增节点规则明细

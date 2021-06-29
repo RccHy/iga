@@ -75,7 +75,7 @@ public class Person {
      */
     private Integer delMark;
     /**
-     * 上游源类型
+     * 权威源类型
      */
     private String upstreamType;
 

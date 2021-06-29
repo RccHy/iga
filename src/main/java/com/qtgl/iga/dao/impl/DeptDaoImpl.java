@@ -4,6 +4,8 @@ import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.Dept;
 import com.qtgl.iga.dao.DeptDao;
 import com.qtgl.iga.utils.MyBeanUtils;
+import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.exception.CustomException;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -94,7 +96,6 @@ public class DeptDaoImpl implements DeptDao {
             for (Map<String, Object> map : mapList) {
                 TreeBean dept = new TreeBean();
                 try {
-                    //ConvertUtils.register(new IntegerConverter(null), Integer.class);
                     MyBeanUtils.populate(dept, map);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
@@ -230,7 +231,6 @@ public class DeptDaoImpl implements DeptDao {
         String deleteStr = "update dept set   del_mark= ? , active = ?,active_time= ?  " +
                 "where dept_code =? and update_time<= ? ";
         return txTemplate.execute(transactionStatus -> {
-//            Object savepoint = transactionStatus.createSavepoint();
 
             try {
                 if (null != insertList && insertList.size() > 0) {
@@ -317,7 +317,7 @@ public class DeptDaoImpl implements DeptDao {
             } catch (Exception e) {
                 transactionStatus.setRollbackOnly();
                 // transactionStatus.rollbackToSavepoint(savepoint);
-                throw new RuntimeException("同步终止，部门同步异常！");
+                throw new CustomException(ResultCode.FAILED, "同步终止，部门同步异常！");
 
             }
 

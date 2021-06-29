@@ -8,7 +8,7 @@ import java.util.List;
 
 /**
  * <FileName> UpStreamType
- * <Desc> 上游源类型表
+ * <Desc> 权威源类型表
  *
  * @author 1
  */

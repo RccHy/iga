@@ -6,7 +6,7 @@ import java.sql.Timestamp;
 
 /**
  * <FileName> UpStream
- * <Desc> 上游源注册表
+ * <Desc> 权威源注册表
  *
  * @author 1
  */

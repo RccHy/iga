@@ -3,6 +3,8 @@ package com.qtgl.iga.dao.impl;
 import com.qtgl.iga.bo.Person;
 import com.qtgl.iga.dao.PersonDao;
 import com.qtgl.iga.utils.MyBeanUtils;
+import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.exception.CustomException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -253,7 +255,7 @@ public class PersonDaoImpl implements PersonDao {
                 e.printStackTrace();
                 transactionStatus.setRollbackOnly();
                 // transactionStatus.rollbackToSavepoint(savepoint);
-                throw new RuntimeException("同步终止，人员同步异常！");
+                throw new CustomException(ResultCode.FAILED, "同步终止，人员同步异常！");
             }
         });
 
