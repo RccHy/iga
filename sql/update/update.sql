@@ -1,7 +1,3 @@
--- 20210629
-alter table t_mgr_task_log modify reason text null;
-
-
 -- 20210510
 create table t_mgr_task_log
 (
@@ -21,8 +17,6 @@ create table t_mgr_task_log
 alter table t_mgr_task_log
 	add domain varchar(50) null comment '租户';
 alter table t_mgr_task_log modify status varchar(50) not null;
-
-
 
 -- 20210604
 alter table t_mgr_task_log modify dept_no varchar(50) null;
@@ -46,8 +40,8 @@ create table t_mgr_monitor_rules
 )
 comment '同步监控规则表';
 
-
-
+-- 20210629
+alter table t_mgr_task_log modify reason text null;
 
 
 
