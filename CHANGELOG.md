@@ -1,6 +1,23 @@
+### 20210629
+**数据库：**
+- 执行iga/update/update.sql下 20210629的sql
+
+**new：**
+- 同步同时对比身份信息，将产生身份日志，用于计算人员身份甘特图
+- 调整错误信息格式，统一报错信息。详见readme.md 说明。
+- 权威源管理增加描述重复性校验，同一权威源下不允许出现一样的描述。
+
+**bug fix**
+
+- 治理规则bug修复
+
+**image：**
+- docker.qtgl.com.cn/product/iga:20210629
+
+**依赖其他项目：**
+- docker.qtgl.com.cn/product/console:20210629
+
 #### 20210603
-
-
 **数据库：**
 
 - 执行iga/update/update.sql下 20210603的sql

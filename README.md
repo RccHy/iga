@@ -8,8 +8,8 @@
 vm构建命令，根据实际环境替换对应的值<br/>
 ```
 待补充
-```
-
+```  
+   
 # 初始化数据库脚本
 * 初次部署直接执行以下sql即可安装最新完整数据库
 iga/sql/iga.sql
@@ -56,8 +56,8 @@ curl --location --request POST 'http://ip:端口/iga/api/event' \
 
 # 环境变量说明【Environment】：<br/>
 
-| 参数 | 参数说明 |  参考值 |
-| ------ | ------ | ------ |
+| 参数 | 参数说明 |  参考值 | 
+| ------ | ------ | ------ | 
 | IGA_DATASOURCE_URL | IGA项目本身数据库地址 | jdbc:mysql://XXXX:3306/iga?rewriteBatchedStatements=true
 | IGA_DATASOURCE_USERNAME | 数据库用户名 | ----- 
 | IGA_DATASOURCE_PASSWORD | 数据库地址 | ----- 
@@ -76,6 +76,7 @@ curl --location --request POST 'http://ip:端口/iga/api/event' \
 * 注：
 在maker中创建应用，并在sso/admin中勾选scope客户端认证：data、introspect<br/>
 数据库链接地址中 注意增加参数rewriteBatchedStatements=true  以提高性能
+  
 * TODO：
 SSO_URL、BUS_URL 多组环境下，支持标准的相对路径配置。
 
@@ -91,7 +92,7 @@ SSO_URL、BUS_URL 多组环境下，支持标准的相对路径配置。
 | ILLEGAL_EXCLUSION     | 1010   | 节点中的排除规则 表达式非法,请检查        |
 | NO_EXCLUSION          | 1011   | 节点规则无法找到排除节点                  |
 | NULL_EXCLUSION        | 1012   | 节点规则的排除规则为空                    |
-| MONITOR_ERROR         | 1020   | 删除数量,超出监控设定                     |
+| MONITOR_ERROR         | 1020   | 删除数量超出监控设定                     |
 | NO_UPSTREAM_TYPE      | 1030   | 对应拉取节点无权威源类型数据              |
 | CYCLE_ERROR           | 1040   | 节点中的数据与节点中的数据循环依赖        |
 | REPEAT_ERROR          | 1041   | 节点中的数据节点中的数据重复              |

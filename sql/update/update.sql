@@ -1,3 +1,7 @@
+-- 20210629
+alter table t_mgr_task_log modify reason text null;
+
+
 -- 20210510
 create table t_mgr_task_log
 (
