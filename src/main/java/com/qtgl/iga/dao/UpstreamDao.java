@@ -21,5 +21,4 @@ public interface UpstreamDao {
 
     ArrayList<Upstream> getUpstreams(String id, String domain);
 
-
 }

@@ -74,7 +74,7 @@ public class DataBusUtil {
     public static ConcurrentHashMap<String, List<UpstreamTypeField>> typeFields = new ConcurrentHashMap<>();
 
 
-    private static String sendPostRequest(String url, JSONObject params) throws Exception {
+    public static String sendPostRequest(String url, JSONObject params) throws Exception {
         url = UrlUtil.getUrl(url);
         log.info(" post url:" + url);
         String s = null;
@@ -82,8 +82,7 @@ public class DataBusUtil {
             s = Request.Post(url).bodyString(params.toJSONString(), ContentType.APPLICATION_JSON).execute().returnContent().asString();
         } catch (IOException e) {
             e.printStackTrace();
-//            throw new Exception(" post请求失败， url:" + url+";params:"+params);
-            throw new CustomException(ResultCode.FAILED, "post请求失败， url:" + url + ";params:" + params);
+            throw new CustomException(ResultCode.FAILED, "post请求失败， url:" + url + "; message:" + e.getMessage() + "; params:" + params);
         }
         log.info(" post response:" + s);
         return s;
@@ -107,7 +106,7 @@ public class DataBusUtil {
         return invokeForData(UrlUtil.getUrl(u), upstreamType);
     }
 
-    private String getToken(String serverName) {
+    public String getToken(String serverName) {
         String sso = UrlUtil.getUrl(ssoUrl);
         //判断是否已有未过期token
         if (StringUtils.isEmpty(serverName)) {
@@ -770,6 +769,51 @@ public class DataBusUtil {
         String token = getToken(domain.getDomainName());
         return sendPostRequest(busUrl + "/graphql/builtin?access_token=" + token, params);
 
+    }
+
+
+    public String getApiToken(DomainInfo domainInfo) {
+        String sso = UrlUtil.getUrl(ssoUrl);
+        //判断是否已有未过期token
+        if (StringUtils.isEmpty(domainInfo.getDomainName())) {
+            HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
+            domainInfo.setDomainName(request.getServerName());
+        }
+
+        //获取domain 信息
+        Token token = tokenMap.get(domainInfo.getDomainName());
+        if (null != token) {
+            int i = token.getExpireIn().compareTo(System.currentTimeMillis());
+            if (i > 0) {
+                return token.getToken();
+            }
+        }
+
+        Object[] objects = Arrays.stream(appScope.replace("+", " ").split(" ")).filter(s -> s.contains("sys_")).toArray();
+        String scope = ArrayUtils.toString(objects, ",").replace("{", "").replace("}", "");
+        OAuthClientRequest oAuthClientRequest = null;
+        try {
+            oAuthClientRequest = OAuthClientRequest
+                    .tokenLocation(sso + "/oauth2/token").setGrantType(GrantType.CLIENT_CREDENTIALS)
+                    .setClientId(domainInfo.getClientId()).setClientSecret(domainInfo.getClientSecret())
+                    .setScope(scope.replace(",", " ")).buildBodyMessage();
+        } catch (OAuthSystemException e) {
+            log.error("token 获取 : ->" + e.getMessage());
+            e.printStackTrace();
+        }
+        OAuthClient oAuthClient = new OAuthClient(new SSLConnectionClient());
+        OAuthJSONAccessTokenResponse oAuthClientResponse = null;
+        try {
+            oAuthClientResponse = oAuthClient.accessToken(oAuthClientRequest, "POST", OAuthJSONAccessTokenResponse.class);
+        } catch (OAuthSystemException | OAuthProblemException e) {
+            log.error("token 获取" + e.getMessage());
+            e.printStackTrace();
+        }
+        assert oAuthClientResponse != null;
+        String accessToken = oAuthClientResponse.getAccessToken();
+        long exp = System.currentTimeMillis() + (oAuthClientResponse.getExpiresIn() * 1000 - (10 * 60 * 1000));
+        tokenMap.put(domainInfo.getDomainName(), new Token(oAuthClientResponse.getAccessToken(), exp, System.currentTimeMillis()));
+        return accessToken;
     }
 
 
