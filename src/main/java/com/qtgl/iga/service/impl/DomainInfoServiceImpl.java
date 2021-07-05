@@ -7,6 +7,8 @@ import com.qtgl.iga.dao.DeptTypeDao;
 import com.qtgl.iga.dao.DomainInfoDao;
 import com.qtgl.iga.dao.PostTypeDao;
 import com.qtgl.iga.service.DomainInfoService;
+import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.exception.CustomException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,9 +38,9 @@ public class DomainInfoServiceImpl implements DomainInfoService {
     }
 
     @Override
+    @Transactional
     public void install(DomainInfo domainInfo) throws Exception {
-        // 插入租户信息
-        dao.save(domainInfo);
+
         /* 初始化数据 */
 
         // 单位类型
@@ -50,11 +52,18 @@ public class DomainInfoServiceImpl implements DomainInfoService {
         deptType.setUpdateTime(new Timestamp(new java.util.Date().getTime()));
         deptType.setCreateUser("iga");
         deptType.setDomain(domainInfo.getId());
-        deptTypeDao.saveDeptTypes(deptType, domainInfo.getId());
+        try {
+            deptTypeDao.saveDeptTypes(deptType, domainInfo.getId());
+        } catch (CustomException e) {
+            e.printStackTrace();
+            throw new CustomException(ResultCode.FAILED, "请勿重复初始化");
+        }
         // 组织机构类型
         deptTreeTypeDao.initialization(domainInfo.getId());
         // 岗位类型
         postTypeDao.initialization(domainInfo.getId());
+        // 插入租户信息
+        dao.save(domainInfo);
 
     }
 

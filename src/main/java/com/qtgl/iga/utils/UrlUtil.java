@@ -15,7 +15,7 @@ public class UrlUtil {
      * @param url
      * @return
      */
-    static String getUrl(String url) {
+    public static String getUrl(String url) {
 
         String personalUrl = url;
 

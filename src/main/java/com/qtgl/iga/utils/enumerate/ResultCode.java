@@ -20,7 +20,7 @@ public enum ResultCode {
     CYCLE_ERROR(1040, "%s节点(%s(%s))中的数据%s(%s)与%s节点(%s(%s))中的数据%s(%s)循环依赖"),
     REPEAT_ERROR(1041, "%s节点(%s(%s))中的数据%s(%s)与%s节点(%s(%s))中的数据%s(%s)重复"),
     ILLEGAL_DATA(1050, "含非法数据(名称或CODE为空的数据),请检查"),
-//    POST_REQUEST_ERROR(1060, "post请求失败，url:%s;params:%s"),
+    //    POST_REQUEST_ERROR(1060, "post请求失败，url:%s;params:%s"),
     PERSON_ERROR(1070, "人员治理中:%s类型%s"),
     OCCUPY_ERROR(1071, "人员身份治理中类型:%s中%s"),
     EXPRESSION_ERROR(1080, "%s节点%s中的类型%s表达式异常"),

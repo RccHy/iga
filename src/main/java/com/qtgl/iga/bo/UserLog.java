@@ -51,5 +51,4 @@ public class UserLog implements Serializable {
     }
 
 
-
 }

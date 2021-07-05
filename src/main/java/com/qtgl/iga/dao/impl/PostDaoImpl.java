@@ -317,7 +317,7 @@ public class PostDaoImpl implements PostDao {
                 transactionStatus.setRollbackOnly();
                 // transactionStatus.rollbackToSavepoint(savepoint);
                 e.printStackTrace();
-                throw new CustomException(ResultCode.FAILED,"同步终止，岗位同步异常！");
+                throw new CustomException(ResultCode.FAILED, "同步终止，岗位同步异常！");
             }
         });
     }

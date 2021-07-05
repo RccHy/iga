@@ -1,8 +1,69 @@
-### 20210629
+### XXX
+
 **数据库：**
+
+- 无
+
+**new：**
+
+- 需要在应用中心->应用数据授权->iga->选择编辑权限->选择身份数据->builtin->选择类型Service->确认已选  完成应用授权
+
+  才可正常使用iga的相关数据治理功能
+
+  ```
+  mutation M1 {
+    addRoleBinding(roleBindings: [{
+        app: {
+          clientId: "7SN4jUHTApsUg4wJMyz6"
+        }
+        role: {
+          name: "iga-super-admin"
+          rules: [{
+            service: {
+              name: "*"
+            }
+            type: "*"
+            permission: "*"
+            filter: {
+            }
+          }]
+        }
+        source: "LOCAL"
+      }]){
+      user{
+        account
+      }
+      role{
+        rules{
+          filter
+        }
+      }
+    }
+  }
+  ```
+
+  
+
+**bug fix**
+
+- 无
+
+**image：**
+
+- 无
+
+**依赖其他项目：**
+
+- 无
+
+### 20210629
+
+**数据库：**
+
 - 执行iga/update/update.sql下 20210629的sql
 
 **new：**
+
 - 同步同时对比身份信息，将产生身份日志，用于计算人员身份甘特图
 - 调整错误信息格式，统一报错信息。详见readme.md 说明。
 - 权威源管理增加描述重复性校验，同一权威源下不允许出现一样的描述。
@@ -60,7 +121,7 @@
 * 挂载节点支持 **'全部'**（=*） 以及  **正则**  (=Reg("^hr_20.*$"))
 * 权威源字段映射可直接通过表达式进行 **重命名** (="hr_"+$Code) 以及 **正则**
 * 去除规则配置中的重命名规则
-    
+
 **delete：**
 - 无
 
