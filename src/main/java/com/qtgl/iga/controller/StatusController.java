@@ -26,6 +26,20 @@ public class StatusController {
     public static Logger logger = LoggerFactory.getLogger(StatusController.class);
 
 
+
+    @GetMapping("/livez")
+    @ResponseBody
+    public String livez() {
+        return "200";
+    }
+
+    @GetMapping("/readyz")
+    @ResponseBody
+    public String readyz() {
+
+        return "200";
+    }
+
     @GetMapping("/status")
     @ResponseBody
     public Map status() {

@@ -22,7 +22,7 @@ import java.sql.Timestamp;
 import java.util.UUID;
 
 /**
- * @author 1
+ * @author rcc
  */
 @Controller
 @RequestMapping("/api")

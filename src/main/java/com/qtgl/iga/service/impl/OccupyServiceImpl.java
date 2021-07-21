@@ -97,7 +97,6 @@ public class OccupyServiceImpl implements OccupyService {
             ArrayList<Upstream> upstreams = upstreamDao.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
             final LocalDateTime now = LocalDateTime.now();
             JSONArray dataByBus = null;
-            //todo 异常
             try {
                 dataByBus = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
             } catch (CustomException e) {

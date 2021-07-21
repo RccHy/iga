@@ -32,11 +32,18 @@ public class OccupyDto {
     private LocalDateTime updateTime;
     private LocalDateTime createTime;
     private Integer delMark;
+    // 上游删除
     private String active;
     private LocalDateTime activeTime;
 
 
     private String upstreamType;
     private String openId;
+
+    /**
+     * 身份最终有效时间
+     */
+    private LocalDateTime validStartTime;
+    private LocalDateTime validEndTime;
 
 }
