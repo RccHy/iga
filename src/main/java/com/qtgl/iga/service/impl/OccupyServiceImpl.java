@@ -44,7 +44,10 @@ public class OccupyServiceImpl implements OccupyService {
     PersonDao personDao;
     @Autowired
     UserLogDao userLogDao;
-
+    @Autowired
+    DeptDao deptDao;
+    @Autowired
+    PostDao postDao;
     @Autowired
     OccupyDao occupyDao;
 
@@ -158,7 +161,6 @@ public class OccupyServiceImpl implements OccupyService {
         Map<String, OccupyDto> occupiesFromSSOMap = occupiesFromSSO.stream().
                 collect(Collectors.toMap(occupy -> (occupy.getPersonId() + ":" + occupy.getPostCode() + ":" + occupy.getDeptCode()), occupy -> occupy, (v1, v2) -> v2));
         Map<String, List<OccupyDto>> result = new HashMap<>();
-        //人员身份日志存储容器
         occupiesFromSSOMap.forEach((key, val) -> {
             // 对比出需要修改的occupy
             if (occupyDtoFromUpstream.containsKey(key) &&
@@ -174,6 +176,9 @@ public class OccupyServiceImpl implements OccupyService {
                 if (null != fields && fields.size() > 0) {
                     for (UpstreamTypeField field : fields) {
                         String sourceField = field.getSourceField();
+
+                        //如果映射字段包含证件类型和证件号码,跳过?
+
                         if ("personCardType".equals(sourceField) || "personCardNo".equals(sourceField)) {
                             continue;
                         }
@@ -198,6 +203,7 @@ public class OccupyServiceImpl implements OccupyService {
 
                     }
                 }
+                //上游没有提供delMark字段手动恢复
                 if (val.getDelMark().equals(1) && delFlag) {
                     flag = true;
                     val.setDelMark(0);

@@ -222,7 +222,7 @@ public class PostDaoImpl implements PostDao {
     }
 
     @Override
-    public Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, String tenantId) {
+    public Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, ArrayList<TreeBean> invalidList, String tenantId) {
         String insertStr = "insert into user_type (id,user_type, name, parent_code, can_login ,tenant_id ,tags," +
                 " data_source, description, meta,create_time,del_mark,active,active_time,update_time,source,user_type_index,post_type,formal) values" +
                 "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
@@ -299,8 +299,8 @@ public class PostDaoImpl implements PostDao {
                     jdbcSSO.batchUpdate(deleteStr, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, 1);
-                            preparedStatement.setObject(2, 0);
+                            preparedStatement.setObject(1, deleteList.get(i).getDelMark());
+                            preparedStatement.setObject(2, deleteList.get(i).getActive());
                             preparedStatement.setObject(3, LocalDateTime.now());
                             preparedStatement.setObject(4, deleteList.get(i).getCode());
                             preparedStatement.setObject(5, deleteList.get(i).getCreateTime());
@@ -312,6 +312,23 @@ public class PostDaoImpl implements PostDao {
                         }
                     });
                 }
+                if (null != invalidList && invalidList.size() > 0) {
+                    jdbcSSO.batchUpdate(deleteStr, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, invalidList.get(i).getDelMark());
+                            preparedStatement.setObject(2, invalidList.get(i).getActive());
+                            preparedStatement.setObject(3, LocalDateTime.now());
+                            preparedStatement.setObject(4, invalidList.get(i).getCode());
+                            preparedStatement.setObject(5, invalidList.get(i).getUpdateTime());
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return invalidList.size();
+                        }
+                    });
+                }
                 return 1;
             } catch (Exception e) {
                 transactionStatus.setRollbackOnly();
@@ -320,5 +337,16 @@ public class PostDaoImpl implements PostDao {
                 throw new CustomException(ResultCode.FAILED, "同步终止，岗位同步异常！");
             }
         });
+    }
+
+    @Override
+    public List<TreeBean> findActiveDataByTenantId(String tenantId) {
+        String sql = "select  user_type as code , name, parent_code as parentCode , " +
+                " update_time as createTime," +
+                "source,data_source as dataSource,user_type_index as deptIndex,del_mark as delMark,update_time as updateTime,post_type as type,active from user_type where tenant_id = ? and " +
+                " active=true and del_mark=false ";
+
+        List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId);
+        return getUserTypes(mapList);
     }
 }

@@ -222,13 +222,13 @@ public class DeptDaoImpl implements DeptDao {
     }
 
     @Override
-    public Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, String tenantId) {
+    public Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, ArrayList<TreeBean> invalidList, String tenantId) {
         String insertStr = "insert into dept (id,dept_code, dept_name, parent_code, del_mark ,tenant_id ,source, data_source, description, meta,create_time,tags,independent,active,active_time,tree_type,dept_index,abbreviation,update_time,type) values" +
                 "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         String updateStr = "update dept set  dept_name=?, parent_code=?, del_mark=? ,tenant_id =?" +
                 ",source =?, data_source=?, description=?, meta=?,update_time=?,tags=?,independent=?,tree_type= ?,active=? ,abbreviation=?,type = ?,dept_index=?  " +
                 "where dept_code =? and update_time<= ?";
-        String deleteStr = "update dept set   del_mark= ? , active = ?,active_time= ?  " +
+        String deleteStr = "update dept set   active = ?,active_time= ?,del_mark=?   " +
                 "where dept_code =? and update_time<= ? ";
         return txTemplate.execute(transactionStatus -> {
 
@@ -241,7 +241,7 @@ public class DeptDaoImpl implements DeptDao {
                             preparedStatement.setObject(2, insertList.get(i).getCode());
                             preparedStatement.setObject(3, insertList.get(i).getName());
                             preparedStatement.setObject(4, insertList.get(i).getParentCode());
-                            preparedStatement.setObject(5, 0);
+                            preparedStatement.setObject(5, insertList.get(i).getDelMark());
                             preparedStatement.setObject(6, tenantId);
                             preparedStatement.setObject(7, insertList.get(i).getSource());
                             preparedStatement.setObject(8, "PULL");
@@ -250,7 +250,7 @@ public class DeptDaoImpl implements DeptDao {
                             preparedStatement.setObject(11, insertList.get(i).getCreateTime());
                             preparedStatement.setObject(12, insertList.get(i).getTags());
                             preparedStatement.setObject(13, insertList.get(i).getIndependent());
-                            preparedStatement.setObject(14, 1);
+                            preparedStatement.setObject(14, insertList.get(i).getActive());
                             preparedStatement.setObject(15, LocalDateTime.now());
                             preparedStatement.setObject(16, insertList.get(i).getTreeType());
                             preparedStatement.setObject(17, insertList.get(i).getDeptIndex());
@@ -300,9 +300,9 @@ public class DeptDaoImpl implements DeptDao {
                     jdbcSSOAPI.batchUpdate(deleteStr, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, 1);
-                            preparedStatement.setObject(2, 0);
-                            preparedStatement.setObject(3, LocalDateTime.now());
+                            preparedStatement.setObject(1, deleteList.get(i).getActive());
+                            preparedStatement.setObject(2, LocalDateTime.now());
+                            preparedStatement.setObject(3, deleteList.get(i).getDelMark());
                             preparedStatement.setObject(4, deleteList.get(i).getCode());
                             preparedStatement.setObject(5, deleteList.get(i).getUpdateTime());
                         }
@@ -310,6 +310,23 @@ public class DeptDaoImpl implements DeptDao {
                         @Override
                         public int getBatchSize() {
                             return deleteList.size();
+                        }
+                    });
+                }
+                if (null != invalidList && invalidList.size() > 0) {
+                    jdbcSSOAPI.batchUpdate(deleteStr, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, invalidList.get(i).getActive());
+                            preparedStatement.setObject(2, LocalDateTime.now());
+                            preparedStatement.setObject(3, invalidList.get(i).getDelMark());
+                            preparedStatement.setObject(4, invalidList.get(i).getCode());
+                            preparedStatement.setObject(5, invalidList.get(i).getUpdateTime());
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return invalidList.size();
                         }
                     });
                 }
@@ -341,6 +358,18 @@ public class DeptDaoImpl implements DeptDao {
 
         List<Map<String, Object>> mapList = jdbcSSOAPI.queryForList(sql, param.toArray());
 
+        return getDeptBeans(mapList);
+    }
+
+    @Override
+    public List<TreeBean> findActiveDataByTenantId(String tenantId) {
+        String sql = "select dept_code as code , dept_name as name , parent_code as parentCode , " +
+                " update_time as createTime , source, tree_type as treeType,data_source as dataSource, abbreviation,tags,type,independent,update_time as updateTime,del_mark as delMark,active  from dept where tenant_id = ? " +
+                " and active=true and del_mark=false ";
+        List<Object> param = new ArrayList<>();
+        param.add(tenantId);
+
+        List<Map<String, Object>> mapList = jdbcSSOAPI.queryForList(sql, param.toArray());
         return getDeptBeans(mapList);
     }
 }

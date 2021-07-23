@@ -390,7 +390,7 @@ public class NodeRulesCalculationServiceImpl {
                 if ((Boolean) eval) {
                     boolean flag = true;
                     // 如果上次日志状态 是【忽略】，则判断数据是否相同原因相同，相同则进行忽略
-                    if (null != lastTaskLog.getStatus() && lastTaskLog.getStatus().equals("ignore")) {
+                    if (null != lastTaskLog && null != lastTaskLog.getStatus() && lastTaskLog.getStatus().equals("ignore")) {
                         JSONArray objects = JSONArray.parseArray(lastTaskLog.getData());
                         if (delete.get(0).getClass().getName().equals("Person")) {
                             type = "人员";
@@ -448,7 +448,7 @@ public class NodeRulesCalculationServiceImpl {
         for (int i = 0; i < treeArray.size(); i++) {
             JSONObject tree = treeArray.getJSONObject(i);
             //如果有节点结构不符合规则
-            if (!tree.containsKey(TreeEnum.CODE.getCode()) || !tree.containsKey(TreeEnum.NAME.getCode()) || !tree.containsKey(TreeEnum.PARENTCODE.getCode())) {
+            if (!tree.containsKey(TreeEnum.CODE.getCode()) || !tree.containsKey(TreeEnum.NAME.getCode()) || !tree.containsKey(TreeEnum.PARENT_CODE.getCode())) {
                 key = false;
                 msg = tree.toJSONString();
                 break;
@@ -458,7 +458,7 @@ public class NodeRulesCalculationServiceImpl {
         for (int i = 0; i < treeArray.size(); i++) {
             JSONObject tree = treeArray.getJSONObject(i);
             //如果有节点结构不符合规则
-            if ("".equals(tree.getString(TreeEnum.PARENTCODE.getCode()))) {
+            if ("".equals(tree.getString(TreeEnum.PARENT_CODE.getCode()))) {
 
             }
         }
@@ -587,14 +587,20 @@ public class NodeRulesCalculationServiceImpl {
                         //遍历拉取的数据,标准化数据,以及赋值逻辑运算所需的值
                         for (Object o : upstreamTree) {
                             JSONObject dept = (JSONObject) o;
-                            if (null == dept.getString(TreeEnum.PARENTCODE.getCode())) {
-                                dept.put(TreeEnum.PARENTCODE.getCode(), "");
+                            if (null == dept.getString(TreeEnum.PARENT_CODE.getCode())) {
+                                dept.put(TreeEnum.PARENT_CODE.getCode(), "");
                             }
-                            if (null == dept.getString(TreeEnum.CREATETIME.getCode())) {
-                                dept.put(TreeEnum.CREATETIME.getCode(), timestamp);
+                            if (null == dept.getString(TreeEnum.ACTIVE.getCode())) {
+                                dept.put(TreeEnum.ACTIVE.getCode(), true);
                             }
-                            if (null == dept.getString(TreeEnum.UPDATETIME.getCode())) {
-                                dept.put(TreeEnum.UPDATETIME.getCode(), timestamp);
+                            if (null == dept.getString(TreeEnum.DEL_MARK.getCode())) {
+                                dept.put(TreeEnum.DEL_MARK.getCode(), false);
+                            }
+                            if (null == dept.getString(TreeEnum.CREATE_TIME.getCode())) {
+                                dept.put(TreeEnum.CREATE_TIME.getCode(), timestamp);
+                            }
+                            if (null == dept.getString(TreeEnum.UPDATE_TIME.getCode())) {
+                                dept.put(TreeEnum.UPDATE_TIME.getCode(), timestamp);
                             }
                             dept.put("upstreamTypeId", upstreamType.getId());
                             dept.put("treeType", deptTreeType);
@@ -603,7 +609,7 @@ public class NodeRulesCalculationServiceImpl {
                             dept.put("isRuled", false);
                             dept.put("source", upstream.getAppName() + "(" + upstream.getAppCode() + ")");
                             if ("post".equals(type)) {
-                                if (("01".equals(dept.getString(TreeEnum.PARENTCODE.getCode())) || ("02".equals(dept.getString(TreeEnum.PARENTCODE.getCode()))))) {
+                                if (("01".equals(dept.getString(TreeEnum.POST_TYPE.getCode())) || ("02".equals(dept.getString(TreeEnum.POST_TYPE.getCode()))))) {
                                     dept.put("formal", true);
                                 } else {
                                     dept.put("formal", false);
@@ -620,7 +626,7 @@ public class NodeRulesCalculationServiceImpl {
 
 
                         //判断上游是否给出时间戳
-                        upstreamTree = this.judgeTime(upstreamTree, timestamp);
+                        this.judgeTime(upstreamTree, timestamp);
 
                         //对树 json 转为 map
                         Map<String, TreeBean> upstreamMap = TreeUtil.toMap(upstreamDept);

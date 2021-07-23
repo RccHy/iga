@@ -89,9 +89,13 @@ public class TaskConfig {
                                                 //部门数据同步至sso
                                                 Map<TreeBean, String> deptResult = deptService.buildDeptUpdateResult(domainInfo, lastTaskLog);
                                                 Map<String, List<Map.Entry<TreeBean, String>>> deptResultMap = deptResult.entrySet().stream().collect(Collectors.groupingBy(Map.Entry::getValue));
-                                                String deptNo = (deptResultMap.containsKey("insert") ? String.valueOf(deptResultMap.get("insert").size()) : "0") + "/"
-                                                        + (deptResultMap.containsKey("delete") ? String.valueOf(deptResultMap.get("delete").size()) : "0") + "/"
-                                                        + (deptResultMap.containsKey("update") ? String.valueOf(deptResultMap.get("update").size()) : "0");
+                                                //处理数据
+                                                Integer recoverDept = deptResultMap.containsKey("recover") ? deptResultMap.get("recover").size() : 0;
+                                                Integer insertDept = (deptResultMap.containsKey("insert") ? deptResultMap.get("insert").size() : 0) + recoverDept;
+                                                Integer deleteDept = deptResultMap.containsKey("delete") ? deptResultMap.get("delete").size() : 0;
+                                                Integer updateDept = (deptResultMap.containsKey("update") ? deptResultMap.get("update").size() : 0);
+                                                Integer invalidDept = deptResultMap.containsKey("invalid") ? deptResultMap.get("invalid").size() : 0;
+                                                String deptNo = insertDept + "/" + deleteDept + "/" + updateDept + "/" + invalidDept;
 
                                                 log.info(Thread.currentThread().getName() + ": 部门同步完成：{}==={}", deptNo, System.currentTimeMillis());
                                                 taskLog.setStatus("doing");
@@ -108,9 +112,12 @@ public class TaskConfig {
                                                 //=============岗位数据同步至sso=================
                                                 final Map<TreeBean, String> postResult = postService.buildPostUpdateResult(domainInfo, lastTaskLog);
                                                 Map<String, List<Map.Entry<TreeBean, String>>> postResultMap = postResult.entrySet().stream().collect(Collectors.groupingBy(Map.Entry::getValue));
-                                                String postNo = (postResultMap.containsKey("insert") ? String.valueOf(postResultMap.get("insert").size()) : "0") + "/"
-                                                        + (postResultMap.containsKey("delete") ? String.valueOf(postResultMap.get("delete").size()) : "0") + "/"
-                                                        + (postResultMap.containsKey("update") ? String.valueOf(postResultMap.get("update").size()) : "0");
+                                                Integer recoverPost = postResultMap.containsKey("recover") ? postResultMap.get("recover").size() : 0;
+                                                Integer insertPost = (postResultMap.containsKey("insert") ? postResultMap.get("insert").size() : 0) + recoverPost;
+                                                Integer deletePost = postResultMap.containsKey("delete") ? postResultMap.get("delete").size() : 0;
+                                                Integer updatePost = (postResultMap.containsKey("update") ? postResultMap.get("update").size() : 0);
+                                                Integer invalidPost = postResultMap.containsKey("invalid") ? postResultMap.get("invalid").size() : 0;
+                                                String postNo = insertPost + "/" + deletePost + "/" + updatePost + "/" + invalidPost;
                                                 log.info(Thread.currentThread().getName() + ": 岗位同步完成：{}==={}", postNo, System.currentTimeMillis());
                                                 taskLog.setPostNo(postNo);
                                                 taskLogService.save(taskLog, domainInfo.getId(), "update");

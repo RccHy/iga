@@ -27,4 +27,5 @@ public interface PersonDao {
     Integer saveToSso(Map<String, List<Person>> personMap, String tenantId);
 
 
+    List<Person> findActiveDataByTenantId(String tenantId);
 }

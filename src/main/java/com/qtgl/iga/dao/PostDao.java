@@ -21,5 +21,7 @@ public interface PostDao {
 
     List<TreeBean> findPostType(String id);
 
-    Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, String tenantId);
+    Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, ArrayList<TreeBean> invalidList, String tenantId);
+
+    List<TreeBean> findActiveDataByTenantId(String tenantId);
 }

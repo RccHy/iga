@@ -220,6 +220,7 @@ public class DeptServiceImpl implements DeptService {
         ArrayList<TreeBean> insertList = new ArrayList<>();
         ArrayList<TreeBean> updateList = new ArrayList<>();
         ArrayList<TreeBean> deleteList = new ArrayList<>();
+        ArrayList<TreeBean> invalidList = new ArrayList<>();
 
         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
         //删除数据
@@ -256,18 +257,38 @@ public class DeptServiceImpl implements DeptService {
             }
         }
 
+        List<Map.Entry<TreeBean, String>> invalid = collect.get("invalid");
+        //失效数据
+        if (null != invalid && invalid.size() > 0) {
+            for (Map.Entry<TreeBean, String> key : invalid) {
 
-        Integer flag = deptDao.renewData(insertList, updateList, deleteList, tenantId);
+                logger.info("部门对比后需要置为失效{}", key.getKey().toString());
+                invalidList.add(key.getKey());
+
+            }
+        }
+        List<Map.Entry<TreeBean, String>> recover = collect.get("recover");
+        if (null != recover && recover.size() > 0) {
+            for (Map.Entry<TreeBean, String> key : recover) {
+                logger.debug("部门对比后恢复新增{}", key.getKey().toString());
+                updateList.add(key.getKey());
+            }
+        }
+
+
+        Integer flag = deptDao.renewData(insertList, updateList, deleteList, invalidList, tenantId);
         if (null != flag && flag > 0) {
 
 
-            logger.info("dept插入 {} 条数据  {}", insertList.size(), System.currentTimeMillis());
+            logger.info("dept插入 {} 条数据  {}", null == insertList ? 0 : insertList.size(), System.currentTimeMillis());
 
 
-            logger.info("dept更新 {} 条数据  {}", updateList.size(), System.currentTimeMillis());
+            logger.info("dept更新 {} 条数据  {}", null == updateList ? 0 : updateList.size(), System.currentTimeMillis());
 
 
-            logger.info("dept删除 {} 条数据  {}", deleteList.size(), System.currentTimeMillis());
+            logger.info("dept删除 {} 条数据  {}", null == deleteList ? 0 : deleteList.size(), System.currentTimeMillis());
+
+            logger.info("dept失效 {} 条数据  {}", null == invalidList ? 0 : invalidList.size(), System.currentTimeMillis());
         } else {
 
             logger.error("数据更新ssoApi数据库失败{}", System.currentTimeMillis());
@@ -333,16 +354,8 @@ public class DeptServiceImpl implements DeptService {
                                 if (null != fields && fields.size() > 0) {
                                     for (UpstreamTypeField field : fields) {
                                         String sourceField = field.getSourceField();
-                                        //如果上游给出删除标记 则使用上游的
-                                        if ("delMark".equals(sourceField)) {
-                                            ssoBean.setDelMark(pullBean.getDelMark());
-                                            //将删除标记置为false标识(不是用自己的delMark)
-                                            delFlag = false;
-                                        }
-                                        //如果上游给出启用状态 则使用上游的 否则不改动
-                                        if ("active".equals(sourceField)) {
-                                            ssoBean.setActive(pullBean.getActive());
-                                        }
+
+
                                         Object newValue = ClassCompareUtil.getGetMethod(pullBean, sourceField);
                                         Object oldValue = ClassCompareUtil.getGetMethod(ssoBean, sourceField);
                                         if (null == oldValue && null == newValue) {
@@ -353,6 +366,17 @@ public class DeptServiceImpl implements DeptService {
                                         }
                                         //将修改表示改为true 标识数据需要修改
                                         updateFlag = true;
+                                        //如果上游给出删除标记 则使用上游的
+                                        if ("delMark".equals(sourceField)) {
+                                            //将删除标记置为false标识(不是用自己的delMark)
+                                            if (null != ssoBean.getDelMark() && null != pullBean.getDelMark() && (ssoBean.getDelMark() == 1) && (pullBean.getDelMark() == 0)) {
+                                                result.put(ssoBean, "recover");
+                                                //恢复的不为修改
+                                                updateFlag = false;
+                                            }
+                                            delFlag = false;
+
+                                        }
                                         //将值更新到sso对象
                                         ClassCompareUtil.setValue(ssoBean, ssoBean.getClass(), sourceField, oldValue, newValue);
                                         logger.debug("部门信息更新{}:字段{}: {} -> {} ", pullBean.getCode(), sourceField, oldValue, newValue);
@@ -362,15 +386,23 @@ public class DeptServiceImpl implements DeptService {
                                 //该操作主要是给删除标识手动赋值
                                 if (delFlag && ssoBean.getDelMark().equals(1)) {
                                     ssoBean.setDelMark(0);
-                                    updateFlag = true;
+                                    updateFlag = false;
+                                    result.put(ssoBean, "recover");
                                     logger.info("部门信息{}从删除恢复", ssoBean.getCode());
                                 }
                                 if (updateFlag) {
-                                    //将数据放入修改集合
-                                    logger.info("部门对比后需要修改{}", ssoBean);
 
-                                    ssoCollect.put(ssoBean.getCode(), ssoBean);
-                                    result.put(ssoBean, "update");
+                                    if (0 == ssoBean.getDelMark()) {
+                                        //将数据放入修改集合
+                                        logger.info("部门对比后需要修改{}", ssoBean);
+                                        ssoCollect.put(ssoBean.getCode(), ssoBean);
+                                        result.put(ssoBean, "update");
+                                    } else {
+                                        //将数据放入删除集合
+                                        logger.info("部门对比后需要删除{}", ssoBean);
+                                        ssoCollect.remove(ssoBean.getCode());
+                                        result.put(ssoBean, "delete");
+                                    }
                                 }
 
                             } else {
@@ -411,13 +443,13 @@ public class DeptServiceImpl implements DeptService {
                         }
                     }
                     if (flag) {
-                        //移除集合中删除对象
+                        //移除集合中无效对象
                         ssoCollect.remove(ssoBean.getCode());
-                        //如果为启用的再走删除并更新修改时间,
-                        //本身就是删除的则不做处理
-                        if (0 == ssoBean.getDelMark()) {
+                        //如果为有效的再走无效并更新修改时间,
+                        //本身就是无效的则不做处理
+                        if (1 == ssoBean.getActive() && 0 == ssoBean.getDelMark()) {
                             ssoBean.setUpdateTime(now);
-                            result.put(ssoBean, "delete");
+                            result.put(ssoBean, "invalid");
                         }
                     }
                 }

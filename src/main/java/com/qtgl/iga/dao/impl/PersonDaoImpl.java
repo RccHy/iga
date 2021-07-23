@@ -152,7 +152,6 @@ public class PersonDaoImpl implements PersonDao {
                 if (personMap.containsKey("install")) {
                     final List<Person> list = personMap.get("install");
 
-                    //list.add(.get(0));
 
                     String str = "insert into identity (id, `name`, account_no,open_id,  del_mark, create_time, update_time, tenant_id, card_type, card_no, cellphone, email, data_source, tags,  `active`, active_time,`source`)" +
                             " values  (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
@@ -175,7 +174,7 @@ public class PersonDaoImpl implements PersonDao {
                             preparedStatement.setObject(12, list.get(i).getEmail());
                             preparedStatement.setObject(13, list.get(i).getDataSource());
                             preparedStatement.setObject(14, list.get(i).getTags());
-                            preparedStatement.setObject(15, list.get(i).getActive());
+                            preparedStatement.setObject(15, 1);
                             preparedStatement.setObject(16, list.get(i).getActiveTime());
                             preparedStatement.setObject(17, "PULL");
                         }
@@ -260,6 +259,26 @@ public class PersonDaoImpl implements PersonDao {
         });
 
 
+    }
+
+    @Override
+    public List<Person> findActiveDataByTenantId(String tenantId) {
+        String sql = "select id,name,tags,open_id as openId,account_no as accountNo,card_type as cardType," +
+                "card_no  as cardNo, cellphone,email,source,data_source as dataSource,active," +
+                "active_time as activeTime,create_time as createTime,update_time as updateTime,del_mark as delMark" +
+                "  from identity  where tenant_id=? and active=true and del_mark=false   order by update_time ";
+        List<Map<String, Object>> maps = jdbcSSO.queryForList(sql, tenantId);
+        List<Person> personList = new ArrayList<>();
+        maps.forEach(map -> {
+            Person person = new Person();
+            try {
+                MyBeanUtils.populate(person, map);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            personList.add(person);
+        });
+        return personList;
     }
 
 

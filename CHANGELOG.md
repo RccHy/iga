@@ -46,7 +46,7 @@
 
 **bug fix**
 
-- 无
+- 权威源人员数据同步sso active字段赋值默认有效
 
 **image：**
 
