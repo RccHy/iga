@@ -35,7 +35,7 @@ tenantId: "" 租户全局code(domain)
 curl 参考：
 curl --location --request POST 'http://ip:端口/iga/api/event' \
 --header 'Content-Type: application/json' \
---data-raw '{
+--data '{
     "eventType": "create_tenant",
     "tenantId": "租户",
     "authCode": "XXX",
