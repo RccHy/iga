@@ -61,10 +61,17 @@ public class OccupyServiceImpl implements OccupyService {
     /**
      * 1：根据规则获取所有的 人员身份数据
      * 2：人员身份根据人员进行分组
+     * 2.1 判断数据是否有效  人员标识（证件类型+证件号码 OR  用户名 ）、岗位标识、部门标识不能为空
+     * 2.2 判断人员标识 是否存在在sso中的人员表中
+     * 2.3 相同身份数据进行合重
+     * 2.4 校验孤儿数据
+     *
      * 3：根据人员和数据库中身份进行对比
-     * A：新增
-     * B：修改
-     * C：删除
+     * A：新增  上游提供、sso数据库中没有
+     * B：修改  上游和sso对比后字段值有差异
+     * C：删除  上游提供了del_mark
+     * D: 无效  上游曾经提供后，不再提供 OR 上游提供了active
+     * E: 恢复  之前被标记为删除后再通过推送了相同的数据
      *
      * @param domain
      * @return
@@ -163,14 +170,15 @@ public class OccupyServiceImpl implements OccupyService {
                     occupyDto.setActive("1");
                     occupyDto.setActiveTime(LocalDateTime.now());
                 }
-                occupyDto.setOrphan(0);
-                if (deptFromSSOMap.containsKey(occupyDto.getDeptCode())) {
-                    occupyDto.setOrphan(1);
-                    if (postFromSSOMap.containsKey(occupyDto.getPostCode())) {
-                        occupyDto.setOrphan(3);
+                // 验证是否为 孤儿数据
+                occupyDto.setOrphan(0);// 非孤儿
+                if (!deptFromSSOMap.containsKey(occupyDto.getDeptCode())) {
+                    occupyDto.setOrphan(1); // 因部门数据导致孤儿
+                    if (!postFromSSOMap.containsKey(occupyDto.getPostCode())) {
+                        occupyDto.setOrphan(3); // 因岗位+部门数据导致孤儿
                     }
-                } else if (postFromSSOMap.containsKey(occupyDto.getPostCode())) {
-                    occupyDto.setOrphan(2);
+                } else if (!postFromSSOMap.containsKey(occupyDto.getPostCode())) {
+                    occupyDto.setOrphan(2); // 因 岗位数据导致孤儿
                 }
 
                 String key = personId + ":" + occupyDto.getPostCode() + ":" + occupyDto.getDeptCode();
