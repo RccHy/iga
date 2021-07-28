@@ -29,8 +29,7 @@ public class UserLogDaoImpl implements UserLogDao {
     public ArrayList<OccupyDto> saveUserLog(ArrayList<OccupyDto> list, String tenantId) {
         if (null != list && list.size() > 0) {
             String str = "insert into user_log (id,user_id, start_time, end_time, create_time , source, data_source,tenant_id) values" +
-                    "(?,?,?,?,?,?,?,?)";
-            Date date = new Date();
+                    "(?,?,?,?,now(),?,?,?)";
             boolean contains = false;
 
             int[] ints = jdbcSSOAPI.batchUpdate(str, new BatchPreparedStatementSetter() {
@@ -40,10 +39,9 @@ public class UserLogDaoImpl implements UserLogDao {
                     preparedStatement.setObject(2, list.get(i).getOccupyId());
                     preparedStatement.setObject(3, list.get(i).getStartTime());
                     preparedStatement.setObject(4, list.get(i).getEndTime());
-                    preparedStatement.setObject(5, date);
-                    preparedStatement.setObject(6, list.get(i).getSource());
-                    preparedStatement.setObject(7, "PULL");
-                    preparedStatement.setObject(8, tenantId);
+                    preparedStatement.setObject(5, list.get(i).getSource());
+                    preparedStatement.setObject(6, "PULL");
+                    preparedStatement.setObject(7, tenantId);
                 }
 
                 @Override

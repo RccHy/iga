@@ -32,13 +32,6 @@ public class DeptDaoImpl implements DeptDao {
     @Resource(name = "api-txTemplate")
     TransactionTemplate txTemplate;
 
-    @Override
-    public List<Dept> getAllDepts() {
-        String sql = "select id, code, name, type_id as typeId,create_time as createTime from dept";
-
-        List<Map<String, Object>> mapList = jdbcSSOAPI.queryForList(sql);
-        return getDepts(mapList);
-    }
 
     @Override
     public Dept findById(String id) {

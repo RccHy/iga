@@ -146,9 +146,12 @@ public class TaskConfig {
 
                                                 //人员身份同步至sso
                                                 final Map<String, List<OccupyDto>> occupyResult = occupyService.buildPerson(domainInfo, lastTaskLog);
-                                                String occupyNo = (occupyResult.containsKey("insert") ? String.valueOf(occupyResult.get("insert").size()) : "0") + "/"
-                                                        + (occupyResult.containsKey("delete") ? String.valueOf(occupyResult.get("delete").size()) : "0") + "/"
-                                                        + (occupyResult.containsKey("update") ? String.valueOf(occupyResult.get("update").size()) : "0");
+                                                Integer recoverOccupy = occupyResult.containsKey("recover") ? deptResultMap.get("recover").size() : 0;
+                                                Integer insertOccupy = (occupyResult.containsKey("insert") ? deptResultMap.get("insert").size() : 0) + recoverOccupy;
+                                                Integer deleteOccupy = occupyResult.containsKey("delete") ? deptResultMap.get("delete").size() : 0;
+                                                Integer updateOccupy = (occupyResult.containsKey("update") ? deptResultMap.get("update").size() : 0);
+                                                Integer invalidOccupy = occupyResult.containsKey("invalid") ? deptResultMap.get("invalid").size() : 0;
+                                                String occupyNo = insertOccupy + "/" + deleteOccupy + "/" + updateOccupy + "/" + invalidOccupy;
                                                 log.info(Thread.currentThread().getName() + ": 人员身份同步完成{}==={}", occupyNo, System.currentTimeMillis());
                                                 taskLog.setStatus("done");
                                                 taskLog.setOccupyNo(occupyNo);

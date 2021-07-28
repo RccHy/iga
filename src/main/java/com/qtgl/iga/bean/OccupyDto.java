@@ -39,11 +39,20 @@ public class OccupyDto {
 
     private String upstreamType;
     private String openId;
+    private String accountNo;
 
     /**
      * 身份最终有效时间
      */
     private LocalDateTime validStartTime;
     private LocalDateTime validEndTime;
+    /**
+     * 上游岗位、部门导致身份失效
+     */
+    private  Integer orphan;
+
+
+
+
 
 }

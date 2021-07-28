@@ -81,8 +81,8 @@ public class OccupyDaoImpl implements OccupyDao {
                 if (occupyMap.containsKey("install")) {
                     List<OccupyDto> list = occupyMap.get("install");
                     String sql = "INSERT INTO user " +
-                            "               (id, user_type, card_type, card_no, del_mark, start_time, end_time, create_time, update_time, tenant_id, dept_code, source, data_source, active, active_time,user_index,post_code) " +
-                            "               VALUES (?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?,?)";
+                            "               (id, user_type, card_type, card_no, del_mark, start_time, end_time, create_time, update_time, tenant_id, dept_code, source, data_source, active, active_time,user_index,post_code,account_no,valid_start_time,valid_end_time,orphan) " +
+                            "               VALUES (?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
                     int[] ints = jdbcSSO.batchUpdate(sql, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
@@ -102,6 +102,10 @@ public class OccupyDaoImpl implements OccupyDao {
                             preparedStatement.setObject(14, LocalDateTime.now());
                             preparedStatement.setObject(15, list.get(i).getIndex());
                             preparedStatement.setObject(16, list.get(i).getPostCode());
+                            preparedStatement.setObject(17, list.get(i).getAccountNo());
+                            preparedStatement.setObject(18, list.get(i).getValidStartTime());
+                            preparedStatement.setObject(19, list.get(i).getValidEndTime());
+                            preparedStatement.setObject(20, list.get(i).getOrphan());
                         }
 
                         @Override
@@ -127,10 +131,17 @@ public class OccupyDaoImpl implements OccupyDao {
                     });
                 }
 
-                if (occupyMap.containsKey("update")) {
-                    List<OccupyDto> list = occupyMap.get("update");
+                if (occupyMap.containsKey("update")||occupyMap.containsKey("invalid")||occupyMap.containsKey("recover")) {
+                    List<OccupyDto> list =new ArrayList<>();
+                     List<OccupyDto> update = occupyMap.get("update");
+                     List<OccupyDto> invalid = occupyMap.get("invalid");
+                     List<OccupyDto> recover = occupyMap.get("recover");
+                     list.addAll(update);
+                     list.addAll(invalid);
+                     list.addAll(recover);
+
                     String sql = "UPDATE `user` SET user_type = ?, card_type = ?, card_no = ?, del_mark = ?, start_time = ?, end_time = ?, update_time = ?,dept_code = ?,  " +
-                            " source = ?, data_source = ?,  user_index = ?" +
+                            " source = ?, data_source = ?,  user_index = ?,active=?,active_time=?,account_no=?,valid_start_time=?,valid_end_time=?,orphan=?" +
                             " WHERE id = ? and update_time < ?  ";
 
                     int[] ints = jdbcSSO.batchUpdate(sql, new BatchPreparedStatementSetter() {
@@ -147,12 +158,15 @@ public class OccupyDaoImpl implements OccupyDao {
                             preparedStatement.setObject(9, list.get(i).getSource());
                             preparedStatement.setObject(10, list.get(i).getDataSource());
                             preparedStatement.setObject(11, list.get(i).getIndex());
-                            preparedStatement.setObject(12, list.get(i).getOccupyId());
-                            preparedStatement.setObject(13, list.get(i).getUpdateTime());
-
-
+                            preparedStatement.setObject(13, list.get(i).getActive());
+                            preparedStatement.setObject(14, list.get(i).getActiveTime());
+                            preparedStatement.setObject(15, list.get(i).getAccountNo());
+                            preparedStatement.setObject(16, list.get(i).getValidStartTime());
+                            preparedStatement.setObject(17, list.get(i).getValidEndTime());
+                            preparedStatement.setObject(18, list.get(i).getOrphan());
+                            preparedStatement.setObject(19, list.get(i).getOccupyId());
+                            preparedStatement.setObject(20, list.get(i).getUpdateTime());
                         }
-
                         @Override
                         public int getBatchSize() {
                             return list.size();
