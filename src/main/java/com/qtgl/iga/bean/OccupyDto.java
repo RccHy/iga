@@ -33,7 +33,7 @@ public class OccupyDto {
     private LocalDateTime createTime;
     private Integer delMark;
     // 上游删除
-    private String active;
+    private Integer active;
     private LocalDateTime activeTime;
 
 

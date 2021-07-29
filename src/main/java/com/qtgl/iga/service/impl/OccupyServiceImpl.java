@@ -67,7 +67,7 @@ public class OccupyServiceImpl implements OccupyService {
      * 2.4 校验孤儿数据
      *
      * 3：根据人员和数据库中身份进行对比
-     * A：新增 inster  上游提供、sso数据库中没有
+     * A：新增 install  上游提供、sso数据库中没有
      * B：修改 update  上游和sso对比后字段值有差异
      * C：删除 delete 上游提供了del_mark
      * D: 无效   上游曾经提供后，不再提供 OR 上游提供了active
@@ -127,15 +127,23 @@ public class OccupyServiceImpl implements OccupyService {
             final List<OccupyDto> occupies = dataByBus.toJavaList(OccupyDto.class);
             for (OccupyDto occupyDto : occupies) {
                 if (StringUtils.isEmpty(occupyDto.getPersonCardType()) || StringUtils.isEmpty(occupyDto.getPersonCardNo())) {
-                    log.warn("人员身份信息中国人员标识为空{}", occupyDto);
+                    log.error("人员身份信息中人员标识为空{}", occupyDto);
                     continue;
                 }
                 if (StringUtils.isEmpty(occupyDto.getPostCode())) {
-                    log.warn("人员身份信息岗位代码为空{}", occupyDto);
+                    log.error("人员身份信息岗位代码为空{}", occupyDto);
                     continue;
                 }
                 if (StringUtils.isEmpty(occupyDto.getDeptCode())) {
-                    log.warn("人员身份部门代码为空{}", occupyDto);
+                    log.error("人员身份部门代码为空{}", occupyDto);
+                    continue;
+                }
+                if(null!=occupyDto.getActive()&&(occupyDto.getActive()!=0||occupyDto.getActive()!=1)){
+                    log.error("人员身份是否有效字段不合法{}", occupyDto.getActive());
+                    continue;
+                }
+                if(null!=occupyDto.getDelMark()&&(occupyDto.getDelMark()!=0||occupyDto.getDelMark()!=1)){
+                    log.error("人员身份是否删除字段不合法{}", occupyDto.getDelMark());
                     continue;
                 }
                 occupyDto.setSource(upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")");
@@ -167,7 +175,7 @@ public class OccupyServiceImpl implements OccupyService {
                     occupyDto.setDelMark(0);
                 }
                 if (null == occupyDto.getActive()) {
-                    occupyDto.setActive("1");
+                    occupyDto.setActive(1);
                     occupyDto.setActiveTime(LocalDateTime.now());
                 }
                 // 验证是否为 孤儿数据
@@ -302,8 +310,9 @@ public class OccupyServiceImpl implements OccupyService {
                 }
                 log.debug("人员身份对比后更新{}-{}", occupyFromSSO, occupyDtoFromUpstream.get(key));
 
-            } else if (!occupyDtoFromUpstream.containsKey(key) && 1 != occupyFromSSO.getDelMark()
+            } else if (!occupyDtoFromUpstream.containsKey(key) && 1 != occupyFromSSO.getDelMark()&&occupyFromSSO.getActive()!=0
                     && "PULL".equalsIgnoreCase(occupyFromSSO.getDataSource())) {
+                // 如果sso 有，上游源没有 &&  sso中数据不是删除 && sso数据不是无效 && sso数据来源为拉取
                 occupyFromSSO.setUpdateTime(LocalDateTime.now());
                 occupyFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
                 occupyFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
@@ -329,7 +338,7 @@ public class OccupyServiceImpl implements OccupyService {
                 val.setValidEndTime(val.getEndTime());
                 // 如果新增的数据 active=0 失效 或者 del_mark=1 删除  或者 判断为孤儿
                 //   都将 最终有效期设置为 失效
-                if (val.getActive().equals("0") || val.getDelMark() == 1 || val.getOrphan() != 0) {
+                if (val.getActive()==0 || val.getDelMark() == 1 || val.getOrphan() != 0) {
                     val.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
                     val.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
                 }
@@ -370,7 +379,7 @@ public class OccupyServiceImpl implements OccupyService {
     private void setValidTime(OccupyDto occupyFromSSO) {
         occupyFromSSO.setValidStartTime(null != occupyFromSSO.getStartTime() ? occupyFromSSO.getStartTime() : LocalDateTime.of(1970, 1, 1, 0, 0, 0));
         occupyFromSSO.setValidEndTime(null != occupyFromSSO.getEndTime() ? occupyFromSSO.getEndTime() : LocalDateTime.of(2100, 1, 1, 0, 0, 0));
-        if (occupyFromSSO.getActive().equals("0") || occupyFromSSO.getDelMark() == 1 || occupyFromSSO.getOrphan() != 0 ) {
+        if (occupyFromSSO.getActive()==0 || occupyFromSSO.getDelMark() == 1 || occupyFromSSO.getOrphan() != 0 ) {
             occupyFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
             occupyFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
         }
