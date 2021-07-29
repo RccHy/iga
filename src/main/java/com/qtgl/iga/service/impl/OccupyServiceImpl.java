@@ -67,11 +67,11 @@ public class OccupyServiceImpl implements OccupyService {
      * 2.4 校验孤儿数据
      *
      * 3：根据人员和数据库中身份进行对比
-     * A：新增  上游提供、sso数据库中没有
-     * B：修改  上游和sso对比后字段值有差异
-     * C：删除  上游提供了del_mark
-     * D: 无效  上游曾经提供后，不再提供 OR 上游提供了active
-     * E: 恢复  之前被标记为删除后再通过推送了相同的数据
+     * A：新增 inster  上游提供、sso数据库中没有
+     * B：修改 update  上游和sso对比后字段值有差异
+     * C：删除 delete 上游提供了del_mark
+     * D: 无效   上游曾经提供后，不再提供 OR 上游提供了active
+     *
      *
      * @param domain
      * @return
@@ -203,7 +203,7 @@ public class OccupyServiceImpl implements OccupyService {
                     occupyDtoFromUpstream.get(key).getCreateTime().isAfter(occupyFromSSO.getUpdateTime())) {
                 //
                 boolean updateFlag = false;
-                boolean delRecoverFlag = false;
+              //  boolean delRecoverFlag = false;
                 boolean delFlag = false;
                 boolean invalidFlag = false;
                 OccupyDto newOccupy = occupyDtoFromUpstream.get(key);
@@ -226,12 +226,12 @@ public class OccupyServiceImpl implements OccupyService {
                             // 新值 = 老值 跳过
                             continue;
                         }
-                        if (sourceField.equals("delMark") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
+                       /* if (sourceField.equals("delMark") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
                             // 从删除中恢复  【计数算作新增】
                             delRecoverFlag = true;
                             log.info("人员身份信息{}从删除恢复 -> {}", occupyFromSSO.getOccupyId(), newOccupy.getSource());
                             continue;
-                        }
+                        }*/
                         if (sourceField.equals("delMark") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
                             // 上游真实推送了删除标记
                             delFlag = true;
@@ -248,7 +248,7 @@ public class OccupyServiceImpl implements OccupyService {
 
                     }
                 }
-                //上游没有提供delMark字段手动恢复
+                /*//上游没有提供delMark字段手动恢复
                 if (delRecoverFlag) {
                     occupyFromSSO.setDelMark(0);
                     setValidTime(occupyFromSSO);
@@ -260,7 +260,7 @@ public class OccupyServiceImpl implements OccupyService {
                         }});
                     }
                     log.info("人员身份信息{}从删除恢复", occupyFromSSO.getOccupyId());
-                }
+                }*/
                 if (delFlag) {
                     occupyFromSSO.setDelMark(1);
                     occupyFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
@@ -357,6 +357,7 @@ public class OccupyServiceImpl implements OccupyService {
         if (result.get("update") != null) {
             userLogs.addAll(result.get("update"));
         }
+        // todo 无效后对甘特图的影响
         userLogDao.saveUserLog(userLogs, tenant.getId());
 
         return result;

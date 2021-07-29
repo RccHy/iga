@@ -56,7 +56,8 @@ public class OccupyDaoImpl implements OccupyDao {
                 "         left join user u on iu.user_id = u.id" +
                 " where i.tenant_id = ?" +
                 "  and u.dept_code is not null" +
-                "  and u.user_type is not null;";
+                "  and u.user_type is not null" +
+                "  and u.del_mark=0;";
 
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId);
@@ -131,14 +132,14 @@ public class OccupyDaoImpl implements OccupyDao {
                     });
                 }
 
-                if (occupyMap.containsKey("update")||occupyMap.containsKey("invalid")||occupyMap.containsKey("recover")) {
+                if (occupyMap.containsKey("update")||occupyMap.containsKey("invalid")) {
                     List<OccupyDto> list =new ArrayList<>();
                      List<OccupyDto> update = occupyMap.get("update");
                      List<OccupyDto> invalid = occupyMap.get("invalid");
-                     List<OccupyDto> recover = occupyMap.get("recover");
+                     //List<OccupyDto> recover = occupyMap.get("recover");
                      list.addAll(update);
                      list.addAll(invalid);
-                     list.addAll(recover);
+                     //list.addAll(recover);
 
                     String sql = "UPDATE `user` SET user_type = ?, card_type = ?, card_no = ?, del_mark = ?, start_time = ?, end_time = ?, update_time = ?,dept_code = ?,  " +
                             " source = ?, data_source = ?,  user_index = ?,active=?,active_time=?,account_no=?,valid_start_time=?,valid_end_time=?,orphan=?" +

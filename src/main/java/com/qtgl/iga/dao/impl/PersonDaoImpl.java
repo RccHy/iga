@@ -35,7 +35,7 @@ public class PersonDaoImpl implements PersonDao {
         String sql = "select id,name,tags,open_id as openId,account_no as accountNo,card_type as cardType," +
                 "card_no  as cardNo, cellphone,email,source,data_source as dataSource,active," +
                 "active_time as activeTime,create_time as createTime,update_time as updateTime,del_mark as delMark" +
-                "  from identity  where tenant_id=? order by update_time";
+                "  from identity  where tenant_id=? and del_mark=0 order by update_time";
         List<Map<String, Object>> maps = jdbcSSO.queryForList(sql, tenantId);
         List<Person> personList = new ArrayList<>();
         maps.forEach(map -> {

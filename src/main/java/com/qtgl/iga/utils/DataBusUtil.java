@@ -659,7 +659,7 @@ public class DataBusUtil {
                             "    data : \"%s\", " +
                             "}";
                     pub = String.format(pub, "person.created", domain.getClientId(),
-                            person.getCardType() + ":" + person.getCardNo(), UUID.randomUUID(),
+                            person.getOpenId(), UUID.randomUUID(),
                             person.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(person).replace("\"", "\\\""));
                     graphql.append(person.getCardNo() + ":pub(message:" + pub + "){id}\n");
                 }
@@ -677,7 +677,7 @@ public class DataBusUtil {
                             "    data : \"%s\", " +
                             "}";
                     pub = String.format(pub, "person.updated", domain.getClientId(),
-                            person.getCardType() + ":" + person.getCardNo(), UUID.randomUUID(),
+                            person.getOpenId(), UUID.randomUUID(),
                             person.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(person).replace("\"", "\\\""));
                     graphql.append(person.getCardNo() + ":pub(message:" + pub + "){id}\n");
                 }
