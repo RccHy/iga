@@ -304,7 +304,7 @@ public class OccupyServiceImpl implements OccupyService {
                     occupyFromSSO.setUpdateTime(newOccupy.getUpdateTime());
                     // 区分出 更新数据  还是 无效数据（上游提供active字段 && 将active变为false）
                     if (invalidFlag) {
-                        occupyFromSSO.setActiveTime(LocalDateTime.now());
+                        occupyFromSSO.setActiveTime(newOccupy.getUpdateTime());
                         occupyFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
                         occupyFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
                         if (result.containsKey("invalid")) {
@@ -322,7 +322,7 @@ public class OccupyServiceImpl implements OccupyService {
                         }*/
                         if (occupyFromSSO.getActive() != newOccupy.getActive()) {
                             occupyFromSSO.setActive(newOccupy.getActive());
-                            occupyFromSSO.setActiveTime(LocalDateTime.now());
+                            occupyFromSSO.setActiveTime(newOccupy.getUpdateTime());
                         }
                         setValidTime(occupyFromSSO);
                         if (result.containsKey("update")) {
@@ -341,7 +341,8 @@ public class OccupyServiceImpl implements OccupyService {
                     //
                     if (occupyFromSSO.getActive() != newOccupy.getActive()) {
                         occupyFromSSO.setActive(newOccupy.getActive());
-                        occupyFromSSO.setActiveTime(LocalDateTime.now());
+                        occupyFromSSO.setActiveTime(newOccupy.getUpdateTime());
+                        occupyFromSSO.setUpdateTime(newOccupy.getUpdateTime());
                         if (result.containsKey("update")) {
                             result.get("update").add(occupyFromSSO);
                         } else {

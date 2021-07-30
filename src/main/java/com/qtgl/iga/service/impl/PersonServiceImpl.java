@@ -305,14 +305,14 @@ public class PersonServiceImpl implements PersonService {
 
             if (delFlag) {
                 personFromSSO.setDelMark(1);
-                //personFromSSO.setUpdateTime(now);
+                personFromSSO.setUpdateTime(newPerson.getUpdateTime());
                 personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
                 personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
                 log.info("人员信息{}从删除恢复", personFromSSO.getId());
             }
             if (updateFlag && personFromSSO.getDelMark() != 1) {
                 personFromSSO.setSource(newPerson.getSource());
-               // personFromSSO.setUpdateTime(newPerson.getUpdateTime());
+               personFromSSO.setUpdateTime(newPerson.getUpdateTime());
                 // 需要设置人员密码
                 if (passwordFlag) {
                     if (result.containsKey("password")) {
@@ -325,7 +325,7 @@ public class PersonServiceImpl implements PersonService {
                 }
 
                 if (invalidFlag) {
-                    personFromSSO.setActiveTime(LocalDateTime.now());
+                    personFromSSO.setActiveTime(newPerson.getUpdateTime());
                     personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
                     personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
                     if (result.containsKey("invalid")) {
@@ -338,7 +338,7 @@ public class PersonServiceImpl implements PersonService {
                 } else {
                     if (personFromSSO.getActive() != newPerson.getActive()) {
                         personFromSSO.setActive(newPerson.getActive());
-                        personFromSSO.setActiveTime(LocalDateTime.now());
+                        personFromSSO.setActiveTime(newPerson.getUpdateTime());
                     }
                     if (personFromSSO.getActive() == 0 || personFromSSO.getDelMark() == 1) {
                         personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
@@ -362,7 +362,8 @@ public class PersonServiceImpl implements PersonService {
                 //
                 if (personFromSSO.getActive() != newPerson.getActive()) {
                     personFromSSO.setActive(newPerson.getActive());
-                    personFromSSO.setActiveTime(LocalDateTime.now());
+                    personFromSSO.setActiveTime(newPerson.getUpdateTime());
+                    personFromSSO.setUpdateTime(newPerson.getUpdateTime());
                     if (result.containsKey("update")) {
                         result.get("update").add(personFromSSO);
                     } else {
