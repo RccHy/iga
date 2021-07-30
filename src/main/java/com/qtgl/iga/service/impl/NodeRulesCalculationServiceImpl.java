@@ -587,14 +587,23 @@ public class NodeRulesCalculationServiceImpl {
                         //遍历拉取的数据,标准化数据,以及赋值逻辑运算所需的值
                         for (Object o : upstreamTree) {
                             JSONObject dept = (JSONObject) o;
-                            if (null == dept.getString(TreeEnum.PARENT_CODE.getCode())) {
-                                dept.put(TreeEnum.PARENT_CODE.getCode(), "");
+                            //校验数据是否合法
+                            if (null != dept.getInteger(TreeEnum.DEL_MARK.getCode()) && 1 != dept.getInteger(TreeEnum.DEL_MARK.getCode()) && 0 != dept.getInteger(TreeEnum.DEL_MARK.getCode())) {
+                                logger.error(type + "是否有效字段不合法{}", dept.getInteger(TreeEnum.DEL_MARK.getCode()));
+                                continue;
+                            }
+                            if (null != dept.getInteger(TreeEnum.ACTIVE.getCode()) && 1 != dept.getInteger(TreeEnum.ACTIVE.getCode()) && 0 != dept.getInteger(TreeEnum.ACTIVE.getCode())) {
+                                logger.error(type + "是否删除字段不合法{}", dept.getInteger(TreeEnum.ACTIVE.getCode()));
+                                continue;
                             }
                             if (null == dept.getString(TreeEnum.ACTIVE.getCode())) {
-                                dept.put(TreeEnum.ACTIVE.getCode(), true);
+                                dept.put(TreeEnum.ACTIVE.getCode(), 1);
                             }
                             if (null == dept.getString(TreeEnum.DEL_MARK.getCode())) {
-                                dept.put(TreeEnum.DEL_MARK.getCode(), false);
+                                dept.put(TreeEnum.DEL_MARK.getCode(), 0);
+                            }
+                            if (null == dept.getString(TreeEnum.PARENT_CODE.getCode())) {
+                                dept.put(TreeEnum.PARENT_CODE.getCode(), "");
                             }
                             if (null == dept.getString(TreeEnum.CREATE_TIME.getCode())) {
                                 dept.put(TreeEnum.CREATE_TIME.getCode(), timestamp);
