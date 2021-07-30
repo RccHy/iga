@@ -221,7 +221,7 @@ public class OccupyServiceImpl implements OccupyService {
                 //失效标识
                 boolean invalidFlag = false;
                 //恢复失效标识
-                boolean invalidRecoverFlag = true;
+                //   boolean invalidRecoverFlag = true;
 
                 OccupyDto newOccupy = occupyDtoFromUpstream.get(key);
                 List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(newOccupy.getUpstreamType());
@@ -255,15 +255,17 @@ public class OccupyServiceImpl implements OccupyService {
                             log.info("人员身份信息{}删除 -> {}", occupyFromSSO.getOccupyId(), newOccupy.getSource());
                             continue;
                         }
+
+                        updateFlag = true;
                         if (sourceField.equals("active") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
                             invalidFlag = true;
                             continue;
-                        }
-                        if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
-                            invalidRecoverFlag = false;
-                        }
 
-                        updateFlag = true;
+                        }
+//                        if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
+//                            invalidRecoverFlag = false;
+//                        }
+
 
                         ClassCompareUtil.setValue(occupyFromSSO, occupyFromSSO.getClass(), sourceField, oldValue, newValue);
                         log.info("人员身份信息更新{}:字段{}：{} -> {}", occupyFromSSO.getOccupyId(), sourceField, oldValue, newValue);
@@ -313,8 +315,12 @@ public class OccupyServiceImpl implements OccupyService {
                         }
                     } else {
                         //失效恢复标识为true且sso的状态为无效
-                        if (invalidRecoverFlag && occupyFromSSO.getActive() != 1) {
+                       /* if (invalidRecoverFlag && occupyFromSSO.getActive() != 1) {
                             occupyFromSSO.setActive(1);
+                            occupyFromSSO.setActiveTime(LocalDateTime.now());
+                        }*/
+                        if (occupyFromSSO.getActive() != newOccupy.getActive()) {
+                            occupyFromSSO.setActive(newOccupy.getActive());
                             occupyFromSSO.setActiveTime(LocalDateTime.now());
                         }
                         setValidTime(occupyFromSSO);
@@ -329,11 +335,28 @@ public class OccupyServiceImpl implements OccupyService {
 
 
                 }
+                // 对比后，权威源提供的"映射字段"数据和sso中没有差异。 （active字段不提供）
+                if (!updateFlag && occupyFromSSO.getDelMark() != 1) {
+                    //
+                    if (occupyFromSSO.getActive() != newOccupy.getActive()) {
+                        occupyFromSSO.setActive(newOccupy.getActive());
+                        occupyFromSSO.setActiveTime(LocalDateTime.now());
+                        if (result.containsKey("update")) {
+                            result.get("update").add(occupyFromSSO);
+                        } else {
+                            result.put("update", new ArrayList<OccupyDto>() {{
+                                this.add(occupyFromSSO);
+                            }});
+                        }
+
+                    }
+
+                }
                 log.debug("人员身份对比后更新{}-{}", occupyFromSSO, occupyDtoFromUpstream.get(key));
                 //如果权威源没有,sso有并且来源是pull则置为失效
             } else if (!occupyDtoFromUpstream.containsKey(key) && 1 != occupyFromSSO.getDelMark() && occupyFromSSO.getActive() != 0
                     && "PULL".equalsIgnoreCase(occupyFromSSO.getDataSource())) {
-                // 如果sso 有，上游源没有 &&  sso中数据不是删除 && sso数据不是无效 && sso数据来源为拉取
+                // 如果sso 有，上游源没有 &&  sso中数据不是删除 && sso数据不是无效
                 occupyFromSSO.setUpdateTime(LocalDateTime.now());
                 occupyFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
                 occupyFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
@@ -346,6 +369,7 @@ public class OccupyServiceImpl implements OccupyService {
                 }
                 log.debug("人员身份对比后上游丢失{}", occupyFromSSO);
             }
+
 
         });
 

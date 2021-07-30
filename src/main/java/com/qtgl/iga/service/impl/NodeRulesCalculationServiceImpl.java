@@ -396,12 +396,12 @@ public class NodeRulesCalculationServiceImpl {
                             type = "人员";
                             List<JSONObject> personList = objects.toJavaList(JSONObject.class);
                             Map<String, JSONObject> map = personList.stream().collect(Collectors.toMap(
-                                    (code -> code.getString("cardType") + ":" + code.getString("cardNo")),
+                                    (code -> code.getString("openId")),
                                     (value -> value)));
 
                             for (Object t : delete) {
                                 Person person = (Person) t;
-                                if (!map.containsKey(person.getCardType() + ":" + person.getCardNo())) {
+                                if (!map.containsKey(person.getOpenId())) {
                                     flag = true;
                                     break;
                                 }
