@@ -57,11 +57,11 @@ public class Person {
     /**
      * 启用
      */
-    private String active;
+    private Integer active;
     /**
      * 启用时间
      */
-    private String activeTime;
+    private LocalDateTime activeTime;
     /**
      * 创建时间
      */
@@ -81,5 +81,16 @@ public class Person {
 
     private String openId;
 
+    /**
+     * 人员最终有效时间
+     */
+    private LocalDateTime validStartTime;
+
+    private LocalDateTime validEndTime;
+
+    /**
+     * 密码
+     */
+    private String password;
 
 }

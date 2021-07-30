@@ -153,8 +153,8 @@ public class PersonDaoImpl implements PersonDao {
                     final List<Person> list = personMap.get("install");
 
 
-                    String str = "insert into identity (id, `name`, account_no,open_id,  del_mark, create_time, update_time, tenant_id, card_type, card_no, cellphone, email, data_source, tags,  `active`, active_time,`source`)" +
-                            " values  (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                    String str = "insert into identity (id, `name`, account_no,open_id,  del_mark, create_time, update_time, tenant_id, card_type, card_no, cellphone, email, data_source, tags,  `active`, active_time,`source`,valid_start_time,valid_end_time)" +
+                            " values  (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
 
                     int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
@@ -174,9 +174,11 @@ public class PersonDaoImpl implements PersonDao {
                             preparedStatement.setObject(12, list.get(i).getEmail());
                             preparedStatement.setObject(13, list.get(i).getDataSource());
                             preparedStatement.setObject(14, list.get(i).getTags());
-                            preparedStatement.setObject(15, 1);
+                            preparedStatement.setObject(15, list.get(i).getActive());
                             preparedStatement.setObject(16, list.get(i).getActiveTime());
                             preparedStatement.setObject(17, "PULL");
+                            preparedStatement.setObject(18, list.get(i).getValidStartTime());
+                            preparedStatement.setObject(19, list.get(i).getValidEndTime());
                         }
 
                         @Override
@@ -187,7 +189,7 @@ public class PersonDaoImpl implements PersonDao {
                 }
                 if (personMap.containsKey("update")) {
                     final List<Person> list = personMap.get("update");
-                    String str = "UPDATE identity set  `name`= ?, account_no=?,  del_mark=?, update_time=?, tenant_id=?,  cellphone=?, email=?, data_source=?, tags=?,  `active`=?, active_time=? ,`source`= ?,data_source=?" +
+                    String str = "UPDATE identity set  `name`= ?, account_no=?,  del_mark=?, update_time=?, tenant_id=?,  cellphone=?, email=?, data_source=?, tags=?,  `active`=?, active_time=? ,`source`= ?,data_source=?,valid_start_time=?,valid_end_time=? " +
                             " where id=? and update_time< ? ";
                     int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
                         @Override
@@ -205,8 +207,10 @@ public class PersonDaoImpl implements PersonDao {
                             preparedStatement.setObject(11, list.get(i).getActiveTime());
                             preparedStatement.setObject(12, "PULL");
                             preparedStatement.setObject(13, list.get(i).getDataSource());
-                            preparedStatement.setObject(14, list.get(i).getId());
-                            preparedStatement.setObject(15, list.get(i).getUpdateTime());
+                            preparedStatement.setObject(14, list.get(i).getValidStartTime());
+                            preparedStatement.setObject(15, list.get(i).getValidEndTime());
+                            preparedStatement.setObject(16, list.get(i).getId());
+                            preparedStatement.setObject(17, list.get(i).getUpdateTime());
                         }
 
                         @Override

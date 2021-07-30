@@ -50,9 +50,17 @@ public class PersonServiceImpl implements PersonService {
 
 
     /**
-     * 1:  循环遍历参与治理的所有权威源
-     * 2： 拉取权威源数据并根据 证件类型+证件 号码进行和重，并验证证件类型对应的号码是否符合 正则表达式
-     * 3： 如果有手动合重规则，运算手动合重规则【待确认】
+     * 如果有手动合重规则，运算手动合重规则【待确认】
+     * <p>
+     * * 1：根据规则获取所有的 人员数据
+     * * 2： 根据 (证件类型+证件号码)  或 用户名 进行和重，并验证证件类型对应的号码是否符合 正则表达式
+     * *
+     * * 3：根据上游人员和数据库中人员进行对比
+     * * A：新增  上游提供、sso数据库中没有
+     * * B：修改  上游和sso对比后字段值有差异
+     * * C：删除  上游提供了del_mark
+     * * D: 无效  上游曾经提供后，不再提供 OR 上游提供了active
+     * * E: 恢复  之前被标记为失效后再通过推送了相同的数据
      */
 
     @Override
@@ -93,22 +101,30 @@ public class PersonServiceImpl implements PersonService {
             List<Person> personBeanList = dataByBus.toJavaList(Person.class);
             if (null != personBeanList) {
                 for (Person personBean : personBeanList) {
+                    if (null != personBean.getActive() && personBean.getActive() != 0 && personBean.getActive() != 1) {
+                        log.error("人员是否有效字段不合法{}", personBean.getActive());
+                        continue;
+                    }
+                    if (null != personBean.getDelMark() && personBean.getDelMark() != 0 && personBean.getDelMark() != 1) {
+                        log.error("人员是否删除字段不合法{}", personBean.getDelMark());
+                        continue;
+                    }
                     if (StringUtils.isEmpty(personBean.getName())) {
-                        log.warn("姓名为空");
+                        log.error("姓名为空");
                         continue;
                     }
                     if (StringUtils.isEmpty(personBean.getCardNo()) && StringUtils.isEmpty(personBean.getCardType())) {
-                        log.warn(personBean.getName() + "证件类型、号码为空");
+                        log.error(personBean.getName() + "证件类型、号码为空");
                         continue;
                     }
                     if (cardTypeMap.containsKey(personBean.getCardType())) {
                         String cardTypeReg = cardTypeMap.get(personBean.getCardType()).getCardTypeReg();
                         if (!Pattern.matches(cardTypeReg, personBean.getCardNo())) {
-                            log.warn(personBean.getName() + "证件号码不符合规则");
+                            log.error(personBean.getName() + "证件号码不符合规则");
                             continue;
                         }
                     } else {
-                        log.warn(personBean.getName() + "证件类型无效");
+                        log.error(personBean.getName() + "证件类型无效");
                         continue;
                     }
                     personBean.setSource(upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")");
@@ -117,10 +133,15 @@ public class PersonServiceImpl implements PersonService {
                     if (null == personBean.getUpdateTime()) {
                         personBean.setUpdateTime(now);
                     }
+                    //如果未提供del,赋予默认值未删除
                     if (null == personBean.getDelMark()) {
                         personBean.setDelMark(0);
                     }
-
+                    //如果未提供active,赋予默认值有效
+                    if (null == personBean.getActive()) {
+                        personBean.setActive(1);
+                        personBean.setActiveTime(LocalDateTime.now());
+                    }
                     personFromUpstream.put(personBean.getCardType() + ":" + personBean.getCardNo(), personBean);
                 }
             }
@@ -140,8 +161,15 @@ public class PersonServiceImpl implements PersonService {
             // 对比出需要修改的person
             if (personFromUpstream.containsKey(key) &&
                     personFromUpstream.get(key).getCreateTime().isAfter(val.getUpdateTime())) {
-                boolean flag = false;
-                boolean delFlag = true;
+                //修改标识
+                boolean updateFlag = false;
+                //del字段标识
+                boolean delFlag = false;
+                //失效标识
+                boolean invalidFlag = false;
+                //恢复失效标识
+                boolean invalidRecoverFlag = true;
+
                 Person newPerson = personFromUpstream.get(key);
                 List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(newPerson.getUpstreamType());
                 // 如果字段上游不提供，则不进行更新
@@ -157,49 +185,86 @@ public class PersonServiceImpl implements PersonService {
                         if (null != oldValue && oldValue.equals(newValue)) {
                             continue;
                         }
-                        if (sourceField.equals("delMark") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
-                            delFlag = false;
-                            log.info("人员信息{}从删除恢复", val.getId());
-                        }
-                        if (sourceField.equals("delMark") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
+//                        if (sourceField.equals("delMark") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
+//                            delFlag = true;
+//                            log.info("人员信息{}从删除恢复", val.getId());
+//                        }
+                        if (sourceField.equalsIgnoreCase("delMark") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
+                            delFlag = true;
                             log.info("人员信息{}删除", val.getId());
+                            continue;
                         }
-                        flag = true;
+                        if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
+                            invalidFlag = true;
+                            log.info("人员信息{}失效", val.getId());
+                            continue;
+                        }
+                        if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
+                            invalidRecoverFlag = false;
+                        }
+                        updateFlag = true;
                         ClassCompareUtil.setValue(val, val.getClass(), sourceField, oldValue, newValue);
                         log.debug("人员信息更新{}:字段{}：{} -> {}", val.getId(), sourceField, oldValue, newValue);
                     }
                 }
 
 
-                if (val.getDelMark().equals(1) && delFlag) {
-                    flag = true;
-                    val.setDelMark(0);
+                if (delFlag) {
+                    updateFlag = true;
+                    val.setDelMark(1);
+                    val.setUpdateTime(now);
+                    val.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                    val.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
                     log.info("人员信息{}从删除恢复", val.getId());
                 }
-                if (flag) {
+                if (updateFlag && val.getDelMark() != 1) {
                     val.setSource(newPerson.getSource());
                     val.setUpdateTime(newPerson.getUpdateTime());
-                    log.info("对比后需要修改{}", val);
-                    if (result.containsKey("update")) {
-                        result.get("update").add(val);
+
+                    if (invalidFlag) {
+                        val.setActiveTime(LocalDateTime.now());
+                        val.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                        val.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                        if (result.containsKey("invalid")) {
+                            result.get("invalid").add(val);
+                        } else {
+                            result.put("invalid", new ArrayList<Person>() {{
+                                this.add(val);
+                            }});
+                        }
                     } else {
-                        result.put("update", new ArrayList<Person>() {{
-                            this.add(val);
-                        }});
+                        //失效恢复标识为true且sso的状态为无效(如果invalidFlag为true 则说明上游已提供active字段)
+                        if (invalidRecoverFlag && val.getActive() != 1) {
+                            val.setActive(1);
+                            val.setActiveTime(LocalDateTime.now());
+                            val.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                            val.setValidEndTime(LocalDateTime.of(2100, 1, 1, 0, 0, 0));
+                        }
+                        if (result.containsKey("update")) {
+                            result.get("update").add(val);
+                        } else {
+                            result.put("update", new ArrayList<Person>() {{
+                                this.add(val);
+                            }});
+                        }
                     }
+                    log.info("人员对比后需要修改{}", val);
+
                 }
 
-            } else if (!personFromUpstream.containsKey(key) && 1 != val.getDelMark() && "PULL".equalsIgnoreCase(val.getDataSource())) {
+            } else if (!personFromUpstream.containsKey(key) && 1 != val.getDelMark() && "PULL".equalsIgnoreCase(val.getDataSource()) && val.getActive() != 0) {
                 val.setUpdateTime(now);
-                if (result.containsKey("delete")) {
-                    result.get("delete").add(val);
+                val.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                val.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                if (result.containsKey("invalid")) {
+                    result.get("invalid").add(val);
                 } else {
-                    result.put("delete", new ArrayList<Person>() {{
+                    result.put("invalid", new ArrayList<Person>() {{
                         this.add(val);
                     }});
                 }
 
-                log.info("人员对比后删除{}", val);
+                log.info("人员对比后上游丢失{}", val);
             }
         });
 

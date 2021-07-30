@@ -99,7 +99,7 @@ public class OccupyDaoImpl implements OccupyDao {
                             preparedStatement.setObject(10, list.get(i).getDeptCode());
                             preparedStatement.setObject(11, list.get(i).getSource());
                             preparedStatement.setObject(12, "PULL");
-                            preparedStatement.setObject(13, 1);
+                            preparedStatement.setObject(13, list.get(i).getActive());
                             preparedStatement.setObject(14, LocalDateTime.now());
                             preparedStatement.setObject(15, list.get(i).getIndex());
                             preparedStatement.setObject(16, list.get(i).getPostCode());
@@ -132,14 +132,21 @@ public class OccupyDaoImpl implements OccupyDao {
                     });
                 }
 
-                if (occupyMap.containsKey("update")||occupyMap.containsKey("invalid")) {
-                    List<OccupyDto> list =new ArrayList<>();
-                     List<OccupyDto> update = occupyMap.get("update");
-                     List<OccupyDto> invalid = occupyMap.get("invalid");
-                     //List<OccupyDto> recover = occupyMap.get("recover");
-                     list.addAll(update);
-                     list.addAll(invalid);
-                     //list.addAll(recover);
+
+                if (occupyMap.containsKey("update") || occupyMap.containsKey("invalid") || occupyMap.containsKey("recover")) {
+                    List<OccupyDto> list = new ArrayList<>();
+                    List<OccupyDto> update = occupyMap.get("update");
+                    List<OccupyDto> invalid = occupyMap.get("invalid");
+//                    List<OccupyDto> recover = occupyMap.get("recover");
+                    if (null != update) {
+                        list.addAll(update);
+                    }
+                    if (null != invalid) {
+                        list.addAll(invalid);
+                    }
+//                    if (null != recover) {
+//                        list.addAll(recover);
+//                    }
 
                     String sql = "UPDATE `user` SET user_type = ?, card_type = ?, card_no = ?, del_mark = ?, start_time = ?, end_time = ?, update_time = ?,dept_code = ?,  " +
                             " source = ?, data_source = ?,  user_index = ?,active=?,active_time=?,account_no=?,valid_start_time=?,valid_end_time=?,orphan=?" +
@@ -168,6 +175,7 @@ public class OccupyDaoImpl implements OccupyDao {
                             preparedStatement.setObject(19, list.get(i).getOccupyId());
                             preparedStatement.setObject(20, list.get(i).getUpdateTime());
                         }
+
                         @Override
                         public int getBatchSize() {
                             return list.size();

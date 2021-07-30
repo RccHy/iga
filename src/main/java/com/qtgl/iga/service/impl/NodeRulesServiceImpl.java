@@ -71,9 +71,7 @@ public class NodeRulesServiceImpl implements NodeRulesService {
         //删除rules
         Integer flag = nodeRulesDao.deleteNodeRulesById((String) arguments.get("id"));
         if (flag > 0) {
-            NodeRulesVo nodeRulesVo = new NodeRulesVo(nodeRules);
-            nodeRulesVo.setNodeRulesRanges(ranges);
-            return nodeRulesVo;
+            return new NodeRulesVo();
         } else {
             throw new CustomException(ResultCode.FAILED, "删除rule失败");
         }

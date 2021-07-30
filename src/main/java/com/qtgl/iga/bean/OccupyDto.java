@@ -39,6 +39,7 @@ public class OccupyDto {
 
     private String upstreamType;
     private String openId;
+    //用户名
     private String accountNo;
 
     /**
