@@ -253,6 +253,31 @@ public class PersonDaoImpl implements PersonDao {
 
                 }
 
+                if (personMap.containsKey("password")) {
+                    final List<Person> list = personMap.get("password");
+
+                    String str = "INSERT INTO password(id,account_id,password,create_time,update_time,del_mark )" +
+                            " SELECT " +
+                            " uuid(),?,?,now(),now(),0 " +
+                            " FROM DUAL " +
+                            " WHERE NOT  EXISTS(select * from password where account_id=?);";
+
+
+                    int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, list.get(i).getId());
+                            preparedStatement.setObject(2, list.get(i).getPassword());
+                            preparedStatement.setObject(3, list.get(i).getId());
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return list.size();
+                        }
+                    });
+                }
+
                 return 1;
             } catch (Exception e) {
                 e.printStackTrace();

@@ -259,7 +259,7 @@ public class OccupyServiceImpl implements OccupyService {
                         updateFlag = true;
                         if (sourceField.equals("active") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
                             invalidFlag = true;
-                            continue;
+                           // continue;
 
                         }
 //                        if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
@@ -289,6 +289,7 @@ public class OccupyServiceImpl implements OccupyService {
                 }*/
                 if (delFlag) {
                     occupyFromSSO.setDelMark(1);
+                    occupyFromSSO.setUpdateTime(newOccupy.getUpdateTime());
                     occupyFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
                     occupyFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
                     if (result.containsKey("delete")) {
