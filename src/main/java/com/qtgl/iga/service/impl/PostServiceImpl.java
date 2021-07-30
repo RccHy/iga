@@ -79,13 +79,14 @@ public class PostServiceImpl implements PostService {
             logger.error("请检查根树是否合法{}", tenant.getId());
             throw new CustomException(ResultCode.FAILED, "请检查根树是否合法");
         }
+        //获取完整的BUILTIN根数据以及加入逻辑根节点
         rootBeans.addAll(ssoBeans);
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
         ArrayList<TreeBean> treeBeans = new ArrayList<>();
 
         List<TreeBean> mainTreeBeans = new ArrayList<>();
-        Map<String, TreeBean> rootBeansMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+//        Map<String, TreeBean> rootBeansMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
         final LocalDateTime now = LocalDateTime.now();
         mainTreeBeans.addAll(ssoBeans);
 
@@ -111,13 +112,13 @@ public class PostServiceImpl implements PostService {
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
 
         //同步到sso
-        beans = dataProcessing(mainTreeMap, domain, "", beans, result, treeBeans, now);
-        if (null != beans) {
-            beans.addAll(treeBeans);
-        }
-        if (null != rootBeansMap && rootBeansMap.size() > 0) {
-            rootBeans = new ArrayList<>(rootBeansMap.values());
-        }
+        beans = dataProcessing(mainTreeMap, domain, "", beans, result, now);
+//        if (null != beans) {
+//            beans.addAll(treeBeans);
+//        }
+//        if (null != rootBeansMap && rootBeansMap.size() > 0) {
+//            rootBeans = new ArrayList<>(rootBeansMap.values());
+//        }
         // 判断重复(code)
         calculationService.groupByCode(beans, 0, domain);
         //
@@ -170,6 +171,7 @@ public class PostServiceImpl implements PostService {
             logger.error("请检查根树是否合法{}", tenant.getId());
             throw new CustomException(ResultCode.FAILED, "请检查根树是否合法");
         }
+        //获取完整的BUILTIN根数据以及加入逻辑根节点
         rootBeans.addAll(ssoBeans);
 
         //轮训比对标记(是否有主键id)
@@ -183,11 +185,9 @@ public class PostServiceImpl implements PostService {
         mainTreeBeans.addAll(ssoBeans);
         for (TreeBean rootBean : rootBeans) {
 
-
             mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE);
 
         }
-
 
         //通过tenantId查询ssoApis库中的数据
         List<TreeBean> beans = postDao.findByTenantId(tenant.getId());
@@ -204,14 +204,14 @@ public class PostServiceImpl implements PostService {
         beans = new ArrayList<>(collect.values());
         //数据对比处理
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-        beans = dataProcessing(mainTreeMap, domain, "", beans, result, treeBeans, now);
+        beans = dataProcessing(mainTreeMap, domain, "", beans, result, now);
 
-        if (null != beans) {
-            beans.addAll(treeBeans);
-        }
-        if (null != rootBeansMap && rootBeansMap.size() > 0) {
-            rootBeans = new ArrayList<>(rootBeansMap.values());
-        }
+//        if (null != beans) {
+//            beans.addAll(treeBeans);
+//        }
+//        if (null != rootBeansMap && rootBeansMap.size() > 0) {
+//            rootBeans = new ArrayList<>(rootBeansMap.values());
+//        }
         // 判断重复(code)
         calculationService.groupByCode(beans, status, domain);
 
@@ -321,11 +321,18 @@ public class PostServiceImpl implements PostService {
 
 
     /**
-     * @param mainTree
-     * @Description: 处理数据
-     * @return: void
-     */
-    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> ssoBeans, Map<TreeBean, String> result, ArrayList<TreeBean> insert, LocalDateTime now) {
+     * 1：根据规则拉取所有权威源岗位数据
+     * 2：获取sso所有的岗位数据(包括已删除的)
+     * <p>
+     * 3：根据上游部门和数据库中岗位进行对比
+     * A：新增  上游提供、sso数据库中没有            对于active和del_mark字段 上游提供使用上游,不提供则默认有效未删除
+     * B：修改  上游和sso对比后字段值有差异
+     * C：删除  上游提供了del_mark             (上游必须del_mark字段)
+     * D: 无效  上游曾经提供后，不再提供 OR 上游提供了active
+     * E: 删除恢复  之前被标记为删除后再通过推送了相同的数据   (上游必须del_mark字段)
+     * E: 失效恢复  之前被标记为失效后再通过推送了相同的数据   提供active则修改对比时直接覆盖,不提供则手动恢复
+     **/
+    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> ssoBeans, Map<TreeBean, String> result, LocalDateTime now) {
         //将sso的数据转化为map方便对比
         Map<String, TreeBean> ssoCollect = new HashMap<>();
         if (null != ssoBeans && ssoBeans.size() > 0) {
@@ -348,8 +355,18 @@ public class PostServiceImpl implements PostService {
                         if (null != pullBean.getCreateTime()) {
                             //修改
                             if (null == ssoBean.getCreateTime() || pullBean.getCreateTime().isAfter(ssoBean.getCreateTime())) {
-                                //使用sso的对象,将需要修改的值赋值
-                                if (!"BUILTIN".equals(pullBean.getDataSource())) {
+                                //修改标识 1.source为非BUILTIN 则进行覆盖  2.source都为PULL则对比字段 有修改再标识为true
+                                boolean updateFlag = false;
+                                //删除恢复标识
+                                boolean delRecoverFlag = false;
+                                //del字段标识
+                                boolean delFlag = false;
+                                //失效标识
+                                boolean invalidFlag = false;
+                                //是否手动恢复有效标识 (如果上游提供则置为false)
+                                boolean invalidRecoverFlag = true;
+
+                                if (!"BUILTIN".equalsIgnoreCase(pullBean.getDataSource())) {
                                     ssoBean.setDataSource("PULL");
                                     ssoBean.setSource(pullBean.getSource());
                                     ssoBean.setUpdateTime(now);
@@ -357,10 +374,7 @@ public class PostServiceImpl implements PostService {
                                 }
                                 ssoBean.setColor(pullBean.getColor());
                                 ssoBean.setIsRuled(pullBean.getIsRuled());
-                                //标识数据是否需要修改
-                                boolean updateFlag = false;
-                                //标识上游是否给出删除标记
-                                boolean delFlag = true;
+
 
                                 List<UpstreamTypeField> fields = null;
                                 if (null != pullBean.getUpstreamTypeId()) {
@@ -373,52 +387,81 @@ public class PostServiceImpl implements PostService {
 
                                         Object newValue = ClassCompareUtil.getGetMethod(pullBean, sourceField);
                                         Object oldValue = ClassCompareUtil.getGetMethod(ssoBean, sourceField);
+                                        //均为空 跳过
                                         if (null == oldValue && null == newValue) {
                                             continue;
                                         }
+                                        //不为空且相同 跳过
                                         if (null != oldValue && oldValue.equals(newValue)) {
                                             continue;
                                         }
                                         //将修改表示改为true 标识数据需要修改
                                         updateFlag = true;
-                                        //如果上游给出删除标记 则使用上游的
-                                        if ("delMark".equals(sourceField)) {
-                                            //将删除标记置为false标识(不是用自己的delMark)
-                                            if (null != ssoBean.getDelMark() && null != pullBean.getDelMark() && (ssoBean.getDelMark() == 1) && (pullBean.getDelMark() == 0)) {
-                                                result.put(ssoBean, "recover");
-                                            }
-                                            delFlag = false;
-                                            //恢复的不计入修改
-                                            updateFlag = false;
+                                        //如果上游给出删除标记 则使用上游的   不给则不处理
+                                        if ("delMark".equalsIgnoreCase(sourceField) && null != ssoBean.getDelMark() && null != pullBean.getDelMark() && (ssoBean.getDelMark() == 1) && (pullBean.getDelMark() == 0)) {
+                                            //恢复标识
+                                            delRecoverFlag = true;
+                                            continue;
                                         }
+                                        if ("delMark".equalsIgnoreCase(sourceField) && null != ssoBean.getDelMark() && null != pullBean.getDelMark() && (ssoBean.getDelMark() == 0) && (pullBean.getDelMark() == 1)) {
+                                            //删除标识
+                                            delFlag = true;
+                                            continue;
+                                        }
+                                        if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
+                                            invalidFlag = true;
+                                        }
+                                        if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
+                                            invalidRecoverFlag = false;
+                                        }
+
                                         //将值更新到sso对象
                                         ClassCompareUtil.setValue(ssoBean, ssoBean.getClass(), sourceField, oldValue, newValue);
                                         logger.debug("岗位信息更新{}:字段{}: {} -> {} ", pullBean.getCode(), sourceField, oldValue, newValue);
                                     }
                                 }
-                                //如果上游没给出删除标识,并且sso数据显示数据已被删除,则直接从删除恢复
-                                //该操作主要是给删除标识手动赋值
-                                if (delFlag && ssoBean.getDelMark().equals(1)) {
+
+                                //标识为恢复数据
+                                if (delRecoverFlag) {
                                     ssoBean.setDelMark(0);
-                                    updateFlag = false;
                                     result.put(ssoBean, "recover");
+                                    //修改标记置为false
+                                    updateFlag = false;
                                     logger.info("岗位信息{}从删除恢复", ssoBean.getCode());
                                 }
-                                if (updateFlag) {
+                                //标识为删除的数据
+                                if (delFlag) {
+                                    //将数据放入删除集合
+                                    ssoBean.setDelMark(1);
+                                    ssoCollect.remove(ssoBean.getCode());
+                                    result.put(ssoBean, "delete");
+                                    //修改标记置为false
+                                    updateFlag = false;
+                                    logger.info("岗位对比后需要删除{}", ssoBean);
+                                }
+                                //恢复失效数据  未提供active手动处理
+                                if (invalidRecoverFlag && ssoBean.getActive() != 1) {
+                                    //修改标记置为false
+                                    updateFlag = false;
+                                    ssoBean.setActive(1);
+                                    result.put(ssoBean, "update");
+                                    logger.info("岗位信息{}从失效恢复", ssoBean.getCode());
+                                }
 
-                                    if (0 == ssoBean.getDelMark()) {
-                                        //将数据放入修改集合
-                                        logger.info("岗位对比后需要修改{}", ssoBean);
+                                //修改不为删除的数据
+                                if (updateFlag && ssoBean.getDelMark() != 1) {
 
-                                        ssoCollect.put(ssoBean.getCode(), ssoBean);
-                                        result.put(ssoBean, "update");
+                                    ssoBean.setUpdateTime(now);
+                                    //失效
+                                    if (invalidFlag) {
+                                        result.put(ssoBean, "invalid");
                                     } else {
-                                        //将数据放入删除集合
-                                        logger.info("岗位对比后需要删除{}", ssoBean);
+                                        //将数据放入修改集合
+                                        ssoCollect.put(ssoBean.getCode(), ssoBean);
 
-                                        ssoCollect.remove(ssoBean.getCode());
-                                        result.put(ssoBean, "delete");
+                                        result.put(ssoBean, "update");
                                     }
+                                    logger.info("岗位对比后需要修改{}", ssoBean);
 
                                 }
 
@@ -437,12 +480,12 @@ public class PostServiceImpl implements PostService {
                 //没有相等的应该是新增(对比code没有对应的标识为新增)
                 if (flag) {
                     //新增
-                    insert.add(pullBean);
+                    ssoCollect.put(pullBean.getCode(), pullBean);
                     result.put(pullBean, "insert");
                 }
             } else {
                 //数据库数据为空的话,则默认全部新增
-                insert.add(pullBean);
+                ssoCollect.put(pullBean.getCode(), pullBean);
                 result.put(pullBean, "insert");
             }
 
@@ -467,7 +510,7 @@ public class PostServiceImpl implements PostService {
                         if (!("".equals(ssoBean.getCode()))) {
                             //如果为有效的再走失效并更新修改时间,
                             //本身就是无效的则不做处理
-                            if (1 == ssoBean.getActive() && 0 == ssoBean.getDelMark()) {
+                            if (1 == ssoBean.getActive()) {
                                 ssoBean.setActive(0);
                                 ssoBean.setUpdateTime(now);
                                 result.put(ssoBean, "invalid");

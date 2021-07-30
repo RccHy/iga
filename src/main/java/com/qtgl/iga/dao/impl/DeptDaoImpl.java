@@ -216,13 +216,9 @@ public class DeptDaoImpl implements DeptDao {
 
     @Override
     public Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, ArrayList<TreeBean> invalidList, String tenantId) {
-        String insertStr = "insert into dept (id,dept_code, dept_name, parent_code, del_mark ,tenant_id ,source, data_source, description, meta,create_time,tags,independent,active,active_time,tree_type,dept_index,abbreviation,update_time,type) values" +
+        String insertStr = "insert into dept (id,dept_code, dept_name, parent_code, del_mark ,tenant_id ,source, data_source, description, meta," +
+                "create_time,tags,independent,active,active_time,tree_type,dept_index,abbreviation,update_time,type) values" +
                 "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-        String updateStr = "update dept set  dept_name=?, parent_code=?, del_mark=? ,tenant_id =?" +
-                ",source =?, data_source=?, description=?, meta=?,update_time=?,tags=?,independent=?,tree_type= ?,active=? ,abbreviation=?,type = ?,dept_index=?  " +
-                "where dept_code =? and update_time<= ?";
-        String deleteStr = "update dept set   active = ?,active_time= ?,del_mark=?   " +
-                "where dept_code =? and update_time<= ? ";
         return txTemplate.execute(transactionStatus -> {
 
             try {
@@ -258,6 +254,9 @@ public class DeptDaoImpl implements DeptDao {
                         }
                     });
                 }
+                String updateStr = "update dept set  dept_name=?, parent_code=?, del_mark=? ,tenant_id =?" +
+                        ",source =?, data_source=?, description=?, meta=?,update_time=?,tags=?,independent=?,tree_type= ?,active=? ,abbreviation=?,type = ?,dept_index=?  " +
+                        "where dept_code =? and update_time<= ?";
                 if (null != updateList && updateList.size() > 0) {
                     int[] i = jdbcSSOAPI.batchUpdate(updateStr, new BatchPreparedStatementSetter() {
                         @Override
@@ -289,37 +288,30 @@ public class DeptDaoImpl implements DeptDao {
                         }
                     });
                 }
+                String deleteStr = "update dept set   active = ?,active_time= ?,del_mark=? ,update_time =?  " +
+                        "where dept_code =? and update_time<= ? ";
+                ArrayList<TreeBean> treeBeans = new ArrayList<>();
                 if (null != deleteList && deleteList.size() > 0) {
-                    jdbcSSOAPI.batchUpdate(deleteStr, new BatchPreparedStatementSetter() {
-                        @Override
-                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, deleteList.get(i).getActive());
-                            preparedStatement.setObject(2, LocalDateTime.now());
-                            preparedStatement.setObject(3, deleteList.get(i).getDelMark());
-                            preparedStatement.setObject(4, deleteList.get(i).getCode());
-                            preparedStatement.setObject(5, deleteList.get(i).getUpdateTime());
-                        }
-
-                        @Override
-                        public int getBatchSize() {
-                            return deleteList.size();
-                        }
-                    });
+                    treeBeans.addAll(deleteList);
                 }
                 if (null != invalidList && invalidList.size() > 0) {
+                    treeBeans.addAll(invalidList);
+                }
+                if (null != treeBeans && treeBeans.size() > 0) {
                     jdbcSSOAPI.batchUpdate(deleteStr, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, invalidList.get(i).getActive());
+                            preparedStatement.setObject(1, treeBeans.get(i).getActive());
                             preparedStatement.setObject(2, LocalDateTime.now());
-                            preparedStatement.setObject(3, invalidList.get(i).getDelMark());
-                            preparedStatement.setObject(4, invalidList.get(i).getCode());
-                            preparedStatement.setObject(5, invalidList.get(i).getUpdateTime());
+                            preparedStatement.setObject(3, treeBeans.get(i).getDelMark());
+                            preparedStatement.setObject(4, treeBeans.get(i).getUpdateTime());
+                            preparedStatement.setObject(5, treeBeans.get(i).getCode());
+                            preparedStatement.setObject(6, treeBeans.get(i).getUpdateTime());
                         }
 
                         @Override
                         public int getBatchSize() {
-                            return invalidList.size();
+                            return treeBeans.size();
                         }
                     });
                 }
