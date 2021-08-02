@@ -69,6 +69,12 @@ type Person{
     cellphone:String
     #邮箱
     email:String
+    #密码
+    password:String
+    #是否有效
+    active:Int
+    #是否删除
+    delMark:Int
 
 }
 
@@ -91,6 +97,8 @@ type Occupy{
     personCardType:String
     #证件代码
     personCardNo:String
+    #用户名
+    accountNo:String
     #身份证件类型
     identityCardType:String
     #身份证件号码
@@ -99,8 +107,13 @@ type Occupy{
     startTime:Timestamp
     #有效期结束时间
     endTime:Timestamp
+    #是否有效
+    active:Int
+    #是否删除
+    delMark:Int
     #排序
     index:Int
+
 
 }
 
