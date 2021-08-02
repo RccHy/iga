@@ -2,6 +2,7 @@ package com.qtgl.iga.service.impl;
 
 
 import com.alibaba.druid.util.StringUtils;
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.PersonConnection;
@@ -9,6 +10,7 @@ import com.qtgl.iga.bean.PersonEdge;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.PersonService;
+import com.qtgl.iga.task.TaskConfig;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
 import com.qtgl.iga.utils.enumerate.ResultCode;
@@ -103,6 +105,7 @@ public class PersonServiceImpl implements PersonService {
                 log.error("人员治理中类型 : " + upstreamType.getUpstreamId() + "表达式异常");
             }
             List<Person> personBeanList = dataByBus.toJavaList(Person.class);
+            TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(personBeanList)));
             if (null != personBeanList) {
                 for (Person personBean : personBeanList) {
                     if (null != personBean.getActive() && personBean.getActive() != 0 && personBean.getActive() != 1) {
@@ -135,6 +138,14 @@ public class PersonServiceImpl implements PersonService {
                         log.error(personBean.getName() + "证件类型无效");
                         continue;
                     }
+                    if (null != personBean.getActive() && personBean.getActive() != 0 && personBean.getActive() != 1) {
+                        log.error("人员是否有效字段不合法{}", personBean.getActive());
+                        continue;
+                    }
+                    if (null != personBean.getDelMark() && personBean.getDelMark() != 0 && personBean.getDelMark() != 1) {
+                        log.error("人员是否删除字段不合法{}", personBean.getDelMark());
+                        continue;
+                    }
                     personBean.setSource(upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")");
                     personBean.setUpstreamType(upstreamType.getId());
                     personBean.setCreateTime(now);
@@ -162,39 +173,46 @@ public class PersonServiceImpl implements PersonService {
         });
 
         log.info("所有人员数据获取完成:{}", personFromUpstream.size());
-        /*
-          将合重后的数据插入进数据库
-        */
-        // 获取 sso数据
-        List<Person> personFromSSOList = personDao.getAll(tenant.getId());
-        Map<String, Person> personFromSSOMap = personFromSSOList.stream().filter(person -> !StringUtils.isEmpty(person.getCardType()) && !StringUtils.isEmpty(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
-        Map<String, Person> personFromSSOMapByAccount = personFromSSOList.stream().filter(person -> !StringUtils.isEmpty(person.getAccountNo())).collect(Collectors.toMap(Person::getAccountNo, person -> person, (v1, v2) -> v2));
-        // 存储最终需要操作的数据
-        Map<String, List<Person>> result = new HashMap<>();
+        if (null != personFromUpstream && personFromUpstream.size() > 0) {
+            TaskConfig.errorData.put(domain.getId(), "");
+             /*
+                将合重后的数据插入进数据库
+            */
+            // 获取 sso数据
+            List<Person> personFromSSOList = personDao.getAll(tenant.getId());
+            Map<String, Person> personFromSSOMap = personFromSSOList.stream().filter(person -> !StringUtils.isEmpty(person.getCardType()) && !StringUtils.isEmpty(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
+            Map<String, Person> personFromSSOMapByAccount = personFromSSOList.stream().filter(person -> !StringUtils.isEmpty(person.getAccountNo())).collect(Collectors.toMap(Person::getAccountNo, person -> person, (v1, v2) -> v2));
+            // 存储最终需要操作的数据
+            Map<String, List<Person>> result = new HashMap<>();
 
-        personFromSSOMap.forEach((key, personFromSSO) -> {
-            calculate(personFromUpstream, now, result, key, personFromSSO);
-        });
+            personFromSSOMap.forEach((key, personFromSSO) -> {
+                calculate(personFromUpstream, now, result, key, personFromSSO);
+            });
 
-        personFromSSOMapByAccount.forEach((key, personFromSSO) -> {
-            calculate(personFromUpstream, now, result, key, personFromSSO);
-        });
+            personFromSSOMapByAccount.forEach((key, personFromSSO) -> {
+                calculate(personFromUpstream, now, result, key, personFromSSO);
+            });
 
-        personFromUpstream.forEach((key, val) -> {
-            calculateInstall(personFromSSOMap, result, key, val);
-        });
+            personFromUpstream.forEach((key, val) -> {
+                calculateInstall(personFromSSOMap, result, key, val);
+            });
 
-        personFromSSOMapByAccount.forEach((key, val) -> {
-            calculateInstall(personFromSSOMap, result, key, val);
-        });
+            personFromSSOMapByAccount.forEach((key, val) -> {
+                calculateInstall(personFromSSOMap, result, key, val);
+            });
 
 
-        // 验证监控规则
-        calculationService.monitorRules(domain, taskLog, personFromSSOList.size(), result.get("delete"));
-        // sso 批量新增
-        personDao.saveToSso(result, tenant.getId());
+            // 验证监控规则
+            calculationService.monitorRules(domain, taskLog, personFromSSOList.size(), result.get("delete"));
+            // sso 批量新增
+            personDao.saveToSso(result, tenant.getId());
+            return result;
+        } else {
 
-        return result;
+            return null;
+        }
+
+
     }
 
     private void calculateInstall(Map<String, Person> personFromSSOMap, Map<String, List<Person>> result, String key, Person val) {
@@ -279,19 +297,19 @@ public class PersonServiceImpl implements PersonService {
                     if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
                         invalidFlag = true;
                         log.info("人员信息{}失效", personFromSSO.getId());
-                       // continue;
+                        // continue;
                     }
                     if (sourceField.equalsIgnoreCase("password")) {
-                     //   if (StringUtils.isEmpty((String) oldValue) && !StringUtils.isEmpty((String) newValue)) {
-                            try {
-                                String password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(((String) newValue).getBytes()).toCharArray()));
-                                passwordFlag = true;
-                                personFromSSO.setPassword(password);
-                            } catch (DecoderException e) {
-                                e.printStackTrace();
-                            }
-                            continue;
-                       // }
+                        //   if (StringUtils.isEmpty((String) oldValue) && !StringUtils.isEmpty((String) newValue)) {
+                        try {
+                            String password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(((String) newValue).getBytes()).toCharArray()));
+                            passwordFlag = true;
+                            personFromSSO.setPassword(password);
+                        } catch (DecoderException e) {
+                            e.printStackTrace();
+                        }
+                        continue;
+                        // }
                     }
                   /*  if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
                         invalidRecoverFlag = false;
@@ -312,7 +330,7 @@ public class PersonServiceImpl implements PersonService {
             }
             if (updateFlag && personFromSSO.getDelMark() != 1) {
                 personFromSSO.setSource(newPerson.getSource());
-               personFromSSO.setUpdateTime(newPerson.getUpdateTime());
+                personFromSSO.setUpdateTime(newPerson.getUpdateTime());
                 // 需要设置人员密码
                 if (passwordFlag) {
                     if (result.containsKey("password")) {

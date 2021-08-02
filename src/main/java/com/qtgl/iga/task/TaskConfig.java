@@ -131,36 +131,60 @@ public class TaskConfig {
 
                                                 //=============人员数据同步至sso=============
                                                 Map<String, List<Person>> personResult = personService.buildPerson(domainInfo, lastTaskLog);
-                                                String personNo = (personResult.containsKey("insert") ? String.valueOf(personResult.get("insert").size()) : "0") + "/"
-                                                        + (personResult.containsKey("delete") ? String.valueOf(personResult.get("delete").size()) : "0") + "/"
-                                                        + (personResult.containsKey("update") ? String.valueOf(personResult.get("update").size()) : "0");
-                                                log.info(Thread.currentThread().getName() + ": 人员同步完成{}==={}", personNo, System.currentTimeMillis());
-                                                taskLog.setPersonNo(personNo);
-                                                taskLogService.save(taskLog, domainInfo.getId(), "update");
+                                               if(null!=personResult){
+                                                   Integer insertPerson = (personResult.containsKey("insert") ? deptResultMap.get("insert").size() : 0);
+                                                   Integer deletePerson = personResult.containsKey("delete") ? deptResultMap.get("delete").size() : 0;
+                                                   Integer updatePerson = (personResult.containsKey("update") ? deptResultMap.get("update").size() : 0);
+                                                   Integer invalidPerson = personResult.containsKey("invalid") ? deptResultMap.get("invalid").size() : 0;
+                                                   String personNo = insertPerson + "/" + deletePerson + "/" + updatePerson + "/" + invalidPerson;
+                                                   log.info(Thread.currentThread().getName() + ": 人员同步完成{}==={}", personNo, System.currentTimeMillis());
+                                                   taskLog.setPersonNo(personNo);
+                                                   taskLogService.save(taskLog, domainInfo.getId(), "update");
 
-                                                // PUT   MQ
-                                                if (personResult.size() > 0) {
-                                                    pubResult = dataBusUtil.pub(null, personResult, null, "person", domainInfo);
-                                                    log.info("person pub:{}", pubResult);
-                                                }
+                                                   // PUT   MQ
+                                                   if (personResult.size() > 0) {
+                                                       pubResult = dataBusUtil.pub(null, personResult, null, "person", domainInfo);
+                                                       log.info("person pub:{}", pubResult);
+                                                   }
+                                               }else {
+                                                   String personNo = "0/0/0/0";
+                                                   log.error(Thread.currentThread().getName() + ": 人员同步失败", personNo, System.currentTimeMillis());
+                                                   taskLog.setStatus("failed");
+                                                   taskLog.setPersonNo(personNo);
+                                                   taskLog.setReason("上游提供人员数据不符合规范,数据同步失败");
+                                                   taskLog.setData(errorData.get(domainInfo.getId()));
+                                                   taskLogService.save(taskLog, domainInfo.getId(), "update");
+                                                   return;
+                                               }
 
                                                 //人员身份同步至sso
                                                 final Map<String, List<OccupyDto>> occupyResult = occupyService.buildPerson(domainInfo, lastTaskLog);
-                                                //Integer recoverOccupy = occupyResult.containsKey("recover") ? deptResultMap.get("recover").size() : 0;
-                                                Integer insertOccupy = (occupyResult.containsKey("insert") ? deptResultMap.get("insert").size() : 0) ;
-                                                Integer deleteOccupy = occupyResult.containsKey("delete") ? deptResultMap.get("delete").size() : 0;
-                                                Integer updateOccupy = (occupyResult.containsKey("update") ? deptResultMap.get("update").size() : 0);
-                                                Integer invalidOccupy = occupyResult.containsKey("invalid") ? deptResultMap.get("invalid").size() : 0;
-                                                String occupyNo = insertOccupy + "/" + deleteOccupy + "/" + updateOccupy + "/" + invalidOccupy;
-                                                log.info(Thread.currentThread().getName() + ": 人员身份同步完成{}==={}", occupyNo, System.currentTimeMillis());
-                                                taskLog.setStatus("done");
-                                                taskLog.setOccupyNo(occupyNo);
-                                                taskLogService.save(taskLog, domainInfo.getId(), "update");
+                                                if (null!=occupyResult){
+                                                   //Integer recoverOccupy = occupyResult.containsKey("recover") ? deptResultMap.get("recover").size() : 0;
+                                                   Integer insertOccupy = (occupyResult.containsKey("insert") ? deptResultMap.get("insert").size() : 0);
+                                                   Integer deleteOccupy = occupyResult.containsKey("delete") ? deptResultMap.get("delete").size() : 0;
+                                                   Integer updateOccupy = (occupyResult.containsKey("update") ? deptResultMap.get("update").size() : 0);
+                                                   Integer invalidOccupy = occupyResult.containsKey("invalid") ? deptResultMap.get("invalid").size() : 0;
+                                                   String occupyNo = insertOccupy + "/" + deleteOccupy + "/" + updateOccupy + "/" + invalidOccupy;
+                                                   log.info(Thread.currentThread().getName() + ": 人员身份同步完成{}==={}", occupyNo, System.currentTimeMillis());
+                                                   taskLog.setStatus("done");
+                                                   taskLog.setOccupyNo(occupyNo);
+                                                   taskLogService.save(taskLog, domainInfo.getId(), "update");
 
-                                                // PUT   MQ
-                                                if (occupyResult.size() > 0) {
-                                                    pubResult = dataBusUtil.pub(null, null, occupyResult, "occupy", domainInfo);
-                                                    log.info("occupy pub:{}", pubResult);
+                                                   // PUT   MQ
+                                                   if (occupyResult.size() > 0) {
+                                                       pubResult = dataBusUtil.pub(null, null, occupyResult, "occupy", domainInfo);
+                                                       log.info("occupy pub:{}", pubResult);
+                                                   }
+                                               }else {
+                                                    String occupyNo = "0/0/0/0";
+                                                    log.error(Thread.currentThread().getName() + ": 人员身份同步失败", occupyNo, System.currentTimeMillis());
+                                                    taskLog.setStatus("failed");
+                                                    taskLog.setOccupyNo(occupyNo);
+                                                    taskLog.setReason("上游提供人员身份数据不符合规范,数据同步失败");
+                                                    taskLog.setData(errorData.get(domainInfo.getId()));
+                                                    taskLogService.save(taskLog, domainInfo.getId(), "update");
+                                                    return;
                                                 }
 
                                                 log.info("{}同步结束,task:{}", domainInfo.getDomainName(), taskLog.getId());

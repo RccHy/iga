@@ -34,7 +34,7 @@ public class PersonDaoImpl implements PersonDao {
     public List<Person> getAll(String tenantId) {
         String sql = "select id,name,tags,open_id as openId,account_no as accountNo,card_type as cardType," +
                 "card_no  as cardNo, cellphone,email,source,data_source as dataSource,active," +
-                "active_time as activeTime,create_time as createTime,update_time as updateTime,del_mark as delMark" +
+                "active_time as activeTime,create_time as createTime,update_time as updateTime,del_mark as delMark,valid_start_time as validStartTime , valid_end_time as validEndTime " +
                 "  from identity  where tenant_id=? and del_mark=0 order by update_time";
         List<Map<String, Object>> maps = jdbcSSO.queryForList(sql, tenantId);
         List<Person> personList = new ArrayList<>();
@@ -188,9 +188,22 @@ public class PersonDaoImpl implements PersonDao {
                     });
                 }
                 if (personMap.containsKey("update")) {
-                    final List<Person> list = personMap.get("update");
+//                    final List<Person> list = personMap.get("update");
                     String str = "UPDATE identity set  `name`= ?, account_no=?,  del_mark=?, update_time=?, tenant_id=?,  cellphone=?, email=?, data_source=?, tags=?,  `active`=?, active_time=? ,`source`= ?,data_source=?,valid_start_time=?,valid_end_time=? " +
                             " where id=? and update_time< ? ";
+                    List<Person> list = new ArrayList<>();
+                    List<Person> update = personMap.get("update");
+                    List<Person> invalid = personMap.get("invalid");
+//                    List<OccupyDto> recover = occupyMap.get("recover");
+                    if (null != update) {
+                        list.addAll(update);
+                    }
+                    if (null != invalid) {
+                        list.addAll(invalid);
+                    }
+//                    if (null != recover) {
+//                        list.addAll(recover);
+//                    }
                     int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
