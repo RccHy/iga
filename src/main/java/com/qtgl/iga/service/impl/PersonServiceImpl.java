@@ -219,7 +219,7 @@ public class PersonServiceImpl implements PersonService {
     private void calculateInsert(Map<String, Person> personFromSSOMap, Map<String, List<Person>> result, String key, Person val) {
         if (!personFromSSOMap.containsKey(key)) {
             val.setId(UUID.randomUUID().toString());
-            val.setOpenId(RandomStringUtils.randomAlphanumeric(20));
+            val.setOpenId(RandomStringUtils.randomAlphabetic(20));
             // 如果新增的数据 active=0 失效 或者 del_mark=1 删除  或者 判断为孤儿
             //   都将 最终有效期设置为 失效
             if (val.getActive() == 0 || val.getDelMark() == 1) {
