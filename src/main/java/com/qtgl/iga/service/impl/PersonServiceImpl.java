@@ -130,7 +130,7 @@ public class PersonServiceImpl implements PersonService {
                     }
                     if (!StringUtils.isEmpty(personBean.getCardType()) && cardTypeMap.containsKey(personBean.getCardType())) {
                         String cardTypeReg = cardTypeMap.get(personBean.getCardType()).getCardTypeReg();
-                        if (!Pattern.matches(cardTypeReg, personBean.getCardNo())) {
+                        if (null != cardTypeReg && !Pattern.matches(cardTypeReg, personBean.getCardNo())) {
                             log.error(personBean.getName() + "证件号码不符合规则");
                             continue;
                         }
@@ -194,11 +194,11 @@ public class PersonServiceImpl implements PersonService {
             });
 
             personFromUpstream.forEach((key, val) -> {
-                calculateInstall(personFromSSOMap, result, key, val);
+                calculateInsert(personFromSSOMap, result, key, val);
             });
 
             personFromSSOMapByAccount.forEach((key, val) -> {
-                calculateInstall(personFromSSOMap, result, key, val);
+                calculateInsert(personFromSSOMap, result, key, val);
             });
 
 
@@ -208,14 +208,15 @@ public class PersonServiceImpl implements PersonService {
             personDao.saveToSso(result, tenant.getId());
             return result;
         } else {
-
-            return null;
+            log.error("上游提供人员数据不符合规范,数据同步失败");
+            throw new CustomException(ResultCode.FAILED, "上游提供人员数据不符合规范,数据同步失败");
         }
+
 
 
     }
 
-    private void calculateInstall(Map<String, Person> personFromSSOMap, Map<String, List<Person>> result, String key, Person val) {
+    private void calculateInsert(Map<String, Person> personFromSSOMap, Map<String, List<Person>> result, String key, Person val) {
         if (!personFromSSOMap.containsKey(key)) {
             val.setId(UUID.randomUUID().toString());
             val.setOpenId(RandomStringUtils.randomAlphanumeric(20));
@@ -225,10 +226,10 @@ public class PersonServiceImpl implements PersonService {
                 val.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
                 val.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
             }
-            if (result.containsKey("install")) {
-                result.get("install").add(val);
+            if (result.containsKey("insert")) {
+                result.get("insert").add(val);
             } else {
-                result.put("install", new ArrayList<Person>() {{
+                result.put("insert", new ArrayList<Person>() {{
                     this.add(val);
                 }});
             }

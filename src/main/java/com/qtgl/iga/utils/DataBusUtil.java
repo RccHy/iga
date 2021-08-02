@@ -661,7 +661,7 @@ public class DataBusUtil {
                     pub = String.format(pub, "person.created", domain.getClientId(),
                             person.getOpenId(), UUID.randomUUID(),
                             person.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(person).replace("\"", "\\\""));
-                    graphql.append(person.getCardNo() + ":pub(message:" + pub + "){id}\n");
+                    graphql.append(person.getOpenId() + ":pub(message:" + pub + "){id}\n");
                 }
             }
             List<Person> updatePersonList = personMap.get("update");
@@ -679,7 +679,7 @@ public class DataBusUtil {
                     pub = String.format(pub, "person.updated", domain.getClientId(),
                             person.getOpenId(), UUID.randomUUID(),
                             person.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(person).replace("\"", "\\\""));
-                    graphql.append(person.getCardNo() + ":pub(message:" + pub + "){id}\n");
+                    graphql.append(person.getOpenId() + ":pub(message:" + pub + "){id}\n");
                 }
             }
             List<Person> deletePersonList = personMap.get("delete");
@@ -733,9 +733,9 @@ public class DataBusUtil {
                             "    data : \"%s\", " +
                             "}";
                     pub = String.format(pub, "user.position.updated", domain.getClientId(),
-                            occupy.getOpenId(), UUID.randomUUID(),
+                            occupy.getOccupyId(), UUID.randomUUID(),
                             occupy.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(occupy).replace("\"", "\\\""));
-                    graphql.append(occupy.getOpenId() + ":pub(message:" + pub + "){id}\n");
+                    graphql.append(occupy.getOccupyId() + ":pub(message:" + pub + "){id}\n");
                 }
             }
             List<OccupyDto> delete = occupyMap.get("delete");
@@ -751,9 +751,9 @@ public class DataBusUtil {
                             "    data : \"%s\", " +
                             "}";
                     pub = String.format(pub, "user.position.deleted", domain.getClientId(),
-                            occupy.getOpenId(), UUID.randomUUID(),
+                            occupy.getOccupyId(), UUID.randomUUID(),
                             occupy.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(occupy).replace("\"", "\\\""));
-                    graphql.append(occupy.getOpenId() + ":pub(message:" + pub + "){id}\n");
+                    graphql.append(occupy.getOccupyId() + ":pub(message:" + pub + "){id}\n");
                 }
             }
 

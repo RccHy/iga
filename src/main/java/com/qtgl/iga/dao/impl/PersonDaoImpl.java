@@ -149,8 +149,8 @@ public class PersonDaoImpl implements PersonDao {
 
         return txTemplate.execute(transactionStatus -> {
             try {
-                if (personMap.containsKey("install")) {
-                    final List<Person> list = personMap.get("install");
+                if (personMap.containsKey("insert")) {
+                    final List<Person> list = personMap.get("insert");
 
 
                     String str = "insert into identity (id, `name`, account_no,open_id,  del_mark, create_time, update_time, tenant_id, card_type, card_no, cellphone, email, data_source, tags,  `active`, active_time,`source`,valid_start_time,valid_end_time)" +

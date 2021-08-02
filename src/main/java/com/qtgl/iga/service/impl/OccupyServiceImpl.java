@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 
@@ -69,7 +70,7 @@ public class OccupyServiceImpl implements OccupyService {
      * 2.4 校验孤儿数据
      * <p>
      * 3：根据人员和数据库中身份进行对比
-     * A：新增 install  上游提供、sso数据库中没有
+     * A：新增 insert  上游提供、sso数据库中没有
      * B：修改 update  上游和sso对比后字段值有差异
      * C：删除 delete 上游提供了del_mark
      * D: 无效   上游曾经提供后，不再提供 OR 上游提供了active
@@ -84,6 +85,9 @@ public class OccupyServiceImpl implements OccupyService {
         if (null == tenant) {
             throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
+        // 所有证件类型
+        List<CardType> cardTypes = cardTypeDao.findAll(tenant.getId());
+        Map<String, CardType> cardTypeMap = cardTypes.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
 
 
         // 获取规则
@@ -128,8 +132,23 @@ public class OccupyServiceImpl implements OccupyService {
             final List<OccupyDto> occupies = dataByBus.toJavaList(OccupyDto.class);
             TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(occupies)));
             for (OccupyDto occupyDto : occupies) {
-                if (StringUtils.isEmpty(occupyDto.getPersonCardType()) || StringUtils.isEmpty(occupyDto.getPersonCardNo())) {
-                    log.error("人员身份信息中人员标识为空{}", occupyDto);
+
+                // 人员标识 证件类型、证件号码   OR    用户名 accountNo  必提供一个
+                if (StringUtils.isEmpty(occupyDto.getPersonCardNo()) && StringUtils.isEmpty(occupyDto.getPersonCardType())) {
+                    if (StringUtils.isEmpty(occupyDto.getAccountNo())) {
+                        log.error("人员身份信息中人员标识为空{}", occupyDto);
+                        continue;
+                    }
+
+                }
+                if (!StringUtils.isEmpty(occupyDto.getPersonCardType()) && cardTypeMap.containsKey(occupyDto.getPersonCardType())) {
+                    String cardTypeReg = cardTypeMap.get(occupyDto.getPersonCardType()).getCardTypeReg();
+                    if (null != cardTypeReg && !Pattern.matches(cardTypeReg, occupyDto.getPersonCardNo())) {
+                        log.error("人员身份信息中人员证件号码不符合规则{}", occupyDto);
+                        continue;
+                    }
+                } else if (!StringUtils.isEmpty(occupyDto.getPersonCardType()) && !cardTypeMap.containsKey(occupyDto.getPersonCardType())) {
+                    log.error("人员身份信息中人员证件类型无效{}", occupyDto);
                     continue;
                 }
                 if (StringUtils.isEmpty(occupyDto.getPostCode())) {
@@ -394,10 +413,10 @@ public class OccupyServiceImpl implements OccupyService {
                         val.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
                         val.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
                     }
-                    if (result.containsKey("install")) {
-                        result.get("install").add(val);
+                    if (result.containsKey("insert")) {
+                        result.get("insert").add(val);
                     } else {
-                        result.put("install", new ArrayList<OccupyDto>() {{
+                        result.put("insert", new ArrayList<OccupyDto>() {{
                             this.add(val);
                         }});
                     }
@@ -412,8 +431,8 @@ public class OccupyServiceImpl implements OccupyService {
             occupyDao.saveToSso(result, tenant.getId());
             //插入人员身份日志表
             ArrayList<OccupyDto> userLogs = new ArrayList<>();
-            if (result.get("install") != null) {
-                userLogs.addAll(result.get("install"));
+            if (result.get("insert") != null) {
+                userLogs.addAll(result.get("insert"));
             }
             if (result.get("update") != null) {
                 userLogs.addAll(result.get("update"));
@@ -423,8 +442,8 @@ public class OccupyServiceImpl implements OccupyService {
 
             return result;
         } else {
-
-            return null;
+            log.error("上游提供人员身份数据不符合规范,数据同步失败");
+            throw new CustomException(ResultCode.FAILED, "上游提供人员身份数据不符合规范,数据同步失败");
         }
     }
 
