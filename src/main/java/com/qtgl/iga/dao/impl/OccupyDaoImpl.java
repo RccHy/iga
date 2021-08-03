@@ -50,7 +50,8 @@ public class OccupyDaoImpl implements OccupyDao {
                 "       u.source                                ," +
                 "       u.data_source               as dataSource," +
                 "       u.create_time               as createTime," +
-                "       u.update_time               as updateTime" +
+                "       u.update_time               as updateTime," +
+                "       u.active               as active" +
                 " from identity i" +
                 "         left join identity_user iu on i.id = iu.identity_id" +
                 "         left join user u on iu.user_id = u.id" +
@@ -166,14 +167,14 @@ public class OccupyDaoImpl implements OccupyDao {
                             preparedStatement.setObject(9, list.get(i).getSource());
                             preparedStatement.setObject(10, list.get(i).getDataSource());
                             preparedStatement.setObject(11, list.get(i).getIndex());
-                            preparedStatement.setObject(13, list.get(i).getActive());
-                            preparedStatement.setObject(14, list.get(i).getActiveTime());
-                            preparedStatement.setObject(15, list.get(i).getAccountNo());
-                            preparedStatement.setObject(16, list.get(i).getValidStartTime());
-                            preparedStatement.setObject(17, list.get(i).getValidEndTime());
-                            preparedStatement.setObject(18, list.get(i).getOrphan());
-                            preparedStatement.setObject(19, list.get(i).getOccupyId());
-                            preparedStatement.setObject(20, list.get(i).getUpdateTime());
+                            preparedStatement.setObject(12, list.get(i).getActive());
+                            preparedStatement.setObject(13, list.get(i).getActiveTime());
+                            preparedStatement.setObject(14, list.get(i).getAccountNo());
+                            preparedStatement.setObject(15, list.get(i).getValidStartTime());
+                            preparedStatement.setObject(16, list.get(i).getValidEndTime());
+                            preparedStatement.setObject(17, list.get(i).getOrphan() == null ? 0 : list.get(i).getOrphan());
+                            preparedStatement.setObject(18, list.get(i).getOccupyId());
+                            preparedStatement.setObject(19, list.get(i).getUpdateTime());
                         }
 
                         @Override
