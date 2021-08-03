@@ -107,7 +107,7 @@ public class ApiController {
             e.printStackTrace();
             throw new CustomException(ResultCode.FAILED, "oauth认证失败,请查看应用权限");
         }
-        String url = busUrl + "/graphql/builtin?access_token=" + token;
+        String url = busUrl + "/graphql/builtin?access_token=" + token+"&domain="+domainInfo.getDomainName();
         url = UrlUtil.getUrl(url);
         String graphql = "mutation M1 {" +
                 "  addRoleBinding(roleBindings: [{" +
