@@ -363,8 +363,10 @@ public class PostServiceImpl implements PostService {
                                 boolean delFlag = false;
                                 //失效标识
                                 boolean invalidFlag = false;
-                                //是否手动恢复有效标识 (如果上游提供则置为false)
-                                boolean invalidRecoverFlag = true;
+//                                //是否手动恢复有效标识 (如果上游提供则置为false)
+//                                boolean invalidRecoverFlag = true;
+                                //上游是否提供active字段
+                                boolean activeFlag = false;
 
                                 if (!"BUILTIN".equalsIgnoreCase(pullBean.getDataSource())) {
                                     ssoBean.setDataSource("PULL");
@@ -411,8 +413,11 @@ public class PostServiceImpl implements PostService {
                                         if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
                                             invalidFlag = true;
                                         }
-                                        if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
-                                            invalidRecoverFlag = false;
+//                                        if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
+//                                            invalidRecoverFlag = false;
+//                                        }
+                                        if (sourceField.equalsIgnoreCase("active")) {
+                                            activeFlag = true;
                                         }
 
                                         //将值更新到sso对象
@@ -439,14 +444,14 @@ public class PostServiceImpl implements PostService {
                                     updateFlag = false;
                                     logger.info("岗位对比后需要删除{}", ssoBean);
                                 }
-                                //恢复失效数据  未提供active手动处理
-                                if (invalidRecoverFlag && ssoBean.getActive() != 1) {
-                                    //修改标记置为false
-                                    updateFlag = false;
-                                    ssoBean.setActive(1);
-                                    result.put(ssoBean, "update");
-                                    logger.info("岗位信息{}从失效恢复", ssoBean.getCode());
-                                }
+//                                //恢复失效数据  未提供active手动处理
+//                                if (invalidRecoverFlag && ssoBean.getActive() != 1) {
+//                                    //修改标记置为false
+//                                    updateFlag = false;
+//                                    ssoBean.setActive(1);
+//                                    result.put(ssoBean, "update");
+//                                    logger.info("岗位信息{}从失效恢复", ssoBean.getCode());
+//                                }
 
                                 //修改不为删除的数据
                                 if (updateFlag && ssoBean.getDelMark() != 1) {
@@ -463,6 +468,15 @@ public class PostServiceImpl implements PostService {
                                     }
                                     logger.info("岗位对比后需要修改{}", ssoBean);
 
+                                }
+                                //上游未提供active并且sso与上游源该字段值不一致
+                                if (!activeFlag && (!ssoBean.getActive().equals(pullBean.getActive()))) {
+                                    ssoBean.setUpdateTime(now);
+                                    ssoBean.setActive(pullBean.getActive());
+                                    //将数据放入修改集合
+                                    ssoCollect.put(ssoBean.getCode(), ssoBean);
+
+                                    result.put(ssoBean, "update");
                                 }
 
                             } else {

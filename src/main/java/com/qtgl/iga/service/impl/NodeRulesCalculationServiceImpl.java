@@ -586,7 +586,8 @@ public class NodeRulesCalculationServiceImpl {
                         List<TreeBean> upstreamDept = new ArrayList<>();
                         //遍历拉取的数据,标准化数据,以及赋值逻辑运算所需的值
                         for (Object o : upstreamTree) {
-                            JSONObject dept = (JSONObject) o;
+//                            JSONObject dept = (JSONObject) o;
+                            JSONObject dept = JSON.parseObject(JSON.toJSONString(o));
                             //校验数据是否合法
                             if (null != dept.getInteger(TreeEnum.DEL_MARK.getCode()) && 1 != dept.getInteger(TreeEnum.DEL_MARK.getCode()) && 0 != dept.getInteger(TreeEnum.DEL_MARK.getCode())) {
                                 logger.error(type + "是否有效字段不合法{}", dept.getInteger(TreeEnum.DEL_MARK.getCode()));

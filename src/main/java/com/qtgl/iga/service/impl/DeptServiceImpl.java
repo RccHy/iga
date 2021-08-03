@@ -344,8 +344,10 @@ public class DeptServiceImpl implements DeptService {
                                 boolean delFlag = false;
                                 //失效标识
                                 boolean invalidFlag = false;
-                                //是否手动恢复有效标识 (如果上游提供则置为false)
-                                boolean invalidRecoverFlag = true;
+//                                //是否手动恢复有效标识 (如果上游提供则置为false)
+//                                boolean invalidRecoverFlag = true;
+                                //上游是否提供active字段
+                                boolean activeFlag = false;
 
                                 //使用sso的对象,将需要修改的值赋值
                                 if ("API".equals(ssoBean.getDataSource())) {
@@ -393,8 +395,11 @@ public class DeptServiceImpl implements DeptService {
                                         if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
                                             invalidFlag = true;
                                         }
-                                        if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
-                                            invalidRecoverFlag = false;
+//                                        if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
+//                                            invalidRecoverFlag = false;
+//                                        }
+                                        if (sourceField.equalsIgnoreCase("active")) {
+                                            activeFlag = true;
                                         }
 
                                         //将值更新到sso对象
@@ -430,10 +435,10 @@ public class DeptServiceImpl implements DeptService {
                                     if (invalidFlag) {
                                         result.put(ssoBean, "invalid");
                                     } else {
-                                        //恢复失效数据  未提供active手动处理
-                                        if (invalidRecoverFlag && ssoBean.getActive() != 1) {
-                                            ssoBean.setActive(1);
-                                        }
+//                                        //恢复失效数据  未提供active手动处理
+//                                        if (invalidRecoverFlag && ssoBean.getActive() != 1) {
+//                                            ssoBean.setActive(1);
+//                                        }
                                         //将数据放入修改集合
                                         ssoCollect.put(ssoBean.getCode(), ssoBean);
 
@@ -441,6 +446,15 @@ public class DeptServiceImpl implements DeptService {
                                     }
                                     logger.info("部门对比后需要修改{}", ssoBean);
 
+                                }
+                                //上游未提供active并且sso与上游源该字段值不一致
+                                if (!activeFlag && (!ssoBean.getActive().equals(pullBean.getActive()))) {
+                                    ssoBean.setUpdateTime(now);
+                                    ssoBean.setActive(pullBean.getActive());
+                                    //将数据放入修改集合
+                                    ssoCollect.put(ssoBean.getCode(), ssoBean);
+
+                                    result.put(ssoBean, "update");
                                 }
                             } else {
                                 //如果数据不是最新的则忽略
@@ -452,7 +466,7 @@ public class DeptServiceImpl implements DeptService {
                             result.put(pullBean, "obsolete");
 
                         }
-                        flag=false;
+                        flag = false;
                     }
 
                 }
@@ -460,13 +474,13 @@ public class DeptServiceImpl implements DeptService {
                 if (flag) {
                     //新增
 //                    insert.add(pullBean);
-                    ssoCollect.put(pullBean.getCode(),pullBean);
+                    ssoCollect.put(pullBean.getCode(), pullBean);
                     result.put(pullBean, "insert");
                 }
             } else {
                 //数据库数据为空的话,则默认全部新增
 //                insert.add(pullBean);
-                ssoCollect.put(pullBean.getCode(),pullBean);
+                ssoCollect.put(pullBean.getCode(), pullBean);
                 result.put(pullBean, "insert");
             }
         }
