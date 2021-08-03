@@ -10,7 +10,7 @@ import java.util.Map;
 
 public interface OccupyService {
 
-    Map<String, List<OccupyDto>> buildPerson(DomainInfo domain, TaskLog lastTaskLog) throws Exception;
+    Map<String, List<OccupyDto>> buildOccupy(DomainInfo domain, TaskLog lastTaskLog) throws Exception;
 
     OccupyConnection findOccupies(Map<String, Object> arguments, DomainInfo domain) throws Exception;
 

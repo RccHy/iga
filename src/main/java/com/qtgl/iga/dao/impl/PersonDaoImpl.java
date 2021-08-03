@@ -273,7 +273,7 @@ public class PersonDaoImpl implements PersonDao {
                             " SELECT " +
                             " uuid(),?,?,now(),now(),0 " +
                             " FROM DUAL " +
-                            " WHERE NOT  EXISTS(select * from password where account_id=?);";
+                            " WHERE NOT  EXISTS(select * from password where account_id=?)";
 
 
                     int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {

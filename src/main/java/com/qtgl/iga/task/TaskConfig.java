@@ -148,7 +148,7 @@ public class TaskConfig {
 
 
                                                 //人员身份同步至sso
-                                                final Map<String, List<OccupyDto>> occupyResult = occupyService.buildPerson(domainInfo, lastTaskLog);
+                                                final Map<String, List<OccupyDto>> occupyResult = occupyService.buildOccupy(domainInfo, lastTaskLog);
                                                 //Integer recoverOccupy = occupyResult.containsKey("recover") ? deptResultMap.get("recover").size() : 0;
                                                 Integer insertOccupy = (occupyResult.containsKey("insert") ? occupyResult.get("insert").size() : 0);
                                                 Integer deleteOccupy = occupyResult.containsKey("delete") ? occupyResult.get("delete").size() : 0;

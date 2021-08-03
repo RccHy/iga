@@ -79,7 +79,7 @@ public class OccupyServiceImpl implements OccupyService {
      * @return
      */
     @Override
-    public Map<String, List<OccupyDto>> buildPerson(DomainInfo domain, TaskLog lastTaskLog) throws Exception {
+    public Map<String, List<OccupyDto>> buildOccupy(DomainInfo domain, TaskLog lastTaskLog) throws Exception {
 
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
