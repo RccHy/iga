@@ -28,7 +28,7 @@ sso:
 app:
   client: ${APP_CLIENT}
   secret: ${APP_SECRET}
-  scope: data,introspect
+  scope: data,introspect,acl
 
 
 # 数据网关地址
