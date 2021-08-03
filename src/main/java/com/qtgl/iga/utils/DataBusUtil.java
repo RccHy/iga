@@ -492,27 +492,34 @@ public class DataBusUtil {
             HashMap<String, String> map = new HashMap<>();
             //存储前缀
 //                HashMap<String, String> prefixMap = new HashMap<>();
+            Map<String,String> nodeMap=new ConcurrentHashMap<>();
             for (UpstreamTypeField field : fields) {
-                //   修改常量
-                if (field.getTargetField().contains("$")) {
-//                        node.addResultAttributes(field.getSourceField() + ":" + field.getTargetField().substring(2));
-                    //名称校验
-                    String pattern = "\\$[a-zA-Z0-9_]+";
-                    Pattern r = Pattern.compile(pattern);
-                    Matcher m = r.matcher(field.getTargetField());
+                //名称校验
+                String pattern = "\\$[a-zA-Z0-9_]+";
+                Pattern r = Pattern.compile(pattern);
+                Matcher m = r.matcher(field.getTargetField());
+                if (field.getTargetField().contains("=")) {
+                    // 表达式 最终需要进行运算
+                    if (m.find()) {
+                        map.put(m.group(0).substring(1), field.getSourceField());
+                        //node.addResultAttributes(m.group(0).substring(1));
+                        nodeMap.put(m.group(0).substring(1),m.group(0).substring(1));
+                    }
+                } else if (!field.getTargetField().contains("=") && field.getTargetField().contains("$")) {
+                    // 简单映射，直接查询时候进行重命名
                     if (m.find()) {
                         System.out.println("Found value: " + m.group(0));
-                        node.addResultAttributes(m.group(0).substring(1));
-                        map.put(m.group(0).substring(1), field.getSourceField());
-                    } else {
-                        System.out.println("NO MATCH");
-                    }
+                       // node.addResultAttributes(field.getSourceField() + ":" + m.group(0).substring(1));
+                        nodeMap.put(field.getSourceField() + ":"+m.group(0).substring(1),m.group(0).substring(1));
 
+                    }
                 } else {
                     upstreamTypeFields.add(field);
                 }
             }
-
+             Set<String> nodeSet = nodeMap.keySet();
+            String[] nodeString = nodeSet.toArray(new String[nodeSet.size()]);
+            node.addResultAttributes(nodeString);
             edges.addResultAttributes(node);
             query.addResultAttributes(edges);
             query.addResultAttributes("totalCount");
@@ -561,24 +568,27 @@ public class DataBusUtil {
 
             rs = new ArrayList<>();
             Map<String, String> collect = fields.stream().collect(Collectors.toMap(UpstreamTypeField::getSourceField, UpstreamTypeField::getTargetField));
+            System.out.println("start:" + System.currentTimeMillis());
             for (Object object : objects) {
 
                 BeanMap beanMap = new BeanMap(object);
-                HashMap<String, String> innerMap = (HashMap<String, String>) beanMap.get("innerMap");
-                JSONObject jsonObject = new JSONObject();
-                for (Map.Entry<String, String> entry : innerMap.entrySet()) {
+                HashMap<String, Object> innerMap = (HashMap<String, Object>) beanMap.get("innerMap");
+                //JSONObject jsonObject = new JSONObject();
+                for (Map.Entry<String, String> entry : map.entrySet()) {
                     try {
                         //处理前缀
                         SimpleBindings bindings = new SimpleBindings();
                         bindings.put("$" + entry.getKey(), null == entry.getValue() ? "" : entry.getValue());
-                        String reg = collect.get(map.get(entry.getKey())).substring(1);
+                        String reg = collect.get(entry.getValue()).substring(1);
                         ScriptEngineManager sem = new ScriptEngineManager();
                         ScriptEngine engine = sem.getEngineByName("js");
                         final Object eval = engine.eval(reg, bindings);
-                        jsonObject.put(map.get(entry.getKey()), eval);
-                        if ("parentCode".equals(map.get(entry.getKey()))) {
-                            if ((null == entry.getValue()) || ("".equals(entry.getValue()))) {
-                                jsonObject.put(map.get(entry.getKey()), "");
+                       // jsonObject.put(entry.getValue(), eval);
+                        innerMap.put(entry.getValue(), eval);
+                        if ("parentCode".equals(entry.getValue())) {
+                            if (null == eval) {
+                                //jsonObject.put(entry.getValue(), "");
+                                innerMap.put(entry.getValue(), "");
                             }
                         }
                     } catch (ScriptException e) {
@@ -589,14 +599,15 @@ public class DataBusUtil {
                 LinkedHashMap<String, Object> stringObjectLinkedHashMap = new LinkedHashMap<>();
                 if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
                     for (UpstreamTypeField field : upstreamTypeFields) {
-                        jsonObject.put(field.getSourceField(), field.getTargetField());
+                        //jsonObject.put(field.getSourceField(), field.getTargetField());
+                        innerMap.put(field.getSourceField(), field.getTargetField());
                     }
                 }
-                stringObjectLinkedHashMap.put("node", jsonObject);
+                stringObjectLinkedHashMap.put("node", innerMap);
                 rs.add(stringObjectLinkedHashMap);
             }
 
-
+            System.out.println("end:" + System.currentTimeMillis());
             deptMap.put("edges", rs);
 
 
@@ -718,7 +729,7 @@ public class DataBusUtil {
                     pub = String.format(pub, "user.position.created", domain.getClientId(),
                             occupy.getOccupyId(), UUID.randomUUID(),
                             occupy.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(occupy).replace("\"", "\\\""));
-                    graphql.append(RandomStringUtils.randomAlphabetic(20)+ ":pub(message:" + pub + "){id}\n");
+                    graphql.append(RandomStringUtils.randomAlphabetic(20) + ":pub(message:" + pub + "){id}\n");
                 }
             }
             List<OccupyDto> update = occupyMap.get("update");
@@ -816,8 +827,6 @@ public class DataBusUtil {
         tokenMap.put(domainInfo.getDomainName(), new Token(oAuthClientResponse.getAccessToken(), exp, System.currentTimeMillis()));
         return accessToken;
     }
-
-
 
 
 }
