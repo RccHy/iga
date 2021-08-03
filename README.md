@@ -74,7 +74,7 @@ curl --location --request POST 'http://ip:端口/iga/api/event' \
 | TASK_CRON | 同步时间 | 控制定时同步任务间隔时间。默认值 0 */5 * * * ?
 
 * 注：
-在maker中创建应用，并在sso/admin中勾选scope客户端认证：data、introspect<br/>
+在maker中创建应用，并在sso/admin中勾选scope客户端认证：data、introspect、acl<br/>
 数据库链接地址中 注意增加参数rewriteBatchedStatements=true  以提高性能
   
 * TODO：

@@ -6,47 +6,15 @@
 
 **new：**
 
-- 需要在应用中心->应用数据授权->iga->选择编辑权限->选择身份数据->builtin->选择类型Service->确认已选  完成应用授权
-
-  才可正常使用iga的相关数据治理功能
-
-  ```
-  mutation M1 {
-    addRoleBinding(roleBindings: [{
-        app: {
-          clientId: "7SN4jUHTApsUg4wJMyz6"
-        }
-        role: {
-          name: "iga-super-admin"
-          rules: [{
-            service: {
-              name: "*"
-            }
-            type: "*"
-            permission: "*"
-            filter: {
-            }
-          }]
-        }
-        source: "LOCAL"
-      }]){
-      user{
-        account
-      }
-      role{
-        rules{
-          filter
-        }
-      }
-    }
-  }
-  ```
+- 新增勾选客户端认证scope  acl。【老版本升级上来没有新增对应scope会导致无法新开租户，新部署学校无该scope会导致无法安装】
+- 
 
   
 
 **bug fix**
 
 - 权威源人员数据同步sso active字段赋值默认有效
+- 调整拉取权威源数据字段映射逻辑，优化处理时间（不循环不需要计算的字段）
 
 **image：**
 
