@@ -12,6 +12,7 @@ import com.qtgl.iga.utils.exception.CustomException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.beanutils.BeanMap;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.entity.ContentType;
@@ -642,7 +643,7 @@ public class DataBusUtil {
                             k.getCode(), k.getCode() + UUID.randomUUID(),
                             k.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(k).replace("\"", "\\\""));
                 }
-                graphql.append(k.getCode() + ":pub(message:" + pub + "){id}\n");
+                graphql.append(RandomStringUtils.randomAlphabetic(20) + ":pub(message:" + pub + "){id}\n");
             }
 
         } else if ("person".equals(type)) {
@@ -717,7 +718,7 @@ public class DataBusUtil {
                     pub = String.format(pub, "user.position.created", domain.getClientId(),
                             occupy.getOccupyId(), UUID.randomUUID(),
                             occupy.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(occupy).replace("\"", "\\\""));
-                    graphql.append(occupy.getOccupyId() + ":pub(message:" + pub + "){id}\n");
+                    graphql.append(RandomStringUtils.randomAlphabetic(20)+ ":pub(message:" + pub + "){id}\n");
                 }
             }
             List<OccupyDto> update = occupyMap.get("update");
@@ -735,7 +736,7 @@ public class DataBusUtil {
                     pub = String.format(pub, "user.position.updated", domain.getClientId(),
                             occupy.getOccupyId(), UUID.randomUUID(),
                             occupy.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(occupy).replace("\"", "\\\""));
-                    graphql.append(occupy.getOccupyId() + ":pub(message:" + pub + "){id}\n");
+                    graphql.append(RandomStringUtils.randomAlphabetic(20) + ":pub(message:" + pub + "){id}\n");
                 }
             }
             List<OccupyDto> delete = occupyMap.get("delete");
@@ -753,7 +754,7 @@ public class DataBusUtil {
                     pub = String.format(pub, "user.position.deleted", domain.getClientId(),
                             occupy.getOccupyId(), UUID.randomUUID(),
                             occupy.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(occupy).replace("\"", "\\\""));
-                    graphql.append(occupy.getOccupyId() + ":pub(message:" + pub + "){id}\n");
+                    graphql.append(RandomStringUtils.randomAlphabetic(20) + ":pub(message:" + pub + "){id}\n");
                 }
             }
 
