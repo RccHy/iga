@@ -30,11 +30,12 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
         String sql = "select id, code, name, description," +
                 "multiple_root_node as multipleRootNode, create_time as createTime," +
                 "update_time as updateTime, create_user as createUser, domain ,tree_index as treeIndex " +
-                "from t_mgr_dept_tree_type where 1 = 1 ";
+                "from t_mgr_dept_tree_type where 1 = 1  and domain=? ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
         List<Object> param = new ArrayList<>();
+        param.add(domain);
 
         dealData(arguments, stb, param);
         stb.append("order by tree_index");
@@ -59,8 +60,8 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
     @Transactional
     public DeptTreeType saveDeptTreeType(DeptTreeType deptTreeType, String domain) throws Exception {
         //判重
-        Object[] param = new Object[]{deptTreeType.getCode(), deptTreeType.getName()};
-        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_dept_tree_type where code =? or name = ?", param);
+        Object[] param = new Object[]{deptTreeType.getCode(), deptTreeType.getName(), domain};
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_dept_tree_type where code =? or name = ? and domain= ?", param);
         if (null != mapList && mapList.size() > 0) {
             throw new CustomException(ResultCode.FAILED, "code 或 name 不能重复,添加组织机构树类别失败");
         }
@@ -166,13 +167,13 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
     }
 
     @Override
-    public DeptTreeType findByCode(String treeType) {
+    public DeptTreeType findByCode(String treeType, String domain) {
         String sql = "select id, code, name, description," +
                 "multiple_root_node as multipleRootNode, create_time as createTime," +
                 "update_time as updateTime, create_user as createUser, domain ,tree_index as treeIndex " +
-                "from t_mgr_dept_tree_type where code = ?  order by tree_index";
+                "from t_mgr_dept_tree_type where code = ? and domain =? order by tree_index";
 
-        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, treeType);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, treeType, domain);
         DeptTreeType deptTreeType = new DeptTreeType();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {

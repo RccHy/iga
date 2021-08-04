@@ -51,7 +51,8 @@ public class OccupyDaoImpl implements OccupyDao {
                 "       u.data_source               as dataSource," +
                 "       u.create_time               as createTime," +
                 "       u.update_time               as updateTime," +
-                "       u.active               as active" +
+                "       u.active               as active," +
+                "       u.orphan               as orphan" +
                 " from identity i" +
                 "         left join identity_user iu on i.id = iu.identity_id" +
                 "         left join user u on iu.user_id = u.id" +
@@ -138,16 +139,13 @@ public class OccupyDaoImpl implements OccupyDao {
                     List<OccupyDto> list = new ArrayList<>();
                     List<OccupyDto> update = occupyMap.get("update");
                     List<OccupyDto> invalid = occupyMap.get("invalid");
-//                    List<OccupyDto> recover = occupyMap.get("recover");
                     if (null != update) {
                         list.addAll(update);
                     }
                     if (null != invalid) {
                         list.addAll(invalid);
                     }
-//                    if (null != recover) {
-//                        list.addAll(recover);
-//                    }
+
 
                     String sql = "UPDATE `user` SET user_type = ?, card_type = ?, card_no = ?, del_mark = ?, start_time = ?, end_time = ?, update_time = ?,dept_code = ?,  " +
                             " source = ?, data_source = ?,  user_index = ?,active=?,active_time=?,account_no=?,valid_start_time=?,valid_end_time=?,orphan=?" +

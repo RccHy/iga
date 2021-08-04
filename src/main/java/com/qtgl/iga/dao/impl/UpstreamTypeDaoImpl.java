@@ -33,12 +33,12 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
     public List<UpstreamTypeVo> findAll(Map<String, Object> arguments, String domain) {
         String sql = "select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_type_id as deptTypeId," +
                 "enable_prefix as enablePrefix,active,active_time as activeTime,root,create_time as createTime," +
-                "update_time as updateTime, graphql_url as graphqlUrl,service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId , is_page as isPage, syn_way as synWay from  t_mgr_upstream_types where 1 = 1  and active = 1 ";
+                "update_time as updateTime, graphql_url as graphqlUrl,service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId , is_page as isPage, syn_way as synWay from  t_mgr_upstream_types where 1 = 1  and active = 1 and domain=? ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
         List<Object> param = new ArrayList<>();
-
+        param.add(domain);
         dealData(arguments, stb, param);
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
         ArrayList<UpstreamTypeVo> list = new ArrayList<>();

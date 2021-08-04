@@ -224,7 +224,7 @@ public class PersonServiceImpl implements PersonService {
     }
 
     private void calculateInsert(Map<String, Person> personFromSSOMap, Map<String, List<Person>> result, String key, Person val) {
-        if (!personFromSSOMap.containsKey(key)) {
+        if (!personFromSSOMap.containsKey(key) && (val.getDelMark() != 1)) {
             //新增逻辑字段赋默认值
             val.setId(UUID.randomUUID().toString());
             val.setOpenId(RandomStringUtils.randomAlphabetic(20));
