@@ -5,16 +5,19 @@ spring:
       username: ${IGA_DATASOURCE_USERNAME}
       password: ${IGA_DATASOURCE_PASSWORD}
       type: com.alibaba.druid.pool.DruidDataSource
+      max-wait:1200000
     sso:
       url: ${SSO_DATASOURCE_URL}
       username: ${SSO_DATASOURCE_USERNAME}
       password: ${SSO_DATASOURCE_PASSWORD}
       type: com.alibaba.druid.pool.DruidDataSource
+      max-wait:1200000
       api:
         url: ${SSO_API_DATASOURCE_URL}
         username: ${SSO_API_DATASOURCE_USERNAME}
         password: ${SSO_API_DATASOURCE_PASSWORD}
         type: com.alibaba.druid.pool.DruidDataSource
+        max-wait:1200000
 
 graphql:
   url: /graphql
