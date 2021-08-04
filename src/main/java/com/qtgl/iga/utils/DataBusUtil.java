@@ -214,7 +214,7 @@ public class DataBusUtil {
                 //不需要处理的映射字段(常量)
                 ArrayList<UpstreamTypeField> upstreamTypeFields = new ArrayList<>();
                 //存储映射字段(表达式需处理的)
-                HashMap<String, String> map = new HashMap<>();
+                HashMap<String, List<String>> map = new HashMap<>();
                 //query拼接所需查询的字段(简单映射的重命名以及表达式的处理(源字段查询))
                 Map<String, String> nodeMap = new ConcurrentHashMap<>();
                 for (UpstreamTypeField field : fields) {
@@ -223,12 +223,13 @@ public class DataBusUtil {
                     Pattern r = Pattern.compile(pattern);
                     Matcher m = r.matcher(field.getTargetField());
                     if (field.getTargetField().contains("=")) {
-                        // 表达式 最终需要进行运算
-                        if (m.find()) {
-                            map.put(m.group(0).substring(1), field.getSourceField());
-                            //node.addResultAttributes(m.group(0).substring(1));
+                        List<String> groupList = new ArrayList<>();
+                        while (m.find()) {
+                            groupList.add(m.group(0).substring(1));
                             nodeMap.put(m.group(0).substring(1), m.group(0).substring(1));
                         }
+                        map.put(field.getSourceField(), groupList);
+                        // 表达式 最终需要进行运算
                     } else if (!field.getTargetField().contains("=") && field.getTargetField().contains("$")) {
                         // 简单映射，直接查询时候进行重命名
                         if (m.find()) {
@@ -287,17 +288,19 @@ public class DataBusUtil {
                     //以查询结果为结果集装入处理表达式后的结果
                     HashMap<String, Object> innerMap = (HashMap<String, Object>) beanMap.get("innerMap");
 
-                    for (Map.Entry<String, String> entry : map.entrySet()) {
+                    for (Map.Entry<String, List<String>> entry : map.entrySet()) {
                         try {
                             //处理前缀
                             SimpleBindings bindings = new SimpleBindings();
-                            bindings.put("$" + entry.getKey(), null == entry.getValue() ? "" : entry.getValue());
-                            String reg = collect.get(entry.getValue()).substring(1);
+                            for (int i = 0; i < entry.getValue().size(); i++) {
+                                bindings.put("$" + entry.getValue().get(i), null == innerMap.get(entry.getValue().get(i)) ? "" : innerMap.get(entry.getValue().get(i)));
+                            }
+
+                            String reg = collect.get(entry.getKey()).substring(1);
                             ScriptEngineManager sem = new ScriptEngineManager();
                             ScriptEngine engine = sem.getEngineByName("js");
                             final Object eval = engine.eval(reg, bindings);
-                            // jsonObject.put(entry.getValue(), eval);
-                            innerMap.put(entry.getValue(), eval);
+                            innerMap.put(entry.getKey(), eval);
 
                         } catch (ScriptException e) {
                             log.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
@@ -375,6 +378,7 @@ public class DataBusUtil {
                 String pattern = "\\$[a-zA-Z0-9_]+";
                 Pattern r = Pattern.compile(pattern);
                 Matcher m = r.matcher(field.getTargetField());
+                // 表达式 最终需要进行运算
                 if (field.getTargetField().contains("=")) {
                     List<String> goupList = new ArrayList<>();
                     while (m.find()) {
@@ -382,7 +386,6 @@ public class DataBusUtil {
                         nodeMap.put(m.group(0).substring(1), m.group(0).substring(1));
                     }
                     map.put(field.getSourceField(), goupList);
-                    // 表达式 最终需要进行运算
                    /* if (m.find()) {
                         map.put( field.getSourceField(),m.group(0).substring(1));
                         nodeMap.put(m.group(0).substring(1), m.group(0).substring(1));
@@ -443,7 +446,6 @@ public class DataBusUtil {
 
             rs = new ArrayList<>();
             Map<String, String> collect = fields.stream().collect(Collectors.toMap(UpstreamTypeField::getSourceField, UpstreamTypeField::getTargetField));
-//            System.out.println("start:" + System.currentTimeMillis());
             for (Object object : objects) {
 
                 BeanMap beanMap = new BeanMap(object);
@@ -484,7 +486,6 @@ public class DataBusUtil {
                 rs.add(stringObjectLinkedHashMap);
             }
 
-//            System.out.println("end:" + System.currentTimeMillis());
             deptMap.put("edges", rs);
 
 

@@ -5,6 +5,7 @@ import com.qtgl.iga.dao.PersonDao;
 import com.qtgl.iga.utils.MyBeanUtils;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -37,17 +38,21 @@ public class PersonDaoImpl implements PersonDao {
                 "active_time as activeTime,create_time as createTime,update_time as updateTime,del_mark as delMark,valid_start_time as validStartTime , valid_end_time as validEndTime " +
                 "  from identity  where tenant_id=? and del_mark=0 order by update_time";
         List<Map<String, Object>> maps = jdbcSSO.queryForList(sql, tenantId);
-        List<Person> personList = new ArrayList<>();
-        maps.forEach(map -> {
-            Person person = new Person();
-            try {
-                MyBeanUtils.populate(person, map);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            personList.add(person);
-        });
-        return personList;
+        if (null != maps && maps.size() > 0) {
+            List<Person> personList = new ArrayList<>();
+            maps.forEach(map -> {
+                Person person = new Person();
+                try {
+                    MyBeanUtils.populate(person, map);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                personList.add(person);
+            });
+            return personList;
+        }
+        return null;
+
     }
 
 
@@ -160,10 +165,10 @@ public class PersonDaoImpl implements PersonDao {
                     int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, list.get(i).getId());
+                            preparedStatement.setObject(1,UUID.randomUUID().toString());
                             preparedStatement.setObject(2, list.get(i).getName());
                             preparedStatement.setObject(3, list.get(i).getAccountNo());
-                            preparedStatement.setObject(4, list.get(i).getOpenId());
+                            preparedStatement.setObject(4, RandomStringUtils.randomAlphabetic(20));
                             preparedStatement.setObject(5, list.get(i).getDelMark());
                             preparedStatement.setObject(6, list.get(i).getCreateTime());
                             preparedStatement.setObject(7, list.get(i).getUpdateTime());
@@ -172,11 +177,11 @@ public class PersonDaoImpl implements PersonDao {
                             preparedStatement.setObject(10, list.get(i).getCardNo());
                             preparedStatement.setObject(11, list.get(i).getCellphone());
                             preparedStatement.setObject(12, list.get(i).getEmail());
-                            preparedStatement.setObject(13, list.get(i).getDataSource());
+                            preparedStatement.setObject(13, "PULL");
                             preparedStatement.setObject(14, list.get(i).getTags());
                             preparedStatement.setObject(15, list.get(i).getActive());
                             preparedStatement.setObject(16, list.get(i).getActiveTime());
-                            preparedStatement.setObject(17, "PULL");
+                            preparedStatement.setObject(17, list.get(i).getSource());
                             preparedStatement.setObject(18, list.get(i).getValidStartTime());
                             preparedStatement.setObject(19, list.get(i).getValidEndTime());
                         }
@@ -218,8 +223,8 @@ public class PersonDaoImpl implements PersonDao {
                             preparedStatement.setObject(9, list.get(i).getTags());
                             preparedStatement.setObject(10, list.get(i).getActive());
                             preparedStatement.setObject(11, list.get(i).getActiveTime());
-                            preparedStatement.setObject(12, "PULL");
-                            preparedStatement.setObject(13, list.get(i).getDataSource());
+                            preparedStatement.setObject(12, list.get(i).getSource());
+                            preparedStatement.setObject(13, "PULL");
                             preparedStatement.setObject(14, list.get(i).getValidStartTime());
                             preparedStatement.setObject(15, list.get(i).getValidEndTime());
                             preparedStatement.setObject(16, list.get(i).getId());
