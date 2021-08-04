@@ -78,21 +78,22 @@ curl --location --request POST 'http://ip:端口/iga/api/event' \
 | TASK_CRON | 同步时间 | 控制定时同步任务间隔时间。默认值 0 */5 * * * ?
 
 * 注：
-在maker中创建应用，并在sso/admin中勾选scope客户端认证：data、introspect、acl<br/>
+在maker中创建应用，并在sso/admin中勾选scope客户端认证：data、introspect<br/>
 数据库链接地址中 注意增加参数rewriteBatchedStatements=true  以提高性能
   
-* TODO：
-SSO_URL、BUS_URL 多组环境下，支持标准的相对路径配置。
-  
+
+
 
 # 表达式支持
 
 |         描述           | 表达式参考             |    推荐场景            |
 | --------------------- | -------------------   | -------------------  
+|  变量                  |   $Code               |  将数据中Code字段作为变量
+|  常量                  |   ABC                 | 将ABC作为固定不变的值，一般作用于字段映射赋值
 |  全部数据               |   =*                  |  挂载、排除规则        
 |  正则过滤数据            |   =Reg("^hr_20.$")    |  挂载、排除规则        
-|  普通脚本               |   ="hr_"+$Code        |  字段映射 对值重新赋值  
-|  复杂脚本               |  =if($Code=='ABC'){ "1"+$Code } | 字段映射 对值重新赋值  
+|  重命名计算脚本           |   ="hr_"+$Code        |  字段映射 对值重新赋值  
+|  判断计算脚本             |  =if($Code=='ABC'){ "1"+$Code } | 字段映射 对值重新赋值  
 
 # 异常说明(具体报错原因查看对应提示)
 

@@ -428,7 +428,9 @@ public class PersonServiceImpl implements PersonService {
 
             }
 
-        } else if (!personFromUpstream.containsKey(key) && 1 != personFromSSO.getDelMark() && personFromSSO.getActive() != 0
+        } else if (!personFromUpstream.containsKey(key)
+                && 1 != personFromSSO.getDelMark()
+                && personFromSSO.getActive() != 0
                 && "PULL".equalsIgnoreCase(personFromSSO.getDataSource())) {
             personFromSSO.setActive(0);
             personFromSSO.setActiveTime(now);
