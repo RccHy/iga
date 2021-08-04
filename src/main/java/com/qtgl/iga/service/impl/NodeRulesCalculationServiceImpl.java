@@ -392,7 +392,7 @@ public class NodeRulesCalculationServiceImpl {
                     // 如果上次日志状态 是【忽略】，则判断数据是否相同原因相同，相同则进行忽略
                     if (null != lastTaskLog && null != lastTaskLog.getStatus() && lastTaskLog.getStatus().equals("ignore")) {
                         JSONArray objects = JSONArray.parseArray(lastTaskLog.getData());
-                        if (delete.get(0).getClass().getName().equals("Person")) {
+                        if (delete.get(0).getClass().getSimpleName().equals("Person")) {
                             type = "人员";
                             List<JSONObject> personList = objects.toJavaList(JSONObject.class);
                             Map<String, JSONObject> map = personList.stream().collect(Collectors.toMap(

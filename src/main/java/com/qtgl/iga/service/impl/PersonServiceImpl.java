@@ -19,15 +19,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -185,12 +183,12 @@ public class PersonServiceImpl implements PersonService {
             // 存储最终需要操作的数据
             Map<String, List<Person>> result = new HashMap<>();
 
-            //sso数据为空走全量新增
-            if (null == personFromSSOList) {
-                result.put("insert", new ArrayList<>(personFromUpstream.values()));
-                personDao.saveToSso(result, tenant.getId());
-                return result;
-            }
+//            //sso数据为空走全量新增
+//            if (null == personFromSSOList) {
+//                result.put("insert", new ArrayList<>(personFromUpstream.values()));
+//                personDao.saveToSso(result, tenant.getId());
+//                return result;
+//            }
             Map<String, Person> personFromSSOMap = personFromSSOList.stream().filter(person -> !StringUtils.isEmpty(person.getCardType()) && !StringUtils.isEmpty(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
             Map<String, Person> personFromSSOMapByAccount = personFromSSOList.stream().filter(person -> !StringUtils.isEmpty(person.getAccountNo())).collect(Collectors.toMap(Person::getAccountNo, person -> person, (v1, v2) -> v2));
 
@@ -227,8 +225,12 @@ public class PersonServiceImpl implements PersonService {
 
     private void calculateInsert(Map<String, Person> personFromSSOMap, Map<String, List<Person>> result, String key, Person val) {
         if (!personFromSSOMap.containsKey(key)) {
-//            val.setId(UUID.randomUUID().toString());
-//            val.setOpenId(RandomStringUtils.randomAlphabetic(20));
+            //新增逻辑字段赋默认值
+            val.setId(UUID.randomUUID().toString());
+            val.setOpenId(RandomStringUtils.randomAlphabetic(20));
+            val.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+            val.setValidEndTime(LocalDateTime.of(2100, 1, 1, 0, 0, 0));
+
             // 如果新增的数据 active=0 失效 或者 del_mark=1 删除  或者 判断为孤儿
             //   都将 最终有效期设置为 失效
             if (val.getActive() == 0 || val.getDelMark() == 1) {
@@ -287,6 +289,20 @@ public class PersonServiceImpl implements PersonService {
                     String sourceField = field.getSourceField();
                     Object newValue = ClassCompareUtil.getGetMethod(newPerson, sourceField);
                     Object oldValue = ClassCompareUtil.getGetMethod(personFromSSO, sourceField);
+                    //对于密码字段不处理
+                    if (sourceField.equalsIgnoreCase("password")) {
+                        if (null == oldValue) {
+                            if (result.containsKey("password")) {
+                                result.get("password").add(personFromSSO);
+                            } else {
+                                result.put("password", new ArrayList<Person>() {{
+                                    this.add(personFromSSO);
+                                }});
+                            }
+
+                        }
+                        continue;
+                    }
                     if (null == oldValue && null == newValue) {
                         continue;
                     }
@@ -336,6 +352,13 @@ public class PersonServiceImpl implements PersonService {
                 personFromSSO.setUpdateTime(newPerson.getUpdateTime());
                 personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
                 personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                if (result.containsKey("delete")) {
+                    result.get("delete").add(personFromSSO);
+                } else {
+                    result.put("delete", new ArrayList<Person>() {{
+                        this.add(personFromSSO);
+                    }});
+                }
                 log.info("人员信息删除{}", personFromSSO.getId());
             }
             if (updateFlag && personFromSSO.getDelMark() != 1) {
@@ -351,8 +374,9 @@ public class PersonServiceImpl implements PersonService {
                         }});
                     }
                 }
-
+                //失效
                 if (invalidFlag) {
+                    personFromSSO.setActive(0);
                     personFromSSO.setActiveTime(newPerson.getUpdateTime());
                     personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
                     personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
@@ -406,6 +430,8 @@ public class PersonServiceImpl implements PersonService {
 
         } else if (!personFromUpstream.containsKey(key) && 1 != personFromSSO.getDelMark() && personFromSSO.getActive() != 0
                 && "PULL".equalsIgnoreCase(personFromSSO.getDataSource())) {
+            personFromSSO.setActive(0);
+            personFromSSO.setActiveTime(now);
             personFromSSO.setUpdateTime(now);
             personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
             personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));

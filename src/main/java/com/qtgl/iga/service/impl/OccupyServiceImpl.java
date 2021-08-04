@@ -104,13 +104,21 @@ public class OccupyServiceImpl implements OccupyService {
 
         // 获取sso中所有人员，用于验证 身份信息是否合法
         List<Person> personFromSSO = personDao.getAll(tenant.getId());
-
+        if (null == personFromSSO) {
+            throw new CustomException(ResultCode.FAILED, "没有未删除的可用人员");
+        }
         Map<String, Person> personFromSSOMap = personFromSSO.stream().filter(person -> !StringUtils.isEmpty(person.getCardType()) && !StringUtils.isEmpty(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
         Map<String, Person> personFromSSOMapByAccount = personFromSSO.stream().filter(person -> !StringUtils.isEmpty(person.getAccountNo())).collect(Collectors.toMap(person -> (person.getAccountNo()), person -> person, (v1, v2) -> v2));
         // 获取sso中所有的有效的 组织机构 、 岗位信息
         List<TreeBean> deptFromSSO = deptDao.findActiveDataByTenantId(tenant.getId());
+        if (null == deptFromSSO) {
+            throw new CustomException(ResultCode.FAILED, "没有未删除的有效部门");
+        }
         final Map<String, TreeBean> deptFromSSOMap = deptFromSSO.stream().collect(Collectors.toMap(dept -> (dept.getCode()), dept -> dept, (v1, v2) -> v2));
         List<TreeBean> postFromSSO = postDao.findActiveDataByTenantId(tenant.getId());
+        if (null == postFromSSO) {
+            throw new CustomException(ResultCode.FAILED, "没有未删除的有效岗位");
+        }
         final Map<String, TreeBean> postFromSSOMap = postFromSSO.stream().collect(Collectors.toMap(post -> (post.getCode()), post -> post, (v1, v2) -> v2));
 
 
@@ -363,7 +371,7 @@ public class OccupyServiceImpl implements OccupyService {
                     // 对比后，权威源提供的"映射字段"数据和sso中没有差异。 （active字段不提供）
                     if (!updateFlag && occupyFromSSO.getDelMark() != 1) {
                         //
-                        if (occupyFromSSO.getActive() != newOccupy.getActive()) {
+                        if (!occupyFromSSO.getActive().equals(newOccupy.getActive())) {
                             occupyFromSSO.setActive(newOccupy.getActive());
                             occupyFromSSO.setActiveTime(newOccupy.getUpdateTime());
                             occupyFromSSO.setUpdateTime(newOccupy.getUpdateTime());
