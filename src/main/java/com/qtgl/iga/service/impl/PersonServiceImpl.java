@@ -93,6 +93,7 @@ public class PersonServiceImpl implements PersonService {
         List<NodeRules> userRules = rulesDao.getByNodeAndType(nodeId, 1, true, 0);
         // 根据证件类型+证件号进行合重
         Map<String, Person> personFromUpstream = new ConcurrentHashMap<>();
+        Map<String, Person> personFromUpstreamByAccount = new ConcurrentHashMap<>();
         final LocalDateTime now = LocalDateTime.now();
         userRules.forEach(rules -> {
             // 通过规则获取数据
@@ -163,7 +164,7 @@ public class PersonServiceImpl implements PersonService {
                     }
                     // 人员标识 证件类型、证件号码   OR    用户名 accountNo  必提供一个
                     if (StringUtils.isEmpty(personBean.getCardNo()) && StringUtils.isEmpty(personBean.getCardType())) {
-                        personFromUpstream.put(personBean.getAccountNo(), personBean);
+                        personFromUpstreamByAccount.put(personBean.getAccountNo(), personBean);
                     } else {
                         personFromUpstream.put(personBean.getCardType() + ":" + personBean.getCardNo(), personBean);
                     }
@@ -172,8 +173,8 @@ public class PersonServiceImpl implements PersonService {
             }
         });
 
-        log.info("所有人员数据获取完成:{}", personFromUpstream.size());
-        if (null != personFromUpstream && personFromUpstream.size() > 0) {
+        log.info("所有人员数据获取完成:{}", personFromUpstream.size()+personFromUpstreamByAccount.size());
+        if (personFromUpstream.size() > 0||personFromUpstreamByAccount.size()>0) {
             TaskConfig.errorData.put(domain.getId(), "");
              /*
                 将合重后的数据插入进数据库
@@ -189,8 +190,11 @@ public class PersonServiceImpl implements PersonService {
 //                personDao.saveToSso(result, tenant.getId());
 //                return result;
 //            }
+            // 将数据库中  证件类型 && 证件号不为空的
             Map<String, Person> personFromSSOMap = personFromSSOList.stream().filter(person -> !StringUtils.isEmpty(person.getCardType()) && !StringUtils.isEmpty(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
-            Map<String, Person> personFromSSOMapByAccount = personFromSSOList.stream().filter(person -> !StringUtils.isEmpty(person.getAccountNo())).collect(Collectors.toMap(Person::getAccountNo, person -> person, (v1, v2) -> v2));
+            // 将数据库中 用户名不为空
+            Map<String, Person> personFromSSOMapByAccount = personFromSSOList.stream().filter(person ->
+                    !StringUtils.isEmpty(person.getAccountNo())).collect(Collectors.toMap(Person::getAccountNo, person -> person, (v1, v2) -> v2));
 
 
             personFromSSOMap.forEach((key, personFromSSO) -> {
@@ -198,15 +202,15 @@ public class PersonServiceImpl implements PersonService {
             });
 
             personFromSSOMapByAccount.forEach((key, personFromSSO) -> {
-                calculate(personFromUpstream, now, result, key, personFromSSO);
+                calculate(personFromUpstreamByAccount, now, result, key, personFromSSO);
             });
 
             personFromUpstream.forEach((key, val) -> {
                 calculateInsert(personFromSSOMap, result, key, val);
             });
 
-            personFromSSOMapByAccount.forEach((key, val) -> {
-                calculateInsert(personFromSSOMap, result, key, val);
+            personFromUpstreamByAccount.forEach((key, val) -> {
+                calculateInsert(personFromSSOMapByAccount, result, key, val);
             });
 
 
@@ -224,7 +228,7 @@ public class PersonServiceImpl implements PersonService {
     }
 
     private void calculateInsert(Map<String, Person> personFromSSOMap, Map<String, List<Person>> result, String key, Person val) {
-        if (!personFromSSOMap.containsKey(key) && (val.getDelMark() != 1)) {
+        if (!personFromSSOMap.containsKey(key) && (val.getDelMark() == 0)) {
             //新增逻辑字段赋默认值
             val.setId(UUID.randomUUID().toString());
             val.setOpenId(RandomStringUtils.randomAlphabetic(20));
