@@ -65,7 +65,7 @@ public class ApiController {
                 domainInfo.setCreateTime(new Timestamp(System.currentTimeMillis()));
                 try {
                     //授权
-                    this.domainAuthorization(clientId, domainInfo);
+                   // this.domainAuthorization(clientId, domainInfo);
                     domainInfoService.install(domainInfo);
                     //GraphQLService.setDomainGraphQLMap(runner.buildGraphql());
                 } catch (CustomException e) {

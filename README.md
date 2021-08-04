@@ -52,6 +52,10 @@ curl --location --request POST 'http://ip:端口/iga/api/event' \
 **后端地址**：[https|http]://域名/iga/graphql<br/>
 配置完成后可获得**服务地址**<br/>
 
+5:授权<br/>
+【前置条件：bus部署完成，console本身部署完成 】<br/>
+通过console 应用中心  -->  应用中心授权 -->【搜索iga】 --> 右侧点击"编辑权限" --> 选择所有"服务读写"<br/>
+![img_1.png](img_1.png)
 
 
 # 环境变量说明【Environment】：<br/>

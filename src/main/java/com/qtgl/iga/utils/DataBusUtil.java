@@ -446,6 +446,7 @@ public class DataBusUtil {
 
             rs = new ArrayList<>();
             Map<String, String> collect = fields.stream().collect(Collectors.toMap(UpstreamTypeField::getSourceField, UpstreamTypeField::getTargetField));
+            System.out.println("start:" + System.currentTimeMillis());
             for (Object object : objects) {
 
                 BeanMap beanMap = new BeanMap(object);
@@ -486,6 +487,7 @@ public class DataBusUtil {
                 rs.add(stringObjectLinkedHashMap);
             }
 
+            System.out.println("end:" + System.currentTimeMillis());
             deptMap.put("edges", rs);
 
 

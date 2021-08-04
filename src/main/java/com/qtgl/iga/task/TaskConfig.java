@@ -141,7 +141,7 @@ public class TaskConfig {
                                                 taskLogService.save(taskLog, domainInfo.getId(), "update");
 
                                                 // PUT   MQ
-                                                  if (personResult.size() > 0) {
+                                                  if (personResult.size() > 0&&personResult.size()<5000) {
                                                     pubResult = dataBusUtil.pub(null, personResult, null, "person", domainInfo);
                                                     log.info("person pub:{}", pubResult);
                                                 }
@@ -161,7 +161,7 @@ public class TaskConfig {
                                                 taskLogService.save(taskLog, domainInfo.getId(), "update");
 
                                                 // PUT   MQ
-                                                if (occupyResult.size() > 0) {
+                                                if (occupyResult.size() > 0&&occupyResult.size()<5000) {
                                                     pubResult = dataBusUtil.pub(null, null, occupyResult, "occupy", domainInfo);
                                                     log.info("occupy pub:{}", pubResult);
                                                 }
