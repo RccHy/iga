@@ -43,7 +43,7 @@ public class DeptTreeTypeServiceImpl implements DeptTreeTypeService {
     @Override
     public DeptTreeType deleteDeptTreeType(Map<String, Object> arguments, String domain) throws Exception {
         //查询是否有绑定的node
-        List<Node> nodeList = nodeDao.findByTreeTypeId((String) arguments.get("id"), 0);
+        List<Node> nodeList = nodeDao.findByTreeTypeId((String) arguments.get("id"), 0,domain);
         if (null != nodeList && nodeList.size() > 0) {
             throw new CustomException(ResultCode.FAILED, "删除组织机构树类型失败,有绑定的node,请查看后再删除");
         }

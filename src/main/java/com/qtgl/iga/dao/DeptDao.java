@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public interface DeptDao {
-    List<Dept> getAllDepts();
+
 
     Dept findById(String id);
 
@@ -20,7 +20,9 @@ public interface DeptDao {
 
     ArrayList<TreeBean> deleteDept(ArrayList<TreeBean> list);
 
-    Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, String tenantId);
+    Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, ArrayList<TreeBean> invalidList, String tenantId);
 
     List<TreeBean> findBySourceAndTreeType(String api, String code, String tenantId);
+
+    List<TreeBean> findActiveDataByTenantId(String tenantId);
 }

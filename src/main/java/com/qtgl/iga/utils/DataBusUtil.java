@@ -12,6 +12,7 @@ import com.qtgl.iga.utils.exception.CustomException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.beanutils.BeanMap;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.entity.ContentType;
@@ -74,7 +75,7 @@ public class DataBusUtil {
     public static ConcurrentHashMap<String, List<UpstreamTypeField>> typeFields = new ConcurrentHashMap<>();
 
 
-    private static String sendPostRequest(String url, JSONObject params) throws Exception {
+    public static String sendPostRequest(String url, JSONObject params) throws Exception {
         url = UrlUtil.getUrl(url);
         log.info(" post url:" + url);
         String s = null;
@@ -82,8 +83,7 @@ public class DataBusUtil {
             s = Request.Post(url).bodyString(params.toJSONString(), ContentType.APPLICATION_JSON).execute().returnContent().asString();
         } catch (IOException e) {
             e.printStackTrace();
-//            throw new Exception(" post请求失败， url:" + url+";params:"+params);
-            throw new CustomException(ResultCode.FAILED, "post请求失败， url:" + url + ";params:" + params);
+            throw new CustomException(ResultCode.FAILED, "post请求失败， url:" + url + "; message:" + e.getMessage() + "; params:" + params);
         }
         log.info(" post response:" + s);
         return s;
@@ -107,7 +107,7 @@ public class DataBusUtil {
         return invokeForData(UrlUtil.getUrl(u), upstreamType);
     }
 
-    private String getToken(String serverName) {
+    public String getToken(String serverName) {
         String sso = UrlUtil.getUrl(ssoUrl);
         //判断是否已有未过期token
         if (StringUtils.isEmpty(serverName)) {
@@ -211,34 +211,40 @@ public class DataBusUtil {
                 GraphqlQuery query = new DefaultGraphqlQuery(upstreamType.getSynType() + ":" + methodName);
                 ResultAttributtes edges = new ResultAttributtes("edges");
                 ResultAttributtes node = new ResultAttributtes("node");
-                //未处理的映射字段(来源数据库)
+                //不需要处理的映射字段(常量)
                 ArrayList<UpstreamTypeField> upstreamTypeFields = new ArrayList<>();
-                //存储映射字段(处理后的)
-                HashMap<String, String> map = new HashMap<>();
-                //存储前缀
-//                HashMap<String, String> prefixMap = new HashMap<>();
+                //存储映射字段(表达式需处理的)
+                HashMap<String, List<String>> map = new HashMap<>();
+                //query拼接所需查询的字段(简单映射的重命名以及表达式的处理(源字段查询))
+                Map<String, String> nodeMap = new ConcurrentHashMap<>();
                 for (UpstreamTypeField field : fields) {
-                    //   修改常量
-                    if (field.getTargetField().contains("$")) {
-//                        node.addResultAttributes(field.getSourceField() + ":" + field.getTargetField().substring(2));
-                        //名称校验
-                        String pattern = "\\$[a-zA-Z0-9_]+";
-                        Pattern r = Pattern.compile(pattern);
-                        Matcher m = r.matcher(field.getTargetField());
+                    //名称校验
+                    String pattern = "\\$[a-zA-Z0-9_]+";
+                    Pattern r = Pattern.compile(pattern);
+                    Matcher m = r.matcher(field.getTargetField());
+                    if (field.getTargetField().contains("=")) {
+                        List<String> groupList = new ArrayList<>();
+                        while (m.find()) {
+                            groupList.add(m.group(0).substring(1));
+                            nodeMap.put(m.group(0).substring(1), m.group(0).substring(1));
+                        }
+                        map.put(field.getSourceField(), groupList);
+                        // 表达式 最终需要进行运算
+                    } else if (!field.getTargetField().contains("=") && field.getTargetField().contains("$")) {
+                        // 简单映射，直接查询时候进行重命名
                         if (m.find()) {
                             System.out.println("Found value: " + m.group(0));
-                            node.addResultAttributes(m.group(0).substring(1));
-                            map.put(m.group(0).substring(1), field.getSourceField());
-                        } else {
-                            System.out.println("NO MATCH");
+                            // node.addResultAttributes(field.getSourceField() + ":" + m.group(0).substring(1));
+                            nodeMap.put(field.getSourceField() + ":" + m.group(0).substring(1), m.group(0).substring(1));
+
                         }
-
-
                     } else {
                         upstreamTypeFields.add(field);
                     }
                 }
-
+                Set<String> nodeSet = nodeMap.keySet();
+                String[] nodeString = nodeSet.toArray(new String[nodeSet.size()]);
+                node.addResultAttributes(nodeString);
                 edges.addResultAttributes(node);
                 query.addResultAttributes(edges);
 
@@ -279,35 +285,38 @@ public class DataBusUtil {
                 Map<String, String> collect = fields.stream().collect(Collectors.toMap(UpstreamTypeField::getSourceField, UpstreamTypeField::getTargetField));
                 for (Object object : objects) {
                     BeanMap beanMap = new BeanMap(object);
-                    HashMap<String, String> innerMap = (HashMap<String, String>) beanMap.get("innerMap");
-                    JSONObject jsonObject = new JSONObject();
-                    for (Map.Entry<String, String> entry : innerMap.entrySet()) {
+                    //以查询结果为结果集装入处理表达式后的结果
+                    HashMap<String, Object> innerMap = (HashMap<String, Object>) beanMap.get("innerMap");
+
+                    for (Map.Entry<String, List<String>> entry : map.entrySet()) {
                         try {
                             //处理前缀
                             SimpleBindings bindings = new SimpleBindings();
-                            bindings.put("$" + entry.getKey(), null == entry.getValue() ? "" : entry.getValue());
-                            String reg = collect.get(map.get(entry.getKey())).substring(1);
+                            for (int i = 0; i < entry.getValue().size(); i++) {
+                                bindings.put("$" + entry.getValue().get(i), null == innerMap.get(entry.getValue().get(i)) ? "" : innerMap.get(entry.getValue().get(i)));
+                            }
+
+                            String reg = collect.get(entry.getKey()).substring(1);
                             ScriptEngineManager sem = new ScriptEngineManager();
                             ScriptEngine engine = sem.getEngineByName("js");
                             final Object eval = engine.eval(reg, bindings);
-                            jsonObject.put(map.get(entry.getKey()), eval);
-                            if ("parentCode".equals(map.get(entry.getKey()))) {
-                                if ((null == entry.getValue()) || ("".equals(entry.getValue()))) {
-                                    jsonObject.put(map.get(entry.getKey()), "");
-                                }
-                            }
+                            innerMap.put(entry.getKey(), eval);
+
                         } catch (ScriptException e) {
                             log.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
                             throw new Exception("eval处理数据异常" + collect.get(map.get(entry.getKey())));
-
                         }
+                    }
+                    //处理parentCode字段
+                    if (null == innerMap.get("parentCode")) {
+                        innerMap.put("parentCode", "");
                     }
                     if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
                         for (UpstreamTypeField field : upstreamTypeFields) {
-                            jsonObject.put(field.getSourceField(), field.getTargetField());
+                            innerMap.put(field.getSourceField(), field.getTargetField());
                         }
                     }
-                    resultJson.add(jsonObject);
+                    resultJson.add(innerMap);
 
                 }
 
@@ -315,134 +324,6 @@ public class DataBusUtil {
                 return resultJson;
             }
         }
-        if ("query".equals(type[4])) {
-            GraphqlQuery query = new DefaultGraphqlQuery(methodName);
-
-            //未处理的映射字段(来源数据库)
-            ArrayList<UpstreamTypeField> upstreamTypeFields = new ArrayList<>();
-            //存储映射字段(处理后的)
-            HashMap<String, String> map = new HashMap<>();
-            //存储前缀
-//            HashMap<String, String> prefixMap = new HashMap<>();
-            for (UpstreamTypeField field : fields) {
-                //   修改常量
-                if (field.getTargetField().contains("$")) {
-//                        node.addResultAttributes(field.getSourceField() + ":" + field.getTargetField().substring(2));
-                    //名称校验
-                    String pattern = "\\$[a-zA-Z0-9_]+";
-                    Pattern r = Pattern.compile(pattern);
-                    Matcher m = r.matcher(field.getTargetField());
-                    if (m.find()) {
-                        System.out.println("Found value: " + m.group(0));
-                        query.addResultAttributes(m.group(0).substring(1));
-                        map.put(m.group(0).substring(1), field.getSourceField());
-                    } else {
-                        System.out.println("NO MATCH");
-                    }
-//                    //前缀校验
-//                    String reg = "=[a-zA-Z0-9_]+";
-//                    Pattern r2 = Pattern.compile(reg);
-//                    Matcher m2 = r2.matcher(field.getTargetField());
-//                    if (m2.find()) {
-//                        System.out.println("Found value: " + m2.group(0));
-//                        prefixMap.put(field.getSourceField(), m2.group(0).substring(1));
-//                    } else {
-//                        prefixMap.put(field.getSourceField(), "");
-//                    }
-
-                } else {
-                    upstreamTypeFields.add(field);
-                }
-            }
-
-
-            log.info("body " + query);
-            GraphqlResponse response = null;
-            try {
-                response = graphqlClient.doQuery(query);
-            } catch (IOException e) {
-                log.info("response :  ->" + e.getMessage());
-                e.printStackTrace();
-            }
-
-            //获取数据，数据为map类型
-            result = response.getData();
-            for (Map.Entry<String, Object> entry : result.entrySet()) {
-                log.info("result  data --" + entry.getKey() + "------" + entry.getValue());
-            }
-            if (null == result || null == result.get("data")) {
-
-                throw new CustomException(ResultCode.FAILED, "映射字段有误,数据获取失败");
-
-            }
-            JSONObject.parseObject(result.get("data").toString()).getJSONArray(upstreamType.getSynType());
-            Map dataMap = (Map) result.get("data");
-            JSONArray dept = (JSONArray) JSONArray.toJSON(dataMap.get(upstreamType.getSynType()));
-            for (Object o : dept) {
-                JSONObject nodeJson = (JSONObject) o;
-                JSONObject node1 = nodeJson.getJSONObject("node");
-//                if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
-//                    for (UpstreamTypeField field : upstreamTypeFields) {
-//                        node1.put(field.getSourceField(), field.getTargetField());
-//                    }
-//                }
-                objects.add(node1);
-            }
-            JSONArray resultJson = new JSONArray();
-            for (Object object : objects) {
-
-//                    String s = object.toString();
-//                    HashMap hashMap = JSON.parseObject(object.toString(), HashMap.class);
-//                    System.out.println(hashMap);
-                BeanMap beanMap = new BeanMap(object);
-                HashMap<String, String> innerMap = (HashMap<String, String>) beanMap.get("innerMap");
-                JSONObject jsonObject = new JSONObject();
-                Map<String, String> collect = fields.stream().collect(Collectors.toMap(UpstreamTypeField::getSourceField, UpstreamTypeField::getTargetField));
-                for (Map.Entry<String, String> entry : innerMap.entrySet()) {
-                    try {
-                        //处理前缀
-                        SimpleBindings bindings = new SimpleBindings();
-                        bindings.put("$" + entry.getKey(), null == entry.getValue() ? "" : entry.getValue());
-                        String reg = collect.get(map.get(entry.getKey())).substring(1);
-                        ScriptEngineManager sem = new ScriptEngineManager();
-                        ScriptEngine engine = sem.getEngineByName("js");
-                        final Object eval = engine.eval(reg, bindings);
-                        jsonObject.put(map.get(entry.getKey()), eval);
-                        if ("parentCode".equals(map.get(entry.getKey()))) {
-                            if ((null == entry.getValue()) || ("".equals(entry.getValue()))) {
-                                jsonObject.put(map.get(entry.getKey()), "");
-                            }
-                        }
-                    } catch (ScriptException e) {
-                        log.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
-                        throw new Exception("eval处理数据异常" + collect.get(map.get(entry.getKey())));
-                    }
-                }
-                if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
-                    for (UpstreamTypeField field : upstreamTypeFields) {
-                        jsonObject.put(field.getSourceField(), field.getTargetField());
-                    }
-                }
-                resultJson.add(jsonObject);
-
-            }
-//            JSONArray objects1 = new JSONArray();
-//            if (null != resultJson) {
-//                for (Object deptOb : resultJson) {
-//                    JSONObject nodeJson = (JSONObject) deptOb;
-//                    if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
-//                        for (UpstreamTypeField field : upstreamTypeFields) {
-//                            nodeJson.put(field.getSourceField(), field.getTargetField());
-//                        }
-//                    }
-//
-//                    objects1.add(nodeJson);
-//                }
-//            }
-            return resultJson;
-        }
-
-
         return null;
     }
 
@@ -486,33 +367,44 @@ public class DataBusUtil {
             }
             ResultAttributtes edges = new ResultAttributtes("edges");
             ResultAttributtes node = new ResultAttributtes("node");
-            //未处理的映射字段(来源数据库)
+            //不需要处理的映射字段(常量)
             ArrayList<UpstreamTypeField> upstreamTypeFields = new ArrayList<>();
-            //存储映射字段(处理后的)
-            HashMap<String, String> map = new HashMap<>();
-            //存储前缀
-//                HashMap<String, String> prefixMap = new HashMap<>();
+            //存储映射字段(表达式需处理的)
+            HashMap<String, List<String>> map = new HashMap<>();
+            //query拼接所需查询的字段(简单映射的重命名以及表达式的处理(源字段查询))
+            Map<String, String> nodeMap = new ConcurrentHashMap<>();
             for (UpstreamTypeField field : fields) {
-                //   修改常量
-                if (field.getTargetField().contains("$")) {
-//                        node.addResultAttributes(field.getSourceField() + ":" + field.getTargetField().substring(2));
-                    //名称校验
-                    String pattern = "\\$[a-zA-Z0-9_]+";
-                    Pattern r = Pattern.compile(pattern);
-                    Matcher m = r.matcher(field.getTargetField());
+                //名称校验
+                String pattern = "\\$[a-zA-Z0-9_]+";
+                Pattern r = Pattern.compile(pattern);
+                Matcher m = r.matcher(field.getTargetField());
+                // 表达式 最终需要进行运算
+                if (field.getTargetField().contains("=")) {
+                    List<String> goupList = new ArrayList<>();
+                    while (m.find()) {
+                        goupList.add(m.group(0).substring(1));
+                        nodeMap.put(m.group(0).substring(1), m.group(0).substring(1));
+                    }
+                    map.put(field.getSourceField(), goupList);
+                   /* if (m.find()) {
+                        map.put( field.getSourceField(),m.group(0).substring(1));
+                        nodeMap.put(m.group(0).substring(1), m.group(0).substring(1));
+                    }*/
+                } else if (!field.getTargetField().contains("=") && field.getTargetField().contains("$")) {
+                    // 简单映射，直接查询时候进行重命名
                     if (m.find()) {
                         System.out.println("Found value: " + m.group(0));
-                        node.addResultAttributes(m.group(0).substring(1));
-                        map.put(m.group(0).substring(1), field.getSourceField());
-                    } else {
-                        System.out.println("NO MATCH");
-                    }
+                        // node.addResultAttributes(field.getSourceField() + ":" + m.group(0).substring(1));
+                        nodeMap.put(field.getSourceField() + ":" + m.group(0).substring(1), m.group(0).substring(1));
 
+                    }
                 } else {
                     upstreamTypeFields.add(field);
                 }
             }
-
+            Set<String> nodeSet = nodeMap.keySet();
+            String[] nodeString = nodeSet.toArray(new String[nodeSet.size()]);
+            node.addResultAttributes(nodeString);
             edges.addResultAttributes(node);
             query.addResultAttributes(edges);
             query.addResultAttributes("totalCount");
@@ -548,55 +440,54 @@ public class DataBusUtil {
             if (null != deptArray) {
                 for (Object deptOb : deptArray) {
                     JSONObject nodeJson = (JSONObject) deptOb;
-                    JSONObject node1 = nodeJson.getJSONObject("node");
-//                    if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
-//                        for (UpstreamTypeField field : upstreamTypeFields) {
-//                            node1.put(field.getSourceField(), field.getTargetField());
-//                        }
-//                    }
-
-                    objects.add(node1);
+                    objects.add(nodeJson.getJSONObject("node"));
                 }
             }
 
             rs = new ArrayList<>();
             Map<String, String> collect = fields.stream().collect(Collectors.toMap(UpstreamTypeField::getSourceField, UpstreamTypeField::getTargetField));
+            System.out.println("start:" + System.currentTimeMillis());
             for (Object object : objects) {
 
                 BeanMap beanMap = new BeanMap(object);
-                HashMap<String, String> innerMap = (HashMap<String, String>) beanMap.get("innerMap");
-                JSONObject jsonObject = new JSONObject();
-                for (Map.Entry<String, String> entry : innerMap.entrySet()) {
+                //以查询结果为结果集装入处理表达式后的结果
+                HashMap<String, Object> innerMap = (HashMap<String, Object>) beanMap.get("innerMap");
+                for (Map.Entry<String, List<String>> entry : map.entrySet()) {
                     try {
                         //处理前缀
                         SimpleBindings bindings = new SimpleBindings();
-                        bindings.put("$" + entry.getKey(), null == entry.getValue() ? "" : entry.getValue());
-                        String reg = collect.get(map.get(entry.getKey())).substring(1);
+                        for (int i = 0; i < entry.getValue().size(); i++) {
+                            bindings.put("$" + entry.getValue().get(i), null == innerMap.get(entry.getValue().get(i)) ? "" : innerMap.get(entry.getValue().get(i)));
+                        }
+
+                        String reg = collect.get(entry.getKey()).substring(1);
                         ScriptEngineManager sem = new ScriptEngineManager();
                         ScriptEngine engine = sem.getEngineByName("js");
                         final Object eval = engine.eval(reg, bindings);
-                        jsonObject.put(map.get(entry.getKey()), eval);
-                        if ("parentCode".equals(map.get(entry.getKey()))) {
-                            if ((null == entry.getValue()) || ("".equals(entry.getValue()))) {
-                                jsonObject.put(map.get(entry.getKey()), "");
-                            }
-                        }
+                        // jsonObject.put(entry.getValue(), eval);
+                        innerMap.put(entry.getKey(), eval);
+
                     } catch (ScriptException e) {
                         log.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
                         throw new Exception("eval处理数据异常" + collect.get(map.get(entry.getKey())));
                     }
                 }
+                //处理parentCode字段
+                if (null == innerMap.get("parentCode")) {
+                    innerMap.put("parentCode", "");
+                }
                 LinkedHashMap<String, Object> stringObjectLinkedHashMap = new LinkedHashMap<>();
                 if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
                     for (UpstreamTypeField field : upstreamTypeFields) {
-                        jsonObject.put(field.getSourceField(), field.getTargetField());
+                        //jsonObject.put(field.getSourceField(), field.getTargetField());
+                        innerMap.put(field.getSourceField(), field.getTargetField());
                     }
                 }
-                stringObjectLinkedHashMap.put("node", jsonObject);
+                stringObjectLinkedHashMap.put("node", innerMap);
                 rs.add(stringObjectLinkedHashMap);
             }
 
-
+            System.out.println("end:" + System.currentTimeMillis());
             deptMap.put("edges", rs);
 
 
@@ -643,7 +534,7 @@ public class DataBusUtil {
                             k.getCode(), k.getCode() + UUID.randomUUID(),
                             k.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(k).replace("\"", "\\\""));
                 }
-                graphql.append(k.getCode() + ":pub(message:" + pub + "){id}\n");
+                graphql.append(RandomStringUtils.randomAlphabetic(20) + ":pub(message:" + pub + "){id}\n");
             }
 
         } else if ("person".equals(type)) {
@@ -660,9 +551,9 @@ public class DataBusUtil {
                             "    data : \"%s\", " +
                             "}";
                     pub = String.format(pub, "person.created", domain.getClientId(),
-                            person.getCardType() + ":" + person.getCardNo(), UUID.randomUUID(),
+                            person.getOpenId(), UUID.randomUUID(),
                             person.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(person).replace("\"", "\\\""));
-                    graphql.append(person.getCardNo() + ":pub(message:" + pub + "){id}\n");
+                    graphql.append(person.getOpenId() + ":pub(message:" + pub + "){id}\n");
                 }
             }
             List<Person> updatePersonList = personMap.get("update");
@@ -678,9 +569,9 @@ public class DataBusUtil {
                             "    data : \"%s\", " +
                             "}";
                     pub = String.format(pub, "person.updated", domain.getClientId(),
-                            person.getCardType() + ":" + person.getCardNo(), UUID.randomUUID(),
+                            person.getOpenId(), UUID.randomUUID(),
                             person.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(person).replace("\"", "\\\""));
-                    graphql.append(person.getCardNo() + ":pub(message:" + pub + "){id}\n");
+                    graphql.append(person.getOpenId() + ":pub(message:" + pub + "){id}\n");
                 }
             }
             List<Person> deletePersonList = personMap.get("delete");
@@ -718,7 +609,7 @@ public class DataBusUtil {
                     pub = String.format(pub, "user.position.created", domain.getClientId(),
                             occupy.getOccupyId(), UUID.randomUUID(),
                             occupy.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(occupy).replace("\"", "\\\""));
-                    graphql.append(occupy.getOccupyId() + ":pub(message:" + pub + "){id}\n");
+                    graphql.append(RandomStringUtils.randomAlphabetic(20) + ":pub(message:" + pub + "){id}\n");
                 }
             }
             List<OccupyDto> update = occupyMap.get("update");
@@ -734,9 +625,9 @@ public class DataBusUtil {
                             "    data : \"%s\", " +
                             "}";
                     pub = String.format(pub, "user.position.updated", domain.getClientId(),
-                            occupy.getOpenId(), UUID.randomUUID(),
+                            occupy.getOccupyId(), UUID.randomUUID(),
                             occupy.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(occupy).replace("\"", "\\\""));
-                    graphql.append(occupy.getOpenId() + ":pub(message:" + pub + "){id}\n");
+                    graphql.append(RandomStringUtils.randomAlphabetic(20) + ":pub(message:" + pub + "){id}\n");
                 }
             }
             List<OccupyDto> delete = occupyMap.get("delete");
@@ -752,9 +643,9 @@ public class DataBusUtil {
                             "    data : \"%s\", " +
                             "}";
                     pub = String.format(pub, "user.position.deleted", domain.getClientId(),
-                            occupy.getOpenId(), UUID.randomUUID(),
+                            occupy.getOccupyId(), UUID.randomUUID(),
                             occupy.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(occupy).replace("\"", "\\\""));
-                    graphql.append(occupy.getOpenId() + ":pub(message:" + pub + "){id}\n");
+                    graphql.append(RandomStringUtils.randomAlphabetic(20) + ":pub(message:" + pub + "){id}\n");
                 }
             }
 
@@ -770,6 +661,51 @@ public class DataBusUtil {
         String token = getToken(domain.getDomainName());
         return sendPostRequest(busUrl + "/graphql/builtin?access_token=" + token, params);
 
+    }
+
+
+    public String getApiToken(DomainInfo domainInfo) {
+        String sso = UrlUtil.getUrl(ssoUrl);
+        //判断是否已有未过期token
+        if (StringUtils.isEmpty(domainInfo.getDomainName())) {
+            HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
+            domainInfo.setDomainName(request.getServerName());
+        }
+
+        //获取domain 信息
+        Token token = tokenMap.get(domainInfo.getDomainName());
+        if (null != token) {
+            int i = token.getExpireIn().compareTo(System.currentTimeMillis());
+            if (i > 0) {
+                return token.getToken();
+            }
+        }
+
+        Object[] objects = Arrays.stream(appScope.replace("+", " ").split(" ")).filter(s -> s.contains("sys_")).toArray();
+        String scope = ArrayUtils.toString(objects, ",").replace("{", "").replace("}", "");
+        OAuthClientRequest oAuthClientRequest = null;
+        try {
+            oAuthClientRequest = OAuthClientRequest
+                    .tokenLocation(sso + "/oauth2/token").setGrantType(GrantType.CLIENT_CREDENTIALS)
+                    .setClientId(domainInfo.getClientId()).setClientSecret(domainInfo.getClientSecret())
+                    .setScope(scope.replace(",", " ")).buildBodyMessage();
+        } catch (OAuthSystemException e) {
+            log.error("token 获取 : ->" + e.getMessage());
+            e.printStackTrace();
+        }
+        OAuthClient oAuthClient = new OAuthClient(new SSLConnectionClient());
+        OAuthJSONAccessTokenResponse oAuthClientResponse = null;
+        try {
+            oAuthClientResponse = oAuthClient.accessToken(oAuthClientRequest, "POST", OAuthJSONAccessTokenResponse.class);
+        } catch (OAuthSystemException | OAuthProblemException e) {
+            log.error("token 获取" + e.getMessage());
+            e.printStackTrace();
+        }
+        assert oAuthClientResponse != null;
+        String accessToken = oAuthClientResponse.getAccessToken();
+        long exp = System.currentTimeMillis() + (oAuthClientResponse.getExpiresIn() * 1000 - (10 * 60 * 1000));
+        tokenMap.put(domainInfo.getDomainName(), new Token(oAuthClientResponse.getAccessToken(), exp, System.currentTimeMillis()));
+        return accessToken;
     }
 
 

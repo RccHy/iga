@@ -172,9 +172,9 @@ public class NodeDataFetcher {
                 }
                 Boolean mark = (Boolean) arguments.get("mark");
                 //mark为true 则为回滚  false为应用
-                if (mark){
+                if (mark) {
                     throw new CustomException(ResultCode.FAILED, "回滚失败");
-                }else {
+                } else {
                     throw new CustomException(ResultCode.FAILED, "应用失败");
                 }
             } catch (CustomException e) {

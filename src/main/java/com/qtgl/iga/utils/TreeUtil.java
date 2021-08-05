@@ -28,7 +28,7 @@ public class TreeUtil<T> {
                 map(jsonObject -> jsonObject.getString(DeptEnum.PARENTCODE.getCode())).collect(Collectors.toList());
 */
         List<String> rootCode = treeList.stream()
-                .filter(json -> !code.contains(json.getString(TreeEnum.PARENTCODE.getCode())))
+                .filter(json -> !code.contains(json.getString(TreeEnum.PARENT_CODE.getCode())))
                 .map(jsonObject -> jsonObject.getString(TreeEnum.CODE.getCode()))
                 .collect(Collectors.toList());
 
@@ -39,7 +39,7 @@ public class TreeUtil<T> {
     public static Map<String, List<JSONObject>> groupChildren(JSONArray jsonArray) {
         List<JSONObject> treeList = jsonArray.toJavaList(JSONObject.class);
         Map<String, List<JSONObject>> map = treeList.stream().
-                collect(Collectors.groupingBy(jsonObject -> jsonObject.getString(TreeEnum.PARENTCODE.getCode())));
+                collect(Collectors.groupingBy(jsonObject -> jsonObject.getString(TreeEnum.PARENT_CODE.getCode())));
         return map;
     }
 

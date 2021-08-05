@@ -27,12 +27,12 @@ public class PostTypeDaoImpl implements PostTypeDao {
     public List<PostType> postTypes(Map<String, Object> arguments, String domain) {
         String sql = "select id, code, name, description," +
                 "create_time as createTime, update_time as updateTime, " +
-                "create_user as createUser, domain from t_mgr_post_type where 1 = 1 ";
+                "create_user as createUser, domain from t_mgr_post_type where 1 = 1 and domain=?  ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
         List<Object> param = new ArrayList<>();
-
+        param.add(domain);
         dealData(arguments, stb, param);
 
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
@@ -69,7 +69,7 @@ public class PostTypeDaoImpl implements PostTypeDao {
             }
         }
         if (null == list || list.size() > 1 || list.size() == 0) {
-            throw new CustomException(ResultCode.FAILED,"数据异常，删除失败");
+            throw new CustomException(ResultCode.FAILED, "数据异常，删除失败");
         }
         PostType postType = list.get(0);
 
@@ -85,11 +85,11 @@ public class PostTypeDaoImpl implements PostTypeDao {
     @Override
     public PostType savePostType(PostType postType, String domain) throws Exception {
         //判重
-        Object[] param = new Object[]{postType.getCode(), postType.getName()};
+        Object[] param = new Object[]{postType.getCode(), postType.getName(), domain};
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select id,code,name,description,create_time as createTime" +
-                ",update_time as updateTime,create_user as createUser, domain from t_mgr_post_type where code =? or name = ?", param);
+                ",update_time as updateTime,create_user as createUser, domain from t_mgr_post_type where code =? or name = ? and domain=? ", param);
         if (null != mapList && mapList.size() > 0) {
-            throw new CustomException(ResultCode.FAILED,"code 或 name 不能重复,添加组织机构类别失败");
+            throw new CustomException(ResultCode.FAILED, "code 或 name 不能重复,添加组织机构类别失败");
         }
 
         String sql = "insert into t_mgr_post_type  values(?,?,?,?,?,?,?,?)";
@@ -120,7 +120,7 @@ public class PostTypeDaoImpl implements PostTypeDao {
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select id,code,name,description,create_time as createTime," +
                 "update_time as updateTime,create_user as createUser, domain from t_mgr_post_type where (code = ? or name = ?) and id != ?  ", param);
         if (null != mapList && mapList.size() > 0) {
-            throw new CustomException(ResultCode.FAILED,"code 或 name 不能重复,修改组织机构类别失败");
+            throw new CustomException(ResultCode.FAILED, "code 或 name 不能重复,修改组织机构类别失败");
         }
         String sql = "update t_mgr_post_type  set code = ?,name = ?,description = ?,create_time = ?," +
                 "update_time = ?,create_user = ?,domain= ?  where id=?";

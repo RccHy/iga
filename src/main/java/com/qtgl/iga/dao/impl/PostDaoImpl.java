@@ -37,7 +37,7 @@ public class PostDaoImpl implements PostDao {
         //
         String sql = "select  user_type as code , name, parent_code as parentCode , " +
                 " update_time as createTime," +
-                "source,data_source as dataSource,user_type_index as deptIndex,del_mark as delMark,update_time as updateTime,post_type as type,active from user_type where tenant_id = ? ";
+                "source,data_source as dataSource,user_type_index as deptIndex,del_mark as delMark,update_time as updateTime,post_type as type,active from user_type where tenant_id = ?   ";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, id);
         return getUserTypes(mapList);
@@ -169,7 +169,7 @@ public class PostDaoImpl implements PostDao {
 
     @Override
     public List<TreeBean> findRootData(String tenantId) {
-        String sql = "select  user_type as code , name as name , parent_code as parentCode , " +
+        String sql = "select  user_type as code , name as name , parent_code as parentCode ,create_time as createTime, " +
                 " tags ,data_source as dataSource , description , meta,source,post_type as postType,user_type_index as deptIndex,del_mark as delMark ,active " +
                 " from user_type where tenant_id=? and del_mark=0 and data_source=?";
 
@@ -222,17 +222,10 @@ public class PostDaoImpl implements PostDao {
     }
 
     @Override
-    public Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, String tenantId) {
+    public Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, ArrayList<TreeBean> invalidList, String tenantId) {
         String insertStr = "insert into user_type (id,user_type, name, parent_code, can_login ,tenant_id ,tags," +
                 " data_source, description, meta,create_time,del_mark,active,active_time,update_time,source,user_type_index,post_type,formal) values" +
                 "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-
-        String updateStr = "update user_type set  name=?, parent_code=?, del_mark=? ,tenant_id =?" +
-                ", data_source=?, description=?, meta=?,update_time=?,tags=?,source=?" +
-                ", user_type_index = ?,post_type=?,active=?,formal=?  where user_type =? and update_time<= ?";
-
-        String deleteStr = "update user_type set   del_mark= ? , active = ?,active_time= ?  " +
-                "where user_type =?  and update_time<= ? ";
         return txTemplate2.execute(transactionStatus -> {
             try {
                 if (null != insertList && insertList.size() > 0) {
@@ -250,8 +243,8 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(9, insertList.get(i).getDescription());
                             preparedStatement.setObject(10, insertList.get(i).getMeta());
                             preparedStatement.setObject(11, insertList.get(i).getCreateTime());
-                            preparedStatement.setObject(12, 0);
-                            preparedStatement.setObject(13, 1);
+                            preparedStatement.setObject(12, insertList.get(i).getDelMark());
+                            preparedStatement.setObject(13, insertList.get(i).getActive());
                             preparedStatement.setObject(14, LocalDateTime.now());
                             preparedStatement.setObject(15, insertList.get(i).getUpdateTime());
                             preparedStatement.setObject(16, insertList.get(i).getSource());
@@ -266,6 +259,9 @@ public class PostDaoImpl implements PostDao {
                         }
                     });
                 }
+                String updateStr = "update user_type set  name=?, parent_code=?, del_mark=? ,tenant_id =?" +
+                        ", data_source=?, description=?, meta=?,update_time=?,tags=?,source=?" +
+                        ", user_type_index = ?,post_type=?,active=?,formal=?  where user_type =? and update_time<= ?";
                 if (null != updateList && updateList.size() > 0) {
                     jdbcSSO.batchUpdate(updateStr, new BatchPreparedStatementSetter() {
                         @Override
@@ -295,20 +291,31 @@ public class PostDaoImpl implements PostDao {
                         }
                     });
                 }
+                String deleteStr = "update user_type set   del_mark= ? , active = ?,active_time= ? ,update_time=? " +
+                        "where user_type =?  and update_time<= ? ";
+
+                ArrayList<TreeBean> treeBeans = new ArrayList<>();
                 if (null != deleteList && deleteList.size() > 0) {
+                    treeBeans.addAll(deleteList);
+                }
+                if (null != invalidList && invalidList.size() > 0) {
+                    treeBeans.addAll(invalidList);
+                }
+                if (null != treeBeans && treeBeans.size() > 0) {
                     jdbcSSO.batchUpdate(deleteStr, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, 1);
-                            preparedStatement.setObject(2, 0);
+                            preparedStatement.setObject(1, treeBeans.get(i).getDelMark());
+                            preparedStatement.setObject(2, treeBeans.get(i).getActive());
                             preparedStatement.setObject(3, LocalDateTime.now());
-                            preparedStatement.setObject(4, deleteList.get(i).getCode());
-                            preparedStatement.setObject(5, deleteList.get(i).getCreateTime());
+                            preparedStatement.setObject(4, treeBeans.get(i).getUpdateTime());
+                            preparedStatement.setObject(5, treeBeans.get(i).getCode());
+                            preparedStatement.setObject(6, treeBeans.get(i).getUpdateTime());
                         }
 
                         @Override
                         public int getBatchSize() {
-                            return deleteList.size();
+                            return treeBeans.size();
                         }
                     });
                 }
@@ -317,8 +324,19 @@ public class PostDaoImpl implements PostDao {
                 transactionStatus.setRollbackOnly();
                 // transactionStatus.rollbackToSavepoint(savepoint);
                 e.printStackTrace();
-                throw new CustomException(ResultCode.FAILED,"同步终止，岗位同步异常！");
+                throw new CustomException(ResultCode.FAILED, "同步终止，岗位同步异常！");
             }
         });
+    }
+
+    @Override
+    public List<TreeBean> findActiveDataByTenantId(String tenantId) {
+        String sql = "select  user_type as code , name, parent_code as parentCode , " +
+                " update_time as createTime," +
+                "source,data_source as dataSource,user_type_index as deptIndex,del_mark as delMark,update_time as updateTime,post_type as type,active from user_type where tenant_id = ? and " +
+                " active=true and del_mark=false ";
+
+        List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId);
+        return getUserTypes(mapList);
     }
 }

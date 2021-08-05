@@ -390,18 +390,18 @@ public class NodeRulesCalculationServiceImpl {
                 if ((Boolean) eval) {
                     boolean flag = true;
                     // 如果上次日志状态 是【忽略】，则判断数据是否相同原因相同，相同则进行忽略
-                    if (null != lastTaskLog.getStatus() && lastTaskLog.getStatus().equals("ignore")) {
+                    if (null != lastTaskLog && null != lastTaskLog.getStatus() && lastTaskLog.getStatus().equals("ignore")) {
                         JSONArray objects = JSONArray.parseArray(lastTaskLog.getData());
-                        if (delete.get(0).getClass().getName().equals("Person")) {
+                        if (delete.get(0).getClass().getSimpleName().equals("Person")) {
                             type = "人员";
                             List<JSONObject> personList = objects.toJavaList(JSONObject.class);
                             Map<String, JSONObject> map = personList.stream().collect(Collectors.toMap(
-                                    (code -> code.getString("cardType") + ":" + code.getString("cardNo")),
+                                    (code -> code.getString("openId")),
                                     (value -> value)));
 
                             for (Object t : delete) {
                                 Person person = (Person) t;
-                                if (!map.containsKey(person.getCardType() + ":" + person.getCardNo())) {
+                                if (!map.containsKey(person.getOpenId())) {
                                     flag = true;
                                     break;
                                 }
@@ -448,7 +448,7 @@ public class NodeRulesCalculationServiceImpl {
         for (int i = 0; i < treeArray.size(); i++) {
             JSONObject tree = treeArray.getJSONObject(i);
             //如果有节点结构不符合规则
-            if (!tree.containsKey(TreeEnum.CODE.getCode()) || !tree.containsKey(TreeEnum.NAME.getCode()) || !tree.containsKey(TreeEnum.PARENTCODE.getCode())) {
+            if (!tree.containsKey(TreeEnum.CODE.getCode()) || !tree.containsKey(TreeEnum.NAME.getCode()) || !tree.containsKey(TreeEnum.PARENT_CODE.getCode())) {
                 key = false;
                 msg = tree.toJSONString();
                 break;
@@ -458,7 +458,7 @@ public class NodeRulesCalculationServiceImpl {
         for (int i = 0; i < treeArray.size(); i++) {
             JSONObject tree = treeArray.getJSONObject(i);
             //如果有节点结构不符合规则
-            if ("".equals(tree.getString(TreeEnum.PARENTCODE.getCode()))) {
+            if ("".equals(tree.getString(TreeEnum.PARENT_CODE.getCode()))) {
 
             }
         }
@@ -514,7 +514,7 @@ public class NodeRulesCalculationServiceImpl {
         //获取根节点的规则
         List<Node> nodes = nodeDao.getByCode(domain.getId(), deptTreeType, nodeCode, status, type);
         //获取组织机构信息
-        DeptTreeType treeType = deptTreeTypeDao.findByCode(deptTreeType);
+        DeptTreeType treeType = deptTreeTypeDao.findByCode(deptTreeType,domain.getId());
 
         if (null != nodes && nodes.size() > 0) {
             for (Node node : nodes) {
@@ -586,15 +586,31 @@ public class NodeRulesCalculationServiceImpl {
                         List<TreeBean> upstreamDept = new ArrayList<>();
                         //遍历拉取的数据,标准化数据,以及赋值逻辑运算所需的值
                         for (Object o : upstreamTree) {
-                            JSONObject dept = (JSONObject) o;
-                            if (null == dept.getString(TreeEnum.PARENTCODE.getCode())) {
-                                dept.put(TreeEnum.PARENTCODE.getCode(), "");
+//                            JSONObject dept = (JSONObject) o;
+                            JSONObject dept = JSON.parseObject(JSON.toJSONString(o));
+                            //校验数据是否合法
+                            if (null != dept.getInteger(TreeEnum.DEL_MARK.getCode()) && 1 != dept.getInteger(TreeEnum.DEL_MARK.getCode()) && 0 != dept.getInteger(TreeEnum.DEL_MARK.getCode())) {
+                                logger.error(type + "是否有效字段不合法{}", dept.getInteger(TreeEnum.DEL_MARK.getCode()));
+                                continue;
                             }
-                            if (null == dept.getString(TreeEnum.CREATETIME.getCode())) {
-                                dept.put(TreeEnum.CREATETIME.getCode(), timestamp);
+                            if (null != dept.getInteger(TreeEnum.ACTIVE.getCode()) && 1 != dept.getInteger(TreeEnum.ACTIVE.getCode()) && 0 != dept.getInteger(TreeEnum.ACTIVE.getCode())) {
+                                logger.error(type + "是否删除字段不合法{}", dept.getInteger(TreeEnum.ACTIVE.getCode()));
+                                continue;
                             }
-                            if (null == dept.getString(TreeEnum.UPDATETIME.getCode())) {
-                                dept.put(TreeEnum.UPDATETIME.getCode(), timestamp);
+                            if (null == dept.getString(TreeEnum.ACTIVE.getCode())) {
+                                dept.put(TreeEnum.ACTIVE.getCode(), 1);
+                            }
+                            if (null == dept.getString(TreeEnum.DEL_MARK.getCode())) {
+                                dept.put(TreeEnum.DEL_MARK.getCode(), 0);
+                            }
+                            if (null == dept.getString(TreeEnum.PARENT_CODE.getCode())) {
+                                dept.put(TreeEnum.PARENT_CODE.getCode(), "");
+                            }
+                            if (null == dept.getString(TreeEnum.CREATE_TIME.getCode())) {
+                                dept.put(TreeEnum.CREATE_TIME.getCode(), timestamp);
+                            }
+                            if (null == dept.getString(TreeEnum.UPDATE_TIME.getCode())) {
+                                dept.put(TreeEnum.UPDATE_TIME.getCode(), timestamp);
                             }
                             dept.put("upstreamTypeId", upstreamType.getId());
                             dept.put("treeType", deptTreeType);
@@ -603,7 +619,7 @@ public class NodeRulesCalculationServiceImpl {
                             dept.put("isRuled", false);
                             dept.put("source", upstream.getAppName() + "(" + upstream.getAppCode() + ")");
                             if ("post".equals(type)) {
-                                if (("01".equals(dept.getString(TreeEnum.PARENTCODE.getCode())) || ("02".equals(dept.getString(TreeEnum.PARENTCODE.getCode()))))) {
+                                if (("01".equals(dept.getString(TreeEnum.POST_TYPE.getCode())) || ("02".equals(dept.getString(TreeEnum.POST_TYPE.getCode()))))) {
                                     dept.put("formal", true);
                                 } else {
                                     dept.put("formal", false);
@@ -614,13 +630,13 @@ public class NodeRulesCalculationServiceImpl {
                         }
 
                         //循环引用判断
-                        this.circularData(upstreamTree, status, mainTree);
+                        this.circularData(upstreamTree, status, mainTree,domain);
                         // 判断权威源拉取数据是否有重复性问题
                         this.groupByCode(upstreamDept, status, domain);
 
 
                         //判断上游是否给出时间戳
-                        upstreamTree = this.judgeTime(upstreamTree, timestamp);
+                        this.judgeTime(upstreamTree, timestamp);
 
                         //对树 json 转为 map
                         Map<String, TreeBean> upstreamMap = TreeUtil.toMap(upstreamDept);
@@ -647,7 +663,7 @@ public class NodeRulesCalculationServiceImpl {
                         //判空
                         this.judgeData(mergeDeptMap);
                         //循环引用判断
-                        this.circularData(mergeDeptMap, status, mainTree);
+                        this.circularData(mergeDeptMap, status, mainTree,domain);
 
 
 
@@ -838,7 +854,7 @@ public class NodeRulesCalculationServiceImpl {
      * @Description: 循环依赖判断
      * @return: void
      */
-    public void circularData(Map<String, TreeBean> mergeDeptMap, Integer status, List<TreeBean> mainTree) {
+    public void circularData(Map<String, TreeBean> mergeDeptMap, Integer status, List<TreeBean> mainTree,DomainInfo domainInfo) {
         Collection<TreeBean> values = mergeDeptMap.values();
         ArrayList<TreeBean> mergeList = new ArrayList<>(values);
         for (TreeBean treeBean : mergeList) {
@@ -859,7 +875,7 @@ public class NodeRulesCalculationServiceImpl {
                     String treeNameM = null;
                     String treeCodeM = null;
 
-                    DeptTreeType deptTreeType = deptTreeTypeDao.findByCode(bean.getTreeType());
+                    DeptTreeType deptTreeType = deptTreeTypeDao.findByCode(bean.getTreeType(),domainInfo.getId());
 
                     if (("API".equals(bean.getDataSource())) || ("BUILTIN".equals(bean.getDataSource()))) {
                         deptTreeName = (null == deptTreeType ? "" : deptTreeType.getName());
@@ -884,7 +900,7 @@ public class NodeRulesCalculationServiceImpl {
                     if (null == treeBean.getTreeType()) {
                         treeBean.setTreeType("");
                     }
-                    DeptTreeType deptTreeType2 = deptTreeTypeDao.findByCode(treeBean.getTreeType());
+                    DeptTreeType deptTreeType2 = deptTreeTypeDao.findByCode(treeBean.getTreeType(),domainInfo.getId());
                     if (("API".equals(treeBean.getDataSource())) || ("BUILTIN".equals(treeBean.getDataSource()))) {
                         deptTreeNameM = null == deptTreeType2 ? "" : deptTreeType2.getName();
                         treeBeanNameM = "".equals(treeBean.getCode()) ? "根节点" : treeBean.getName();
@@ -913,7 +929,7 @@ public class NodeRulesCalculationServiceImpl {
 
     }
 
-    public void circularData(JSONArray mergeDeptMap, Integer status, List<TreeBean> mainTree) {
+    public void circularData(JSONArray mergeDeptMap, Integer status, List<TreeBean> mainTree,DomainInfo domainInfo) {
         List<TreeBean> mergeList = JSON.parseArray(mergeDeptMap.toString(), TreeBean.class);
         Map<String, TreeBean> mergeMap = mergeList.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
 
@@ -937,7 +953,7 @@ public class NodeRulesCalculationServiceImpl {
                     String treeNameM = null;
                     String treeCodeM = null;
 
-                    DeptTreeType deptTreeType = deptTreeTypeDao.findByCode(bean.getTreeType());
+                    DeptTreeType deptTreeType = deptTreeTypeDao.findByCode(bean.getTreeType(),domainInfo.getId());
 
                     if (("API".equals(bean.getDataSource())) || ("BUILTIN".equals(bean.getDataSource()))) {
                         deptTreeName = (null == deptTreeType ? "" : deptTreeType.getName());
@@ -966,7 +982,7 @@ public class NodeRulesCalculationServiceImpl {
                     if (null == treeBean.getTreeType()) {
                         treeBean.setTreeType("");
                     }
-                    DeptTreeType deptTreeType2 = deptTreeTypeDao.findByCode(treeBean.getTreeType());
+                    DeptTreeType deptTreeType2 = deptTreeTypeDao.findByCode(treeBean.getTreeType(),domainInfo.getId());
                     if (("API".equals(treeBean.getDataSource())) || ("BUILTIN".equals(treeBean.getDataSource()))) {
 //                        ex.append(null == deptTreeType2 ? "" : deptTreeType2.getName()).append("节点 (").append("".equals(treeBean.getCode()) ? "根节点" : treeBean.getName())
 //                                .append("(").append(treeBean.getCode()).append("))").append("中的数据").append(treeBean.getName()).append("(").append(treeBean.getCode())
@@ -1057,7 +1073,7 @@ public class NodeRulesCalculationServiceImpl {
                     if (null == treeBean1.getTreeType()) {
                         treeBean1.setTreeType("");
                     }
-                    DeptTreeType deptTreeType = deptTreeTypeDao.findByCode(treeBean1.getTreeType());
+                    DeptTreeType deptTreeType = deptTreeTypeDao.findByCode(treeBean1.getTreeType(),domainInfo.getId());
                     if (("API".equals(treeBean1.getDataSource())) || ("BUILTIN".equals(treeBean1.getDataSource()))) {
 
                         deptTreeName = (null == deptTreeType ? "" : deptTreeType.getName());
@@ -1083,7 +1099,7 @@ public class NodeRulesCalculationServiceImpl {
                     if (null == treeBean.getTreeType()) {
                         treeBean.setTreeType("");
                     }
-                    DeptTreeType deptTreeType2 = deptTreeTypeDao.findByCode(treeBean.getTreeType());
+                    DeptTreeType deptTreeType2 = deptTreeTypeDao.findByCode(treeBean.getTreeType(),domainInfo.getId());
                     if (("API".equals(treeBean.getDataSource())) || ("BUILTIN".equals(treeBean.getDataSource()))) {
                         deptTreeNameM = null == deptTreeType2 ? "" : deptTreeType2.getName();
                         treeBeanNameM = "".equals(treeBean.getCode()) ? "根节点" : treeBean.getName();

@@ -17,7 +17,7 @@ public interface DeptTreeTypeDao {
 
     DeptTreeType findById(String id);
 
-    DeptTreeType findByCode(String treeType);
+    DeptTreeType findByCode(String treeType, String domain);
 
     void initialization(String domain);
 }

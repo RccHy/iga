@@ -31,12 +31,12 @@ public class UpstreamDaoImpl implements UpstreamDao {
     public List<Upstream> findAll(Map<String, Object> arguments, String domain) {
         String sql = "select id,app_code as appCode,app_name as appName,data_code as dataCode," +
                 "create_time as createTime,create_user as createUser,active,color,domain ," +
-                "active_time as activeTime,update_time as updateTime from t_mgr_upstream where 1 = 1 ";
+                "active_time as activeTime,update_time as updateTime from t_mgr_upstream where 1 = 1 and domain=? ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
         List<Object> param = new ArrayList<>();
-
+        param.add(domain);
         dealData(arguments, stb, param);
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
 
@@ -58,8 +58,8 @@ public class UpstreamDaoImpl implements UpstreamDao {
     @Transactional
     public Upstream saveUpstream(Upstream upstream, String domain) throws Exception {
         //判重
-        Object[] param = new Object[]{upstream.getAppCode(), upstream.getAppName()};
-        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_upstream where app_code =? or app_name = ?", param);
+        Object[] param = new Object[]{upstream.getAppCode(), upstream.getAppName(), domain};
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_upstream where app_code =? or app_name = ? and domain=? ", param);
         if (null != mapList && mapList.size() > 0) {
             throw new CustomException(ResultCode.REPEAT_UPSTREAM_ERROR, null, null, upstream.getAppCode(), upstream.getAppName());
         }

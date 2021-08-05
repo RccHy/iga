@@ -16,10 +16,19 @@ public enum TreeEnum {
 
     NAME("name", "名称"),
 
-    PARENTCODE("parentCode", "父级"),
+    PARENT_CODE("parentCode", "父级"),
+
+    ACTIVE("active", "是否有效"),
+
+    DEL_MARK("delMark", "是否删除"),
+
     SOURCE("source", "来源"),
-    CREATETIME("createTime", "创建时间"),
-    UPDATETIME("updateTime", "修改时间");
+
+    CREATE_TIME("createTime", "创建时间"),
+
+    POST_TYPE("type", "岗位代码"),
+
+    UPDATE_TIME("updateTime", "修改时间");
 
 
     private String code;

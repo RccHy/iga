@@ -72,8 +72,8 @@ public class TaskConfig {
                                 executorService.execute(() -> {
                                     // 如果 获取最近一次同步任务状况
                                     TaskLog lastTaskLog = taskLogService.last(domainInfo.getId());
-                                    //  最近一次同步任务 状态不为 失败 。 如果是失败应该先解决问题
-                                    if ((null == lastTaskLog) || (null != lastTaskLog.getId() && !lastTaskLog.getStatus().equals("failed"))) {
+                                    //  最近一次同步任务 状态成功后才能继续同步
+                                    if ((null == lastTaskLog) || (null != lastTaskLog.getId() &&!lastTaskLog.getStatus().equals("failed"))) {
                                         errorData.remove(domainInfo.getId());
                                         // 如果有编辑中的规则，则不进行数据同步
                                         Map<String, Object> arguments = new HashMap<>();
@@ -89,9 +89,13 @@ public class TaskConfig {
                                                 //部门数据同步至sso
                                                 Map<TreeBean, String> deptResult = deptService.buildDeptUpdateResult(domainInfo, lastTaskLog);
                                                 Map<String, List<Map.Entry<TreeBean, String>>> deptResultMap = deptResult.entrySet().stream().collect(Collectors.groupingBy(Map.Entry::getValue));
-                                                String deptNo = (deptResultMap.containsKey("insert") ? String.valueOf(deptResultMap.get("insert").size()) : "0") + "/"
-                                                        + (deptResultMap.containsKey("delete") ? String.valueOf(deptResultMap.get("delete").size()) : "0") + "/"
-                                                        + (deptResultMap.containsKey("update") ? String.valueOf(deptResultMap.get("update").size()) : "0");
+                                                //处理数据
+                                                Integer recoverDept = deptResultMap.containsKey("recover") ? deptResultMap.get("recover").size() : 0;
+                                                Integer insertDept = (deptResultMap.containsKey("insert") ? deptResultMap.get("insert").size() : 0) + recoverDept;
+                                                Integer deleteDept = deptResultMap.containsKey("delete") ? deptResultMap.get("delete").size() : 0;
+                                                Integer updateDept = (deptResultMap.containsKey("update") ? deptResultMap.get("update").size() : 0);
+                                                Integer invalidDept = deptResultMap.containsKey("invalid") ? deptResultMap.get("invalid").size() : 0;
+                                                String deptNo = insertDept + "/" + deleteDept + "/" + updateDept + "/" + invalidDept;
 
                                                 log.info(Thread.currentThread().getName() + ": 部门同步完成：{}==={}", deptNo, System.currentTimeMillis());
                                                 taskLog.setStatus("doing");
@@ -108,9 +112,12 @@ public class TaskConfig {
                                                 //=============岗位数据同步至sso=================
                                                 final Map<TreeBean, String> postResult = postService.buildPostUpdateResult(domainInfo, lastTaskLog);
                                                 Map<String, List<Map.Entry<TreeBean, String>>> postResultMap = postResult.entrySet().stream().collect(Collectors.groupingBy(Map.Entry::getValue));
-                                                String postNo = (postResultMap.containsKey("insert") ? String.valueOf(postResultMap.get("insert").size()) : "0") + "/"
-                                                        + (postResultMap.containsKey("delete") ? String.valueOf(postResultMap.get("delete").size()) : "0") + "/"
-                                                        + (postResultMap.containsKey("update") ? String.valueOf(postResultMap.get("update").size()) : "0");
+                                                Integer recoverPost = postResultMap.containsKey("recover") ? postResultMap.get("recover").size() : 0;
+                                                Integer insertPost = (postResultMap.containsKey("insert") ? postResultMap.get("insert").size() : 0) + recoverPost;
+                                                Integer deletePost = postResultMap.containsKey("delete") ? postResultMap.get("delete").size() : 0;
+                                                Integer updatePost = (postResultMap.containsKey("update") ? postResultMap.get("update").size() : 0);
+                                                Integer invalidPost = postResultMap.containsKey("invalid") ? postResultMap.get("invalid").size() : 0;
+                                                String postNo = insertPost + "/" + deletePost + "/" + updatePost + "/" + invalidPost;
                                                 log.info(Thread.currentThread().getName() + ": 岗位同步完成：{}==={}", postNo, System.currentTimeMillis());
                                                 taskLog.setPostNo(postNo);
                                                 taskLogService.save(taskLog, domainInfo.getId(), "update");
@@ -124,34 +131,41 @@ public class TaskConfig {
 
                                                 //=============人员数据同步至sso=============
                                                 Map<String, List<Person>> personResult = personService.buildPerson(domainInfo, lastTaskLog);
-                                                String personNo = (personResult.containsKey("insert") ? String.valueOf(personResult.get("insert").size()) : "0") + "/"
-                                                        + (personResult.containsKey("delete") ? String.valueOf(personResult.get("delete").size()) : "0") + "/"
-                                                        + (personResult.containsKey("update") ? String.valueOf(personResult.get("update").size()) : "0");
+                                                Integer insertPerson = (personResult.containsKey("insert") ? personResult.get("insert").size() : 0);
+                                                Integer deletePerson = personResult.containsKey("delete") ? personResult.get("delete").size() : 0;
+                                                Integer updatePerson = (personResult.containsKey("update") ? personResult.get("update").size() : 0);
+                                                Integer invalidPerson = personResult.containsKey("invalid") ? personResult.get("invalid").size() : 0;
+                                                String personNo = insertPerson + "/" + deletePerson + "/" + updatePerson + "/" + invalidPerson;
                                                 log.info(Thread.currentThread().getName() + ": 人员同步完成{}==={}", personNo, System.currentTimeMillis());
                                                 taskLog.setPersonNo(personNo);
                                                 taskLogService.save(taskLog, domainInfo.getId(), "update");
 
                                                 // PUT   MQ
-                                                if (personResult.size() > 0) {
+                                                  if (personResult.size() > 0&&personResult.size()<500) {
                                                     pubResult = dataBusUtil.pub(null, personResult, null, "person", domainInfo);
                                                     log.info("person pub:{}", pubResult);
                                                 }
 
+
                                                 //人员身份同步至sso
-                                                final Map<String, List<OccupyDto>> occupyResult = occupyService.buildPerson(domainInfo, lastTaskLog);
-                                                String occupyNo = (occupyResult.containsKey("insert") ? String.valueOf(occupyResult.get("insert").size()) : "0") + "/"
-                                                        + (occupyResult.containsKey("delete") ? String.valueOf(occupyResult.get("delete").size()) : "0") + "/"
-                                                        + (occupyResult.containsKey("update") ? String.valueOf(occupyResult.get("update").size()) : "0");
+                                                final Map<String, List<OccupyDto>> occupyResult = occupyService.buildOccupy(domainInfo, lastTaskLog);
+                                                //Integer recoverOccupy = occupyResult.containsKey("recover") ? deptResultMap.get("recover").size() : 0;
+                                                Integer insertOccupy = (occupyResult.containsKey("insert") ? occupyResult.get("insert").size() : 0);
+                                                Integer deleteOccupy = occupyResult.containsKey("delete") ? occupyResult.get("delete").size() : 0;
+                                                Integer updateOccupy = (occupyResult.containsKey("update") ? occupyResult.get("update").size() : 0);
+                                                Integer invalidOccupy = occupyResult.containsKey("invalid") ? occupyResult.get("invalid").size() : 0;
+                                                String occupyNo = insertOccupy + "/" + deleteOccupy + "/" + updateOccupy + "/" + invalidOccupy;
                                                 log.info(Thread.currentThread().getName() + ": 人员身份同步完成{}==={}", occupyNo, System.currentTimeMillis());
                                                 taskLog.setStatus("done");
                                                 taskLog.setOccupyNo(occupyNo);
                                                 taskLogService.save(taskLog, domainInfo.getId(), "update");
 
                                                 // PUT   MQ
-                                                if (occupyResult.size() > 0) {
+                                                if (occupyResult.size() > 0&&occupyResult.size()<500) {
                                                     pubResult = dataBusUtil.pub(null, null, occupyResult, "occupy", domainInfo);
                                                     log.info("occupy pub:{}", pubResult);
                                                 }
+
 
                                                 log.info("{}同步结束,task:{}", domainInfo.getDomainName(), taskLog.getId());
                                             } catch (CustomException e) {

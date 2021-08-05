@@ -32,11 +32,28 @@ public class OccupyDto {
     private LocalDateTime updateTime;
     private LocalDateTime createTime;
     private Integer delMark;
-    private String active;
+    // 上游删除
+    private Integer active;
     private LocalDateTime activeTime;
 
 
     private String upstreamType;
     private String openId;
+    //用户名
+    private String accountNo;
+
+    /**
+     * 身份最终有效时间
+     */
+    private LocalDateTime validStartTime;
+    private LocalDateTime validEndTime;
+    /**
+     * 上游岗位、部门导致身份失效
+     */
+    private  Integer orphan;
+
+
+
+
 
 }
