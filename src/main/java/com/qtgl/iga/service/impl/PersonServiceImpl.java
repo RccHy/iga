@@ -164,9 +164,15 @@ public class PersonServiceImpl implements PersonService {
                     }
                     // 人员标识 证件类型、证件号码   OR    用户名 accountNo  必提供一个
                     if (StringUtils.isEmpty(personBean.getCardNo()) && StringUtils.isEmpty(personBean.getCardType())) {
-                        personFromUpstreamByAccount.put(personBean.getAccountNo(), personBean);
+                        //有效才进行合重复
+                       if(personBean.getActive()==1){
+                           personFromUpstreamByAccount.put(personBean.getAccountNo(), personBean);
+                       }
                     } else {
-                        personFromUpstream.put(personBean.getCardType() + ":" + personBean.getCardNo(), personBean);
+                        //有效才进行合重复
+                        if(personBean.getActive()==1) {
+                            personFromUpstream.put(personBean.getCardType() + ":" + personBean.getCardNo(), personBean);
+                        }
                     }
 
                 }
