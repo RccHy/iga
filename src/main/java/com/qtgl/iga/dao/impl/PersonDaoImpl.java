@@ -129,12 +129,13 @@ public class PersonDaoImpl implements PersonDao {
                     List<Person> list = new ArrayList<>();
                     List<Person> update = personMap.get("update");
                     List<Person> invalid = personMap.get("invalid");
+                     if (null != invalid) {
+                        list.addAll(invalid);
+                    }
                     if (null != update) {
                         list.addAll(update);
                     }
-                    if (null != invalid) {
-                        list.addAll(invalid);
-                    }
+
                     int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
