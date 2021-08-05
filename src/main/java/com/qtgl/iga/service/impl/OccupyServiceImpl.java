@@ -434,7 +434,9 @@ public class OccupyServiceImpl implements OccupyService {
             }
             log.debug("人员身份对比后更新{}-{}", occupyFromSSO, occupyDtoFromUpstream.get(key));
             //如果权威源没有,sso有并且来源是pull则置为失效
-        } else if (!occupyDtoFromUpstream.containsKey(key) && 1 != occupyFromSSO.getDelMark() && occupyFromSSO.getActive() != 0
+        } else if (!occupyDtoFromUpstream.containsKey(key)
+                && 1 != occupyFromSSO.getDelMark()
+                 && (null==occupyFromSSO.getActive()||occupyFromSSO.getActive() == 1)
                 && "PULL".equalsIgnoreCase(occupyFromSSO.getDataSource())) {
             // 如果sso 有，上游源没有 &&  sso中数据不是删除 && sso数据不是无效
             LocalDateTime now = LocalDateTime.now();

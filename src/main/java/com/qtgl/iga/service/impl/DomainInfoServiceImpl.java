@@ -47,7 +47,7 @@ public class DomainInfoServiceImpl implements DomainInfoService {
         DeptType deptType = new DeptType();
         deptType.setId(UUID.randomUUID().toString());
         deptType.setName("二级部门");
-        deptType.setCode("01");
+        deptType.setCode("02");
         deptType.setCreateTime(new Timestamp(new java.util.Date().getTime()));
         deptType.setUpdateTime(new Timestamp(new java.util.Date().getTime()));
         deptType.setCreateUser("iga");

@@ -200,7 +200,8 @@ public class PersonServiceImpl implements PersonService {
             Map<String, Person> personFromSSOMap = personFromSSOList.stream().filter(person -> !StringUtils.isEmpty(person.getCardType()) && !StringUtils.isEmpty(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
             // 将数据库中 用户名不为空
             Map<String, Person> personFromSSOMapByAccount = personFromSSOList.stream().filter(person ->
-                    !StringUtils.isEmpty(person.getAccountNo())).collect(Collectors.toMap(Person::getAccountNo, person -> person, (v1, v2) -> v2));
+                    !StringUtils.isEmpty(person.getAccountNo())&&(StringUtils.isEmpty(person.getCardNo())||StringUtils.isEmpty(person.getCardType()))
+            ).collect(Collectors.toMap(Person::getAccountNo, person -> person, (v1, v2) -> v2));
 
 
             personFromSSOMap.forEach((key, personFromSSO) -> {
@@ -440,7 +441,7 @@ public class PersonServiceImpl implements PersonService {
 
         } else if (!personFromUpstream.containsKey(key)
                 && 1 != personFromSSO.getDelMark()
-                && personFromSSO.getActive() != 0
+                && (null==personFromSSO.getActive()||personFromSSO.getActive() == 1)
                 && "PULL".equalsIgnoreCase(personFromSSO.getDataSource())) {
             personFromSSO.setActive(0);
             personFromSSO.setActiveTime(now);

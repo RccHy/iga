@@ -52,6 +52,7 @@ public class OccupyDaoImpl implements OccupyDao {
                 "       u.create_time               as createTime," +
                 "       u.update_time               as updateTime," +
                 "       u.active               as active," +
+                "       u.account_no               as accountNo," +
                 "       u.orphan               as orphan" +
                 " from identity i" +
                 "         left join identity_user iu on i.id = iu.identity_id" +
