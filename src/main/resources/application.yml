@@ -50,3 +50,8 @@ task:
 
 iga:
   hostname: ${HOSTNAME}
+
+
+  logging:
+    file:
+      name: iga.log
