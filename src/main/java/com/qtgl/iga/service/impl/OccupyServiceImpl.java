@@ -185,16 +185,16 @@ public class OccupyServiceImpl implements OccupyService {
                 if (!personFromSSOMap.containsKey(personKey)) {
                     //其次以用户名 查找对应的人员是否存在
                     if (!personFromSSOMapByAccount.containsKey(personKeyByAccount)) {
-                        log.warn("人员身份无法找到对应对人员信息{}-{}", personKey, personKeyByAccount);
+                        log.error("人员身份无法找到对应对人员信息{}-{}", personKey, personKeyByAccount);
                         continue;
                     }
                     personId = personFromSSOMapByAccount.get(personKeyByAccount).getId();
                     occupyDto.setOpenId(personFromSSOMapByAccount.get(personKeyByAccount).getOpenId());
-                    log.warn("人员身份通过用户名获取到人员信息{}", personKeyByAccount);
+                    log.error("人员身份通过用户名获取到人员信息{}", personKeyByAccount);
                 } else {
                     personId = personFromSSOMap.get(personKey).getId();
                     occupyDto.setOpenId(personFromSSOMap.get(personKey).getOpenId());
-                    log.warn("人员身份通过证件信息获取到人员信息{}", personKey);
+                    log.error("人员身份通过证件信息获取到人员信息{}", personKey);
                 }
                 occupyDto.setPersonId(personId);
                 occupyDto.setCreateTime(now);
@@ -224,7 +224,7 @@ public class OccupyServiceImpl implements OccupyService {
                 //以人员id岗位及部门code作为键进行身份去重
                 String key = personId + ":" + occupyDto.getPostCode() + ":" + occupyDto.getDeptCode();
                 if (occupyDtoFromUpstream.containsKey(key)) {
-                    log.warn("权威源人员身份数据合重:{}->{}", occupyDtoFromUpstream.get(key).toString(), occupyDto);
+                    log.info("权威源人员身份数据合重:{}->{}", occupyDtoFromUpstream.get(key).toString(), occupyDto);
                 }
                 occupyDtoFromUpstream.put(key, occupyDto);
             }

@@ -67,6 +67,7 @@ public class PersonServiceImpl implements PersonService {
      * * C：删除  上游提供了del_mark
      * * D: 无效  上游曾经提供后，不再提供 OR 上游提供了active
      * * E: 恢复  之前被标记为失效后再通过推送了相同的数据
+     * TODO： 一对多的证件。 一个人可以有多个证件；身份证、护照等
      */
 
     @Override

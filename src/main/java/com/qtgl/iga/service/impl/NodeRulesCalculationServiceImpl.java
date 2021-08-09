@@ -580,7 +580,7 @@ public class NodeRulesCalculationServiceImpl {
                             logger.info("节点'{}'数据源{}获取部门数据为空", code, upstreamType.getGraphqlUrl());
                             return mainTree;
                         }
-                        logger.error("节点'{}'数据获取完成", code);
+                        logger.info("节点'{}'数据获取完成", code);
 
 
                         List<TreeBean> upstreamDept = new ArrayList<>();
@@ -646,15 +646,15 @@ public class NodeRulesCalculationServiceImpl {
                         //查询 树 运行  规则,
                         List<NodeRulesRange> nodeRulesRanges = rangeDao.getByRulesId(nodeRule.getId(), null);
                         mergeDeptMap = new ConcurrentHashMap<>();
-                        logger.error("节点'{}'开始运行挂载", code);
+                        logger.info("节点'{}'开始运行挂载", code);
                         //获取并检测 需要挂载的树， add 进入 待合并的树集合 mergeDept
                         mountRules(nodeCode, mainTree, upstreamMap, childrenMap, nodeRulesRanges, mergeDeptMap, upstream.getAppName() + "(" + upstream.getAppCode() + ")", domain, treeType);
                         //在挂载基础上进行排除
                         excludeRules(nodeCode, mergeDeptMap, childrenMap, nodeRulesRanges, domain, treeType, mainTree);
-                        logger.error("节点'{}'开始运行排除", code);
+                        logger.info("节点'{}'开始运行排除", code);
                         // 对最终要挂载的树进行重命名
                         renameRules(mergeDeptMap, nodeRulesRanges, childrenMap, type);
-                        logger.error("节点'{}'开始运行重命名", code);
+                        logger.info("节点'{}'开始运行重命名", code);
                         logger.info("节点'{}'的规则运算完成：{}", nodeCode, mergeDeptMap);
 
 

@@ -189,7 +189,7 @@ create table t_mgr_upstream_types_field
         primary key,
     upstream_type_id varchar(50) not null comment '上游源数据类型注册外键',
     source_field     varchar(50) null comment '源字段名称',
-    target_field     varchar(50) null comment '转换后字段名称',
+    target_field     text null comment '转换后字段名称',
     create_time      timestamp   null comment '创建时间',
     update_time      timestamp   null comment '修改时间',
     domain           varchar(50) null comment '租户外键'

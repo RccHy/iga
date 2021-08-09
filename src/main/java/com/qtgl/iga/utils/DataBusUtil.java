@@ -261,7 +261,7 @@ public class DataBusUtil {
                 //获取数据，数据为map类型
                 result = response.getData();
                 for (Map.Entry<String, Object> entry : result.entrySet()) {
-                    log.info("result  data --" + entry.getKey() + "------" + entry.getValue());
+                    log.debug("result  data --" + entry.getKey() + "------" + entry.getValue());
                 }
 
                 if (null == result || null == result.get("data")) {
