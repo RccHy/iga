@@ -226,6 +226,13 @@ public class PersonServiceImpl implements PersonService {
                                         }
 
                                     }
+                                } else {
+                                    //用户名不重复
+                                    if (personBean.getActive() == 1) {
+                                        //有效则覆盖
+                                        personFromUpstream.put(personBean.getCardType() + ":" + personBean.getCardNo(), personBean);
+                                        personRepeatByAccount.put(personBean.getAccountNo(), personBean);
+                                    }
                                 }
                             } else {
                                 //合重容器中没有对应用户名标识数据,则添加进容器
@@ -252,7 +259,6 @@ public class PersonServiceImpl implements PersonService {
                 }
             }
         });
-
         log.info("所有人员数据获取完成:{}", personFromUpstream.size() + personFromUpstreamByAccount.size());
         if (personFromUpstream.size() > 0 || personFromUpstreamByAccount.size() > 0) {
             TaskConfig.errorData.put(domain.getId(), "");
@@ -319,7 +325,8 @@ public class PersonServiceImpl implements PersonService {
         }
     }
 
-    private void calculateInsert(Map<String, Person> personFromSSOMap, Map<String, List<Person>> result, String key, Person val) {
+    private void calculateInsert(Map<String, Person> personFromSSOMap, Map<String, List<Person>> result, String key, Person
+            val) {
         //sso没有并且未删除标记的数据才进行新增
         if (!personFromSSOMap.containsKey(key) && (val.getDelMark() == 0)) {
             //新增逻辑字段赋默认值
