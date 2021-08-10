@@ -55,7 +55,6 @@ public class TaskConfig {
 
     public static Map<String, String> errorData = new HashMap<>();
 
-
     /**
      * 根据租户区分线程池
      * 串行执行 部门、岗位、人员、三元组 同步
@@ -138,6 +137,7 @@ public class TaskConfig {
                                                 String personNo = insertPerson + "/" + deletePerson + "/" + updatePerson + "/" + invalidPerson;
                                                 log.info(Thread.currentThread().getName() + ": 人员同步完成{}==={}", personNo, System.currentTimeMillis());
                                                 taskLog.setPersonNo(personNo);
+                                                taskLog.setData(errorData.get(domainInfo.getId()));
                                                 taskLogService.save(taskLog, domainInfo.getId(), "update");
 
                                                 // PUT   MQ

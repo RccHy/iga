@@ -208,8 +208,9 @@ public class OccupyServiceImpl implements OccupyService {
                 }
                 if (null == occupyDto.getActive()) {
                     occupyDto.setActive(1);
-                    occupyDto.setActiveTime(LocalDateTime.now());
                 }
+                //赋予activeTime默认值
+                occupyDto.setActiveTime(LocalDateTime.now());
 
                 // 验证是否为 孤儿数据
                 occupyDto.setOrphan(0);// 非孤儿
@@ -225,8 +226,13 @@ public class OccupyServiceImpl implements OccupyService {
                 String key = personId + ":" + occupyDto.getPostCode() + ":" + occupyDto.getDeptCode();
                 if (occupyDtoFromUpstream.containsKey(key)) {
                     log.info("权威源人员身份数据合重:{}->{}", occupyDtoFromUpstream.get(key).toString(), occupyDto);
+                    if (occupyDto.getActive() == 1) {
+                        occupyDtoFromUpstream.put(key, occupyDto);
+                    }
+                } else {
+                    occupyDtoFromUpstream.put(key, occupyDto);
                 }
-                occupyDtoFromUpstream.put(key, occupyDto);
+
             }
 
         });
@@ -436,7 +442,7 @@ public class OccupyServiceImpl implements OccupyService {
             //如果权威源没有,sso有并且来源是pull则置为失效
         } else if (!occupyDtoFromUpstream.containsKey(key)
                 && 1 != occupyFromSSO.getDelMark()
-                 && (null==occupyFromSSO.getActive()||occupyFromSSO.getActive() == 1)
+                && (null == occupyFromSSO.getActive() || occupyFromSSO.getActive() == 1)
                 && "PULL".equalsIgnoreCase(occupyFromSSO.getDataSource())) {
             // 如果sso 有，上游源没有 &&  sso中数据不是删除 && sso数据不是无效
             LocalDateTime now = LocalDateTime.now();

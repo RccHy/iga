@@ -448,5 +448,4 @@ public class NodeServiceImpl implements NodeService {
         return nodeDao.findByStatus(status, domain, type);
     }
 
-
 }

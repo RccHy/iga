@@ -31,7 +31,6 @@ public interface NodeDao {
 
     List<Node> findByStatus(Integer status, String domain, String type);
 
-
 //    Integer publishNode(String id);
 
 }

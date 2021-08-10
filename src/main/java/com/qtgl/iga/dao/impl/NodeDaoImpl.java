@@ -137,14 +137,14 @@ public class NodeDaoImpl implements NodeDao {
     }
 
     @Override
-    public List<Node> findByTreeTypeId(String id, Integer status,String domain) {
+    public List<Node> findByTreeTypeId(String id, Integer status, String domain) {
         ArrayList<Node> nodes = new ArrayList<>();
 
         String sql = "select id,manual," +
                 "node_code as nodeCode," +
                 "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status,type" +
                 " from t_mgr_node where dept_tree_type= ? and status=? and domain =? ";
-        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id, status,domain);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id, status, domain);
 
         return getNodes(nodes, mapList);
     }
@@ -312,7 +312,6 @@ public class NodeDaoImpl implements NodeDao {
         }
         return null;
     }
-
 
     private List<Node> getNodes(ArrayList<Node> nodes, List<Map<String, Object>> mapList) {
         for (Map<String, Object> map : mapList) {
