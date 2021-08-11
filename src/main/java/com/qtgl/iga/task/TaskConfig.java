@@ -137,7 +137,7 @@ public class TaskConfig {
                                                 String personNo = insertPerson + "/" + deletePerson + "/" + updatePerson + "/" + invalidPerson;
                                                 log.info(Thread.currentThread().getName() + ": 人员同步完成{}==={}", personNo, System.currentTimeMillis());
                                                 taskLog.setPersonNo(personNo);
-                                                taskLog.setData(errorData.get(domainInfo.getId()));
+                                            //    taskLog.setData(errorData.get(domainInfo.getId()));
                                                 taskLogService.save(taskLog, domainInfo.getId(), "update");
 
                                                 // PUT   MQ
