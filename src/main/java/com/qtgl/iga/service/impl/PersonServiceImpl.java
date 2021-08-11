@@ -1,7 +1,6 @@
 package com.qtgl.iga.service.impl;
 
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.PersonConnection;
@@ -54,7 +53,9 @@ public class PersonServiceImpl implements PersonService {
     @Autowired
     NodeRulesCalculationServiceImpl calculationService;
 
-    public static ConcurrentHashMap<String, List<Person>> errorData = new ConcurrentHashMap<>();
+//    public static ConcurrentHashMap<String, List<Person>> errorData = new ConcurrentHashMap<>();
+
+    public static ConcurrentHashMap<String, List<JSONObject>> errorData = null;
 
     /**
      * 如果有手动合重规则，运算手动合重规则【待确认】
@@ -73,6 +74,9 @@ public class PersonServiceImpl implements PersonService {
 
     @Override
     public Map<String, List<Person>> buildPerson(DomainInfo domain, TaskLog taskLog) throws Exception {
+        //错误数据置空
+        TaskConfig.errorData.put(domain.getId(), "");
+        errorData = new ConcurrentHashMap<>();
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
             throw new CustomException(ResultCode.FAILED, "租户不存在");
@@ -108,59 +112,62 @@ public class PersonServiceImpl implements PersonService {
             JSONArray dataByBus = null;
             try {
                 dataByBus = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
+            } catch (CustomException e) {
+                throw e;
             } catch (Exception e) {
                 log.error("人员治理中类型 : " + upstreamType.getUpstreamId() + "表达式异常");
+                throw new CustomException(ResultCode.PERSON_ERROR, null, null, upstreamType.getDescription(), e.getMessage());
             }
 
             List<Person> personUpstreamList = dataByBus.toJavaList(Person.class);
             //将该源数据放入errorData,方便程序运行异常后排查数据源头问题
-          //  TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(personUpstreamList)));
+            //  TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(personUpstreamList)));
 
             //遍历权威源数据进行数据规范化
             if (null != personUpstreamList) {
                 for (Person personUpstream : personUpstreamList) {
 
                     if (null != personUpstream.getActive() && personUpstream.getActive() != 0 && personUpstream.getActive() != 1) {
+                        extracted(domain, personUpstream, "人员是否有效字段不合法");
                         log.error("人员是否有效字段不合法:{}", personUpstream.getActive());
                         continue;
                     }
                     if (null != personUpstream.getDelMark() && personUpstream.getDelMark() != 0 && personUpstream.getDelMark() != 1) {
+                        extracted(domain, personUpstream, "人员是否删除字段不合法");
                         log.error("人员是否删除字段不合法:{}", personUpstream.getDelMark());
                         continue;
                     }
                     // 人员标识 证件类型、证件号码   OR    用户名 accountNo  必提供一个
                     if (StringUtils.isBlank(personUpstream.getCardNo()) && StringUtils.isBlank(personUpstream.getCardType())) {
                         if (StringUtils.isBlank(personUpstream.getAccountNo())) {
-                            log.error( "{}未提供标识信息:证件类型、证件号码或者用户名",personUpstream.getName());
+                            extracted(domain, personUpstream, "未提供标识信息:证件类型、证件号码或者用户名");
+                            log.error("{}未提供标识信息:证件类型、证件号码或者用户名", personUpstream.getName());
                             continue;
                         }
 
                     }
                     // 如果提供证件类型,提供的证件号码为空
                     if (StringUtils.isBlank(personUpstream.getCardNo()) && !StringUtils.isBlank(personUpstream.getCardType())) {
-                        if (errorData.containsKey(personUpstream.getAccountNo())) {
-                            errorData.get(personUpstream.getAccountNo()).add(personUpstream);
-                        } else {
-                            errorData.put(personUpstream.getAccountNo(), new ArrayList<Person>() {{
-                                this.add(personUpstream);
-                            }});
-                        }
-                        log.error("{}-{}提供证件类型但对应的证件号码为空",personUpstream.getCardNo(), personUpstream.getAccountNo());
+                        extracted(domain, personUpstream, "提供证件类型但对应的证件号码为空");
+                        log.error("{}-{}提供证件类型但对应的证件号码为空", personUpstream.getCardNo(), personUpstream.getAccountNo());
                         continue;
                     }
                     if (!StringUtils.isBlank(personUpstream.getCardType()) && cardTypeMap.containsKey(personUpstream.getCardType())) {
                         String cardTypeReg = cardTypeMap.get(personUpstream.getCardType()).getCardTypeReg();
                         if (null != cardTypeReg && !Pattern.matches(cardTypeReg, personUpstream.getCardNo())) {
-                            log.error("证件号码不符合规则:{}",personUpstream.getCardNo());
+                            extracted(domain, personUpstream, "证件号码不符合规则");
+                            log.error("证件号码不符合规则:{}", personUpstream.getCardNo());
                             continue;
                         }
                     } else if (!StringUtils.isBlank(personUpstream.getCardType()) && !cardTypeMap.containsKey(personUpstream.getCardType())) {
-                        log.error("证件类型无效:{}",personUpstream.getCardType());
+                        extracted(domain, personUpstream, "证件类型无效");
+                        log.error("证件类型无效:{}", personUpstream.getCardType());
                         continue;
                     }
 
                     if (StringUtils.isBlank(personUpstream.getName())) {
-                        log.error("{}-{}姓名为空",personUpstream.getCardNo(), personUpstream.getAccountNo());
+                        extracted(domain, personUpstream, "姓名为空");
+                        log.error("{}-{}姓名为空", personUpstream.getCardNo(), personUpstream.getAccountNo());
                         continue;
                     }
 
@@ -191,8 +198,11 @@ public class PersonServiceImpl implements PersonService {
                                 Person person = personRepeatByAccount.get(personUpstream.getAccountNo());
                                 //有效并且合重容器中的数据没有证件标识 才进行合重复 否则跳过
                                 if (personUpstream.getActive() == 1 && StringUtils.isBlank(person.getCardType()) && StringUtils.isBlank(person.getCardNo())) {
+                                    extracted(domain, person, "数据覆盖");
                                     personFromUpstreamByAccount.put(personUpstream.getAccountNo(), personUpstream);
                                     personRepeatByAccount.put(personUpstream.getAccountNo(), personUpstream);
+                                } else {
+                                    extracted(domain, person, "该标识用户已有有效数据,忽略无效数据");
                                 }
                             } else {
                                 //合重容器中没有对应用户名标识数据,则添加进容器
@@ -217,7 +227,8 @@ public class PersonServiceImpl implements PersonService {
                                                 personRepeatByAccount.put(personUpstream.getAccountNo(), personUpstream);
                                             } else {
                                                 //有效且同一用户名对应不同证件类型,放入errorData
-                                                extracted(personUpstream, person);
+                                                extracted(domain, personUpstream, "用户名下有不同证件类型的数据,请检查源数据");
+                                                extracted(domain, person, "用户名下有不同证件类型的数据,请检查源数据");
                                                 log.error("用户名{}下有不同证件类型的数据{}{},请检查源数据", person.getAccountNo(), person, personUpstream);
                                             }
                                         } else {
@@ -230,8 +241,11 @@ public class PersonServiceImpl implements PersonService {
                                     //用户名不重复
                                     if (personUpstream.getActive() == 1) {
                                         //有效则覆盖
+                                        extracted(domain, personFromUpstream.get(personUpstream.getCardType() + ":" + personUpstream.getCardNo()), "数据覆盖");
                                         personFromUpstream.put(personUpstream.getCardType() + ":" + personUpstream.getCardNo(), personUpstream);
                                         personRepeatByAccount.put(personUpstream.getAccountNo(), personUpstream);
+                                    } else {
+                                        extracted(domain, personUpstream, "该标识用户已有有效数据,忽略无效数据");
                                     }
                                 }
                             } else {
@@ -246,6 +260,7 @@ public class PersonServiceImpl implements PersonService {
                             if (personFromUpstream.containsKey(personUpstream.getCardType() + ":" + personUpstream.getCardNo())) {
                                 //有效则进行覆盖
                                 if (personUpstream.getActive() == 1) {
+                                    extracted(domain, personFromUpstream.get(personUpstream.getCardType() + ":" + personUpstream.getCardNo()), "数据覆盖");
                                     personFromUpstream.put(personUpstream.getCardType() + ":" + personUpstream.getCardNo(), personUpstream);
                                 }
                             } else {
@@ -261,7 +276,6 @@ public class PersonServiceImpl implements PersonService {
         });
         log.info("所有人员数据获取完成:{}", personFromUpstream.size() + personFromUpstreamByAccount.size());
         if (personFromUpstream.size() > 0 || personFromUpstreamByAccount.size() > 0) {
-            TaskConfig.errorData.put(domain.getId(), "");
              /*
                 将合重后的数据插入进数据库
             */
@@ -283,7 +297,7 @@ public class PersonServiceImpl implements PersonService {
 
 
             personFromSSOMap.forEach((key, personFromSSO) -> {
-                calculate(personFromUpstream, personFromSSOMapByAccountAll, personFromSSOMapCopy, now, result, key, personFromSSO);
+                calculate(personFromUpstream, personFromSSOMapByAccountAll, personFromSSOMapCopy, now, result, key, personFromSSO, domain);
             });
 
             personFromSSOMapByAccount.forEach((key, personFromSSO) -> {
@@ -294,7 +308,7 @@ public class PersonServiceImpl implements PersonService {
                 calculateInsert(personFromSSOMapByAccount, result, key, val);
             });
             personFromUpstream.forEach((key, val) -> {
-                calculateInsert(personFromSSOMapCopy, personFromSSOMapByAccountAll, result, key, val);
+                calculateInsert(personFromSSOMapCopy, personFromSSOMapByAccountAll, result, key, val, domain);
             });
 
 
@@ -302,7 +316,8 @@ public class PersonServiceImpl implements PersonService {
             calculationService.monitorRules(domain, taskLog, personFromSSOList.size(), result.get("delete"));
             // sso 批量新增
             personDao.saveToSso(result, tenant.getId());
-            TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(new ArrayList<>(errorData.values()))));
+
+            TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(errorData.get(domain.getId())));
             return result;
         } else {
             log.error("上游提供人员数据不符合规范,数据同步失败");
@@ -312,18 +327,35 @@ public class PersonServiceImpl implements PersonService {
 
     }
 
-    //处理异常数据
-    private void extracted(Person personBean, Person person) {
-        if (errorData.containsKey(person.getAccountNo())) {
-            errorData.get(person.getAccountNo()).add(person);
-            errorData.get(person.getAccountNo()).add(personBean);
+    //    处理异常数据
+    private void extracted(DomainInfo domain, Person personUpstream, String reason) {
+        if (errorData.containsKey(domain.getId())) {
+            JSONObject jsonObject = JSONObject.parseObject(JSONObject.toJSONString(personUpstream));
+            jsonObject.put("reason", reason);
+            jsonObject.put("type", "person");
+            errorData.get(domain.getId()).add(jsonObject);
         } else {
-            errorData.put(person.getAccountNo(), new ArrayList<Person>() {{
-                this.add(person);
-                this.add(personBean);
+            JSONObject jsonObject = JSONObject.parseObject(JSONObject.toJSONString(personUpstream));
+            jsonObject.put("reason", reason);
+            jsonObject.put("type", "person");
+            errorData.put(domain.getId(), new ArrayList<JSONObject>() {{
+                this.add(jsonObject);
             }});
         }
     }
+
+//    //处理异常数据
+//    private void extracted(Person personBean, Person person) {
+//        if (errorData.containsKey(person.getAccountNo())) {
+//            errorData.get(person.getAccountNo()).add(person);
+//            errorData.get(person.getAccountNo()).add(personBean);
+//        } else {
+//            errorData.put(person.getAccountNo(), new ArrayList<Person>() {{
+//                this.add(person);
+//                this.add(personBean);
+//            }});
+//        }
+//    }
 
     private void calculateInsert(Map<String, Person> personFromSSOMap, Map<String, List<Person>> result, String key, Person
             val) {
@@ -553,7 +585,7 @@ public class PersonServiceImpl implements PersonService {
         }
     }
 
-    private void calculateInsert(Map<String, Person> personFromSSOMap, Map<String, Person> personFromSSOMapByAccountAll, Map<String, List<Person>> result, String key, Person val) {
+    private void calculateInsert(Map<String, Person> personFromSSOMap, Map<String, Person> personFromSSOMapByAccountAll, Map<String, List<Person>> result, String key, Person val, DomainInfo domainInfo) {
         //sso没有并且未删除标记的数据才进行新增
         if (!personFromSSOMap.containsKey(key) && (val.getDelMark() == 0)) {
             //是否执行标识
@@ -577,8 +609,10 @@ public class PersonServiceImpl implements PersonService {
                             val.setPassword(person.getPassword());
                         } else {
                             //有效且同一用户名对应不同证件类型,目前不支持
-                            extracted(person, val);
+
                             flag = false;
+                            extracted(domainInfo, val, "用户名下有不同证件类型的数据,请检查源数据");
+                            extracted(domainInfo, person, "用户名下有不同证件类型的数据,请检查源数据");
                             log.error("用户名{}下有不同证件类型的数据{}{},请检查源数据", person.getAccountNo(), person, val);
                         }
                     } else {
@@ -642,7 +676,7 @@ public class PersonServiceImpl implements PersonService {
         }
     }
 
-    private void calculate(Map<String, Person> personFromUpstream, Map<String, Person> personFromSSOMapByAccountAll, Map<String, Person> personFromSSOMapCopy, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO) {
+    private void calculate(Map<String, Person> personFromUpstream, Map<String, Person> personFromSSOMapByAccountAll, Map<String, Person> personFromSSOMapCopy, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO, DomainInfo domainInfo) {
         // 对比出需要修改的person
         if (personFromUpstream.containsKey(key) &&
                 personFromUpstream.get(key).getCreateTime().isAfter(personFromSSO.getUpdateTime())) {
@@ -697,7 +731,8 @@ public class PersonServiceImpl implements PersonService {
                         Person person = personFromSSOMapByAccountAll.get(newValue);
                         if (!newPerson.getCardType().equals(person.getCardType()) || !newPerson.getCardNo().equals(person.getCardNo())) {
 
-                            extracted(newPerson, person);
+                            extracted(domainInfo, person, "该修改使用户名下有不同证件类型的数据,请检查");
+                            extracted(domainInfo, newPerson, "该修改使用户名下有不同证件类型的数据,请检查");
                             //有效且同一用户名对应不同证件类型,目前不支持
                             log.error("该修改使用户名{}下有不同证件类型的数据{}{},请检查", person.getAccountNo(), person, newPerson);
                             licitFlag = false;
