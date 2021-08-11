@@ -190,11 +190,11 @@ public class OccupyServiceImpl implements OccupyService {
                     }
                     personId = personFromSSOMapByAccount.get(personKeyByAccount).getId();
                     occupyDto.setOpenId(personFromSSOMapByAccount.get(personKeyByAccount).getOpenId());
-                    log.error("人员身份通过用户名获取到人员信息{}", personKeyByAccount);
+                    log.info("人员身份通过用户名获取到人员信息{}", personKeyByAccount);
                 } else {
                     personId = personFromSSOMap.get(personKey).getId();
                     occupyDto.setOpenId(personFromSSOMap.get(personKey).getOpenId());
-                    log.error("人员身份通过证件信息获取到人员信息{}", personKey);
+                    log.info("人员身份通过证件信息获取到人员信息{}", personKey);
                 }
                 occupyDto.setPersonId(personId);
                 occupyDto.setCreateTime(now);
