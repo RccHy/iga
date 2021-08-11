@@ -138,7 +138,7 @@ public class OccupyServiceImpl implements OccupyService {
                 throw new CustomException(ResultCode.OCCUPY_ERROR, null, null, upstreamType.getDescription(), e.getMessage());
             }
             final List<OccupyDto> occupies = dataByBus.toJavaList(OccupyDto.class);
-            TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(occupies)));
+           // TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(occupies)));
             for (OccupyDto occupyDto : occupies) {
 
                 // 人员标识 证件类型、证件号码   OR    用户名 accountNo  必提供一个

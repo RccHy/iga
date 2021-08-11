@@ -114,7 +114,7 @@ public class PersonServiceImpl implements PersonService {
 
             List<Person> personUpstreamList = dataByBus.toJavaList(Person.class);
             //将该源数据放入errorData,方便程序运行异常后排查数据源头问题
-            TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(personUpstreamList)));
+          //  TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(personUpstreamList)));
 
             //遍历权威源数据进行数据规范化
             if (null != personUpstreamList) {
