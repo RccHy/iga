@@ -138,7 +138,7 @@ public class CertifiedConnector {
             personalUrl = base + personalUrl;
         }
 
-        if (StringUtils.isEmpty(certifiedConnector.url)) {
+        if (StringUtils.isBlank(certifiedConnector.url)) {
             return "";
         }
 

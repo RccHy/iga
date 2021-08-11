@@ -1,6 +1,6 @@
 package com.qtgl.iga.service.impl;
 
-import com.alibaba.druid.util.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
@@ -107,17 +107,17 @@ public class OccupyServiceImpl implements OccupyService {
         if (personFromSSO.size() <= 0) {
             throw new CustomException(ResultCode.FAILED, "没有未删除的可用人员");
         }
-        Map<String, Person> personFromSSOMap = personFromSSO.stream().filter(person -> !StringUtils.isEmpty(person.getCardType()) && !StringUtils.isEmpty(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
-        Map<String, Person> personFromSSOMapByAccount = personFromSSO.stream().filter(person -> !StringUtils.isEmpty(person.getAccountNo())).collect(Collectors.toMap(person -> (person.getAccountNo()), person -> person, (v1, v2) -> v2));
+        Map<String, Person> personFromSSOMap = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
+        Map<String, Person> personFromSSOMapByAccount = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getAccountNo())).collect(Collectors.toMap(person -> (person.getAccountNo()), person -> person, (v1, v2) -> v2));
         // 获取sso中所有的有效的 组织机构 、 岗位信息
         List<TreeBean> deptFromSSO = deptDao.findActiveDataByTenantId(tenant.getId());
         if (null == deptFromSSO) {
-            throw new CustomException(ResultCode.FAILED, "没有未删除的有效部门");
+            throw new CustomException(ResultCode.FAILED, "没有未删除且有效部门");
         }
         final Map<String, TreeBean> deptFromSSOMap = deptFromSSO.stream().collect(Collectors.toMap(dept -> (dept.getCode()), dept -> dept, (v1, v2) -> v2));
         List<TreeBean> postFromSSO = postDao.findActiveDataByTenantId(tenant.getId());
         if (null == postFromSSO) {
-            throw new CustomException(ResultCode.FAILED, "没有未删除的有效岗位");
+            throw new CustomException(ResultCode.FAILED, "没有未删除且有效岗位");
         }
         final Map<String, TreeBean> postFromSSOMap = postFromSSO.stream().collect(Collectors.toMap(post -> (post.getCode()), post -> post, (v1, v2) -> v2));
 
@@ -142,28 +142,28 @@ public class OccupyServiceImpl implements OccupyService {
             for (OccupyDto occupyDto : occupies) {
 
                 // 人员标识 证件类型、证件号码   OR    用户名 accountNo  必提供一个
-                if (StringUtils.isEmpty(occupyDto.getPersonCardNo()) && StringUtils.isEmpty(occupyDto.getPersonCardType())) {
-                    if (StringUtils.isEmpty(occupyDto.getAccountNo())) {
+                if (StringUtils.isBlank(occupyDto.getPersonCardNo()) && StringUtils.isBlank(occupyDto.getPersonCardType())) {
+                    if (StringUtils.isBlank(occupyDto.getAccountNo())) {
                         log.error("人员身份信息中人员标识为空{}", occupyDto);
                         continue;
                     }
 
                 }
-                if (!StringUtils.isEmpty(occupyDto.getPersonCardType()) && cardTypeMap.containsKey(occupyDto.getPersonCardType())) {
+                if (!StringUtils.isBlank(occupyDto.getPersonCardType()) && cardTypeMap.containsKey(occupyDto.getPersonCardType())) {
                     String cardTypeReg = cardTypeMap.get(occupyDto.getPersonCardType()).getCardTypeReg();
                     if (null != cardTypeReg && !Pattern.matches(cardTypeReg, occupyDto.getPersonCardNo())) {
                         log.error("人员身份信息中人员证件号码不符合规则{}", occupyDto);
                         continue;
                     }
-                } else if (!StringUtils.isEmpty(occupyDto.getPersonCardType()) && !cardTypeMap.containsKey(occupyDto.getPersonCardType())) {
+                } else if (!StringUtils.isBlank(occupyDto.getPersonCardType()) && !cardTypeMap.containsKey(occupyDto.getPersonCardType())) {
                     log.error("人员身份信息中人员证件类型无效{}", occupyDto);
                     continue;
                 }
-                if (StringUtils.isEmpty(occupyDto.getPostCode())) {
+                if (StringUtils.isBlank(occupyDto.getPostCode())) {
                     log.error("人员身份信息岗位代码为空{}", occupyDto);
                     continue;
                 }
-                if (StringUtils.isEmpty(occupyDto.getDeptCode())) {
+                if (StringUtils.isBlank(occupyDto.getDeptCode())) {
                     log.error("人员身份部门代码为空{}", occupyDto);
                     continue;
                 }

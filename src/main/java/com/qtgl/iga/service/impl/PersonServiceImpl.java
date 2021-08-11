@@ -112,144 +112,144 @@ public class PersonServiceImpl implements PersonService {
                 log.error("人员治理中类型 : " + upstreamType.getUpstreamId() + "表达式异常");
             }
 
-            List<Person> personBeanList = dataByBus.toJavaList(Person.class);
+            List<Person> personUpstreamList = dataByBus.toJavaList(Person.class);
             //将该源数据放入errorData,方便程序运行异常后排查数据源头问题
-            TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(personBeanList)));
+            TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(personUpstreamList)));
 
             //遍历权威源数据进行数据规范化
-            if (null != personBeanList) {
-                for (Person personBean : personBeanList) {
+            if (null != personUpstreamList) {
+                for (Person personUpstream : personUpstreamList) {
 
-                    if (null != personBean.getActive() && personBean.getActive() != 0 && personBean.getActive() != 1) {
-                        log.error("人员是否有效字段不合法{}", personBean.getActive());
+                    if (null != personUpstream.getActive() && personUpstream.getActive() != 0 && personUpstream.getActive() != 1) {
+                        log.error("人员是否有效字段不合法:{}", personUpstream.getActive());
                         continue;
                     }
-                    if (null != personBean.getDelMark() && personBean.getDelMark() != 0 && personBean.getDelMark() != 1) {
-                        log.error("人员是否删除字段不合法{}", personBean.getDelMark());
+                    if (null != personUpstream.getDelMark() && personUpstream.getDelMark() != 0 && personUpstream.getDelMark() != 1) {
+                        log.error("人员是否删除字段不合法:{}", personUpstream.getDelMark());
                         continue;
                     }
-                    if (StringUtils.isEmpty(personBean.getName())) {
-                        log.error("姓名为空");
-                        continue;
+                    // 人员标识 证件类型、证件号码   OR    用户名 accountNo  必提供一个
+                    if (StringUtils.isBlank(personUpstream.getCardNo()) && StringUtils.isBlank(personUpstream.getCardType())) {
+                        if (StringUtils.isBlank(personUpstream.getAccountNo())) {
+                            log.error( "{}未提供标识信息:证件类型、证件号码或者用户名",personUpstream.getName());
+                            continue;
+                        }
+
                     }
                     // 如果提供证件类型,提供的证件号码为空
-                    if (StringUtils.isBlank(personBean.getCardNo()) && !StringUtils.isBlank(personBean.getCardType())) {
-                        if (errorData.containsKey(personBean.getAccountNo())) {
-                            errorData.get(personBean.getAccountNo()).add(personBean);
+                    if (StringUtils.isBlank(personUpstream.getCardNo()) && !StringUtils.isBlank(personUpstream.getCardType())) {
+                        if (errorData.containsKey(personUpstream.getAccountNo())) {
+                            errorData.get(personUpstream.getAccountNo()).add(personUpstream);
                         } else {
-                            errorData.put(personBean.getAccountNo(), new ArrayList<Person>() {{
-                                this.add(personBean);
+                            errorData.put(personUpstream.getAccountNo(), new ArrayList<Person>() {{
+                                this.add(personUpstream);
                             }});
                         }
-                        log.error("提供证件类型但对应的证件号码为空");
+                        log.error("{}-{}提供证件类型但对应的证件号码为空",personUpstream.getCardNo(), personUpstream.getAccountNo());
+                        continue;
+                    }
+                    if (!StringUtils.isBlank(personUpstream.getCardType()) && cardTypeMap.containsKey(personUpstream.getCardType())) {
+                        String cardTypeReg = cardTypeMap.get(personUpstream.getCardType()).getCardTypeReg();
+                        if (null != cardTypeReg && !Pattern.matches(cardTypeReg, personUpstream.getCardNo())) {
+                            log.error("证件号码不符合规则:{}",personUpstream.getCardNo());
+                            continue;
+                        }
+                    } else if (!StringUtils.isBlank(personUpstream.getCardType()) && !cardTypeMap.containsKey(personUpstream.getCardType())) {
+                        log.error("证件类型无效:{}",personUpstream.getCardType());
                         continue;
                     }
 
-                    // 人员标识 证件类型、证件号码   OR    用户名 accountNo  必提供一个
-                    if (StringUtils.isEmpty(personBean.getCardNo()) && StringUtils.isEmpty(personBean.getCardType())) {
-                        if (StringUtils.isEmpty(personBean.getAccountNo())) {
-                            log.error(personBean.getName() + "未提供标识信息：证件类型、证件号码或者用户名");
-                            continue;
-                        }
-
-                    }
-                    if (!StringUtils.isEmpty(personBean.getCardType()) && cardTypeMap.containsKey(personBean.getCardType())) {
-                        String cardTypeReg = cardTypeMap.get(personBean.getCardType()).getCardTypeReg();
-                        if (null != cardTypeReg && !Pattern.matches(cardTypeReg, personBean.getCardNo())) {
-                            log.error(personBean.getName() + "证件号码不符合规则");
-                            continue;
-                        }
-                    } else if (!StringUtils.isEmpty(personBean.getCardType()) && !cardTypeMap.containsKey(personBean.getCardType())) {
-                        log.error(personBean.getName() + "证件类型无效");
+                    if (StringUtils.isBlank(personUpstream.getName())) {
+                        log.error("{}-{}姓名为空",personUpstream.getCardNo(), personUpstream.getAccountNo());
                         continue;
                     }
 
-                    personBean.setSource(upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")");
-                    personBean.setUpstreamType(upstreamType.getId());
-                    personBean.setCreateTime(now);
+                    personUpstream.setSource(upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")");
+                    personUpstream.setUpstreamType(upstreamType.getId());
+                    personUpstream.setCreateTime(now);
 
-                    if (null == personBean.getUpdateTime()) {
-                        personBean.setUpdateTime(now);
+                    if (null == personUpstream.getUpdateTime()) {
+                        personUpstream.setUpdateTime(now);
                     }
                     //如果未提供del,赋予默认值未删除
-                    if (null == personBean.getDelMark()) {
-                        personBean.setDelMark(0);
+                    if (null == personUpstream.getDelMark()) {
+                        personUpstream.setDelMark(0);
                     }
                     //如果未提供active,赋予默认值有效
-                    if (null == personBean.getActive()) {
-                        personBean.setActive(1);
+                    if (null == personUpstream.getActive()) {
+                        personUpstream.setActive(1);
                     }
                     //赋予activeTime默认值
-                    personBean.setActiveTime(LocalDateTime.now());
+                    personUpstream.setActiveTime(LocalDateTime.now());
 
                     // 人员标识 证件类型、证件号码   OR    用户名 accountNo  必提供一个
-                    if (StringUtils.isEmpty(personBean.getCardNo()) && StringUtils.isEmpty(personBean.getCardType())) {
+                    if (StringUtils.isBlank(personUpstream.getCardNo()) && StringUtils.isBlank(personUpstream.getCardType())) {
                         //如果用户名不为空
-                        if (StringUtils.isNotEmpty(personBean.getAccountNo())) {
+                        if (StringUtils.isNotEmpty(personUpstream.getAccountNo())) {
                             //并且合重容器中包含该用户名
-                            if (personRepeatByAccount.containsKey(personBean.getAccountNo())) {
-                                Person person = personRepeatByAccount.get(personBean.getAccountNo());
+                            if (personRepeatByAccount.containsKey(personUpstream.getAccountNo())) {
+                                Person person = personRepeatByAccount.get(personUpstream.getAccountNo());
                                 //有效并且合重容器中的数据没有证件标识 才进行合重复 否则跳过
-                                if (personBean.getActive() == 1 && StringUtils.isEmpty(person.getCardType()) && StringUtils.isEmpty(person.getCardNo())) {
-                                    personFromUpstreamByAccount.put(personBean.getAccountNo(), personBean);
-                                    personRepeatByAccount.put(personBean.getAccountNo(), personBean);
+                                if (personUpstream.getActive() == 1 && StringUtils.isBlank(person.getCardType()) && StringUtils.isBlank(person.getCardNo())) {
+                                    personFromUpstreamByAccount.put(personUpstream.getAccountNo(), personUpstream);
+                                    personRepeatByAccount.put(personUpstream.getAccountNo(), personUpstream);
                                 }
                             } else {
                                 //合重容器中没有对应用户名标识数据,则添加进容器
-                                personFromUpstreamByAccount.put(personBean.getAccountNo(), personBean);
-                                personRepeatByAccount.put(personBean.getAccountNo(), personBean);
+                                personFromUpstreamByAccount.put(personUpstream.getAccountNo(), personUpstream);
+                                personRepeatByAccount.put(personUpstream.getAccountNo(), personUpstream);
                             }
 
                         }
                     } else {
                         //既有证件标识又有用户名标识,处理用户名标识
-                        if (StringUtils.isNotEmpty(personBean.getAccountNo())) {
-                            if (personFromUpstream.containsKey(personBean.getCardType() + ":" + personBean.getCardNo())) {
+                        if (StringUtils.isNotEmpty(personUpstream.getAccountNo())) {
+                            if (personFromUpstream.containsKey(personUpstream.getCardType() + ":" + personUpstream.getCardNo())) {
                                 //查询之前数据是否已有该用户名的数据
-                                if (personRepeatByAccount.containsKey(personBean.getAccountNo())) {
+                                if (personRepeatByAccount.containsKey(personUpstream.getAccountNo())) {
                                     //有效才进行合重
-                                    if (personBean.getActive() == 1) {
-                                        Person person = personRepeatByAccount.get(personBean.getAccountNo());
+                                    if (personUpstream.getActive() == 1) {
+                                        Person person = personRepeatByAccount.get(personUpstream.getAccountNo());
                                         //有该用户名数据则判断证件标识是否一致,一致则进行覆盖
                                         if (StringUtils.isNotEmpty(person.getCardNo()) && StringUtils.isNotEmpty(person.getCardType())) {
-                                            if (person.getCardType().equals(personBean.getCardType()) && personBean.getCardNo().equals(person.getCardNo())) {
-                                                personFromUpstream.put(personBean.getCardType() + ":" + personBean.getCardNo(), personBean);
-                                                personRepeatByAccount.put(personBean.getAccountNo(), personBean);
+                                            if (person.getCardType().equals(personUpstream.getCardType()) && personUpstream.getCardNo().equals(person.getCardNo())) {
+                                                personFromUpstream.put(personUpstream.getCardType() + ":" + personUpstream.getCardNo(), personUpstream);
+                                                personRepeatByAccount.put(personUpstream.getAccountNo(), personUpstream);
                                             } else {
                                                 //有效且同一用户名对应不同证件类型,放入errorData
-                                                extracted(personBean, person);
-                                                log.error("用户名{}下有不同证件类型的数据{}{},请检查源数据", person.getAccountNo(), person, personBean);
+                                                extracted(personUpstream, person);
+                                                log.error("用户名{}下有不同证件类型的数据{}{},请检查源数据", person.getAccountNo(), person, personUpstream);
                                             }
                                         } else {
-                                            personFromUpstream.put(personBean.getCardType() + ":" + personBean.getCardNo(), personBean);
-                                            personRepeatByAccount.put(personBean.getAccountNo(), personBean);
+                                            personFromUpstream.put(personUpstream.getCardType() + ":" + personUpstream.getCardNo(), personUpstream);
+                                            personRepeatByAccount.put(personUpstream.getAccountNo(), personUpstream);
                                         }
 
                                     }
                                 } else {
                                     //用户名不重复
-                                    if (personBean.getActive() == 1) {
+                                    if (personUpstream.getActive() == 1) {
                                         //有效则覆盖
-                                        personFromUpstream.put(personBean.getCardType() + ":" + personBean.getCardNo(), personBean);
-                                        personRepeatByAccount.put(personBean.getAccountNo(), personBean);
+                                        personFromUpstream.put(personUpstream.getCardType() + ":" + personUpstream.getCardNo(), personUpstream);
+                                        personRepeatByAccount.put(personUpstream.getAccountNo(), personUpstream);
                                     }
                                 }
                             } else {
                                 //合重容器中没有对应用户名标识数据,则添加进容器
-                                personFromUpstream.put(personBean.getCardType() + ":" + personBean.getCardNo(), personBean);
-                                personRepeatByAccount.put(personBean.getAccountNo(), personBean);
+                                personFromUpstream.put(personUpstream.getCardType() + ":" + personUpstream.getCardNo(), personUpstream);
+                                personRepeatByAccount.put(personUpstream.getAccountNo(), personUpstream);
                             }
 
                         } else {
                             //仅提供证件标识
                             //合重
-                            if (personFromUpstream.containsKey(personBean.getCardType() + ":" + personBean.getCardNo())) {
+                            if (personFromUpstream.containsKey(personUpstream.getCardType() + ":" + personUpstream.getCardNo())) {
                                 //有效则进行覆盖
-                                if (personBean.getActive() == 1) {
-                                    personFromUpstream.put(personBean.getCardType() + ":" + personBean.getCardNo(), personBean);
+                                if (personUpstream.getActive() == 1) {
+                                    personFromUpstream.put(personUpstream.getCardType() + ":" + personUpstream.getCardNo(), personUpstream);
                                 }
                             } else {
-                                personFromUpstream.put(personBean.getCardType() + ":" + personBean.getCardNo(), personBean);
+                                personFromUpstream.put(personUpstream.getCardType() + ":" + personUpstream.getCardNo(), personUpstream);
                             }
 
                         }
@@ -271,15 +271,15 @@ public class PersonServiceImpl implements PersonService {
             Map<String, List<Person>> result = new HashMap<>();
 
             // 将数据库中  证件类型 && 证件号不为空的
-            Map<String, Person> personFromSSOMap = personFromSSOList.stream().filter(person -> !StringUtils.isEmpty(person.getCardType()) && !StringUtils.isEmpty(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
-            Map<String, Person> personFromSSOMapCopy = personFromSSOList.stream().filter(person -> !StringUtils.isEmpty(person.getCardType()) && !StringUtils.isEmpty(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
+            Map<String, Person> personFromSSOMap = personFromSSOList.stream().filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
+            Map<String, Person> personFromSSOMapCopy = personFromSSOList.stream().filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
             // 将数据库中 用户名不为空&&证件标识为空的
             Map<String, Person> personFromSSOMapByAccount = personFromSSOList.stream().filter(person ->
-                    !StringUtils.isEmpty(person.getAccountNo()) && (StringUtils.isEmpty(person.getCardNo()) || StringUtils.isEmpty(person.getCardType()))
+                    !StringUtils.isBlank(person.getAccountNo()) && (StringUtils.isBlank(person.getCardNo()) || StringUtils.isBlank(person.getCardType()))
             ).collect(Collectors.toMap(Person::getAccountNo, person -> person, (v1, v2) -> v2));
             // 将数据库中 用户名不为空
             Map<String, Person> personFromSSOMapByAccountAll = personFromSSOList.stream().filter(person ->
-                    !StringUtils.isEmpty(person.getAccountNo())).collect(Collectors.toMap(Person::getAccountNo, person -> person, (v1, v2) -> v2));
+                    !StringUtils.isBlank(person.getAccountNo())).collect(Collectors.toMap(Person::getAccountNo, person -> person, (v1, v2) -> v2));
 
 
             personFromSSOMap.forEach((key, personFromSSO) -> {
@@ -349,7 +349,7 @@ public class PersonServiceImpl implements PersonService {
                 }});
             }
             // 对新增的用户 判断是否提供 password字段
-            if (!StringUtils.isEmpty(val.getPassword())) {
+            if (!StringUtils.isBlank(val.getPassword())) {
                 String password = val.getPassword();
                 try {
                     password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(password.getBytes()).toCharArray()));
@@ -430,7 +430,7 @@ public class PersonServiceImpl implements PersonService {
                         // continue;
                     }
                     if (sourceField.equalsIgnoreCase("password")) {
-                        //   if (StringUtils.isEmpty((String) oldValue) && !StringUtils.isEmpty((String) newValue)) {
+                        //   if (StringUtils.isBlank((String) oldValue) && !StringUtils.isBlank((String) newValue)) {
                         try {
                             String password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(((String) newValue).getBytes()).toCharArray()));
                             passwordFlag = true;
@@ -600,7 +600,7 @@ public class PersonServiceImpl implements PersonService {
                     val.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
                 }
                 // 对新增的用户 判断是否提供 password字段
-                if (!StringUtils.isEmpty(val.getPassword())) {
+                if (!StringUtils.isBlank(val.getPassword())) {
                     String password = val.getPassword();
                     try {
                         password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(password.getBytes()).toCharArray()));
@@ -720,7 +720,7 @@ public class PersonServiceImpl implements PersonService {
                         // continue;
                     }
                     if (sourceField.equalsIgnoreCase("password")) {
-                        //   if (StringUtils.isEmpty((String) oldValue) && !StringUtils.isEmpty((String) newValue)) {
+                        //   if (StringUtils.isBlank((String) oldValue) && !StringUtils.isBlank((String) newValue)) {
                         try {
                             String password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(((String) newValue).getBytes()).toCharArray()));
                             passwordFlag = true;
