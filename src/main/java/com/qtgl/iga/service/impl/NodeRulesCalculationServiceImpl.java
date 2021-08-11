@@ -920,9 +920,13 @@ public class NodeRulesCalculationServiceImpl {
                     }
                     logger.error(" {} 节点 {}   规则{} 中的 数据 {} code:{} 与 机构{} 节点 {}   规则{} 中的 数据 {} code:{} 循环依赖 ",
                             null == deptTreeType ? "" : deptTreeType.getName(), ("".equals(bean.getCode()) ? "根节点" : bean.getCode()), null == bean.getRuleId() ? " " : bean.getRuleId(), bean.getName(), bean.getCode(),
+
                             null == deptTreeType2 ? "" : deptTreeType2.getName(), ("".equals(treeBean.getCode()) ? "根节点" : treeBean.getCode()), null == bean.getRuleId() ? " " : bean.getRuleId(), treeBean.getName(), treeBean.getCode());
-                    throw new CustomException(ResultCode.CYCLE_ERROR, list, mainTree, deptTreeName, treeBeanName, treeBeanCode, treeName, treeCode
-                            , deptTreeNameM, treeBeanNameM, treeBeanCodeM, treeNameM, treeCodeM);
+//                    throw new CustomException(ResultCode.CYCLE_ERROR, list, mainTree, deptTreeName, treeBeanName, treeBeanCode, treeName, treeCode
+//                            , deptTreeNameM, treeBeanNameM, treeBeanCodeM, treeNameM, treeCodeM);
+                    throw new CustomException(ResultCode.CYCLE_ERROR, list, mainTree, treeName, treeCode
+                            ,  treeNameM, treeCodeM);
+
                 }
             }
         }
@@ -1012,8 +1016,11 @@ public class NodeRulesCalculationServiceImpl {
 //                    errorData.put(domain.getDomainName(), list);
 //                    errorTree.put(domain.getDomainName(), mainTree);
 //                    throw new Exception(ex.toString());
-                    throw new CustomException(ResultCode.CYCLE_ERROR, list, mainTree, deptTreeName, treeBeanName, treeBeanCode, treeName, treeCode
-                            , deptTreeNameM, treeBeanNameM, treeBeanCodeM, treeNameM, treeCodeM);
+
+//                    throw new CustomException(ResultCode.CYCLE_ERROR, list, mainTree, deptTreeName, treeBeanName, treeBeanCode, treeName, treeCode
+//                            , deptTreeNameM, treeBeanNameM, treeBeanCodeM, treeNameM, treeCodeM);
+                    throw new CustomException(ResultCode.CYCLE_ERROR, list, mainTree, treeName, treeCode
+                            ,  treeNameM, treeCodeM);
 
 
                 }
@@ -1121,9 +1128,11 @@ public class NodeRulesCalculationServiceImpl {
                     logger.error(" {} 节点 {}   规则{} 中的 数据 {} code:{} 与 机构{} 节点 {}   规则{} 中的 数据 {} code:{} 重复 ",
                             null == deptTreeType ? "" : deptTreeType.getName(), ("".equals(treeBean1.getCode()) ? "根节点" : treeBean1.getCode()), null == treeBean1.getRuleId() ? " " : treeBean1.getRuleId(), treeBean1.getName(), treeBean1.getCode(),
                             null == deptTreeType2 ? "" : deptTreeType2.getName(), ("".equals(treeBean.getCode()) ? "根节点" : treeBean.getCode()), null == treeBean1.getRuleId() ? " " : treeBean1.getRuleId(), treeBean.getName(), treeBean.getCode());
-
-                    throw new CustomException(ResultCode.REPEAT_ERROR, list, mergeList, deptTreeName, treeBeanName, treeBeanCode, treeName, treeCode
-                            , deptTreeNameM, treeBeanNameM, treeBeanCodeM, treeNameM, treeCodeM);
+//
+//                    throw new CustomException(ResultCode.REPEAT_ERROR, list, mergeList, deptTreeName, treeBeanName, treeBeanCode, treeName, treeCode
+//                            , deptTreeNameM, treeBeanNameM, treeBeanCodeM, treeNameM, treeCodeM);
+                    throw new CustomException(ResultCode.REPEAT_ERROR, list, mergeList, treeName, treeCode
+                            ,  treeNameM, treeCodeM);
                 }
                 mergeList.add(treeBean);
                 ArrayList<TreeBean> treeList = new ArrayList<>();
