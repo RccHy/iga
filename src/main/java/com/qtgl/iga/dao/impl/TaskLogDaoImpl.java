@@ -1,5 +1,6 @@
 package com.qtgl.iga.dao.impl;
 
+import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.TaskLogConnection;
 import com.qtgl.iga.bean.TaskLogEdge;
 import com.qtgl.iga.bo.TaskLog;
@@ -31,6 +32,12 @@ public class TaskLogDaoImpl implements TaskLogDao {
                 for (Map<String, Object> map : taskLogMap) {
                     TaskLog taskLog = new TaskLog();
                     MyBeanUtils.populate(taskLog, map);
+                    String data = taskLog.getData();
+                    if (null != data && 0 == JSONObject.parseObject(data).getInteger("errno")) {
+                        JSONObject object = JSONObject.parseObject(data);
+                        String uri = object.getJSONArray("entities").getJSONObject(0).getString("uri");
+                        taskLog.setData(uri);
+                    }
                     taskLogs.add(taskLog);
                 }
                 return taskLogs;
@@ -97,6 +104,12 @@ public class TaskLogDaoImpl implements TaskLogDao {
                 TaskLogEdge taskLogEdge = new TaskLogEdge();
                 TaskLog taskLog = new TaskLog();
                 MyBeanUtils.populate(taskLog, map);
+                String data = taskLog.getData();
+                if (null != data && 0 == JSONObject.parseObject(data).getInteger("errno")) {
+                    JSONObject object = JSONObject.parseObject(data);
+                    String uri = object.getJSONArray("entities").getJSONObject(0).getString("uri");
+                    taskLog.setData(uri);
+                }
                 taskLogEdge.setNode(taskLog);
                 taskLogEdges.add(taskLogEdge);
             }

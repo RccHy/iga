@@ -9,6 +9,7 @@ import com.qtgl.iga.bo.TaskLog;
 import com.qtgl.iga.config.TaskThreadPool;
 import com.qtgl.iga.service.*;
 import com.qtgl.iga.utils.DataBusUtil;
+import com.qtgl.iga.utils.FileUtil;
 import com.qtgl.iga.utils.exception.CustomException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,10 +17,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.Scheduled;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
@@ -52,6 +51,8 @@ public class TaskConfig {
     NodeRulesService nodeRulesService;
     @Autowired
     DataBusUtil dataBusUtil;
+    @Autowired
+    FileUtil fileUtil;
 
     public static Map<String, String> errorData = new HashMap<>();
 
@@ -72,7 +73,7 @@ public class TaskConfig {
                                     // 如果 获取最近一次同步任务状况
                                     TaskLog lastTaskLog = taskLogService.last(domainInfo.getId());
                                     //  最近一次同步任务 状态成功后才能继续同步
-                                    if ((null == lastTaskLog) || (null != lastTaskLog.getId() &&!lastTaskLog.getStatus().equals("failed"))) {
+                                    if ((null == lastTaskLog) || (null != lastTaskLog.getId() && !lastTaskLog.getStatus().equals("failed"))) {
                                         errorData.remove(domainInfo.getId());
                                         // 如果有编辑中的规则，则不进行数据同步
                                         Map<String, Object> arguments = new HashMap<>();
@@ -137,11 +138,11 @@ public class TaskConfig {
                                                 String personNo = insertPerson + "/" + deletePerson + "/" + updatePerson + "/" + invalidPerson;
                                                 log.info(Thread.currentThread().getName() + ": 人员同步完成{}==={}", personNo, System.currentTimeMillis());
                                                 taskLog.setPersonNo(personNo);
-                                            //    taskLog.setData(errorData.get(domainInfo.getId()));
+                                                //    taskLog.setData(errorData.get(domainInfo.getId()));
                                                 taskLogService.save(taskLog, domainInfo.getId(), "update");
 
                                                 // PUT   MQ
-                                                  if (personResult.size() > 0&&personResult.size()<500) {
+                                                if (personResult.size() > 0 && personResult.size() < 500) {
                                                     pubResult = dataBusUtil.pub(null, personResult, null, "person", domainInfo);
                                                     log.info("person pub:{}", pubResult);
                                                 }
@@ -161,12 +162,14 @@ public class TaskConfig {
                                                 taskLogService.save(taskLog, domainInfo.getId(), "update");
 
                                                 // PUT   MQ
-                                                if (occupyResult.size() > 0&&occupyResult.size()<500) {
+                                                if (occupyResult.size() > 0 && occupyResult.size() < 500) {
                                                     pubResult = dataBusUtil.pub(null, null, occupyResult, "occupy", domainInfo);
                                                     log.info("occupy pub:{}", pubResult);
                                                 }
-
-
+                                                //数据上传
+                                                String utf8 = fileUtil.putFile(TaskConfig.errorData.get(domainInfo.getId()).getBytes("UTF8"), LocalDateTime.now() + ".txt", domainInfo);
+                                                taskLog.setData(utf8);
+                                                taskLogService.save(taskLog, domainInfo.getId(), "update");
                                                 log.info("{}同步结束,task:{}", domainInfo.getDomainName(), taskLog.getId());
                                             } catch (CustomException e) {
                                                 log.error("定时同步异常：" + e);
