@@ -12,13 +12,17 @@ import com.qtgl.iga.utils.DataBusUtil;
 import com.qtgl.iga.utils.FileUtil;
 import com.qtgl.iga.utils.exception.CustomException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
@@ -167,9 +171,16 @@ public class TaskConfig {
                                                     log.info("occupy pub:{}", pubResult);
                                                 }
                                                 //数据上传
-                                                String utf8 = fileUtil.putFile(TaskConfig.errorData.get(domainInfo.getId()).getBytes("UTF8"), LocalDateTime.now() + ".txt", domainInfo);
-                                                taskLog.setData(utf8);
-                                                taskLogService.save(taskLog, domainInfo.getId(), "update");
+                                                if(StringUtils.isNotBlank(TaskConfig.errorData.get(domainInfo.getId()))){
+                                                    try {
+                                                        String utf8 = fileUtil.putFile(TaskConfig.errorData.get(domainInfo.getId()).getBytes("UTF8"), LocalDateTime.now() + ".txt", domainInfo);
+                                                        taskLog.setData(utf8);
+                                                        taskLogService.save(taskLog, domainInfo.getId(), "update");
+                                                    } catch (Exception e) {
+                                                        log.error("上传文件失败:{}",e);
+                                                        e.printStackTrace();
+                                                    }
+                                                }
                                                 log.info("{}同步结束,task:{}", domainInfo.getDomainName(), taskLog.getId());
                                             } catch (CustomException e) {
                                                 log.error("定时同步异常：" + e);
