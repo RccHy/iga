@@ -26,13 +26,13 @@ public class FileUtil {
     @Value("${sso.url}")
     String ssoUrl;
 
-//    String clientId = "SKvpw2Nm1ZOSifdDeNUk";
-//
-//    String secret = "2FE5C11C98E53DD9EFD0F2A731B9261515B67A928051A246";
-//
-//    String scope = "storage";
-//
-//    String token = null;
+    //String clientId = "SKvpw2Nm1ZOSifdDeNUk";
+    //
+    //String secret = "2FE5C11C98E53DD9EFD0F2A731B9261515B67A928051A246";
+    //
+    //String scope = "storage";
+    //
+    //String token = null;
 
     @Resource
     DataBusUtil dataBusUtil;
@@ -50,7 +50,7 @@ public class FileUtil {
                 fileApi = url.getProtocol() + "://" + url.getPath() + fileApi;
             }
             String fileUrl = fileApi.replace("/file", "");
-//            getApiToken();
+            //getApiToken();
             //获取token
             String token = dataBusUtil.getToken(domainInfo.getDomainName());
 
@@ -72,33 +72,33 @@ public class FileUtil {
     }
 
 
-//    private void getApiToken() {
-//        if (null == token) {
-//
-//            String sso = fileApi.replace("/file", "/sso");
-//
-//            OAuthClientRequest oAuthClientRequest = null;
-//            try {
-//                oAuthClientRequest = OAuthClientRequest
-//                        .tokenLocation(sso + "/oauth2/token").setGrantType(GrantType.CLIENT_CREDENTIALS)
-//                        .setClientId(clientId).setClientSecret(secret)
-//                        .setScope(scope).buildBodyMessage();
-//            } catch (OAuthSystemException e) {
-//                log.error("token 获取 : ->" + e.getMessage());
-//                e.printStackTrace();
-//            }
-//            OAuthClient oAuthClient = new OAuthClient(new SSLConnectionClient());
-//            OAuthJSONAccessTokenResponse oAuthClientResponse = null;
-//            try {
-//                oAuthClientResponse = oAuthClient.accessToken(oAuthClientRequest, "POST", OAuthJSONAccessTokenResponse.class);
-//            } catch (OAuthSystemException | OAuthProblemException e) {
-//                log.error("token 获取" + e.getMessage());
-//                e.printStackTrace();
-//            }
-//            assert oAuthClientResponse != null;
-//            String accessToken = oAuthClientResponse.getAccessToken();
-//            long exp = System.currentTimeMillis() + (oAuthClientResponse.getExpiresIn() * 1000 - (10 * 60 * 1000));
-//            token = accessToken;
-//        }
-//    }
+    //private void getApiToken() {
+    //    if (null == token) {
+    //
+    //        String sso = fileApi.replace("/file", "/sso");
+    //
+    //        OAuthClientRequest oAuthClientRequest = null;
+    //        try {
+    //            oAuthClientRequest = OAuthClientRequest
+    //                    .tokenLocation(sso + "/oauth2/token").setGrantType(GrantType.CLIENT_CREDENTIALS)
+    //                    .setClientId(clientId).setClientSecret(secret)
+    //                    .setScope(scope).buildBodyMessage();
+    //        } catch (OAuthSystemException e) {
+    //            log.error("token 获取 : ->" + e.getMessage());
+    //            e.printStackTrace();
+    //        }
+    //        OAuthClient oAuthClient = new OAuthClient(new SSLConnectionClient());
+    //        OAuthJSONAccessTokenResponse oAuthClientResponse = null;
+    //        try {
+    //            oAuthClientResponse = oAuthClient.accessToken(oAuthClientRequest, "POST", OAuthJSONAccessTokenResponse.class);
+    //        } catch (OAuthSystemException | OAuthProblemException e) {
+    //            log.error("token 获取" + e.getMessage());
+    //            e.printStackTrace();
+    //        }
+    //        assert oAuthClientResponse != null;
+    //        String accessToken = oAuthClientResponse.getAccessToken();
+    //        long exp = System.currentTimeMillis() + (oAuthClientResponse.getExpiresIn() * 1000 - (10 * 60 * 1000));
+    //        token = accessToken;
+    //    }
+    //}
 }
