@@ -42,6 +42,8 @@ server:
   servlet:
     context-path: /iga
 
+file_api: ${FILE_API}
+
 
 task:
   cron: ${TASK_CRON}

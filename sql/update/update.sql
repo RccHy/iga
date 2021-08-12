@@ -46,6 +46,7 @@ alter table t_mgr_task_log modify reason text null;
 
 -- 202108XX
 alter table t_mgr_upstream_types_field modify target_field text null comment '转换后字段名称';
+update t_mgr_task_log set data='' where data is not null or data !='';
 
 
 
