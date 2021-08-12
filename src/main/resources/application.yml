@@ -42,7 +42,8 @@ server:
   servlet:
     context-path: /iga
 
-file_api: ${FILE_API}
+file:
+  api: ${FILE_API}
 
 
 task:
