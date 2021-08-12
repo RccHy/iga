@@ -4,7 +4,8 @@
 - 执行iga/update/update.sql下 202108XX的sql
 
 **new：**
-
+- 新增环境变量 FILE_API
+- 新增客户端认证scope： storage
 
 **bug fix**
 
