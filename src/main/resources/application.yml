@@ -43,7 +43,7 @@ server:
     context-path: /iga
 
 file:
-  api: ${FILE_API}
+  url: ${FILE_URL}
 
 
 task:

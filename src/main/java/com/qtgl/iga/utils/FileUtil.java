@@ -17,7 +17,7 @@ import java.nio.charset.Charset;
 @Component
 public class FileUtil {
 
-    @Value("${file.api}")
+    @Value("${file.url}")
     String fileApi;
 
 
