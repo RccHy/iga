@@ -44,9 +44,9 @@ comment '同步监控规则表';
 alter table t_mgr_task_log modify reason text null;
 
 
--- 202108XX
+-- 20210812
 alter table t_mgr_upstream_types_field modify target_field text null comment '转换后字段名称';
-update t_mgr_task_log set data='' where data is not null or data !='';
+update t_mgr_task_log set data=null where data is not null or data !='';
 
 
 

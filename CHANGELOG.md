@@ -1,21 +1,23 @@
-### 202108XX
+### 20210812
 
 **数据库：**
-- 执行iga/update/update.sql下 202108XX的sql
+- 执行iga/update/update.sql下 20210812的sql
 
 **new：**
 - 新增环境变量 FILE_API
 - 新增客户端认证scope： storage
+- 将同步过程中忽略的数据生成log文件上传至文件服务器，可通过'运行监控状态'查看
 
 **bug fix**
+- 人员、人员身份同步合重bug
 
 **image：**
 
-- docker.qtgl.com.cn/product/iga:20210805
+- docker.qtgl.com.cn/product/iga:20210812
 
 **依赖其他项目：**
 
-- docker.qtgl.com.cn/product/console:20210805
+- docker.qtgl.com.cn/product/console:20210812
 
 
 
