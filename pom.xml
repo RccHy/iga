@@ -97,6 +97,11 @@
             <artifactId>fluent-hc</artifactId>
             <version>4.5.3</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpmime</artifactId>
+            <version>4.5.2</version>
+        </dependency>
 
 
         <dependency>
@@ -111,12 +116,6 @@
             <scope>compile</scope>
         </dependency>
     </dependencies>
-
-
-
-
-
-
 
 
     <build>
@@ -139,7 +138,7 @@
             <plugin>
                 <groupId>com.google.cloud.tools</groupId>
                 <artifactId>jib-maven-plugin</artifactId>
-                <version>0.9.8</version>
+                <version>2.2.0</version>
                 <configuration>
                     <allowInsecureRegistries>false</allowInsecureRegistries>
                     <from>
@@ -148,8 +147,15 @@
                     <to>
                         <image>${JIB_TO_IMAGE}</image>
                     </to>
+                    <container>
+                        <filesModificationTime>
+                            ${ISO_8601}
+                        </filesModificationTime>
+                    </container>
                     <mainClass>com.qtgl.iga.IgaApplication</mainClass>
                 </configuration>
+
+
                 <executions>
                     <execution>
                         <phase>package</phase>

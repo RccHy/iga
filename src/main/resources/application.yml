@@ -42,6 +42,9 @@ server:
   servlet:
     context-path: /iga
 
+file:
+  url: ${FILE_URL}
+
 
 task:
   cron: ${TASK_CRON}
@@ -50,3 +53,8 @@ task:
 
 iga:
   hostname: ${HOSTNAME}
+
+
+  logging:
+    file:
+      name: iga.log

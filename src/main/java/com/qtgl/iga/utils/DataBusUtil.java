@@ -110,7 +110,7 @@ public class DataBusUtil {
     public String getToken(String serverName) {
         String sso = UrlUtil.getUrl(ssoUrl);
         //判断是否已有未过期token
-        if (StringUtils.isEmpty(serverName)) {
+        if (StringUtils.isBlank(serverName)) {
             HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
             serverName = request.getServerName();
         }
@@ -261,7 +261,7 @@ public class DataBusUtil {
                 //获取数据，数据为map类型
                 result = response.getData();
                 for (Map.Entry<String, Object> entry : result.entrySet()) {
-                    log.info("result  data --" + entry.getKey() + "------" + entry.getValue());
+                    log.debug("result  data --" + entry.getKey() + "------" + entry.getValue());
                 }
 
                 if (null == result || null == result.get("data")) {
@@ -667,7 +667,7 @@ public class DataBusUtil {
     public String getApiToken(DomainInfo domainInfo) {
         String sso = UrlUtil.getUrl(ssoUrl);
         //判断是否已有未过期token
-        if (StringUtils.isEmpty(domainInfo.getDomainName())) {
+        if (StringUtils.isBlank(domainInfo.getDomainName())) {
             HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
             domainInfo.setDomainName(request.getServerName());
         }

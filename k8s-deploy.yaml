@@ -20,6 +20,11 @@ spec:
       - name: iga
         image: docker.qtgl.com.cn/product/iga:latest
         imagePullPolicy: Always
+        envFrom:
+          - secretRef:
+              name: qapp-secret-infoplus
+          - configMapRef:
+              name: qservice-discovery
         env:
           - name: TZ
             value: "Asia/Shanghai"
@@ -103,6 +108,7 @@ spec:
               secretKeyRef:
                 name: iga-secret
                 key: task_cron
+
         ports:
         - containerPort: 8080
       imagePullSecrets:

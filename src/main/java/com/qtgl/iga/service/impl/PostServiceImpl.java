@@ -507,7 +507,7 @@ public class PostServiceImpl implements PostService {
         if (null != ssoBeans) {
             //查询数据库需要删除的数据
             for (TreeBean ssoBean : ssoBeans) {
-                if (!"BUILTIN".equals(ssoBean.getDataSource()) || "PULL".equalsIgnoreCase(ssoBean.getDataSource())) {
+                if ("PULL".equalsIgnoreCase(ssoBean.getDataSource())) {
                     //仅能操作拉取的数据
                     boolean flag = true;
                     for (TreeBean pullBean : pullBeans) {

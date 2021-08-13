@@ -133,7 +133,7 @@ public class GraphqlScalarType {
 
     public static final GraphQLScalarType GraphQLTimestamp = new GraphQLScalarType("Timestamp", "timestamp to millisecond", new Coercing<Date, Long>() {
         private Long convertImpl(Object input) {
-            logger.info("timestamp convert" + input.getClass().getName());
+            //logger.info("timestamp convert" + input.getClass().getName());
             if (input instanceof Long) {
                 return (Long) input;
             } else if (input instanceof String) {
@@ -170,7 +170,7 @@ public class GraphqlScalarType {
         @Override
         public Long serialize(Object input) {
             Long result = this.convertImpl(input);
-            logger.info("timestamp result" + result);
+         //   logger.info("timestamp result" + result);
 
             if (result == null) {
                 throw new CoercingSerializeException("Expected type 'Timestamp' but was '" + typeName(input) + "'.");
@@ -189,7 +189,7 @@ public class GraphqlScalarType {
         @Override
         public Date parseValue(Object input) {
             Long result = this.convertImpl(input);
-            logger.info("timestamp parseValue" + result);
+         //   logger.info("timestamp parseValue" + result);
 
             if (result == null) {
                 throw new CoercingParseValueException("Expected type 'Timestamp' but was '" + typeName(input) + "'.");

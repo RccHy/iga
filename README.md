@@ -76,9 +76,10 @@ curl --location --request POST 'http://ip:端口/iga/api/event' \
 | APP_CLIENT | 应用id | ------
 | APP_SECRET | 应用密钥 |------
 | TASK_CRON | 同步时间 | 控制定时同步任务间隔时间。默认值 0 */5 * * * ?
+| FILE_API | 文件服务地址 | https://cloud.ketanyun.cn/file
 
 * 注：
-在maker中创建应用，并在sso/admin中勾选scope客户端认证：data、introspect<br/>
+在maker中创建应用，并在sso/admin中勾选scope客户端认证：data、introspect、storage<br/>
 数据库链接地址中 注意增加参数rewriteBatchedStatements=true  以提高性能
   
 
