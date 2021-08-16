@@ -13,7 +13,6 @@
 
     <groupId>com.qtgl</groupId>
     <artifactId>iga</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
     <packaging>war</packaging>
     <name>iga</name>
     <description>身份治理</description>
