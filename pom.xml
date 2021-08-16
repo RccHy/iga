@@ -138,8 +138,11 @@
             </plugin>
 
             <plugin>
+                <groupId>com.google.cloud.tools</groupId>
+                <artifactId>jib-maven-plugin</artifactId>
+                <version>2.2.0</version>
                 <configuration>
-                    <allowInsecureRegistries>false</allowInsecureRegistries>
+                    <allowInsecureRegistries>true</allowInsecureRegistries>
                     <from>
                         <image>${JIB_FROM_IMAGE}</image>
                     </from>
@@ -154,10 +157,6 @@
                         <appRoot>/usr/local/tomcat/webapps/iga</appRoot>
                     </container>
                 </configuration>
-                <groupId>com.google.cloud.tools</groupId>
-                <artifactId>jib-maven-plugin</artifactId>
-                <version>2.2.0</version>
-
 
                 <executions>
                     <execution>
