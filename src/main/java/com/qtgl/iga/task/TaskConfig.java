@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.Scheduled;
 
+import java.io.UnsupportedEncodingException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -171,13 +172,15 @@ public class TaskConfig {
                                                     log.info("occupy pub:{}", pubResult);
                                                 }
                                                 //数据上传
-                                                if(StringUtils.isNotBlank(TaskConfig.errorData.get(domainInfo.getId()))){
+                                                if (StringUtils.isNotBlank(TaskConfig.errorData.get(domainInfo.getId()))) {
                                                     try {
-                                                        String utf8 = fileUtil.putFile(TaskConfig.errorData.get(domainInfo.getId()).getBytes("UTF8"), LocalDateTime.now() + ".txt", domainInfo);
+                                                        String fileName = LocalDateTime.now() + ".txt";
+                                                        String utf8 = fileUtil.putFile(TaskConfig.errorData.get(domainInfo.getId()).getBytes("UTF8"), fileName, domainInfo);
                                                         taskLog.setData(utf8);
                                                         taskLogService.save(taskLog, domainInfo.getId(), "update");
+                                                        log.info("上传文件{}成功", fileName);
                                                     } catch (Exception e) {
-                                                        log.error("上传文件失败:{}",e);
+                                                        log.error("上传文件失败:{}", e);
                                                         e.printStackTrace();
                                                     }
                                                 }
@@ -189,6 +192,16 @@ public class TaskConfig {
                                                 if (errorData.containsKey(domainInfo.getId())) {
                                                     taskLog.setData(errorData.get(domainInfo.getId()));
                                                 }
+                                                String fileName = LocalDateTime.now() + ".txt";
+                                                String utf8 = null;
+                                                try {
+                                                    utf8 = fileUtil.putFile(TaskConfig.errorData.get(domainInfo.getId()).getBytes("UTF8"), fileName, domainInfo);
+                                                    log.info("上传文件{}成功", fileName);
+                                                } catch (UnsupportedEncodingException unsupportedEncodingException) {
+                                                    log.error("上传文件失败:{}", e);
+                                                    unsupportedEncodingException.printStackTrace();
+                                                }
+                                                taskLog.setData(utf8);
                                                 taskLogService.save(taskLog, domainInfo.getId(), "update");
                                                 e.printStackTrace();
                                             } catch (Exception e) {
@@ -198,6 +211,16 @@ public class TaskConfig {
                                                 if (errorData.containsKey(domainInfo.getId())) {
                                                     taskLog.setData(errorData.get(domainInfo.getId()));
                                                 }
+                                                String fileName = LocalDateTime.now() + ".txt";
+                                                String utf8 = null;
+                                                try {
+                                                    utf8 = fileUtil.putFile(TaskConfig.errorData.get(domainInfo.getId()).getBytes("UTF8"), fileName, domainInfo);
+                                                    log.info("上传文件{}成功", fileName);
+                                                } catch (UnsupportedEncodingException unsupportedEncodingException) {
+                                                    log.error("上传文件失败:{}", e);
+                                                    unsupportedEncodingException.printStackTrace();
+                                                }
+                                                taskLog.setData(utf8);
                                                 taskLogService.save(taskLog, domainInfo.getId(), "update");
                                                 e.printStackTrace();
                                             }

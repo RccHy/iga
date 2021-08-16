@@ -315,7 +315,12 @@ public class PersonServiceImpl implements PersonService {
             // 验证监控规则
             calculationService.monitorRules(domain, taskLog, personFromSSOList.size(), result.get("delete"));
             // sso 批量新增
-            personDao.saveToSso(result, tenant.getId());
+            try {
+                personDao.saveToSso(result, tenant.getId());
+            } catch (CustomException e) {
+                TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(personFromUpstream) + JSONObject.toJSONString(personFromUpstreamByAccount));
+                throw new CustomException(ResultCode.FAILED, e.getErrorMsg());
+            }
 
             TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(errorData.get(domain.getId())));
             return result;

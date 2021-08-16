@@ -1,8 +1,6 @@
 extend type Query {
     #查询同步日志
     taskLogs(offset:Int,first:Int,filter:TaskLogFilter):TaskLogConnection
-
-
 }
 extend type Mutation {
     #给日志打标记

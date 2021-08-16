@@ -292,7 +292,12 @@ public class OccupyServiceImpl implements OccupyService {
             calculationService.monitorRules(domain, lastTaskLog, occupiesFromSSO.size(), result.get("delete"));
 
 
-            occupyDao.saveToSso(result, tenant.getId());
+            try {
+                occupyDao.saveToSso(result, tenant.getId());
+            } catch (CustomException e) {
+                TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(occupyDtoFromUpstream));
+                throw new CustomException(ResultCode.FAILED,e.getErrorMsg());
+            }
 
             if (StringUtils.isNotBlank(TaskConfig.errorData.get(domain.getId()))) {
                 String data = TaskConfig.errorData.get(domain.getId());

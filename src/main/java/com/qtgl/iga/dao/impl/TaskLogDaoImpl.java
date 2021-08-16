@@ -14,6 +14,7 @@ import org.springframework.stereotype.Repository;
 
 import javax.annotation.Resource;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Repository
 @Component
@@ -33,12 +34,6 @@ public class TaskLogDaoImpl implements TaskLogDao {
                 for (Map<String, Object> map : taskLogMap) {
                     TaskLog taskLog = new TaskLog();
                     MyBeanUtils.populate(taskLog, map);
-                    String data = taskLog.getData();
-                    if (StringUtils.isNotBlank(data) && 0 == JSONObject.parseObject(data).getInteger("errno")) {
-                        JSONObject object = JSONObject.parseObject(data);
-                        String uri = object.getJSONArray("entities").getJSONObject(0).getString("uri");
-                        taskLog.setData(uri);
-                    }
                     taskLogs.add(taskLog);
                 }
                 return taskLogs;
@@ -108,7 +103,7 @@ public class TaskLogDaoImpl implements TaskLogDao {
                 String data = taskLog.getData();
                 if (StringUtils.isNotBlank(data) && 0 == JSONObject.parseObject(data).getInteger("errno")) {
                     JSONObject object = JSONObject.parseObject(data);
-                    String uri = object.getJSONArray("entities").getJSONObject(0).getString("uri");
+                    String uri = object.getJSONArray("entities").getJSONObject(0).getString("name");
                     taskLog.setData(uri);
                 }
                 taskLogEdge.setNode(taskLog);
@@ -177,6 +172,25 @@ public class TaskLogDaoImpl implements TaskLogDao {
         }
 
         return null;
+    }
+
+    @Override
+    public Map<String,String> downLog(String id, String domainId) {
+        String sql = "select data from t_mgr_task_log where domain=? and id =? ";
+        Map<String, Object> url = jdbcIGA.queryForMap(sql, domainId, id);
+        String data = null == url.get("data") ? null : String.valueOf(url.get("data"));
+        ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
+        if (StringUtils.isNotBlank(data) && 0 == JSONObject.parseObject(data).getInteger("errno")) {
+            JSONObject object = JSONObject.parseObject(data);
+            String uri = object.getJSONArray("entities").getJSONObject(0).getString("uri");
+            String fileName = object.getJSONArray("entities").getJSONObject(0).getString("name");
+            map.put("uri",uri);
+            map.put("fileName",fileName);
+            return map;
+        }else {
+            return null;
+        }
+
     }
 
     public Integer allCount(Map<String, Object> arguments, String domain) {

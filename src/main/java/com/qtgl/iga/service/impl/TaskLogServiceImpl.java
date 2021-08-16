@@ -4,6 +4,8 @@ import com.qtgl.iga.bean.TaskLogConnection;
 import com.qtgl.iga.bo.TaskLog;
 import com.qtgl.iga.dao.TaskLogDao;
 import com.qtgl.iga.service.TaskLogService;
+import com.qtgl.iga.utils.FileUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,11 +16,14 @@ import java.util.Map;
 
 @Service
 @Transactional
+@Slf4j
 public class TaskLogServiceImpl implements TaskLogService {
 
 
     @Autowired
     TaskLogDao taskLogDao;
+    @Autowired
+    FileUtil fileUtil;
 
     @Override
     public List<TaskLog> findAll(String domain) {
@@ -27,6 +32,15 @@ public class TaskLogServiceImpl implements TaskLogService {
 
     @Override
     public Integer save(TaskLog taskLog, String domain, String type) {
+        //if (StringUtils.isNotBlank(taskLog.getData())) {
+        //    try {
+        //        String utf8 = fileUtil.putFile(taskLog.getData().getBytes("UTF8"), LocalDateTime.now() + ".txt", domain);
+        //        taskLog.setData(utf8);
+        //    } catch (Exception e) {
+        //        log.error("上传文件失败:{}", e);
+        //        e.printStackTrace();
+        //    }
+        //}
         return taskLogDao.save(taskLog, domain, type);
     }
 
@@ -44,5 +58,14 @@ public class TaskLogServiceImpl implements TaskLogService {
     @Override
     public TaskLog last(String domain) {
         return taskLogDao.last(domain);
+    }
+
+    @Override
+    public Map<String, String> downLog(String id, String domainId) {
+
+        //下载
+        Map<String, String> map = taskLogDao.downLog(id, domainId);
+
+        return map;
     }
 }
