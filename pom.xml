@@ -154,7 +154,8 @@
                             ${ISO_8601}
                         </filesModificationTime>
                     </container>
-                    <mainClass>com.qtgl.iga.IgaApplication</mainClass>
+<!--                    <mainClass>com.qtgl.iga.IgaApplication</mainClass>-->
+                    <appRoot>/usr/local/tomcat/webapps/iga</appRoot>
                 </configuration>
 
 
