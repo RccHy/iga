@@ -55,6 +55,6 @@ iga:
   hostname: ${HOSTNAME}
 
 
-  logging:
-    file:
-      name: iga.log
+logging:
+  file:
+    name: iga.log
