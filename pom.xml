@@ -150,9 +150,9 @@
                         <image>${JIB_TO_IMAGE}</image>
                     </to>
                     <container>
-                        <filesModificationTime>
-                            ${ISO_8601}
-                        </filesModificationTime>
+<!--                        <filesModificationTime>-->
+<!--                            ${ISO_8601}-->
+<!--                        </filesModificationTime>-->
                         <!-- <mainClass>com.qtgl.iga.IgaApplication</mainClass>-->
                         <appRoot>/usr/local/tomcat/webapps/iga</appRoot>
                     </container>
