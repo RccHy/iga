@@ -142,7 +142,7 @@
                 <artifactId>jib-maven-plugin</artifactId>
                 <version>0.9.8</version>
                 <configuration>
-                    <allowInsecureRegistries>true</allowInsecureRegistries>
+                    <allowInsecureRegistries>false</allowInsecureRegistries>
                     <from>
                         <image>${JIB_FROM_IMAGE}</image>
                     </from>
