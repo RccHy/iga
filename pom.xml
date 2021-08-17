@@ -122,10 +122,10 @@
     <build>
         <finalName>iga</finalName>
         <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
+<!--            <plugin>-->
+<!--                <groupId>org.springframework.boot</groupId>-->
+<!--                <artifactId>spring-boot-maven-plugin</artifactId>-->
+<!--            </plugin>-->
 
 
             <plugin>
@@ -140,7 +140,7 @@
             <plugin>
                 <groupId>com.google.cloud.tools</groupId>
                 <artifactId>jib-maven-plugin</artifactId>
-                <version>2.2.0</version>
+                <version>0.9.8</version>
                 <configuration>
                     <allowInsecureRegistries>true</allowInsecureRegistries>
                     <from>
@@ -149,13 +149,13 @@
                     <to>
                         <image>${JIB_TO_IMAGE}</image>
                     </to>
-                    <container>
+<!--                    <container>-->
 <!--                        <filesModificationTime>-->
 <!--                            ${ISO_8601}-->
 <!--                        </filesModificationTime>-->
                          <mainClass>com.qtgl.iga.IgaApplication</mainClass>
 <!--                        <appRoot>/usr/local/tomcat/webapps/iga</appRoot>-->
-                    </container>
+<!--                    </container>-->
                 </configuration>
 
                 <executions>
