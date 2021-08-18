@@ -41,6 +41,7 @@ bus:
 server:
   servlet:
     context-path: /iga
+  origin: ${SERVICE_ORIGIN}
 
 file:
   url: ${FILE_URL}
