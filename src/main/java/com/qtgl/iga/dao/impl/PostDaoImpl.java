@@ -37,7 +37,7 @@ public class PostDaoImpl implements PostDao {
         //
         String sql = "select  user_type as code , name, parent_code as parentCode , " +
                 " update_time as createTime," +
-                "source,data_source as dataSource,user_type_index as deptIndex,del_mark as delMark,update_time as updateTime,post_type as type,active from user_type where tenant_id = ?   ";
+                "source,data_source as dataSource,user_type_index as deptIndex,del_mark as delMark,update_time as updateTime,post_type as type,active from user_type where tenant_id = ? and client_id is null or client_id = ''  ";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, id);
         return getUserTypes(mapList);
@@ -171,7 +171,7 @@ public class PostDaoImpl implements PostDao {
     public List<TreeBean> findRootData(String tenantId) {
         String sql = "select  user_type as code , name as name , parent_code as parentCode ,create_time as createTime, " +
                 " tags ,data_source as dataSource , description , meta,source,post_type as postType,user_type_index as deptIndex,del_mark as delMark ,active " +
-                " from user_type where tenant_id=? and del_mark=0 and data_source=?";
+                " from user_type where tenant_id=? and del_mark=0 and data_source=? and client_id is null or client_id = '' ";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId, "BUILTIN");
         ArrayList<TreeBean> list = new ArrayList<>();
@@ -334,8 +334,7 @@ public class PostDaoImpl implements PostDao {
         String sql = "select  user_type as code , name, parent_code as parentCode , " +
                 " update_time as createTime," +
                 "source,data_source as dataSource,user_type_index as deptIndex,del_mark as delMark,update_time as updateTime,post_type as type,active from user_type where tenant_id = ? and " +
-                " active=true and del_mark=false ";
-
+                " active = true and del_mark = false and client_id is null or client_id = '' ";
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId);
         return getUserTypes(mapList);
     }

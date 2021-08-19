@@ -97,5 +97,10 @@ public class Post {
      */
     private Integer postType;
 
+    /**
+     * 应用标识
+     */
+    private String clientId;
+
 
 }

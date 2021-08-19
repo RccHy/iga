@@ -53,9 +53,8 @@ public class PersonServiceImpl implements PersonService {
     @Autowired
     NodeRulesCalculationServiceImpl calculationService;
 
-//    public static ConcurrentHashMap<String, List<Person>> errorData = new ConcurrentHashMap<>();
 
-    public static ConcurrentHashMap<String, List<JSONObject>> errorData = null;
+    public static ConcurrentHashMap<String, List<JSONObject>> personErrorData = null;
 
     /**
      * 如果有手动合重规则，运算手动合重规则【待确认】
@@ -76,7 +75,7 @@ public class PersonServiceImpl implements PersonService {
     public Map<String, List<Person>> buildPerson(DomainInfo domain, TaskLog taskLog) throws Exception {
         //错误数据置空
         TaskConfig.errorData.put(domain.getId(), "");
-        errorData = new ConcurrentHashMap<>();
+        personErrorData = new ConcurrentHashMap<>();
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
             throw new CustomException(ResultCode.FAILED, "租户不存在");
@@ -322,7 +321,7 @@ public class PersonServiceImpl implements PersonService {
                 throw new CustomException(ResultCode.FAILED, e.getErrorMsg());
             }
 
-            TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(errorData.get(domain.getId())));
+            TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(personErrorData.get(domain.getId())));
             return result;
         } else {
             log.error("上游提供人员数据不符合规范,数据同步失败");
@@ -334,19 +333,19 @@ public class PersonServiceImpl implements PersonService {
 
     //    处理异常数据
     private void extracted(DomainInfo domain, Person personUpstream, String reason) {
-        if (errorData.containsKey(domain.getId())) {
-            JSONObject jsonObject = JSONObject.parseObject(JSONObject.toJSONString(personUpstream));
+        JSONObject jsonObject = JSONObject.parseObject(JSONObject.toJSONString(personUpstream));
+        if (personErrorData.containsKey(domain.getId())) {
             jsonObject.put("reason", reason);
             jsonObject.put("type", "person");
-            errorData.get(domain.getId()).add(jsonObject);
+            personErrorData.get(domain.getId()).add(jsonObject);
         } else {
-            JSONObject jsonObject = JSONObject.parseObject(JSONObject.toJSONString(personUpstream));
             jsonObject.put("reason", reason);
             jsonObject.put("type", "person");
-            errorData.put(domain.getId(), new ArrayList<JSONObject>() {{
+            personErrorData.put(domain.getId(), new ArrayList<JSONObject>() {{
                 this.add(jsonObject);
             }});
         }
+        log.warn("租户{}人员同步中忽略一条数据{}", domain.getId(), jsonObject);
     }
 
 //    //处理异常数据
