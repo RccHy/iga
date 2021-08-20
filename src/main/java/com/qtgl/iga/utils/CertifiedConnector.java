@@ -71,7 +71,7 @@ public class CertifiedConnector {
      */
     public DomainInfo introspect(HttpServletRequest request) throws Exception {
         // 如果url是相对路径
-        String ssoUrl = getSSOUrl(request);
+        String ssoUrl = UrlUtil.getUrl(certifiedConnector.url);
         DomainInfo domainInfo = certifiedConnector.domainInfoService.findAll().get(0);
         String domainName = CertifiedConnector.introspect(request, ssoUrl.replace("/oauth2/authorize", ""), domainInfo.getClientId(), domainInfo.getClientSecret());
         if (null == domainName) {
@@ -123,37 +123,37 @@ public class CertifiedConnector {
         }
     }
 
-    private String getSSOUrl(HttpServletRequest request) {
-
-        String personalUrl = certifiedConnector.url;
-        String port = ":" + request.getServerPort();
-        if (("http".equalsIgnoreCase(request.getScheme()) && request.getServerPort() == 80)
-                || ("https".equalsIgnoreCase(request.getScheme()) && request.getServerPort() == 443)) {
-            port = "";
-        }
-
-        String base = request.getScheme() + "://" + request.getServerName() + port;
-        if (!isUrl(personalUrl)) {
-            personalUrl = personalUrl.startsWith("/") ? personalUrl : ("/" + personalUrl);
-            personalUrl = base + personalUrl;
-        }
-
-        if (StringUtils.isBlank(certifiedConnector.url)) {
-            return "";
-        }
-
-        return personalUrl;
-    }
-
-    private static boolean isUrl(String pInput) {
-        if (pInput == null) {
-            return false;
-        }
-        pInput = pInput.trim().toLowerCase();
-        if (pInput.startsWith("http://") || pInput.startsWith("https://")) {
-            return true;
-        }
-        return false;
-    }
+    //private String getSSOUrl(HttpServletRequest request) {
+    //
+    //    String personalUrl = certifiedConnector.url;
+    //    String port = ":" + request.getServerPort();
+    //    if (("http".equalsIgnoreCase(request.getScheme()) && request.getServerPort() == 80)
+    //            || ("https".equalsIgnoreCase(request.getScheme()) && request.getServerPort() == 443)) {
+    //        port = "";
+    //    }
+    //
+    //    String base = request.getScheme() + "://" + request.getServerName() + port;
+    //    if (!isUrl(personalUrl)) {
+    //        personalUrl = personalUrl.startsWith("/") ? personalUrl : ("/" + personalUrl);
+    //        personalUrl = base + personalUrl;
+    //    }
+    //
+    //    if (StringUtils.isBlank(certifiedConnector.url)) {
+    //        return "";
+    //    }
+    //
+    //    return personalUrl;
+    //}
+    //
+    //private static boolean isUrl(String pInput) {
+    //    if (pInput == null) {
+    //        return false;
+    //    }
+    //    pInput = pInput.trim().toLowerCase();
+    //    if (pInput.startsWith("http://") || pInput.startsWith("https://")) {
+    //        return true;
+    //    }
+    //    return false;
+    //}
 
 }
