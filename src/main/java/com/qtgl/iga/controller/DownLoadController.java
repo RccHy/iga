@@ -4,18 +4,18 @@ package com.qtgl.iga.controller;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.service.TaskLogService;
 import com.qtgl.iga.utils.CertifiedConnector;
+import com.qtgl.iga.utils.UrlUtil;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import javax.servlet.http.HttpServletRequest;
+import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.net.URL;
@@ -31,32 +31,30 @@ public class DownLoadController {
 
     public static Logger logger = LoggerFactory.getLogger(DownLoadController.class);
 
-    @Autowired
+    @Resource
     TaskLogService taskLogService;
 
     @GetMapping("/file{id}")
-    public void downloadFile(HttpServletRequest req, @RequestParam("id") String id, HttpServletResponse response) throws Exception {
+    public void downloadFile(@RequestParam("id") String id, HttpServletResponse response) throws Exception {
         if (id == null) throw new CustomException(ResultCode.FAILED, "日志ID不能为空");
         DomainInfo domain = CertifiedConnector.getDomain();
         Map<String, String> map = taskLogService.downLog(id, domain.getId());
         String uri = map.get("uri");
         response.setHeader("Content-Disposition", "attachment; filename=" + map.get("fileName"));
         //拼接请求路径
-        uri = req.getServerName() + uri;
+        uri = UrlUtil.getUrl(uri);
         System.out.println(uri);
-
-        sendGet(uri, null, response);
+        sendGet(uri, response);
     }
 
 
     /**
      * 向指定URL发送GET方法的请求
      *
-     * @param url   发送请求的URL
-     * @param param 请求参数，请求参数应该是 name1=value1&name2=value2 的形式。
+     * @param url 发送请求的URL
      * @return URL 所代表远程资源的响应结果
      */
-    public static String sendGet(String url, String param, HttpServletResponse response) {
+    public static String sendGet(String url, HttpServletResponse response) {
         String result = "";
         BufferedReader in = null;
         try {
