@@ -3,6 +3,8 @@ package com.qtgl.iga.utils;
 
 import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bo.DomainInfo;
+import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.exception.CustomException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.entity.ContentType;
@@ -29,7 +31,7 @@ public class FileUtil {
     //
     //String scope = "storage";
     //
-    //String token = null;
+    String token = null;
 
     @Resource
     DataBusUtil dataBusUtil;
@@ -50,7 +52,7 @@ public class FileUtil {
             String url = fileUrl.replace("/file", "");
             //getApiToken();
             //获取token
-            String token = dataBusUtil.getToken(domainInfo.getDomainName());
+            token = dataBusUtil.getToken(domainInfo.getDomainName());
             System.out.println(fileUrl + "?access_token=" + token);
             String content = Request.Put(fileUrl + "?access_token=" + token)
                     .body(builder.build())
@@ -64,6 +66,7 @@ public class FileUtil {
         } catch (IOException ioException) {
             ioException.printStackTrace();
             log.error("put file error:{}", ioException);
+            throw new CustomException(ResultCode.FAILED, "上传文件失败,上传路径为:" + fileUrl);
         }
         return null;
 

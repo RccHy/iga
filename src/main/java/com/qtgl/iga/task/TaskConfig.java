@@ -195,11 +195,16 @@ public class TaskConfig {
                                             try {
                                                 String fileName = LocalDateTime.now() + ".txt";
                                                 String utf8 = fileUtil.putFile(TaskConfig.errorData.get(domainInfo.getId()).getBytes("UTF8"), fileName, domainInfo);
-                                                if (null != utf8) {
-                                                    taskLog.setData(utf8);
-                                                    taskLogService.save(taskLog, domainInfo.getId(), "update");
-                                                    log.info("上传文件{}成功", fileName);
-                                                }
+
+                                                taskLog.setData(utf8);
+                                                taskLogService.save(taskLog, domainInfo.getId(), "update");
+                                                log.info("上传文件{}成功", fileName);
+
+                                            } catch (CustomException e) {
+                                                taskLog.setReason(e.getErrorMsg());
+                                                taskLogService.save(taskLog, domainInfo.getId(), "update");
+                                                log.error("上传文件失败:{}", e.getErrorMsg());
+                                                e.printStackTrace();
                                             } catch (Exception e) {
                                                 log.error("上传文件失败:{}", e);
                                                 e.printStackTrace();
