@@ -285,7 +285,7 @@ public class PersonServiceImpl implements PersonService {
 
             // 将数据库中  证件类型 && 证件号不为空的
             Map<String, Person> personFromSSOMap = personFromSSOList.stream().filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
-            Map<String, Person> personFromSSOMapCopy = personFromSSOList.stream().filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
+            //Map<String, Person> personFromSSOMapCopy = personFromSSOList.stream().filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
             // 将数据库中 用户名不为空&&证件标识为空的
             Map<String, Person> personFromSSOMapByAccount = personFromSSOList.stream().filter(person ->
                     !StringUtils.isBlank(person.getAccountNo()) && (StringUtils.isBlank(person.getCardNo()) || StringUtils.isBlank(person.getCardType()))
@@ -296,18 +296,18 @@ public class PersonServiceImpl implements PersonService {
 
 
             personFromSSOMap.forEach((key, personFromSSO) -> {
-                calculate(personFromUpstream, personFromSSOMapByAccountAll, personFromSSOMapCopy, now, result, key, personFromSSO, domain);
+                calculate(personFromUpstream, personRepeatByAccount, now, result, key, personFromSSO, domain);
             });
 
             personFromSSOMapByAccount.forEach((key, personFromSSO) -> {
-                calculate(personFromUpstreamByAccount, now, result, key, personFromSSO);
+                calculate(personFromUpstreamByAccount, personRepeatByAccount, now, result, key, personFromSSO);
             });
 
             personFromUpstreamByAccount.forEach((key, val) -> {
-                calculateInsert(personFromSSOMapByAccount, result, key, val);
+                calculateInsert(personFromSSOMapByAccount, personFromSSOMapByAccountAll, result, key, val, domain);
             });
             personFromUpstream.forEach((key, val) -> {
-                calculateInsert(personFromSSOMapCopy, personFromSSOMapByAccountAll, result, key, val, domain);
+                calculateInsert(personFromSSOMap, personFromSSOMapByAccountAll, result, key, val, domain);
             });
 
 
@@ -361,51 +361,53 @@ public class PersonServiceImpl implements PersonService {
 //        }
 //    }
 
-    private void calculateInsert(Map<String, Person> personFromSSOMap, Map<String, List<Person>> result, String key, Person
-            val) {
-        //sso没有并且未删除标记的数据才进行新增
-        if (!personFromSSOMap.containsKey(key) && (val.getDelMark() == 0)) {
-            //新增逻辑字段赋默认值
-            val.setId(UUID.randomUUID().toString());
-            val.setOpenId(RandomStringUtils.randomAlphabetic(20));
-            val.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-            val.setValidEndTime(LocalDateTime.of(2100, 1, 1, 0, 0, 0));
+    //private void calculateInsert(Map<String, Person> personFromSSOMap,Map<String, Person> personFromSSOMapByAccountAll, Map<String, List<Person>> result, String key, Person
+    //        val) {
+    //    //sso没有并且未删除标记的数据才进行新增
+    //    if (!personFromSSOMap.containsKey(key) && (val.getDelMark() == 0)) {
+    //        //是否执行标识
+    //        Boolean flag = true;
+    //        //新增逻辑字段赋默认值
+    //        val.setId(UUID.randomUUID().toString());
+    //        val.setOpenId(RandomStringUtils.randomAlphabetic(20));
+    //        val.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+    //        val.setValidEndTime(LocalDateTime.of(2100, 1, 1, 0, 0, 0));
+    //
+    //        // 如果新增的数据 active=0 失效 或者 del_mark=1 删除  或者 判断为孤儿
+    //        //   都将 最终有效期设置为 失效
+    //        if (val.getActive() == 0 || val.getDelMark() == 1) {
+    //            val.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+    //            val.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+    //        }
+    //        if (result.containsKey("insert")) {
+    //            result.get("insert").add(val);
+    //        } else {
+    //            result.put("insert", new ArrayList<Person>() {{
+    //                this.add(val);
+    //            }});
+    //        }
+    //        // 对新增的用户 判断是否提供 password字段
+    //        if (!StringUtils.isBlank(val.getPassword())) {
+    //            String password = val.getPassword();
+    //            try {
+    //                password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(password.getBytes()).toCharArray()));
+    //                val.setPassword(password);
+    //            } catch (DecoderException e) {
+    //                e.printStackTrace();
+    //            }
+    //            if (result.containsKey("password")) {
+    //                result.get("password").add(val);
+    //            } else {
+    //                result.put("password", new ArrayList<Person>() {{
+    //                    this.add(val);
+    //                }});
+    //            }
+    //        }
+    //        log.debug("人员对比后新增{}", val);
+    //    }
+    //}
 
-            // 如果新增的数据 active=0 失效 或者 del_mark=1 删除  或者 判断为孤儿
-            //   都将 最终有效期设置为 失效
-            if (val.getActive() == 0 || val.getDelMark() == 1) {
-                val.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                val.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-            }
-            if (result.containsKey("insert")) {
-                result.get("insert").add(val);
-            } else {
-                result.put("insert", new ArrayList<Person>() {{
-                    this.add(val);
-                }});
-            }
-            // 对新增的用户 判断是否提供 password字段
-            if (!StringUtils.isBlank(val.getPassword())) {
-                String password = val.getPassword();
-                try {
-                    password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(password.getBytes()).toCharArray()));
-                    val.setPassword(password);
-                } catch (DecoderException e) {
-                    e.printStackTrace();
-                }
-                if (result.containsKey("password")) {
-                    result.get("password").add(val);
-                } else {
-                    result.put("password", new ArrayList<Person>() {{
-                        this.add(val);
-                    }});
-                }
-            }
-            log.debug("人员对比后新增{}", val);
-        }
-    }
-
-    private void calculate(Map<String, Person> personFromUpstream, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO) {
+    private void calculate(Map<String, Person> personFromUpstream, Map<String, Person> personRepeatByAccount, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO) {
         // 对比出需要修改的person
         if (personFromUpstream.containsKey(key) &&
                 personFromUpstream.get(key).getCreateTime().isAfter(personFromSSO.getUpdateTime())) {
@@ -569,6 +571,7 @@ public class PersonServiceImpl implements PersonService {
             }
 
         } else if (!personFromUpstream.containsKey(key)
+                && (StringUtils.isNotBlank(personFromSSO.getAccountNo()) && !personRepeatByAccount.containsKey(personFromSSO.getAccountNo()))
                 && 1 != personFromSSO.getDelMark()
                 && (null == personFromSSO.getActive() || personFromSSO.getActive() == 1)
                 && "PULL".equalsIgnoreCase(personFromSSO.getDataSource())) {
@@ -601,11 +604,11 @@ public class PersonServiceImpl implements PersonService {
             val.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
             val.setValidEndTime(LocalDateTime.of(2100, 1, 1, 0, 0, 0));
             //之前存在该用户名
-            if (StringUtils.isNotEmpty(val.getAccountNo()) && personFromSSOMapByAccountAll.containsKey(val.getAccountNo())) {
+            if (StringUtils.isNotBlank(val.getAccountNo()) && personFromSSOMapByAccountAll.containsKey(val.getAccountNo())) {
                 Person person = personFromSSOMapByAccountAll.get(val.getAccountNo());
                 //有效标识一致,或者新增的为有效的则继续执行
                 if (val.getActive() == 1 || val.getActive().equals(person.getActive())) {
-                    if (StringUtils.isNotEmpty(person.getCardNo()) && StringUtils.isNotEmpty(person.getCardType())) {
+                    if (StringUtils.isNotBlank(person.getCardNo()) && StringUtils.isNotBlank(person.getCardType())) {
                         if (person.getCardType().equals(val.getCardType()) && val.getCardNo().equals(person.getCardNo())) {
                             //todo 
                             val.setId(person.getId());
@@ -680,12 +683,12 @@ public class PersonServiceImpl implements PersonService {
         }
     }
 
-    private void calculate(Map<String, Person> personFromUpstream, Map<String, Person> personFromSSOMapByAccountAll, Map<String, Person> personFromSSOMapCopy, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO, DomainInfo domainInfo) {
+    private void calculate(Map<String, Person> personFromUpstream, Map<String, Person> personRepeatByAccount, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO, DomainInfo domainInfo) {
         // 对比出需要修改的person
         if (personFromUpstream.containsKey(key) &&
                 personFromUpstream.get(key).getCreateTime().isAfter(personFromSSO.getUpdateTime())) {
-            //修改是否合法标识
-            boolean licitFlag = true;
+            ////修改是否合法标识
+            //boolean licitFlag = true;
             //修改标识
             boolean updateFlag = false;
             //del字段标识
@@ -730,21 +733,21 @@ public class PersonServiceImpl implements PersonService {
 //                            delFlag = true;
 //                            log.info("人员信息{}从删除恢复", personFromSSOList.getId());
 //                        }
-
-                    if (sourceField.equalsIgnoreCase("accountNo") && null != newValue && StringUtils.isNotEmpty(newValue.toString()) && personFromSSOMapByAccountAll.containsKey(newValue)) {
-                        Person person = personFromSSOMapByAccountAll.get(newValue);
-                        if (!newPerson.getCardType().equals(person.getCardType()) || !newPerson.getCardNo().equals(person.getCardNo())) {
-
-                            extracted(domainInfo, person, "该修改使用户名下有不同证件类型的数据,请检查");
-                            extracted(domainInfo, newPerson, "该修改使用户名下有不同证件类型的数据,请检查");
-                            //有效且同一用户名对应不同证件类型,目前不支持
-                            log.error("该修改使用户名{}下有不同证件类型的数据{}{},请检查", person.getAccountNo(), person, newPerson);
-                            licitFlag = false;
-                            personFromUpstream.remove(key);
-                            personFromSSOMapCopy.remove(key);
-                            break;
-                        }
-                    }
+//
+//                    if (sourceField.equalsIgnoreCase("accountNo") && null != newValue && StringUtils.isNotEmpty(newValue.toString()) && personFromSSOMapByAccountAll.containsKey(newValue)) {
+//                        Person person = personFromSSOMapByAccountAll.get(newValue);
+//                        if (!newPerson.getCardType().equals(person.getCardType()) || !newPerson.getCardNo().equals(person.getCardNo())) {
+//
+//                            extracted(domainInfo, person, "该修改使用户名下有不同证件类型的数据,请检查");
+//                            extracted(domainInfo, newPerson, "该修改使用户名下有不同证件类型的数据,请检查");
+//                            //有效且同一用户名对应不同证件类型,目前不支持
+//                            log.error("该修改使用户名{}下有不同证件类型的数据{}{},请检查", person.getAccountNo(), person, newPerson);
+//                            licitFlag = false;
+//                            personFromUpstream.remove(key);
+//                            personFromSSOMapCopy.remove(key);
+//                            break;
+//                        }
+//                    }
 
                     if (sourceField.equalsIgnoreCase("delMark") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
                         delFlag = true;
@@ -780,91 +783,92 @@ public class PersonServiceImpl implements PersonService {
                 }
             }
 
-            if (licitFlag) {
-                if (delFlag) {
-                    personFromSSO.setDelMark(1);
-                    personFromSSO.setUpdateTime(newPerson.getUpdateTime());
-                    personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                    personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                    if (result.containsKey("delete")) {
-                        result.get("delete").add(personFromSSO);
+            //if (licitFlag) {
+            if (delFlag) {
+                personFromSSO.setDelMark(1);
+                personFromSSO.setUpdateTime(newPerson.getUpdateTime());
+                personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                if (result.containsKey("delete")) {
+                    result.get("delete").add(personFromSSO);
+                } else {
+                    result.put("delete", new ArrayList<Person>() {{
+                        this.add(personFromSSO);
+                    }});
+                }
+                log.info("人员信息删除{}", personFromSSO.getId());
+            }
+            if (updateFlag && personFromSSO.getDelMark() != 1) {
+                personFromSSO.setSource(newPerson.getSource());
+                personFromSSO.setUpdateTime(newPerson.getUpdateTime());
+                // 需要设置人员密码
+                if (passwordFlag) {
+                    if (result.containsKey("password")) {
+                        result.get("password").add(personFromSSO);
                     } else {
-                        result.put("delete", new ArrayList<Person>() {{
+                        result.put("password", new ArrayList<Person>() {{
                             this.add(personFromSSO);
                         }});
                     }
-                    log.info("人员信息删除{}", personFromSSO.getId());
                 }
-                if (updateFlag && personFromSSO.getDelMark() != 1) {
-                    personFromSSO.setSource(newPerson.getSource());
-                    personFromSSO.setUpdateTime(newPerson.getUpdateTime());
-                    // 需要设置人员密码
-                    if (passwordFlag) {
-                        if (result.containsKey("password")) {
-                            result.get("password").add(personFromSSO);
-                        } else {
-                            result.put("password", new ArrayList<Person>() {{
-                                this.add(personFromSSO);
-                            }});
-                        }
-                    }
-                    //失效
-                    if (invalidFlag) {
-                        personFromSSO.setActive(0);
-                        personFromSSO.setActiveTime(newPerson.getUpdateTime());
-                        personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                        personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                        if (result.containsKey("invalid")) {
-                            result.get("invalid").add(personFromSSO);
-                        } else {
-                            result.put("invalid", new ArrayList<Person>() {{
-                                this.add(personFromSSO);
-                            }});
-                        }
+                //失效
+                if (invalidFlag) {
+                    personFromSSO.setActive(0);
+                    personFromSSO.setActiveTime(newPerson.getUpdateTime());
+                    personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                    personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                    if (result.containsKey("invalid")) {
+                        result.get("invalid").add(personFromSSO);
                     } else {
-                        if (!personFromSSO.getActive().equals(newPerson.getActive())) {
-                            personFromSSO.setActive(newPerson.getActive());
-                            personFromSSO.setActiveTime(newPerson.getUpdateTime());
-                        }
-                        if (personFromSSO.getActive() == 0 || personFromSSO.getDelMark() == 1) {
-                            personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                            personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                        }
-
-                        if (result.containsKey("update")) {
-                            result.get("update").add(personFromSSO);
-                        } else {
-                            result.put("update", new ArrayList<Person>() {{
-                                this.add(personFromSSO);
-                            }});
-                        }
+                        result.put("invalid", new ArrayList<Person>() {{
+                            this.add(personFromSSO);
+                        }});
                     }
-                    log.info("人员对比后需要修改{}", personFromSSO);
-
-                }
-
-                // 对比后，权威源提供的"映射字段"数据和sso中没有差异。（active字段不提供）
-                if (!updateFlag && personFromSSO.getDelMark() != 1) {
-                    //
+                } else {
                     if (!personFromSSO.getActive().equals(newPerson.getActive())) {
                         personFromSSO.setActive(newPerson.getActive());
                         personFromSSO.setActiveTime(newPerson.getUpdateTime());
-                        personFromSSO.setUpdateTime(newPerson.getUpdateTime());
-                        if (result.containsKey("update")) {
-                            result.get("update").add(personFromSSO);
-                        } else {
-                            result.put("update", new ArrayList<Person>() {{
-                                this.add(personFromSSO);
-                            }});
-                        }
+                    }
+                    if (personFromSSO.getActive() == 0 || personFromSSO.getDelMark() == 1) {
+                        personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                        personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                    }
 
+                    if (result.containsKey("update")) {
+                        result.get("update").add(personFromSSO);
+                    } else {
+                        result.put("update", new ArrayList<Person>() {{
+                            this.add(personFromSSO);
+                        }});
+                    }
+                }
+                log.info("人员对比后需要修改{}", personFromSSO);
+
+            }
+
+            // 对比后，权威源提供的"映射字段"数据和sso中没有差异。（active字段不提供）
+            if (!updateFlag && personFromSSO.getDelMark() != 1) {
+                //
+                if (!personFromSSO.getActive().equals(newPerson.getActive())) {
+                    personFromSSO.setActive(newPerson.getActive());
+                    personFromSSO.setActiveTime(newPerson.getUpdateTime());
+                    personFromSSO.setUpdateTime(newPerson.getUpdateTime());
+                    if (result.containsKey("update")) {
+                        result.get("update").add(personFromSSO);
+                    } else {
+                        result.put("update", new ArrayList<Person>() {{
+                            this.add(personFromSSO);
+                        }});
                     }
 
                 }
+
             }
+            //}
 
 
         } else if (!personFromUpstream.containsKey(key)
+                && (StringUtils.isNotBlank(personFromSSO.getAccountNo()) && !personRepeatByAccount.containsKey(personFromSSO.getAccountNo()))
                 && 1 != personFromSSO.getDelMark()
                 && (null == personFromSSO.getActive() || personFromSSO.getActive() == 1)
                 && "PULL".equalsIgnoreCase(personFromSSO.getDataSource())) {

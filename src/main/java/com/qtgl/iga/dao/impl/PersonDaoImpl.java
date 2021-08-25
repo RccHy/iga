@@ -124,12 +124,12 @@ public class PersonDaoImpl implements PersonDao {
                     });
                 }
                 if (personMap.containsKey("update") || personMap.containsKey("invalid")) {
-                    String str = "UPDATE identity set  `name`= ?, account_no=?,  del_mark=?, update_time=?, tenant_id=?,  cellphone=?, email=?, data_source=?, tags=?,  `active`=?, active_time=? ,`source`= ?,data_source=?,valid_start_time=?,valid_end_time=? " +
-                            " where id=? and update_time< ? ";
+                    String str = "UPDATE identity set  `name`= ?, account_no=?,  del_mark=?, update_time=?, tenant_id=?,  cellphone=?, email=?, data_source=?, tags=?,  `active`=?, active_time=? ,`source`= ?,data_source=?,valid_start_time=?,valid_end_time=? ," +
+                            " card_type =? ,card_no=? where id=? and update_time< ? ";
                     List<Person> list = new ArrayList<>();
                     List<Person> update = personMap.get("update");
                     List<Person> invalid = personMap.get("invalid");
-                     if (null != invalid) {
+                    if (null != invalid) {
                         list.addAll(invalid);
                     }
                     if (null != update) {
@@ -154,8 +154,10 @@ public class PersonDaoImpl implements PersonDao {
                             preparedStatement.setObject(13, "PULL");
                             preparedStatement.setObject(14, list.get(i).getValidStartTime());
                             preparedStatement.setObject(15, list.get(i).getValidEndTime());
-                            preparedStatement.setObject(16, list.get(i).getId());
-                            preparedStatement.setObject(17, list.get(i).getUpdateTime());
+                            preparedStatement.setObject(16, list.get(i).getCardType());
+                            preparedStatement.setObject(17, list.get(i).getCardNo());
+                            preparedStatement.setObject(18, list.get(i).getId());
+                            preparedStatement.setObject(19, list.get(i).getUpdateTime());
                         }
 
                         @Override
