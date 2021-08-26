@@ -16,12 +16,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.Scheduled;
 
-import java.io.UnsupportedEncodingException;
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.text.SimpleDateFormat;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 
@@ -192,23 +188,7 @@ public class TaskConfig {
                                         }
                                         //数据上传
                                         if (StringUtils.isNotBlank(TaskConfig.errorData.get(domainInfo.getId()))) {
-                                            try {
-                                                String fileName = LocalDateTime.now() + ".txt";
-                                                String utf8 = fileUtil.putFile(TaskConfig.errorData.get(domainInfo.getId()).getBytes("UTF8"), fileName, domainInfo);
-
-                                                taskLog.setData(utf8);
-                                                taskLogService.save(taskLog, domainInfo.getId(), "update");
-                                                log.info("上传文件{}成功", fileName);
-
-                                            } catch (CustomException e) {
-                                                taskLog.setReason(e.getErrorMsg());
-                                                taskLogService.save(taskLog, domainInfo.getId(), "update");
-                                                log.error("上传文件失败:{}", e.getErrorMsg());
-                                                e.printStackTrace();
-                                            } catch (Exception e) {
-                                                log.error("上传文件失败:{}", e);
-                                                e.printStackTrace();
-                                            }
+                                            upload(domainInfo, taskLog);
                                         } else {
                                             log.info("{}本次同步无异常数据", domainInfo.getDomainName());
                                         }
@@ -217,39 +197,17 @@ public class TaskConfig {
                                         log.error("定时同步异常：" + e);
                                         taskLog.setStatus("failed");
                                         taskLog.setReason(e.getErrorMsg());
-                                        if (errorData.containsKey(domainInfo.getId())) {
-                                            taskLog.setData(errorData.get(domainInfo.getId()));
+                                        if (StringUtils.isNotBlank(TaskConfig.errorData.get(domainInfo.getId()))) {
+                                            this.upload(domainInfo, taskLog);
                                         }
-                                        String fileName = LocalDateTime.now() + ".txt";
-                                        String utf8 = null;
-                                        try {
-                                            utf8 = fileUtil.putFile(TaskConfig.errorData.get(domainInfo.getId()).getBytes("UTF8"), fileName, domainInfo);
-                                            log.info("上传文件{}成功", fileName);
-                                        } catch (UnsupportedEncodingException unsupportedEncodingException) {
-                                            log.error("上传文件失败:{}", e);
-                                            unsupportedEncodingException.printStackTrace();
-                                        }
-                                        taskLog.setData(utf8);
-                                        taskLogService.save(taskLog, domainInfo.getId(), "update");
                                         e.printStackTrace();
                                     } catch (Exception e) {
                                         log.error("定时同步异常：" + e);
                                         taskLog.setStatus("failed");
                                         taskLog.setReason(e.getMessage());
-                                        if (errorData.containsKey(domainInfo.getId())) {
-                                            taskLog.setData(errorData.get(domainInfo.getId()));
+                                        if (StringUtils.isNotBlank(TaskConfig.errorData.get(domainInfo.getId()))) {
+                                            this.upload(domainInfo, taskLog);
                                         }
-                                        String fileName = LocalDateTime.now() + ".txt";
-                                        String utf8 = null;
-                                        try {
-                                            utf8 = fileUtil.putFile(TaskConfig.errorData.get(domainInfo.getId()).getBytes("UTF8"), fileName, domainInfo);
-                                            log.info("上传文件{}成功", fileName);
-                                        } catch (UnsupportedEncodingException unsupportedEncodingException) {
-                                            log.error("上传文件失败:{}", e);
-                                            unsupportedEncodingException.printStackTrace();
-                                        }
-                                        taskLog.setData(utf8);
-                                        taskLogService.save(taskLog, domainInfo.getId(), "update");
                                         e.printStackTrace();
                                     }
                                 } else {
@@ -269,6 +227,26 @@ public class TaskConfig {
 
             }
         } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void upload(DomainInfo domainInfo, TaskLog taskLog) {
+        try {
+            String fileName = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()) + ".txt";
+            String utf8 = fileUtil.putFile(TaskConfig.errorData.get(domainInfo.getId()).getBytes("UTF8"), fileName, domainInfo);
+
+            taskLog.setData(utf8);
+            taskLogService.save(taskLog, domainInfo.getId(), "update");
+            log.info("上传文件{}成功", fileName);
+
+        } catch (CustomException e) {
+            taskLog.setReason(e.getErrorMsg());
+            taskLogService.save(taskLog, domainInfo.getId(), "update");
+            log.error("上传文件失败:{}", e.getErrorMsg());
+            e.printStackTrace();
+        } catch (Exception e) {
+            log.error("上传文件失败:{}", e);
             e.printStackTrace();
         }
     }

@@ -434,14 +434,19 @@ public class PersonServiceImpl implements PersonService {
                     //对于密码字段不处理
                     if (sourceField.equalsIgnoreCase("password")) {
                         if (null == oldValue) {
-                            if (result.containsKey("password")) {
-                                result.get("password").add(personFromSSO);
-                            } else {
-                                result.put("password", new ArrayList<Person>() {{
-                                    this.add(personFromSSO);
-                                }});
+                            try {
+                                String password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(((String) newValue).getBytes()).toCharArray()));
+                                personFromSSO.setPassword(password);
+                                if (result.containsKey("password")) {
+                                    result.get("password").add(personFromSSO);
+                                } else {
+                                    result.put("password", new ArrayList<Person>() {{
+                                        this.add(personFromSSO);
+                                    }});
+                                }
+                            } catch (DecoderException e) {
+                                e.printStackTrace();
                             }
-
                         }
                         continue;
                     }
@@ -712,14 +717,19 @@ public class PersonServiceImpl implements PersonService {
                     //对于密码字段不处理
                     if (sourceField.equalsIgnoreCase("password")) {
                         if (null == oldValue) {
-                            if (result.containsKey("password")) {
-                                result.get("password").add(personFromSSO);
-                            } else {
-                                result.put("password", new ArrayList<Person>() {{
-                                    this.add(personFromSSO);
-                                }});
+                            try {
+                                String password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(((String) newValue).getBytes()).toCharArray()));
+                                personFromSSO.setPassword(password);
+                                if (result.containsKey("password")) {
+                                    result.get("password").add(personFromSSO);
+                                } else {
+                                    result.put("password", new ArrayList<Person>() {{
+                                        this.add(personFromSSO);
+                                    }});
+                                }
+                            } catch (DecoderException e) {
+                                e.printStackTrace();
                             }
-
                         }
                         continue;
                     }

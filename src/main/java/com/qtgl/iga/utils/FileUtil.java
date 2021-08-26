@@ -49,7 +49,7 @@ public class FileUtil {
             //    fileApi = url.getProtocol() + "://" + url.getPath() + fileApi;
             //}
             fileUrl = UrlUtil.getUrl(fileUrl);
-            String url = fileUrl.replace("/file", "");
+            //String url = fileUrl.replace("/file", "");
             //getApiToken();
             //获取token
             token = dataBusUtil.getToken(domainInfo.getDomainName());
@@ -59,8 +59,8 @@ public class FileUtil {
                     .execute().returnContent().asString();
             if (null != content && 0 == JSONObject.parseObject(content).getInteger("errno")) {
                 JSONObject object = JSONObject.parseObject(content);
-                String uri = url + object.getJSONArray("entities").getJSONObject(0).getString("uri");
-                System.out.println(uri);
+                //String uri = url + object.getJSONArray("entities").getJSONObject(0).getString("uri");
+                //System.out.println(uri);
                 return content;
             }
         } catch (IOException ioException) {
