@@ -57,10 +57,24 @@ public class PersonServiceImpl implements PersonService {
     public static ConcurrentHashMap<String, List<JSONObject>> personErrorData = null;
 
     /**
-     * 如果有手动合重规则，运算手动合重规则【待确认】
      * <p>
      * * 1：根据规则获取所有的 人员数据
-     * * 2： 根据 (证件类型+证件号码)  或 用户名 进行和重，并验证证件类型对应的号码是否符合 正则表达式
+     * <p>
+     * MapA(123、12X) ： 证件类型+证件号  MapB(X24、XX5)：不提供证件类型+证件号，但提供用户名   MapC(123、X24、XX5)： A提供了用户名的+B
+     * 2：验证提供的 证件类型+证件号码  是否 合法（不为空，符合正则）
+     *  2.1  合法
+     *      2.1.1 合重：
+     *          A、当前数据是否同时提供了用户名，
+     *              A-2、判断MapC中是否有相同的用户名，如果有 则（同用户名但证件类型+证件号不一致【一个人多证件，后续可支持，有效覆盖无效数据&后覆盖前】 同时 删除被覆盖数据的MapA or MapB），覆盖同时MapA+1
+     *          B、没有提供用户名，判断MapA是否有重复数据(谁覆盖谁：有效覆盖无效数据||后覆盖前，被覆盖的数据用户名需要为空，否则认标有用户名的有效数据)。 MapA+1 or (Map-1,MapA+1)。被覆盖的数据如果包含用户名，则删除MapC中记录
+     * <p>
+     * <p>
+     *  2.2 不合法 （提供全不全、不符合正则）
+     *      2.2.1 不提供用户名  【记录日志，丢弃数据】
+     *      2.2.2 提供了用户名 合重
+     *          A、判断MapC中是否有重复数据（有效覆盖无效，在都不提供证件类型+证件号前提下  后覆盖前 同时 删除被覆盖数据的MapA or MapB）覆盖同时MapB+1
+     *          B、如果MapC中无重复 则 MapB+1、MapC+1
+     * <p>
      * *
      * * 3：根据上游人员和数据库中人员进行对比
      * * A：新增  上游提供、sso数据库中没有
@@ -69,6 +83,7 @@ public class PersonServiceImpl implements PersonService {
      * * D: 无效  上游曾经提供后，不再提供 OR 上游提供了active
      * * E: 恢复  之前被标记为失效后再通过推送了相同的数据
      * TODO： 一对多的证件。 一个人可以有多个证件；身份证、护照等
+     * TODO： 如果有手动合重规则，运算手动合重规则【待确认】
      */
 
     @Override
@@ -112,8 +127,10 @@ public class PersonServiceImpl implements PersonService {
             try {
                 dataByBus = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
             } catch (CustomException e) {
+                e.printStackTrace();
                 throw e;
             } catch (Exception e) {
+                e.printStackTrace();
                 log.error("人员治理中类型 : " + upstreamType.getUpstreamId() + "表达式异常");
                 throw new CustomException(ResultCode.PERSON_ERROR, null, null, upstreamType.getDescription(), e.getMessage());
             }

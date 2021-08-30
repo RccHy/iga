@@ -76,7 +76,7 @@ curl --location --request POST 'http://ip:端口/iga/api/event' \
 | APP_CLIENT | 应用id | ------
 | APP_SECRET | 应用密钥 |------
 | TASK_CRON | 同步时间 | 控制定时同步任务间隔时间。默认值 0 */5 * * * ?
-| FILE_API | 【*】文件服务地址 | https://cloud.ketanyun.cn/file
+| FILE_URL | 【*】文件服务地址 | https://cloud.ketanyun.cn/file
 | SERVICE_ORIGIN | 【*】云服务的通用域名，用于后台直接调用服务时做相对路径拼接  | 格式示例：https://example.com
 
 * 注：
