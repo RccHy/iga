@@ -241,7 +241,9 @@ public class TaskConfig {
             log.info("上传文件{}成功", fileName);
 
         } catch (CustomException e) {
-            taskLog.setReason(e.getErrorMsg());
+            if (StringUtils.isBlank(taskLog.getReason())) {
+                taskLog.setReason(e.getErrorMsg());
+            }
             taskLogService.save(taskLog, domainInfo.getId(), "update");
             log.error("上传文件失败:{}", e.getErrorMsg());
             e.printStackTrace();

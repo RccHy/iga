@@ -119,6 +119,9 @@ public class PersonServiceImpl implements PersonService {
         Map<String, Person> personRepeatByAccount = new ConcurrentHashMap<>();
 
         final LocalDateTime now = LocalDateTime.now();
+        if (null == userRules || userRules.size() == 0) {
+            throw new CustomException(ResultCode.FAILED, "无人员规则信息");
+        }
         userRules.forEach(rules -> {
             // 通过规则获取数据
             UpstreamType upstreamType = upstreamTypeDao.findById(rules.getUpstreamTypesId());
