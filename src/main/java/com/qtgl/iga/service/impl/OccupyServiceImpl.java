@@ -127,6 +127,9 @@ public class OccupyServiceImpl implements OccupyService {
 
         // 获取所有规则 字段，用于更新验证
         Map<String, OccupyDto> occupyDtoFromUpstream = new HashMap<>();
+        if (null == occupyRules || occupyRules.size() == 0) {
+            throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
+        }
         occupyRules.forEach(rules -> {
             UpstreamType upstreamType = upstreamTypeDao.findById(rules.getUpstreamTypesId());
             ArrayList<Upstream> upstreams = upstreamDao.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
