@@ -62,18 +62,18 @@ public class PersonServiceImpl implements PersonService {
      * <p>
      * MapA(123、12X) ： 证件类型+证件号  MapB(X24、XX5)：不提供证件类型+证件号，但提供用户名   MapC(123、X24、XX5)： A提供了用户名的+B
      * 2：验证提供的 证件类型+证件号码  是否 合法（不为空，符合正则）
-     *  2.1  合法
-     *      2.1.1 合重：
-     *          A、当前数据是否同时提供了用户名，
-     *              A-2、判断MapC中是否有相同的用户名，如果有 则（同用户名但证件类型+证件号不一致【一个人多证件，后续可支持，有效覆盖无效数据&后覆盖前】 同时 删除被覆盖数据的MapA or MapB），覆盖同时MapA+1
-     *          B、没有提供用户名，判断MapA是否有重复数据(谁覆盖谁：有效覆盖无效数据||后覆盖前，被覆盖的数据用户名需要为空，否则认标有用户名的有效数据)。 MapA+1 or (Map-1,MapA+1)。被覆盖的数据如果包含用户名，则删除MapC中记录
+     * 2.1  合法
+     * 2.1.1 合重：
+     * A、当前数据是否同时提供了用户名，
+     * A-2、判断MapC中是否有相同的用户名，如果有 则（同用户名但证件类型+证件号不一致【一个人多证件，后续可支持，有效覆盖无效数据&后覆盖前】 同时 删除被覆盖数据的MapA or MapB），覆盖同时MapA+1
+     * B、没有提供用户名，判断MapA是否有重复数据(谁覆盖谁：有效覆盖无效数据||后覆盖前，被覆盖的数据用户名需要为空，否则认标有用户名的有效数据)。 MapA+1 or (Map-1,MapA+1)。被覆盖的数据如果包含用户名，则删除MapC中记录
      * <p>
      * <p>
-     *  2.2 不合法 （提供全不全、不符合正则）
-     *      2.2.1 不提供用户名  【记录日志，丢弃数据】
-     *      2.2.2 提供了用户名 合重
-     *          A、判断MapC中是否有重复数据（有效覆盖无效，在都不提供证件类型+证件号前提下  后覆盖前 同时 删除被覆盖数据的MapA or MapB）覆盖同时MapB+1
-     *          B、如果MapC中无重复 则 MapB+1、MapC+1
+     * 2.2 不合法 （提供全不全、不符合正则）
+     * 2.2.1 不提供用户名  【记录日志，丢弃数据】
+     * 2.2.2 提供了用户名 合重
+     * A、判断MapC中是否有重复数据（有效覆盖无效，在都不提供证件类型+证件号前提下  后覆盖前 同时 删除被覆盖数据的MapA or MapB）覆盖同时MapB+1
+     * B、如果MapC中无重复 则 MapB+1、MapC+1
      * <p>
      * *
      * * 3：根据上游人员和数据库中人员进行对比
@@ -205,29 +205,11 @@ public class PersonServiceImpl implements PersonService {
                     //赋予activeTime默认值
                     personUpstream.setActiveTime(LocalDateTime.now());
 
-                    // 人员标识 证件类型、证件号码   OR    用户名 accountNo  必提供一个
-                    if (StringUtils.isBlank(personUpstream.getCardNo()) && StringUtils.isBlank(personUpstream.getCardType())) {
-                        //如果用户名不为空
-                        if (StringUtils.isNotEmpty(personUpstream.getAccountNo())) {
-                            //并且合重容器中包含该用户名
-                            if (personRepeatByAccount.containsKey(personUpstream.getAccountNo())) {
-                                Person person = personRepeatByAccount.get(personUpstream.getAccountNo());
-                                //有效并且合重容器中的数据没有证件标识 才进行合重复 否则跳过
-                                if (personUpstream.getActive() == 1 && StringUtils.isBlank(person.getCardType()) && StringUtils.isBlank(person.getCardNo())) {
-                                    extracted(domain, person, "数据覆盖");
-                                    personFromUpstreamByAccount.put(personUpstream.getAccountNo(), personUpstream);
-                                    personRepeatByAccount.put(personUpstream.getAccountNo(), personUpstream);
-                                } else {
-                                    extracted(domain, person, "该标识用户已有有效数据,忽略无效数据");
-                                }
-                            } else {
-                                //合重容器中没有对应用户名标识数据,则添加进容器
-                                personFromUpstreamByAccount.put(personUpstream.getAccountNo(), personUpstream);
-                                personRepeatByAccount.put(personUpstream.getAccountNo(), personUpstream);
-                            }
+                    // 人员标识 证件类型、证件号码 OR 用户名 accountNo必提供一个  都提供以证件类型+证件号码为标识
 
-                        }
-                    } else {
+                    //提供(证件类型+证件号码)
+                    if (StringUtils.isNotBlank(personUpstream.getCardNo()) && StringUtils.isNotBlank(personUpstream.getCardType())) {
+
                         //既有证件标识又有用户名标识,处理用户名标识
                         if (StringUtils.isNotEmpty(personUpstream.getAccountNo())) {
                             if (personFromUpstream.containsKey(personUpstream.getCardType() + ":" + personUpstream.getCardNo())) {
@@ -239,8 +221,18 @@ public class PersonServiceImpl implements PersonService {
                                         //有该用户名数据则判断证件标识是否一致,一致则进行覆盖
                                         if (StringUtils.isNotEmpty(person.getCardNo()) && StringUtils.isNotEmpty(person.getCardType())) {
                                             if (person.getCardType().equals(personUpstream.getCardType()) && personUpstream.getCardNo().equals(person.getCardNo())) {
-                                                personFromUpstream.put(personUpstream.getCardType() + ":" + personUpstream.getCardNo(), personUpstream);
-                                                personRepeatByAccount.put(personUpstream.getAccountNo(), personUpstream);
+                                                if (person.getAccountNo().equals(personUpstream.getAccountNo())) {
+                                                    log.error("数据丢弃:{},原因 : 数据覆盖", person);
+                                                    extracted(domain, person, "数据覆盖");
+                                                    personFromUpstream.put(personUpstream.getCardType() + ":" + personUpstream.getCardNo(), personUpstream);
+                                                    personRepeatByAccount.put(personUpstream.getAccountNo(), personUpstream);
+                                                } else {
+                                                    //有效且同一用户名对应不同证件类型,放入errorData
+                                                    extracted(domain, personUpstream, "用户名下有不同证件类型的数据,请检查源数据");
+                                                    extracted(domain, person, "用户名下有不同证件类型的数据,请检查源数据");
+                                                    log.error("用户名{}下有不同证件类型的数据{}{},请检查源数据", person.getAccountNo(), person, personUpstream);
+                                                }
+
                                             } else {
                                                 //有效且同一用户名对应不同证件类型,放入errorData
                                                 extracted(domain, personUpstream, "用户名下有不同证件类型的数据,请检查源数据");
@@ -248,16 +240,39 @@ public class PersonServiceImpl implements PersonService {
                                                 log.error("用户名{}下有不同证件类型的数据{}{},请检查源数据", person.getAccountNo(), person, personUpstream);
                                             }
                                         } else {
+                                            //之前的为只有用户名
+                                            //删除MapB中的对应记录
+                                            if (personFromUpstreamByAccount.containsKey(personUpstream.getAccountNo())) {
+                                                personFromUpstreamByAccount.remove(personUpstream.getAccountNo());
+                                            }
+                                            log.error("数据丢弃:{},原因 : 数据覆盖", person);
+                                            extracted(domain, person, "数据覆盖");
                                             personFromUpstream.put(personUpstream.getCardType() + ":" + personUpstream.getCardNo(), personUpstream);
                                             personRepeatByAccount.put(personUpstream.getAccountNo(), personUpstream);
                                         }
 
+                                    } else {
+                                        //无效数据丢弃并计入日志
+                                        log.error("数据丢弃:{},原因 : 重复标识的无效数据", personUpstream);
+                                        extracted(domain, personUpstream, "重复标识的无效数据");
                                     }
                                 } else {
                                     //用户名不重复
                                     if (personUpstream.getActive() == 1) {
                                         //有效则覆盖
-                                        extracted(domain, personFromUpstream.get(personUpstream.getCardType() + ":" + personUpstream.getCardNo()), "数据覆盖");
+                                        //处理被覆盖数据
+                                        Person person = personFromUpstream.get(personUpstream.getCardType() + ":" + personUpstream.getCardNo());
+                                        if (StringUtils.isNotBlank(person.getAccountNo())) {
+                                            if (personRepeatByAccount.containsKey(person.getAccountNo())) {
+                                                personRepeatByAccount.remove(person.getAccountNo());
+                                            }
+                                            if (personFromUpstreamByAccount.containsKey(person.getAccountNo())) {
+                                                personFromUpstreamByAccount.remove(person.getAccountNo());
+                                            }
+                                            log.error("数据丢弃:{},原因 : 丢弃被覆盖数据造成的遗留数据", person);
+                                        }
+                                        log.error("数据丢弃:{},原因 : 数据覆盖", person);
+                                        extracted(domain, person, "数据覆盖");
                                         personFromUpstream.put(personUpstream.getCardType() + ":" + personUpstream.getCardNo(), personUpstream);
                                         personRepeatByAccount.put(personUpstream.getAccountNo(), personUpstream);
                                     } else {
@@ -265,7 +280,7 @@ public class PersonServiceImpl implements PersonService {
                                     }
                                 }
                             } else {
-                                //合重容器中没有对应用户名标识数据,则添加进容器
+                                //合重容器中没有对应用户名标识数据,并且没有对应证件类型标识,放入容器A和C
                                 personFromUpstream.put(personUpstream.getCardType() + ":" + personUpstream.getCardNo(), personUpstream);
                                 personRepeatByAccount.put(personUpstream.getAccountNo(), personUpstream);
                             }
@@ -276,13 +291,71 @@ public class PersonServiceImpl implements PersonService {
                             if (personFromUpstream.containsKey(personUpstream.getCardType() + ":" + personUpstream.getCardNo())) {
                                 //有效则进行覆盖
                                 if (personUpstream.getActive() == 1) {
-                                    extracted(domain, personFromUpstream.get(personUpstream.getCardType() + ":" + personUpstream.getCardNo()), "数据覆盖");
-                                    personFromUpstream.put(personUpstream.getCardType() + ":" + personUpstream.getCardNo(), personUpstream);
+                                    Person person = personFromUpstream.get(personUpstream.getCardType() + ":" + personUpstream.getCardNo());
+                                    //有效
+                                    if (person.getActive() == 1) {
+                                        if (StringUtils.isNotBlank(person.getAccountNo())) {
+                                            log.error("数据丢弃:{},原因 : 重复标识的有效但标识少于之前数据", personUpstream);
+
+                                        } else {
+                                            log.error("数据丢弃:{},原因 : 数据覆盖", person);
+                                            extracted(domain, person, "数据覆盖");
+                                            personFromUpstream.put(personUpstream.getCardType() + ":" + personUpstream.getCardNo(), personUpstream);
+                                        }
+                                    } else {
+                                        log.error("数据丢弃:{},原因 : 数据覆盖", person);
+                                        extracted(domain, person, "数据覆盖");
+                                        personFromUpstream.put(personUpstream.getCardType() + ":" + personUpstream.getCardNo(), personUpstream);
+                                    }
+                                } else {
+                                    log.error("数据丢弃:{},原因 : 重复标识的无效数据", personUpstream);
                                 }
                             } else {
+                                //没有重复的直接放入容器
                                 personFromUpstream.put(personUpstream.getCardType() + ":" + personUpstream.getCardNo(), personUpstream);
                             }
 
+                        }
+
+                    } else {
+
+                        //如果用户名不为空
+                        if (StringUtils.isNotEmpty(personUpstream.getAccountNo())) {
+                            //并且合重容器中包含该用户名
+                            if (personRepeatByAccount.containsKey(personUpstream.getAccountNo())) {
+                                if (personUpstream.getActive() == 1) {
+                                    Person person = personRepeatByAccount.get(personUpstream.getAccountNo());
+                                    //有效并且合重容器中的数据没有证件标识 才进行合重复 否则跳过
+                                    if (person.getActive() == 1) {
+                                        if (StringUtils.isNotBlank(person.getCardType()) && StringUtils.isNotBlank(person.getCardNo())) {
+                                            log.error("数据丢弃:{},原因 : 重复标识的有效但标识少于之前数据", personUpstream);
+                                            extracted(domain, personUpstream, "重复标识的有效但标识少于之前数据");
+                                        } else {
+                                            log.error("数据丢弃:{},原因 : 数据覆盖", person);
+                                            extracted(domain, person, "数据覆盖");
+                                            personFromUpstreamByAccount.put(personUpstream.getAccountNo(), personUpstream);
+                                            personRepeatByAccount.put(personUpstream.getAccountNo(), personUpstream);
+
+                                        }
+                                    } else {
+                                        log.error("数据丢弃:{},原因 : 数据覆盖", person);
+                                        extracted(domain, person, "数据覆盖");
+                                        personFromUpstreamByAccount.put(personUpstream.getAccountNo(), personUpstream);
+                                        personRepeatByAccount.put(personUpstream.getAccountNo(), personUpstream);
+                                    }
+                                } else {
+                                    log.error("数据丢弃:{},原因 : 该标识用户已有数据,忽略无效数据", personFromUpstream);
+                                    extracted(domain, personUpstream, "该标识用户已有数据,忽略无效数据");
+                                }
+                            } else {
+                                //合重容器中没有对应用户名标识数据,则添加进容器
+                                personFromUpstreamByAccount.put(personUpstream.getAccountNo(), personUpstream);
+                                personRepeatByAccount.put(personUpstream.getAccountNo(), personUpstream);
+                            }
+
+                        } else {
+                            log.error("数据丢弃:{},原因 : 数据没有身份标识", personFromUpstream);
+                            extracted(domain, personUpstream, "数据没有身份标识");
                         }
 
                     }
@@ -450,7 +523,7 @@ public class PersonServiceImpl implements PersonService {
                     Object oldValue = ClassCompareUtil.getGetMethod(personFromSSO, sourceField);
                     //对于密码字段不处理
                     if (sourceField.equalsIgnoreCase("password")) {
-                        if (null == oldValue) {
+                        if (null == oldValue && null != newValue) {
                             try {
                                 String password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(((String) newValue).getBytes()).toCharArray()));
                                 personFromSSO.setPassword(password);
@@ -489,7 +562,7 @@ public class PersonServiceImpl implements PersonService {
                         log.info("人员信息{}失效", personFromSSO.getId());
                         // continue;
                     }
-                    if (sourceField.equalsIgnoreCase("password")) {
+                    if (sourceField.equalsIgnoreCase("password") && null != newValue) {
                         //   if (StringUtils.isBlank((String) oldValue) && !StringUtils.isBlank((String) newValue)) {
                         try {
                             String password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(((String) newValue).getBytes()).toCharArray()));
@@ -733,7 +806,7 @@ public class PersonServiceImpl implements PersonService {
                     Object oldValue = ClassCompareUtil.getGetMethod(personFromSSO, sourceField);
                     //对于密码字段不处理
                     if (sourceField.equalsIgnoreCase("password")) {
-                        if (null == oldValue) {
+                        if (null == oldValue && null != newValue) {
                             try {
                                 String password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(((String) newValue).getBytes()).toCharArray()));
                                 personFromSSO.setPassword(password);
@@ -788,7 +861,7 @@ public class PersonServiceImpl implements PersonService {
                         log.info("人员信息{}失效", personFromSSO.getId());
                         // continue;
                     }
-                    if (sourceField.equalsIgnoreCase("password")) {
+                    if (sourceField.equalsIgnoreCase("password") && null != newValue) {
                         //   if (StringUtils.isBlank((String) oldValue) && !StringUtils.isBlank((String) newValue)) {
                         try {
                             String password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(((String) newValue).getBytes()).toCharArray()));
