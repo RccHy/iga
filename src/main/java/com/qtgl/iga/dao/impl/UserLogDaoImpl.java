@@ -21,7 +21,7 @@ import java.util.UUID;
 public class UserLogDaoImpl implements UserLogDao {
 
 
-    @Resource(name = "jdbcSSOAPI")
+    @Resource(name = "jdbcSSO")
     JdbcTemplate jdbcSSOAPI;
 
 

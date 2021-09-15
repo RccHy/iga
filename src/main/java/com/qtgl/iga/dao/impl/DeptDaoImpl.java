@@ -26,7 +26,7 @@ import java.util.*;
 public class DeptDaoImpl implements DeptDao {
 
 
-    @Resource(name = "jdbcSSOAPI")
+    @Resource(name = "jdbcSSO")
     JdbcTemplate jdbcSSOAPI;
 
     @Resource(name = "api-txTemplate")

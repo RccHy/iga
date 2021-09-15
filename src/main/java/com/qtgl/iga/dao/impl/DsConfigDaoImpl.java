@@ -19,7 +19,7 @@ import java.util.Map;
 public class DsConfigDaoImpl implements DsConfigDao {
 
 
-    @Resource(name = "jdbcSSOAPI")
+    @Resource(name = "jdbcSSO")
     JdbcTemplate jdbcSSOAPI;
 
     @Resource(name = "api-txTemplate")
