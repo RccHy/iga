@@ -17,7 +17,7 @@ import java.util.Map;
 public class CardTypeDaoImpl implements CardTypeDao {
 
 
-    @Resource(name = "jdbcSSO")
+    @Resource(name = "jdbcSSOAPI")
     JdbcTemplate jdbcSSOAPI;
 
     @Override
