@@ -14,7 +14,7 @@
 
 **依赖其他项目：**
 
-- docker.qtgl.com.cn/product/console:20210906
+- docker.qtgl.com.cn/product/console:20210814
 
 ### 20210906
 
@@ -37,7 +37,7 @@
 
 **依赖其他项目：**
 
-- docker.qtgl.com.cn/product/console:20210906
+- docker.qtgl.com.cn/product/console:20210814
 
 
 ### 20210813
