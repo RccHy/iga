@@ -707,6 +707,4 @@ public class DataBusUtil {
         tokenMap.put(domainInfo.getDomainName(), new Token(oAuthClientResponse.getAccessToken(), exp, System.currentTimeMillis()));
         return accessToken;
     }
-
-
 }

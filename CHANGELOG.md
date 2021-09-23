@@ -1,3 +1,45 @@
+### 20210923
+**数据库：**
+- 无
+
+**new：**
+- 随着ssoApi数据库中dept表迁移至sso库中调整对应的代码
+
+**bug fix**
+- 无
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20210923
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20210814
+
+### 20210906
+
+**数据库：**
+- 无
+
+**new：**
+- 新增标准环境变量 SERVICE_ORIGIN
+- 岗位同步忽略库中**非**全局的岗位信息
+
+**bug fix**
+- 修改上个版本中提到的 '新增环境变量 FILE_API' 为 'FILE_URL'
+- 修复上个版本文件上传失败,日志对应原因不准确的bug
+- 人员同步逻辑调整优化
+
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20210906
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20210814
+
+
 ### 20210813
 
 **数据库：**

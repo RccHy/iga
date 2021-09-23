@@ -3,6 +3,8 @@ package com.qtgl.iga.utils;
 
 import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bo.DomainInfo;
+import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.exception.CustomException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.entity.ContentType;
@@ -13,7 +15,6 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.io.IOException;
-import java.net.URL;
 import java.nio.charset.Charset;
 
 @Slf4j
@@ -21,10 +22,8 @@ import java.nio.charset.Charset;
 public class FileUtil {
 
     @Value("${file.url}")
-    String fileApi;
+    String fileUrl;
 
-    @Value("${sso.url}")
-    String ssoUrl;
 
     //String clientId = "SKvpw2Nm1ZOSifdDeNUk";
     //
@@ -32,7 +31,7 @@ public class FileUtil {
     //
     //String scope = "storage";
     //
-    //String token = null;
+    String token = null;
 
     @Resource
     DataBusUtil dataBusUtil;
@@ -45,27 +44,29 @@ public class FileUtil {
                     .setCharset(Charset.forName("utf-8"));
             builder.addBinaryBody("file", file, ContentType.MULTIPART_FORM_DATA, fileName);
             //处理路径
-            if (!(fileApi.startsWith("https://") || fileApi.startsWith("http://"))) {
-                URL url = new URL(ssoUrl);
-                fileApi = url.getProtocol() + "://" + url.getPath() + fileApi;
-            }
-            String fileUrl = fileApi.replace("/file", "");
+            //if (!(fileApi.startsWith("https://") || fileApi.startsWith("http://"))) {
+            //    URL url = new URL(ssoUrl);
+            //    fileApi = url.getProtocol() + "://" + url.getPath() + fileApi;
+            //}
+            fileUrl = UrlUtil.getUrl(fileUrl);
+            //String url = fileUrl.replace("/file", "");
             //getApiToken();
             //获取token
-            String token = dataBusUtil.getToken(domainInfo.getDomainName());
-
-            String content = Request.Put(fileApi + "?access_token=" + token)
+            token = dataBusUtil.getToken(domainInfo.getDomainName());
+            System.out.println(fileUrl + "?access_token=" + token);
+            String content = Request.Put(fileUrl + "?access_token=" + token)
                     .body(builder.build())
                     .execute().returnContent().asString();
             if (null != content && 0 == JSONObject.parseObject(content).getInteger("errno")) {
                 JSONObject object = JSONObject.parseObject(content);
-                String uri = fileUrl + object.getJSONArray("entities").getJSONObject(0).getString("uri");
-                System.out.println(uri);
+                //String uri = url + object.getJSONArray("entities").getJSONObject(0).getString("uri");
+                //System.out.println(uri);
                 return content;
             }
         } catch (IOException ioException) {
             ioException.printStackTrace();
             log.error("put file error:{}", ioException);
+            throw new CustomException(ResultCode.FAILED, "上传文件失败,上传路径为:" + fileUrl);
         }
         return null;
 
@@ -75,7 +76,7 @@ public class FileUtil {
     //private void getApiToken() {
     //    if (null == token) {
     //
-    //        String sso = fileApi.replace("/file", "/sso");
+    //        String sso = fileUrl.replace("/file", "/sso");
     //
     //        OAuthClientRequest oAuthClientRequest = null;
     //        try {

@@ -59,7 +59,7 @@ public class OccupyServiceImpl implements OccupyService {
     @Autowired
     NodeRulesCalculationServiceImpl calculationService;
 
-    public static ConcurrentHashMap<String, List<JSONObject>> errorData = null;
+    public static ConcurrentHashMap<String, List<JSONObject>> occupyErrorData = null;
 
 
     /**
@@ -82,7 +82,7 @@ public class OccupyServiceImpl implements OccupyService {
     @Override
     public Map<String, List<OccupyDto>> buildOccupy(DomainInfo domain, TaskLog lastTaskLog) throws Exception {
         //错误数据容器初始化
-        errorData = new ConcurrentHashMap<>();
+        occupyErrorData = new ConcurrentHashMap<>();
 
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
@@ -127,6 +127,9 @@ public class OccupyServiceImpl implements OccupyService {
 
         // 获取所有规则 字段，用于更新验证
         Map<String, OccupyDto> occupyDtoFromUpstream = new HashMap<>();
+        if (null == occupyRules || occupyRules.size() == 0) {
+            throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
+        }
         occupyRules.forEach(rules -> {
             UpstreamType upstreamType = upstreamTypeDao.findById(rules.getUpstreamTypesId());
             ArrayList<Upstream> upstreams = upstreamDao.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
@@ -292,16 +295,21 @@ public class OccupyServiceImpl implements OccupyService {
             calculationService.monitorRules(domain, lastTaskLog, occupiesFromSSO.size(), result.get("delete"));
 
 
-            occupyDao.saveToSso(result, tenant.getId());
+            try {
+                occupyDao.saveToSso(result, tenant.getId());
+            } catch (CustomException e) {
+                TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(occupyDtoFromUpstream));
+                throw new CustomException(ResultCode.FAILED, e.getErrorMsg());
+            }
 
             if (StringUtils.isNotBlank(TaskConfig.errorData.get(domain.getId()))) {
                 String data = TaskConfig.errorData.get(domain.getId());
                 JSONArray jsonArray = JSONObject.parseArray(data);
-                jsonArray.addAll(errorData.get(domain.getId()));
+                jsonArray.addAll(occupyErrorData.get(domain.getId()));
                 TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(jsonArray));
 
             } else {
-                TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(errorData.get(domain.getId())));
+                TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(occupyErrorData.get(domain.getId())));
             }
 
 
@@ -503,19 +511,19 @@ public class OccupyServiceImpl implements OccupyService {
 
     //    处理异常数据
     private void extracted(DomainInfo domain, OccupyDto occupyDto, String reason) {
-        if (errorData.containsKey(domain.getId())) {
-            JSONObject jsonObject = JSONObject.parseObject(JSONObject.toJSONString(occupyDto));
+        JSONObject jsonObject = JSONObject.parseObject(JSONObject.toJSONString(occupyDto));
+        if (occupyErrorData.containsKey(domain.getId())) {
             jsonObject.put("reason", reason);
             jsonObject.put("type", "occupy");
-            errorData.get(domain.getId()).add(jsonObject);
+            occupyErrorData.get(domain.getId()).add(jsonObject);
         } else {
-            JSONObject jsonObject = JSONObject.parseObject(JSONObject.toJSONString(occupyDto));
             jsonObject.put("reason", reason);
             jsonObject.put("type", "occupy");
-            errorData.put(domain.getId(), new ArrayList<JSONObject>() {{
+            occupyErrorData.put(domain.getId(), new ArrayList<JSONObject>() {{
                 this.add(jsonObject);
             }});
         }
+        log.warn("租户{}人员身份同步中忽略一条数据{}", domain.getId(), jsonObject);
     }
 
     @Override

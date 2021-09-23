@@ -35,7 +35,7 @@ tenantId: "" 租户全局code(domain)
 curl 参考：
 curl --location --request POST 'http://ip:端口/iga/api/event' \
 --header 'Content-Type: application/json' \
---data '{
+--data-raw '{
     "eventType": "create_tenant",
     "tenantId": "租户",
     "authCode": "XXX",
@@ -76,11 +76,13 @@ curl --location --request POST 'http://ip:端口/iga/api/event' \
 | APP_CLIENT | 应用id | ------
 | APP_SECRET | 应用密钥 |------
 | TASK_CRON | 同步时间 | 控制定时同步任务间隔时间。默认值 0 */5 * * * ?
-| FILE_URL | 文件服务地址 | https://cloud.ketanyun.cn/file
+| FILE_URL | 【*】文件服务地址 | https://cloud.ketanyun.cn/file
+| SERVICE_ORIGIN | 【*】云服务的通用域名，用于后台直接调用服务时做相对路径拼接  | 格式示例：https://example.com
 
 * 注：
-在maker中创建应用，并在sso/admin中勾选scope客户端认证：data、introspect、storage<br/>
-数据库链接地址中 注意增加参数rewriteBatchedStatements=true  以提高性能
+-- 在maker中创建应用，并在sso/admin中勾选scope客户端认证：data、introspect、storage<br/>
+-- 数据库链接地址中 注意增加参数rewriteBatchedStatements=true  以提高性能
+-- SERVICE_ORIGIN 为标准环境变量，若不能提供则必须保持SSO_URL、BUS_URL为绝对路径。
   
 
 

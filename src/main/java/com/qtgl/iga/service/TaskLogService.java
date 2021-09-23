@@ -22,4 +22,6 @@ public interface TaskLogService {
     TaskLog markLogs(Map<String, Object> arguments, String id);
 
     TaskLog last(String domain);
+
+    Map<String,String> downLog(String id, String domain);
 }

@@ -301,23 +301,23 @@ public class PostServiceImpl implements PostService {
 
     }
 
-    /**
-     * @param domainName
-     * @Description: 通过租户获取sso库的数据
-     * @return: java.util.List<com.qtgl.iga.bean.DeptBean>
-     */
-    @Override
-    public List<TreeBean> findDeptByDomainName(String domainName) throws Exception {
-//        获取tenantId
-        Tenant byDomainName = tenantDao.findByDomainName(domainName);
-        if (null != byDomainName) {
-            return postDao.findPostType(byDomainName.getId());
-        } else {
-            throw new CustomException(ResultCode.FAILED, "租户不存在");
-        }
-
-
-    }
+//    /**
+//     * @param domainName
+//     * @Description: 通过租户获取sso库的数据
+//     * @return: java.util.List<com.qtgl.iga.bean.DeptBean>
+//     */
+//    @Override
+//    public List<TreeBean> findDeptByDomainName(String domainName) throws Exception {
+////        获取tenantId
+//        Tenant byDomainName = tenantDao.findByDomainName(domainName);
+//        if (null != byDomainName) {
+//            return postDao.findPostType(byDomainName.getId());
+//        } else {
+//            throw new CustomException(ResultCode.FAILED, "租户不存在");
+//        }
+//
+//
+//    }
 
 
     /**
