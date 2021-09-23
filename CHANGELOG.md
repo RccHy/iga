@@ -1,3 +1,21 @@
+### 20210923
+**数据库：**
+- 无
+
+**new：**
+- 随着ssoApi数据库中dept表迁移至sso库中调整对应的代码
+
+**bug fix**
+- 无
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20210923
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20210906
+
 ### 20210906
 
 **数据库：**
