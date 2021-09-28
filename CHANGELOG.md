@@ -1,3 +1,22 @@
+### 20210928
+**数据库：**
+- 无
+
+**new：**
+- 无
+
+**bug fix**
+- 解决多租环境下没有对租户信息进行数据库验证的bug
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20210928
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20210928
+
+
 ### 20210923
 **数据库：**
 - 无
