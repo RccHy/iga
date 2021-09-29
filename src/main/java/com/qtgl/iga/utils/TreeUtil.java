@@ -88,11 +88,14 @@ public class TreeUtil<T> {
     public static void removeTree(String code, Map<String, List<TreeBean>> childrenMap, Map<String, TreeBean> mergeDept) {
         List<TreeBean> children = childrenMap.get(code);
         if (null != children) {
+            ArrayList<TreeBean> treeBeans = new ArrayList<>();
             for (TreeBean deptJson : children) {
                 if (("API".equals(deptJson.getDataSource())) || ("BUILTIN".equals(deptJson.getDataSource()))) {
                     continue;
                 } else {
                     mergeDept.remove(deptJson.getCode());
+                    treeBeans.remove(deptJson);
+                    childrenMap.put(code,treeBeans);
                 }
                 removeTree(deptJson.getCode(), childrenMap, mergeDept);
             }
