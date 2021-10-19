@@ -30,7 +30,7 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
         String sql = "select id, code, name, description," +
                 "multiple_root_node as multipleRootNode, create_time as createTime," +
                 "update_time as updateTime, create_user as createUser, domain ,tree_index as treeIndex " +
-                "from t_mgr_dept_tree_type where 1 = 1  and domain=? ";
+                "from t_mgr_dept_tree_type where 1 = 1  and domain=? order by  code";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
