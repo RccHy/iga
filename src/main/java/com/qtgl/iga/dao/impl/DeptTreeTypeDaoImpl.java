@@ -30,7 +30,7 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
         String sql = "select id, code, name, description," +
                 "multiple_root_node as multipleRootNode, create_time as createTime," +
                 "update_time as updateTime, create_user as createUser, domain ,tree_index as treeIndex " +
-                "from t_mgr_dept_tree_type where 1 = 1  and domain=? order by  code";
+                "from t_mgr_dept_tree_type where 1 = 1  and domain=? ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
@@ -38,7 +38,7 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
         param.add(domain);
 
         dealData(arguments, stb, param);
-        stb.append("order by tree_index");
+        stb.append("order by tree_index,code");
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
         ArrayList<DeptTreeType> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
