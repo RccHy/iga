@@ -48,6 +48,18 @@ alter table t_mgr_task_log modify reason text null;
 alter table t_mgr_upstream_types_field modify target_field text null comment '转换后字段名称';
 update t_mgr_task_log set data=null where data is not null or data !='';
 
+-- 20211022
+create table t_mgr_dept_relation_type
+(
+	id varchar(50) null,
+	code varchar(50) null comment '机构关系代码',
+	name varchar(50) null comment '机构关系名称',
+	domain varchar(50) null comment '所属租户',
+	relation_index int null comment '排序'
+)
+comment '组织机构关系类型表';
+alter table t_mgr_dept_type modify rule varchar(50) null comment '监控规则 暂不启用' after name;
+
 
 
 

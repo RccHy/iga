@@ -44,7 +44,7 @@ public class DomainInfoServiceImpl implements DomainInfoService {
         /* 初始化数据 */
 
         // 单位类型
-        DeptType deptType = new DeptType();
+        /*DeptType deptType = new DeptType();
         deptType.setId(UUID.randomUUID().toString());
         deptType.setName("二级部门");
         deptType.setCode("02");
@@ -57,7 +57,7 @@ public class DomainInfoServiceImpl implements DomainInfoService {
         } catch (CustomException e) {
             e.printStackTrace();
             throw new CustomException(ResultCode.FAILED, "请勿重复初始化");
-        }
+        }*/
         // 组织机构类型
         deptTreeTypeDao.initialization(domainInfo.getId());
         // 岗位类型

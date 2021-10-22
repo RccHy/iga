@@ -755,6 +755,10 @@ public class PersonServiceImpl implements PersonService {
                         }});
                     }
                 }
+                // 对新增用户判断是否提供 冻结时间
+                if (null==val.getFreezeTime()) {
+                    val.setFreezeTime(val.getCreateTime());
+                }
                 //根据主键判断新增还是修改
                 if (id.equals(val.getId())) {
                     if (result.containsKey("insert")) {
