@@ -33,10 +33,6 @@ public class Dept {
      */
     private Boolean delMark;
     /**
-     * 是否顶级部门
-     */
-    private Boolean independent;
-    /**
      * 所属租户id
      */
     private String tenantId;

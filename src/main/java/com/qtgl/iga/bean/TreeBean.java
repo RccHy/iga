@@ -25,10 +25,6 @@ public class TreeBean implements Serializable {
      */
     private String parentCode;
     /**
-     * 是否顶级
-     */
-    private Integer independent;
-    /**
      * 标签
      */
     private String tags;
