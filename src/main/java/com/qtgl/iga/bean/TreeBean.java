@@ -20,6 +20,7 @@ public class TreeBean implements Serializable {
      * 名称
      */
     private String name;
+    private String enName;
     /**
      * 父级代码
      */
@@ -32,10 +33,7 @@ public class TreeBean implements Serializable {
      * 描述
      */
     private String description;
-    /**
-     * 元
-     */
-    private String meta;
+
     /**
      * 来源
      */
@@ -97,6 +95,11 @@ public class TreeBean implements Serializable {
      * 是否身份岗
      */
     private Boolean formal;
+
+    /**
+     * 组织机构-关系类型
+     */
+    private String relationType;
 
 //    private String deptTreeTypeId;
 //    public DeptBean(Dept dept) {

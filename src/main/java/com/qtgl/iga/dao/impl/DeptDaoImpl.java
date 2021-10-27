@@ -35,7 +35,7 @@ public class DeptDaoImpl implements DeptDao {
 
     @Override
     public Dept findById(String id) {
-        String sql = "select id, code, name, type_id as typeId,create_time as createTime,abbreviation from dept where id= ? ";
+        String sql = "select id, code, name, type_id as typeId,create_time as createTime,abbreviation,relation_type as relationType from dept where id= ? ";
 
         List<Map<String, Object>> mapList = jdbcSSOAPI.queryForList(sql, id);
         Dept dept = new Dept();
@@ -52,8 +52,8 @@ public class DeptDaoImpl implements DeptDao {
 
     @Override
     public List<TreeBean> findByTenantId(String id, String treeType, Integer delMark) {
-        String sql = "select dept_code as code , dept_name as name , parent_code as parentCode , " +
-                " update_time as createTime , source, tree_type as treeType,data_source as dataSource, abbreviation,tags,type,update_time as updateTime,del_mark as delMark,active  from dept where tenant_id = ? ";
+        String sql = "select dept_code as code , dept_name as name , parent_code as parentCode ,dept_en_name as enName, " +
+                " update_time as createTime , source, tree_type as treeType,data_source as dataSource, abbreviation,tags,type,update_time as updateTime,del_mark as delMark,active,relation_type as relationType  from dept where tenant_id = ? ";
         List<Object> param = new ArrayList<>();
         param.add(id);
         if (null != treeType) {
@@ -106,8 +106,8 @@ public class DeptDaoImpl implements DeptDao {
 
     @Override
     public ArrayList<TreeBean> updateDept(ArrayList<TreeBean> list, String tenantId) {
-        String str = "update dept set  dept_name=?, parent_code=?, del_mark=? ,tenant_id =?" +
-                ",source =?, data_source=?, description=?, meta=?,update_time=?,tags=?,tree_type= ?,active=? ,abbreviation=?,del_mark=0 ,type = ? " +
+        String str = "update dept set  dept_name=?,dept_en_name=?, parent_code=?, del_mark=? ,tenant_id =?" +
+                ",source =?, data_source=?, description=?,update_time=?,tags=?,tree_type= ?,active=? ,abbreviation=?,del_mark=0 ,type = ?,relation_type=? " +
                 "where dept_code =? and update_time< ?";
         boolean contains = false;
 
@@ -115,21 +115,22 @@ public class DeptDaoImpl implements DeptDao {
             @Override
             public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
                 preparedStatement.setObject(1, list.get(i).getName());
-                preparedStatement.setObject(2, list.get(i).getParentCode());
-                preparedStatement.setObject(3, 0);
-                preparedStatement.setObject(4, tenantId);
-                preparedStatement.setObject(5, list.get(i).getSource());
-                preparedStatement.setObject(6, "PULL");
-                preparedStatement.setObject(7, list.get(i).getDescription());
-                preparedStatement.setObject(8, list.get(i).getMeta());
+                preparedStatement.setObject(2, list.get(i).getEnName());
+                preparedStatement.setObject(3, list.get(i).getParentCode());
+                preparedStatement.setObject(4, 0);
+                preparedStatement.setObject(5, tenantId);
+                preparedStatement.setObject(6, list.get(i).getSource());
+                preparedStatement.setObject(7, "PULL");
+                preparedStatement.setObject(8, list.get(i).getDescription());
                 preparedStatement.setObject(9, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
                 preparedStatement.setObject(10, list.get(i).getTags());
                 preparedStatement.setObject(11, list.get(i).getTreeType());
                 preparedStatement.setObject(12, 0);
                 preparedStatement.setObject(13, null == list.get(i).getAbbreviation() ? null : list.get(i).getAbbreviation());
                 preparedStatement.setObject(14, null == list.get(i).getType() ? null : list.get(i).getType());
-                preparedStatement.setObject(15, list.get(i).getCode());
-                preparedStatement.setObject(16, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
+                preparedStatement.setObject(15, list.get(i).getRelationType());
+                preparedStatement.setObject(16, list.get(i).getCode());
+                preparedStatement.setObject(17, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
 
             }
 
@@ -147,8 +148,8 @@ public class DeptDaoImpl implements DeptDao {
 
     @Override
     public ArrayList<TreeBean> saveDept(ArrayList<TreeBean> list, String tenantId) {
-        String str = "insert into dept (id,dept_code, dept_name, parent_code, del_mark ,tenant_id ,source, data_source, description, meta,create_time,tags,active,active_time,tree_type,dept_index,abbreviation,update_time,type) values" +
-                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        String str = "insert into dept (id,dept_code, dept_name,dept_en_name, parent_code, del_mark ,tenant_id ,source, data_source, description,create_time,tags,active,active_time,tree_type,dept_index,abbreviation,update_time,type,relation_type) values" +
+                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         boolean contains = false;
 
         int[] ints = jdbcSSOAPI.batchUpdate(str, new BatchPreparedStatementSetter() {
@@ -157,13 +158,13 @@ public class DeptDaoImpl implements DeptDao {
                 preparedStatement.setObject(1, UUID.randomUUID().toString().replace("-", ""));
                 preparedStatement.setObject(2, list.get(i).getCode());
                 preparedStatement.setObject(3, list.get(i).getName());
-                preparedStatement.setObject(4, list.get(i).getParentCode());
-                preparedStatement.setObject(5, 0);
-                preparedStatement.setObject(6, tenantId);
-                preparedStatement.setObject(7, list.get(i).getSource());
-                preparedStatement.setObject(8, "PULL");
-                preparedStatement.setObject(9, list.get(i).getDescription());
-                preparedStatement.setObject(10, list.get(i).getMeta());
+                preparedStatement.setObject(4, list.get(i).getEnName());
+                preparedStatement.setObject(5, list.get(i).getParentCode());
+                preparedStatement.setObject(6, 0);
+                preparedStatement.setObject(7, tenantId);
+                preparedStatement.setObject(8, list.get(i).getSource());
+                preparedStatement.setObject(9, "PULL");
+                preparedStatement.setObject(10, list.get(i).getDescription());
                 preparedStatement.setObject(11, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
                 preparedStatement.setObject(12, list.get(i).getTags());
                 preparedStatement.setObject(13, 0);
@@ -173,6 +174,7 @@ public class DeptDaoImpl implements DeptDao {
                 preparedStatement.setObject(17, null == list.get(i).getAbbreviation() ? null : list.get(i).getAbbreviation());
                 preparedStatement.setObject(18, LocalDateTime.now());
                 preparedStatement.setObject(19, list.get(i).getType());
+                preparedStatement.setObject(20, list.get(i).getRelationType());
             }
 
             @Override
@@ -214,9 +216,9 @@ public class DeptDaoImpl implements DeptDao {
 
     @Override
     public Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, ArrayList<TreeBean> invalidList, String tenantId) {
-        String insertStr = "insert into dept (id,dept_code, dept_name, parent_code, del_mark ,tenant_id ,source, data_source, description, meta," +
-                "create_time,tags,active,active_time,tree_type,dept_index,abbreviation,update_time,type) values" +
-                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        String insertStr = "insert into dept (id,dept_code, dept_name,dept_en_name, parent_code, del_mark ,tenant_id ,source, data_source, description," +
+                "create_time,tags,active,active_time,tree_type,dept_index,abbreviation,update_time,type,relation_type) values" +
+                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         return txTemplate.execute(transactionStatus -> {
 
             try {
@@ -227,13 +229,13 @@ public class DeptDaoImpl implements DeptDao {
                             preparedStatement.setObject(1, UUID.randomUUID().toString().replace("-", ""));
                             preparedStatement.setObject(2, insertList.get(i).getCode());
                             preparedStatement.setObject(3, insertList.get(i).getName());
-                            preparedStatement.setObject(4, insertList.get(i).getParentCode());
-                            preparedStatement.setObject(5, insertList.get(i).getDelMark());
-                            preparedStatement.setObject(6, tenantId);
-                            preparedStatement.setObject(7, insertList.get(i).getSource());
-                            preparedStatement.setObject(8, "PULL");
-                            preparedStatement.setObject(9, insertList.get(i).getDescription());
-                            preparedStatement.setObject(10, insertList.get(i).getMeta());
+                            preparedStatement.setObject(4, insertList.get(i).getEnName());
+                            preparedStatement.setObject(5, insertList.get(i).getParentCode());
+                            preparedStatement.setObject(6, insertList.get(i).getDelMark());
+                            preparedStatement.setObject(7, tenantId);
+                            preparedStatement.setObject(8, insertList.get(i).getSource());
+                            preparedStatement.setObject(9, "PULL");
+                            preparedStatement.setObject(10, insertList.get(i).getDescription());
                             preparedStatement.setObject(11, insertList.get(i).getCreateTime());
                             preparedStatement.setObject(12, insertList.get(i).getTags());
                             preparedStatement.setObject(13, insertList.get(i).getActive());
@@ -243,6 +245,7 @@ public class DeptDaoImpl implements DeptDao {
                             preparedStatement.setObject(17, insertList.get(i).getAbbreviation());
                             preparedStatement.setObject(18, insertList.get(i).getUpdateTime());
                             preparedStatement.setObject(19, insertList.get(i).getType());
+                            preparedStatement.setObject(20, insertList.get(i).getRelationType());
                         }
 
                         @Override
@@ -251,21 +254,21 @@ public class DeptDaoImpl implements DeptDao {
                         }
                     });
                 }
-                String updateStr = "update dept set  dept_name=?, parent_code=?, del_mark=? ,tenant_id =?" +
-                        ",source =?, data_source=?, description=?, meta=?,update_time=?,tags=?,tree_type= ?,active=? ,abbreviation=?,type = ?,dept_index=?  " +
+                String updateStr = "update dept set  dept_name=?,dept_en_name=?, parent_code=?, del_mark=? ,tenant_id =?" +
+                        ",source =?, data_source=?, description=?,update_time=?,tags=?,tree_type= ?,active=? ,abbreviation=?,type = ?,dept_index=?,relation_type=?  " +
                         "where dept_code =? and update_time<= ?";
                 if (null != updateList && updateList.size() > 0) {
                     int[] i = jdbcSSOAPI.batchUpdate(updateStr, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
                             preparedStatement.setObject(1, updateList.get(i).getName());
-                            preparedStatement.setObject(2, updateList.get(i).getParentCode());
-                            preparedStatement.setObject(3, null == updateList.get(i).getDelMark() ? 0 : updateList.get(i).getDelMark());
-                            preparedStatement.setObject(4, tenantId);
-                            preparedStatement.setObject(5, updateList.get(i).getSource());
-                            preparedStatement.setObject(6, "PULL");
-                            preparedStatement.setObject(7, updateList.get(i).getDescription());
-                            preparedStatement.setObject(8, updateList.get(i).getMeta());
+                            preparedStatement.setObject(2, updateList.get(i).getEnName());
+                            preparedStatement.setObject(3, updateList.get(i).getParentCode());
+                            preparedStatement.setObject(4, null == updateList.get(i).getDelMark() ? 0 : updateList.get(i).getDelMark());
+                            preparedStatement.setObject(5, tenantId);
+                            preparedStatement.setObject(6, updateList.get(i).getSource());
+                            preparedStatement.setObject(7, "PULL");
+                            preparedStatement.setObject(8, updateList.get(i).getDescription());
                             preparedStatement.setObject(9, updateList.get(i).getUpdateTime());
                             preparedStatement.setObject(10, updateList.get(i).getTags());
                             preparedStatement.setObject(11, updateList.get(i).getTreeType());
@@ -273,8 +276,9 @@ public class DeptDaoImpl implements DeptDao {
                             preparedStatement.setObject(13, updateList.get(i).getAbbreviation());
                             preparedStatement.setObject(14, updateList.get(i).getType());
                             preparedStatement.setObject(15, updateList.get(i).getDeptIndex());
-                            preparedStatement.setObject(16, updateList.get(i).getCode());
-                            preparedStatement.setObject(17, updateList.get(i).getUpdateTime());
+                            preparedStatement.setObject(16, updateList.get(i).getRelationType());
+                            preparedStatement.setObject(17, updateList.get(i).getCode());
+                            preparedStatement.setObject(18, updateList.get(i).getUpdateTime());
 
                         }
 
@@ -325,7 +329,7 @@ public class DeptDaoImpl implements DeptDao {
 
     @Override
     public List<TreeBean> findBySourceAndTreeType(String api, String treeType, String tenantId) {
-        String sql = "select dept_code as code , dept_name as name , parent_code as parentCode , " +
+        String sql = "select dept_code as code , dept_name as name ,dept_name as enName , parent_code as parentCode ,relation_type as relationType ," +
                 " update_time as createTime , source, tree_type as treeType,data_source as dataSource, abbreviation,tags,type,update_time as updateTime,del_mark as delMark,active  from dept where tenant_id = ? and data_source=?  and del_mark=0 ";
         List<Object> param = new ArrayList<>();
         param.add(tenantId);
@@ -344,7 +348,7 @@ public class DeptDaoImpl implements DeptDao {
 
     @Override
     public List<TreeBean> findActiveDataByTenantId(String tenantId) {
-        String sql = "select dept_code as code , dept_name as name , parent_code as parentCode , " +
+        String sql = "select dept_code as code , dept_name as name ,dept_en_name as enName , parent_code as parentCode ,relation_type as relationType , " +
                 " update_time as createTime , source, tree_type as treeType,data_source as dataSource, abbreviation,tags,type,update_time as updateTime,del_mark as delMark,active  from dept where tenant_id = ? " +
                 " and active=true and del_mark=false ";
         List<Object> param = new ArrayList<>();

@@ -24,6 +24,8 @@ public class Dept {
      * 部门名称
      */
     private String deptName;
+
+    private String deptEnName;
     /**
      * 父级code
      */
@@ -60,10 +62,7 @@ public class Dept {
      * 是否孤儿节点
      */
     private Boolean orphan;
-    /**
-     * 元
-     */
-    private String meta;
+
     /**
      * 部门树类型
      */

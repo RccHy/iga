@@ -54,9 +54,6 @@ public class Post {
     private String description;
     /**
      *
-     */
-    private String meta;
-    /**
      * 删除标记
      */
     private Boolean delMark;
