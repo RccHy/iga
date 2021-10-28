@@ -4,7 +4,7 @@ metadata:
   labels:
     app: iga
   name: iga
-  namespace: ketanyun
+#  namespace: ketanyun
 spec:
   serviceName: iga
   replicas: 1
