@@ -25,6 +25,10 @@ public class DeptType {
      * 机构类型代码
      */
     private String code;
+    /**
+     * 监控规则
+     */
+    private String rule;
 
     /**
      * 描述
