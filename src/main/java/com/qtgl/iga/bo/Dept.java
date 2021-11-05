@@ -24,8 +24,10 @@ public class Dept {
      * 部门名称
      */
     private String deptName;
-
-    private String deptEnName;
+    /**
+     * 英文名称
+     */
+    private String enName;
     /**
      * 父级code
      */
@@ -91,4 +93,8 @@ public class Dept {
      * 排序
      */
     private Integer deptIndex;
+    /**
+     * 关联关系
+     */
+    private String relationType;
 }

@@ -20,6 +20,9 @@ public class TreeBean implements Serializable {
      * 名称
      */
     private String name;
+    /**
+     * 英文名称
+     */
     private String enName;
     /**
      * 父级代码

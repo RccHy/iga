@@ -612,6 +612,15 @@ public class NodeRulesCalculationServiceImpl {
                             if (null == dept.getString(TreeEnum.UPDATE_TIME.getCode())) {
                                 dept.put(TreeEnum.UPDATE_TIME.getCode(), timestamp);
                             }
+                            if (null == dept.getString(TreeEnum.EN_NAME.getCode())) {
+                                dept.put(TreeEnum.EN_NAME.getCode(), "");
+                            }
+                            if (null == dept.getString(TreeEnum.ABBREVIATION.getCode())) {
+                                dept.put(TreeEnum.ABBREVIATION.getCode(), "");
+                            }
+                            if (null == dept.getString(TreeEnum.RELATION_TYPE.getCode())) {
+                                dept.put(TreeEnum.RELATION_TYPE.getCode(), "");
+                            }
                             dept.put("upstreamTypeId", upstreamType.getId());
                             dept.put("treeType", deptTreeType);
                             dept.put("ruleId", nodeRule.getId());

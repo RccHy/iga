@@ -28,6 +28,12 @@ public enum TreeEnum {
 
     POST_TYPE("type", "岗位代码"),
 
+    EN_NAME("enName", "英文名称"),
+
+    RELATION_TYPE("relationType", "关联关系"),
+
+    ABBREVIATION("abbreviation", "简称"),
+
     UPDATE_TIME("updateTime", "修改时间");
 
 
