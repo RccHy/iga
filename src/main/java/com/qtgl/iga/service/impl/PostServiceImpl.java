@@ -76,8 +76,8 @@ public class PostServiceImpl implements PostService {
                 }
             }
         } else {
-            logger.error("请检查根树是否合法{}", tenant.getId());
-            throw new CustomException(ResultCode.FAILED, "请检查根树是否合法");
+            logger.error("请在‘ 身份管理->岗位管理 ’中进行岗位数据初始化导入后再进行治理", tenant.getId());
+            throw new CustomException(ResultCode.FAILED, "请在‘身份管理->岗位管理’中进行岗位数据初始化导入后再进行治理");
         }
         //获取完整的BUILTIN根数据以及加入逻辑根节点
         rootBeans.addAll(ssoBeans);
@@ -171,8 +171,8 @@ public class PostServiceImpl implements PostService {
                 }
             }
         } else {
-            logger.error("请检查根树是否合法{}", tenant.getId());
-            throw new CustomException(ResultCode.FAILED, "请检查根树是否合法");
+            logger.error("请在‘ 身份管理->岗位管理 ’中进行岗位数据初始化导入后再进行治理{}", tenant.getId());
+            throw new CustomException(ResultCode.FAILED, "请在‘ 身份管理->岗位管理 ’中进行岗位数据初始化导入后再进行治理");
         }
         //获取完整的BUILTIN根数据以及加入逻辑根节点
         rootBeans.addAll(ssoBeans);
