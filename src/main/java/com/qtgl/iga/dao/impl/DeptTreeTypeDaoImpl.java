@@ -38,7 +38,7 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
         param.add(domain);
 
         dealData(arguments, stb, param);
-        stb.append("order by tree_index");
+        stb.append("order by tree_index,code");
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
         ArrayList<DeptTreeType> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {

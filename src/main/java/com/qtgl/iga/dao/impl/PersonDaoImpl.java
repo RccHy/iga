@@ -89,8 +89,8 @@ public class PersonDaoImpl implements PersonDao {
                     final List<Person> list = personMap.get("insert");
 
 
-                    String str = "insert into identity (id, `name`, account_no,open_id,  del_mark, create_time, update_time, tenant_id, card_type, card_no, cellphone, email, data_source, tags,  `active`, active_time,`source`,valid_start_time,valid_end_time)" +
-                            " values  (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                    String str = "insert into identity (id, `name`, account_no,open_id,  del_mark, create_time, update_time, tenant_id, card_type, card_no, cellphone, email, data_source, tags,  `active`, active_time,`source`,valid_start_time,valid_end_time,freeze_time)" +
+                            " values  (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
 
                     int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
@@ -115,6 +115,7 @@ public class PersonDaoImpl implements PersonDao {
                             preparedStatement.setObject(17, list.get(i).getSource());
                             preparedStatement.setObject(18, list.get(i).getValidStartTime());
                             preparedStatement.setObject(19, list.get(i).getValidEndTime());
+                            preparedStatement.setObject(20, list.get(i).getFreezeTime());
                         }
 
                         @Override

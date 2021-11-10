@@ -25,6 +25,10 @@ public class Dept {
      */
     private String deptName;
     /**
+     * 英文名称
+     */
+    private String enName;
+    /**
      * 父级code
      */
     private String parentCode;
@@ -32,10 +36,6 @@ public class Dept {
      * 是否删除
      */
     private Boolean delMark;
-    /**
-     * 是否顶级部门
-     */
-    private Boolean independent;
     /**
      * 所属租户id
      */
@@ -64,10 +64,7 @@ public class Dept {
      * 是否孤儿节点
      */
     private Boolean orphan;
-    /**
-     * 元
-     */
-    private String meta;
+
     /**
      * 部门树类型
      */
@@ -96,4 +93,8 @@ public class Dept {
      * 排序
      */
     private Integer deptIndex;
+    /**
+     * 关联关系
+     */
+    private String relationType;
 }

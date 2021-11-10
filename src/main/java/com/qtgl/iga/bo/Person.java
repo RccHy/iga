@@ -89,6 +89,11 @@ public class Person {
     private LocalDateTime validEndTime;
 
     /**
+     * 冻结时间
+     */
+    private LocalDateTime freezeTime;
+
+    /**
      * 密码
      */
     private String password;

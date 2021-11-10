@@ -65,9 +65,9 @@ public class PostServiceImpl implements PostService {
         //  查sso BUILTIN 的岗位
         //  置空 mainTree
         ArrayList<TreeBean> rootBeans = new ArrayList<>();
-        TreeBean treeBean = new TreeBean();
-        treeBean.setCode("");
-        rootBeans.add(treeBean);
+        //TreeBean treeBean = new TreeBean();
+        //treeBean.setCode("");
+        //rootBeans.add(treeBean);
         List<TreeBean> ssoBeans = postDao.findRootData(tenant.getId());
         if (null != ssoBeans && ssoBeans.size() > 0) {
             for (TreeBean rootBean : ssoBeans) {
@@ -76,8 +76,8 @@ public class PostServiceImpl implements PostService {
                 }
             }
         } else {
-            logger.error("请检查根树是否合法{}", tenant.getId());
-            throw new CustomException(ResultCode.FAILED, "请检查根树是否合法");
+            logger.error("请在‘ 身份管理->岗位管理 ’中进行岗位数据初始化导入后再进行治理", tenant.getId());
+            throw new CustomException(ResultCode.FAILED, "请在‘身份管理->岗位管理’中进行岗位数据初始化导入后再进行治理");
         }
         //获取完整的BUILTIN根数据以及加入逻辑根节点
         rootBeans.addAll(ssoBeans);
@@ -119,6 +119,9 @@ public class PostServiceImpl implements PostService {
 //        if (null != rootBeansMap && rootBeansMap.size() > 0) {
 //            rootBeans = new ArrayList<>(rootBeansMap.values());
 //        }
+        TreeBean treeBean = new TreeBean();
+        treeBean.setCode("");
+        rootBeans.add(treeBean);
         // 判断重复(code)
         calculationService.groupByCode(beans, 0, domain);
         //
@@ -157,9 +160,9 @@ public class PostServiceImpl implements PostService {
         }
         //  置空 mainTree
         ArrayList<TreeBean> rootBeans = new ArrayList<>();
-        TreeBean treeBean = new TreeBean();
-        treeBean.setCode("");
-        rootBeans.add(treeBean);
+        //TreeBean treeBean = new TreeBean();
+        //treeBean.setCode("");
+        //rootBeans.add(treeBean);
         List<TreeBean> ssoBeans = postDao.findRootData(tenant.getId());
         if (null != ssoBeans && ssoBeans.size() > 0) {
             for (TreeBean rootBean : ssoBeans) {
@@ -168,8 +171,8 @@ public class PostServiceImpl implements PostService {
                 }
             }
         } else {
-            logger.error("请检查根树是否合法{}", tenant.getId());
-            throw new CustomException(ResultCode.FAILED, "请检查根树是否合法");
+            logger.error("请在‘ 身份管理->岗位管理 ’中进行岗位数据初始化导入后再进行治理{}", tenant.getId());
+            throw new CustomException(ResultCode.FAILED, "请在‘ 身份管理->岗位管理 ’中进行岗位数据初始化导入后再进行治理");
         }
         //获取完整的BUILTIN根数据以及加入逻辑根节点
         rootBeans.addAll(ssoBeans);
@@ -212,6 +215,9 @@ public class PostServiceImpl implements PostService {
 //        if (null != rootBeansMap && rootBeansMap.size() > 0) {
 //            rootBeans = new ArrayList<>(rootBeansMap.values());
 //        }
+        TreeBean treeBean = new TreeBean();
+        treeBean.setCode("");
+        rootBeans.add(treeBean);
         // 判断重复(code)
         calculationService.groupByCode(beans, status, domain);
 
@@ -538,7 +544,8 @@ public class PostServiceImpl implements PostService {
 
 
         Collection<TreeBean> values = ssoCollect.values();
-        return new ArrayList<>(values);
+        List<TreeBean> collect = new ArrayList<>(values).stream().filter(post -> post.getActive() != 0 && post.getDelMark() != 1).collect(Collectors.toList());
+        return collect;
     }
 
 

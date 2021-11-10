@@ -19,6 +19,8 @@ type DeptType{
     code:String
     # 机构类型名称
     name:String
+    # 监控规则
+    rule:String
     # 描述
     description:String
     # 创建日期

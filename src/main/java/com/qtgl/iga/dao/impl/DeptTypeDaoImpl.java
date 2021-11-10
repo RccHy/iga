@@ -25,7 +25,7 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
 
     @Override
     public List<DeptType> getAllDeptTypes(Map<String, Object> arguments, String domain) {
-        String sql = "select id, code, name, description," +
+        String sql = "select id, code, name,rule, description," +
                 "create_time as createTime, update_time as updateTime, " +
                 "create_user as createUser, domain from t_mgr_dept_type where 1 = 1 and domain =? ";
         //拼接sql
@@ -92,7 +92,7 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
             throw new CustomException(ResultCode.FAILED, "code 或 name 不能重复,添加组织机构类别失败");
         }
 
-        String sql = "insert into t_mgr_dept_type  values(?,?,?,?,?,?,?,?)";
+        String sql = "insert into t_mgr_dept_type (id,code,name,rule,description,create_time,update_time,create_user,domain)  values(?,?,?,?,?,?,?,?,?)";
         //生成主键和时间
         String id = UUID.randomUUID().toString().replace("-", "");
         deptType.setId(id);
@@ -103,11 +103,12 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
             preparedStatement.setObject(1, id);
             preparedStatement.setObject(2, deptType.getCode());
             preparedStatement.setObject(3, deptType.getName());
-            preparedStatement.setObject(4, deptType.getDescription());
-            preparedStatement.setObject(5, deptType.getCreateTime());
-            preparedStatement.setObject(6, deptType.getUpdateTime());
-            preparedStatement.setObject(7, deptType.getCreateUser());
-            preparedStatement.setObject(8, domain);
+            preparedStatement.setObject(4, deptType.getRule());
+            preparedStatement.setObject(5, deptType.getDescription());
+            preparedStatement.setObject(6, deptType.getCreateTime());
+            preparedStatement.setObject(7, deptType.getUpdateTime());
+            preparedStatement.setObject(8, deptType.getCreateUser());
+            preparedStatement.setObject(9, domain);
 
         });
         return update > 0 ? deptType : null;
@@ -122,24 +123,25 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
         if (null != mapList && mapList.size() > 0) {
             throw new CustomException(ResultCode.FAILED, "code 或 name 不能重复,修改组织机构类别失败");
         }
-        String sql = "update t_mgr_dept_type  set code = ?,name = ?,description = ?,create_time = ?," +
+        String sql = "update t_mgr_dept_type  set code = ?,name = ?,rule=?,description = ?,create_time = ?," +
                 "update_time = ?,create_user = ?,domain= ?  where id=?";
         Timestamp date = new Timestamp(System.currentTimeMillis());
         return jdbcIGA.update(sql, preparedStatement -> {
             preparedStatement.setObject(1, deptType.getCode());
             preparedStatement.setObject(2, deptType.getName());
-            preparedStatement.setObject(3, deptType.getDescription());
-            preparedStatement.setObject(4, deptType.getCreateTime());
-            preparedStatement.setObject(5, date);
-            preparedStatement.setObject(6, deptType.getCreateUser());
-            preparedStatement.setObject(7, deptType.getDomain());
-            preparedStatement.setObject(8, deptType.getId());
+            preparedStatement.setObject(3, deptType.getRule());
+            preparedStatement.setObject(4, deptType.getDescription());
+            preparedStatement.setObject(5, deptType.getCreateTime());
+            preparedStatement.setObject(6, date);
+            preparedStatement.setObject(7, deptType.getCreateUser());
+            preparedStatement.setObject(8, deptType.getDomain());
+            preparedStatement.setObject(9, deptType.getId());
         }) > 0 ? deptType : null;
     }
 
     @Override
     public DeptType findById(String id) {
-        String sql = "select id, code, name, description," +
+        String sql = "select id, code, name,rule, description," +
                 "create_time as createTime, update_time as updateTime, " +
                 "create_user as createUser, domain from t_mgr_dept_type where id= ? ";
 

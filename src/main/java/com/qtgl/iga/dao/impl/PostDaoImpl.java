@@ -68,7 +68,7 @@ public class PostDaoImpl implements PostDao {
     public ArrayList<TreeBean> updateDept(ArrayList<TreeBean> list, String tenantId) {
 
         String str = "update user_type set  name=?, parent_code=?, del_mark=? ,tenant_id =?" +
-                ", data_source=?, description=?, meta=?,update_time=?,tags=?,source=?" +
+                ", data_source=?, description=?,update_time=?,tags=?,source=?" +
                 ", user_type_index = ?,del_mark =0  where user_type =?";
         boolean contains = false;
 
@@ -81,12 +81,11 @@ public class PostDaoImpl implements PostDao {
                 preparedStatement.setObject(4, tenantId);
                 preparedStatement.setObject(5, "PULL");
                 preparedStatement.setObject(6, list.get(i).getDescription());
-                preparedStatement.setObject(7, list.get(i).getMeta());
-                preparedStatement.setObject(8, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
-                preparedStatement.setObject(9, list.get(i).getTags());
-                preparedStatement.setObject(10, list.get(i).getSource());
-                preparedStatement.setObject(11, null == list.get(i).getDeptIndex() ? null : list.get(i).getDeptIndex());
-                preparedStatement.setObject(12, list.get(i).getCode());
+                preparedStatement.setObject(7, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
+                preparedStatement.setObject(8, list.get(i).getTags());
+                preparedStatement.setObject(9, list.get(i).getSource());
+                preparedStatement.setObject(10, null == list.get(i).getDeptIndex() ? null : list.get(i).getDeptIndex());
+                preparedStatement.setObject(11, list.get(i).getCode());
 
             }
 
@@ -104,8 +103,8 @@ public class PostDaoImpl implements PostDao {
 
     @Override
     public ArrayList<TreeBean> saveDept(ArrayList<TreeBean> list, String tenantId) {
-        String str = "insert into user_type (id,user_type, name, parent_code, can_login ,tenant_id ,tags, data_source, description, meta,create_time,del_mark,active,active_time,update_time,source,user_type_index) values" +
-                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        String str = "insert into user_type (id,user_type, name, parent_code, can_login ,tenant_id ,tags, data_source, description,create_time,del_mark,active,active_time,update_time,source,user_type_index) values" +
+                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         boolean contains = false;
 
         int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
@@ -120,14 +119,13 @@ public class PostDaoImpl implements PostDao {
                 preparedStatement.setObject(7, list.get(i).getTags());
                 preparedStatement.setObject(8, "PULL");
                 preparedStatement.setObject(9, list.get(i).getDescription());
-                preparedStatement.setObject(10, list.get(i).getMeta());
-                preparedStatement.setObject(11, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
+                preparedStatement.setObject(10, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
+                preparedStatement.setObject(11, 0);
                 preparedStatement.setObject(12, 0);
-                preparedStatement.setObject(13, 0);
+                preparedStatement.setObject(13, LocalDateTime.now());
                 preparedStatement.setObject(14, LocalDateTime.now());
-                preparedStatement.setObject(15, LocalDateTime.now());
-                preparedStatement.setObject(16, list.get(i).getSource());
-                preparedStatement.setObject(17, list.get(i).getDeptIndex());
+                preparedStatement.setObject(15, list.get(i).getSource());
+                preparedStatement.setObject(16, list.get(i).getDeptIndex());
             }
 
             @Override
@@ -170,7 +168,7 @@ public class PostDaoImpl implements PostDao {
     @Override
     public List<TreeBean> findRootData(String tenantId) {
         String sql = "select  user_type as code , name as name , parent_code as parentCode ,create_time as createTime, " +
-                " tags ,data_source as dataSource , description , meta,source,post_type as postType,user_type_index as deptIndex,del_mark as delMark ,active " +
+                " tags ,data_source as dataSource , description ,source,post_type as postType,user_type_index as deptIndex,del_mark as delMark ,active " +
                 " from user_type where tenant_id=? and del_mark=0 and data_source=? and client_id is null or client_id = '' ";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId, "BUILTIN");
@@ -197,7 +195,7 @@ public class PostDaoImpl implements PostDao {
     @Override
     public List<TreeBean> findPostType(String id) {
         String sql = "select  user_type as code , name as name , parent_code as parentCode , " +
-                " tags ,data_source as dataSource , description , meta,source,post_type as postType,user_type_index as deptIndex,active  " +
+                " tags ,data_source as dataSource , description ,source,post_type as postType,user_type_index as deptIndex,active  " +
                 " from user_type where tenant_id=? and del_mark=0";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, id);
@@ -224,8 +222,8 @@ public class PostDaoImpl implements PostDao {
     @Override
     public Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, ArrayList<TreeBean> invalidList, String tenantId) {
         String insertStr = "insert into user_type (id,user_type, name, parent_code, can_login ,tenant_id ,tags," +
-                " data_source, description, meta,create_time,del_mark,active,active_time,update_time,source,user_type_index,post_type,formal) values" +
-                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                " data_source, description,create_time,del_mark,active,active_time,update_time,source,user_type_index,post_type,formal) values" +
+                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         return txTemplate2.execute(transactionStatus -> {
             try {
                 if (null != insertList && insertList.size() > 0) {
@@ -241,16 +239,15 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(7, insertList.get(i).getTags());
                             preparedStatement.setObject(8, "PULL");
                             preparedStatement.setObject(9, insertList.get(i).getDescription());
-                            preparedStatement.setObject(10, insertList.get(i).getMeta());
-                            preparedStatement.setObject(11, insertList.get(i).getCreateTime());
-                            preparedStatement.setObject(12, insertList.get(i).getDelMark());
-                            preparedStatement.setObject(13, insertList.get(i).getActive());
-                            preparedStatement.setObject(14, LocalDateTime.now());
-                            preparedStatement.setObject(15, insertList.get(i).getUpdateTime());
-                            preparedStatement.setObject(16, insertList.get(i).getSource());
-                            preparedStatement.setObject(17, insertList.get(i).getDeptIndex());
-                            preparedStatement.setObject(18, insertList.get(i).getType());
-                            preparedStatement.setObject(19, insertList.get(i).getFormal());
+                            preparedStatement.setObject(10, insertList.get(i).getCreateTime());
+                            preparedStatement.setObject(11, insertList.get(i).getDelMark());
+                            preparedStatement.setObject(12, insertList.get(i).getActive());
+                            preparedStatement.setObject(13, LocalDateTime.now());
+                            preparedStatement.setObject(14, insertList.get(i).getUpdateTime());
+                            preparedStatement.setObject(15, insertList.get(i).getSource());
+                            preparedStatement.setObject(16, insertList.get(i).getDeptIndex());
+                            preparedStatement.setObject(17, insertList.get(i).getType());
+                            preparedStatement.setObject(18, insertList.get(i).getFormal());
                         }
 
                         @Override
@@ -260,7 +257,7 @@ public class PostDaoImpl implements PostDao {
                     });
                 }
                 String updateStr = "update user_type set  name=?, parent_code=?, del_mark=? ,tenant_id =?" +
-                        ", data_source=?, description=?, meta=?,update_time=?,tags=?,source=?" +
+                        ", data_source=?, description=?,update_time=?,tags=?,source=?" +
                         ", user_type_index = ?,post_type=?,active=?,formal=?  where user_type =? and update_time<= ?";
                 if (null != updateList && updateList.size() > 0) {
                     jdbcSSO.batchUpdate(updateStr, new BatchPreparedStatementSetter() {
@@ -272,16 +269,15 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(4, tenantId);
                             preparedStatement.setObject(5, "PULL");
                             preparedStatement.setObject(6, updateList.get(i).getDescription());
-                            preparedStatement.setObject(7, updateList.get(i).getMeta());
-                            preparedStatement.setObject(8, updateList.get(i).getUpdateTime());
-                            preparedStatement.setObject(9, updateList.get(i).getTags());
-                            preparedStatement.setObject(10, updateList.get(i).getSource());
-                            preparedStatement.setObject(11, updateList.get(i).getDeptIndex());
-                            preparedStatement.setObject(12, updateList.get(i).getType());
-                            preparedStatement.setObject(13, updateList.get(i).getActive());
-                            preparedStatement.setObject(14, updateList.get(i).getFormal());
-                            preparedStatement.setObject(15, updateList.get(i).getCode());
-                            preparedStatement.setObject(16, updateList.get(i).getUpdateTime());
+                            preparedStatement.setObject(7, updateList.get(i).getUpdateTime());
+                            preparedStatement.setObject(8, updateList.get(i).getTags());
+                            preparedStatement.setObject(9, updateList.get(i).getSource());
+                            preparedStatement.setObject(10, updateList.get(i).getDeptIndex());
+                            preparedStatement.setObject(11, updateList.get(i).getType());
+                            preparedStatement.setObject(12, updateList.get(i).getActive());
+                            preparedStatement.setObject(13, updateList.get(i).getFormal());
+                            preparedStatement.setObject(14, updateList.get(i).getCode());
+                            preparedStatement.setObject(15, updateList.get(i).getUpdateTime());
 
                         }
 

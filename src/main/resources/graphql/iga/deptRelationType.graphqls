@@ -1,0 +1,22 @@
+extend type Query {
+    #查询组织机构关系类型
+    deptRelationTypes:[DeptRelationType]
+}
+
+
+type DeptRelationType{
+    #
+    id:String
+    #代码
+    code:String
+    #名称
+    name:String
+
+}
+
+
+
+
+
+
+
