@@ -27,14 +27,14 @@ public class PostTypeDaoImpl implements PostTypeDao {
     public List<PostType> postTypes(Map<String, Object> arguments, String domain) {
         String sql = "select id, code, name, description," +
                 "create_time as createTime, update_time as updateTime, " +
-                "create_user as createUser, domain from t_mgr_post_type where 1 = 1 and domain=? order by  code  ";
+                "create_user as createUser, domain from t_mgr_post_type where 1 = 1 and domain=?  ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
         List<Object> param = new ArrayList<>();
         param.add(domain);
         dealData(arguments, stb, param);
-
+        stb.append(" order by  code");
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
         ArrayList<PostType> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
