@@ -33,7 +33,7 @@ public class CertifiedConnector {
 
     @Autowired
     DomainInfoService domainInfoService;
-    @Value("${sso.url}")
+    @Value("${sso.authorize.url}")
     String url;
 
     public void set(DomainInfoService domainInfoService, String url) {
@@ -73,7 +73,7 @@ public class CertifiedConnector {
         // 如果url是相对路径
         String ssoUrl = UrlUtil.getUrl(certifiedConnector.url);
         DomainInfo domainInfo = certifiedConnector.domainInfoService.findAll().get(0);
-        String domainName = CertifiedConnector.introspect(request, ssoUrl.replace("/oauth2/authorize", ""), domainInfo.getClientId(), domainInfo.getClientSecret());
+        String domainName = CertifiedConnector.introspect(request, ssoUrl, domainInfo.getClientId(), domainInfo.getClientSecret());
         if (null == domainName) {
             throw new Exception("No access authorization");
         }
@@ -107,7 +107,7 @@ public class CertifiedConnector {
         headers.add("Authorization", "Basic " + base64Creds);
 
         HttpEntity<String> httpEntity = new HttpEntity<>("body", headers);
-        String url = String.format("%s?token=%s", uri.concat("/oauth2/introspect"), token);
+        String url = String.format("%s?token=%s", uri, token);
         if (uri.indexOf("/oauth2/introspect") > -1)
             url = String.format("%s?token=%s", uri, token);
         try {

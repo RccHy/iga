@@ -71,10 +71,11 @@ curl --location --request POST 'http://ip:端口/iga/api/event' \
 | SSO_API_DATASOURCE_URL | sso-api项目数据库地址 | jdbc:mysql://XXXX:3306/sso-api?rewriteBatchedStatements=true
 | SSO_API_DATASOURCE_USERNAME | 数据库用户名 | ----- 
 | SSO_API_DATASOURCE_PASSWORD | 数据库地址 | ----- 
-| SSO_URL | 科探云SSO地址 | https://cloud.ketanyun.cn/sso 支持多租环境，多组环境下任意挑选其中一租户的sso绝对路径
-| BUS_URL | 网关bus地址 | https://cloud.ketanyun.cn/bus 支持多租环境，多组环境下任意挑选其中一租户的sso绝对路径
-| APP_CLIENT | 应用id | ------
-| APP_SECRET | 应用密钥 |------
+| OAUTH_AUTHORIZE_URL | OAuth Authority 地址 | https://cloud.ketanyun.cn/sso/oauth2/authorize 支持多租环境，多组环境下任意挑选其中一租户的sso绝对路径
+| OAUTH_TOKEN_URL |  OAuth Token 地址 | https://cloud.ketanyun.cn/sso/oauth2/token 支持多租环境，多组环境下任意挑选其中一租户的sso绝对路径
+| BUS_URL | BUS服务地址  | https://cloud.ketanyun.cn/bus/graphql/builtin 支持多租环境，多组环境下任意挑选其中一租户的bus绝对路径
+| OAUTH_CLIENT | 应用id | ------
+| OAUTH_CLIENT_SECRET | 应用密钥 |------
 | TASK_CRON | 同步时间 | 控制定时同步任务间隔时间。默认值 0 */5 * * * ?
 | FILE_URL | 【*】文件服务地址 | https://cloud.ketanyun.cn/file
 | SERVICE_ORIGIN | 【*】云服务的通用域名，用于后台直接调用服务时做相对路径拼接  | 格式示例：https://example.com
