@@ -22,7 +22,7 @@ spec:
         imagePullPolicy: Always
         envFrom:
           - secretRef:
-              name: qapp-secret-infoplus
+              name: qapp-secret-iga
           - configMapRef:
               name: qservice-discovery
         env:
@@ -83,26 +83,26 @@ spec:
               secretKeyRef:
                 name: iga-secret
                 key: sso_api_datasource_password
-          - name: SSO_URL
-            valueFrom:
-              secretKeyRef:
-                name: iga-secret
-                key: sso_url
-          - name: APP_CLIENT
-            valueFrom:
-              secretKeyRef:
-                name: iga-secret
-                key: app_client
-          - name: APP_SECRET
-            valueFrom:
-              secretKeyRef:
-                name: iga-secret
-                key: app_secret
-          - name: BUS_URL
-            valueFrom:
-              secretKeyRef:
-                name: iga-secret
-                key: bus_url
+#          - name: SSO_URL
+#            valueFrom:
+#              secretKeyRef:
+#                name: iga-secret
+#                key: sso_url
+#          - name: APP_CLIENT
+#            valueFrom:
+#              secretKeyRef:
+#                name: iga-secret
+#                key: app_client
+#          - name: APP_SECRET
+#            valueFrom:
+#              secretKeyRef:
+#                name: iga-secret
+#                key: app_secret
+#          - name: BUS_URL
+#            valueFrom:
+#              secretKeyRef:
+#                name: iga-secret
+#                key: bus_url
           - name: TASK_CRON
             valueFrom:
               secretKeyRef:
