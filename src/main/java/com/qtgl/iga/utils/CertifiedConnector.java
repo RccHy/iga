@@ -33,7 +33,7 @@ public class CertifiedConnector {
 
     @Autowired
     DomainInfoService domainInfoService;
-    @Value("${sso.authorize.url}")
+    @Value("${sso.introspect.url}")
     String url;
 
     public void set(DomainInfoService domainInfoService, String url) {

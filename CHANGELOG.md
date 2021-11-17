@@ -2,7 +2,7 @@
 
 **new**
 - 环境变量 `APP_CLIENT` 改名为 `OAUTH_CLIENT_ID`
-- 环境变量 `APP_SECRET` 改名为 `OAUTH_CLIENT_SECRET`
+- 环境变量 `APP_SECRET` 改名为 `OAUTH_INTROSPECT_URL`
 - 环境变量 `BUS_URL` 的值发生更改，改为标准 BUS服务地址.可参考[README.md]
 - 新增环境变量 `OAUTH_TOKEN_URL`
 - 新增环境变量 `OAUTH_AUTHORIZE_URL`

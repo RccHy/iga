@@ -27,8 +27,8 @@ graphql:
 sso:
   token:
     url: ${OAUTH_TOKEN_URL}
-  authorize:
-    url: ${OAUTH_AUTHORIZE_URL}
+  introspect:
+    url: ${OAUTH_INTROSPECT_URL}
 
 #app
 app:
