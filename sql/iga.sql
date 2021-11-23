@@ -20,6 +20,7 @@ create table t_mgr_dept_type
         primary key,
     code        varchar(50) not null comment '机构类型代码',
     name        varchar(50) not null comment '机构类型名称',
+    rule varchar(50) null comment '监控规则',
     description varchar(50) null comment '描述',
     create_time timestamp   null comment '创建时间',
     update_time timestamp   null comment '修改时间',
@@ -209,3 +210,13 @@ create table t_mgr_monitor_rules
     update_time timestamp        null comment '修改时间'
 )
 comment '同步监控规则表';
+
+create table t_mgr_dept_relation_type
+(
+	id varchar(50) null,
+	code varchar(50) null comment '机构关系代码',
+	name varchar(50) null comment '机构关系名称',
+	domain varchar(50) null comment '所属租户',
+	relation_index int null comment '排序'
+)
+comment '组织机构关系类型表';
