@@ -47,6 +47,7 @@ input InputDeptType{
 input DeptTypeFilter{
     code:stringFilter
     name:stringFilter
+    rule:stringFilter
     createTime:timestampFilter
     updateTime:timestampFilter
 }
