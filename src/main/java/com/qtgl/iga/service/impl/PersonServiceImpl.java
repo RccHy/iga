@@ -21,6 +21,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 
 import java.time.LocalDateTime;
@@ -413,8 +414,9 @@ public class PersonServiceImpl implements PersonService {
                 TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(personFromUpstream) + JSONObject.toJSONString(personFromUpstreamByAccount));
                 throw new CustomException(ResultCode.FAILED, e.getErrorMsg());
             }
-
-            TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(personErrorData.get(domain.getId())));
+            if(!CollectionUtils.isEmpty(personErrorData.get(domain.getId()))){
+                TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(personErrorData.get(domain.getId())));
+            }
             return result;
         } else {
             log.error("上游提供人员数据不符合规范,数据同步失败");

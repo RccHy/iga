@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -298,14 +299,19 @@ public class OccupyServiceImpl implements OccupyService {
             try {
                 occupyDao.saveToSso(result, tenant.getId());
             } catch (CustomException e) {
-                TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(occupyDtoFromUpstream));
+                if (!CollectionUtils.isEmpty(occupyDtoFromUpstream)) {
+                    TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(occupyDtoFromUpstream));
+                }
                 throw new CustomException(ResultCode.FAILED, e.getErrorMsg());
             }
 
             if (StringUtils.isNotBlank(TaskConfig.errorData.get(domain.getId()))) {
                 String data = TaskConfig.errorData.get(domain.getId());
                 JSONArray jsonArray = JSONObject.parseArray(data);
-                jsonArray.addAll(occupyErrorData.get(domain.getId()));
+
+                if (null != jsonArray) {
+                    jsonArray.addAll(occupyErrorData.get(domain.getId()));
+                }
                 TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(jsonArray));
 
             } else {
