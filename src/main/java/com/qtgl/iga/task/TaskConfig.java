@@ -77,16 +77,6 @@ public class TaskConfig {
                 Map<String, DsConfig> collect = dsConfigs.stream().collect(Collectors.toMap(DsConfig::getTenantId, v -> v));
 
                 for (DomainInfo domainInfo : domainInfos) {
-                    Tenant tenant = tenantDao.findByDomainName(domainInfo.getDomainName());
-                    //判断sso是否有定时任务
-                    if (collect.containsKey(tenant.getId())) {
-                        DsConfig dsConfig = collect.get(tenant.getId());
-                        String syncWay = dsConfigService.getSyncWay(dsConfig);
-                        if (StringUtils.isNotBlank(syncWay) && (syncWay.equals(SYNC_WAY_BRIDGE) || syncWay.equals(SYNC_WAY_ENTERPRISE) || syncWay.equals(SYNC_WAY_ENTERPRISE_GRAPHQL))) {
-                            log.info("{}sso正在进行同步,跳过本次同步任务", domainInfo.getId());
-                            continue;
-                        }
-                    }
                     if (TaskThreadPool.executorServiceMap.containsKey(domainInfo.getDomainName())) {
                         ExecutorService executorService = TaskThreadPool.executorServiceMap.get(domainInfo.getDomainName());
                         executorService.execute(() -> {
@@ -95,6 +85,20 @@ public class TaskConfig {
                             //  最近一次同步任务 状态成功后才能继续同步
                             if ((null == lastTaskLog) || (null != lastTaskLog.getId() && !lastTaskLog.getStatus().equals("failed"))) {
                                 errorData.remove(domainInfo.getId());
+                                Tenant tenant = tenantDao.findByDomainName(domainInfo.getDomainName());
+                                //判断sso是否有定时任务
+                                if (collect.containsKey(tenant.getId())) {
+                                    DsConfig dsConfig = collect.get(tenant.getId());
+                                    String syncWay = dsConfigService.getSyncWay(dsConfig);
+                                    if (StringUtils.isNotBlank(syncWay) && (syncWay.equals(SYNC_WAY_BRIDGE) || syncWay.equals(SYNC_WAY_ENTERPRISE) || syncWay.equals(SYNC_WAY_ENTERPRISE_GRAPHQL))) {
+                                        log.info("{}sso正在进行同步,跳过本次同步任务", domainInfo.getId());
+                                        TaskLog taskLog = new TaskLog();
+                                        taskLog.setId(UUID.randomUUID().toString());
+                                        taskLog.setReason("sso开启了同步配置，请先关闭！");
+                                        taskLogService.save(taskLog, domainInfo.getId(), "failed");
+                                        return;
+                                    }
+                                }
                                 // 如果有编辑中的规则，则不进行数据同步
                                 Map<String, Object> arguments = new HashMap<>();
                                 arguments.put("status", 1);
@@ -162,7 +166,7 @@ public class TaskConfig {
                                         taskLogService.save(taskLog, domainInfo.getId(), "update");
 
                                         // PUT   MQ
-                                        if (personResult.size() > 0 && (insertPerson+deletePerson+updatePerson+invalidPerson) < 100) {
+                                        if (personResult.size() > 0 && (insertPerson + deletePerson + updatePerson + invalidPerson) < 100) {
                                             pubResult = dataBusUtil.pub(null, personResult, null, "person", domainInfo);
                                             log.info("person pub:{}", pubResult);
                                         }
@@ -182,7 +186,7 @@ public class TaskConfig {
                                         taskLogService.save(taskLog, domainInfo.getId(), "update");
 
                                         // PUT   MQ
-                                        if (occupyResult.size() > 0 && (insertOccupy+deleteOccupy+updateOccupy+invalidOccupy) < 500) {
+                                        if (occupyResult.size() > 0 && (insertOccupy + deleteOccupy + updateOccupy + invalidOccupy) < 500) {
                                             pubResult = dataBusUtil.pub(null, null, occupyResult, "occupy", domainInfo);
                                             log.info("occupy pub:{}", pubResult);
                                         }

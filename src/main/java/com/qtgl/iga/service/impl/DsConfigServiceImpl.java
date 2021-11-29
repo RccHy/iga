@@ -44,7 +44,7 @@ public class DsConfigServiceImpl implements DsConfigService {
         }
         String syncWay = settingDs.getString(SYNC_WAY);
         if (StringUtils.isBlank(syncWay)) {
-            return TaskConfig.SYNC_WAY_BRIDGE;
+            return null;
         }
 
         return syncWay;
