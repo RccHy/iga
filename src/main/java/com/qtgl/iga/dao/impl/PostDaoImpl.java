@@ -167,11 +167,15 @@ public class PostDaoImpl implements PostDao {
 
     @Override
     public List<TreeBean> findRootData(String tenantId) {
+        //String sql = "select  user_type as code , name as name , parent_code as parentCode ,create_time as createTime, " +
+        //        " tags ,data_source as dataSource , description ,source,post_type as postType,user_type_index as deptIndex,del_mark as delMark ,active " +
+        //        " from user_type where tenant_id=? and del_mark=0 and data_source=? and client_id is null or client_id = '' ";
+
         String sql = "select  user_type as code , name as name , parent_code as parentCode ,create_time as createTime, " +
                 " tags ,data_source as dataSource , description ,source,post_type as postType,user_type_index as deptIndex,del_mark as delMark ,active " +
-                " from user_type where tenant_id=? and del_mark=0 and data_source=? and client_id is null or client_id = '' ";
+                " from user_type where tenant_id=? and del_mark=0 and active=1 and client_id is null or client_id = '' ";
 
-        List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId, "BUILTIN");
+        List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId);
         ArrayList<TreeBean> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {

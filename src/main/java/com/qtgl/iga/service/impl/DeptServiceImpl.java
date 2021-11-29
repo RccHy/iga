@@ -452,7 +452,17 @@ public class DeptServiceImpl implements DeptService {
                                     ssoBean.setActive(pullBean.getActive());
                                     //将数据放入修改集合
                                     ssoCollect.put(ssoBean.getCode(), ssoBean);
+                                    logger.info("手动从失效中恢复{}", ssoBean);
 
+                                    result.put(ssoBean, "update");
+                                }
+                                //上游未提供delmark并且sso与上游源该字段值不一致
+                                if (!delFlag && !delRecoverFlag && (!ssoBean.getDelMark().equals(pullBean.getDelMark()))) {
+                                    ssoBean.setUpdateTime(now);
+                                    ssoBean.setDelMark(pullBean.getDelMark());
+                                    //将数据放入修改集合
+                                    ssoCollect.put(ssoBean.getCode(), ssoBean);
+                                    logger.info("手动从删除中恢复{}", ssoBean);
                                     result.put(ssoBean, "update");
                                 }
                             } else {
