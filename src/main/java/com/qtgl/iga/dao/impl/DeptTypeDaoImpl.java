@@ -27,14 +27,14 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
     public List<DeptType> getAllDeptTypes(Map<String, Object> arguments, String domain) {
         String sql = "select id, code, name,rule, description," +
                 "create_time as createTime, update_time as updateTime, " +
-                "create_user as createUser, domain from t_mgr_dept_type where 1 = 1 and domain =? ";
+                "create_user as createUser, domain,type_index as typeIndex from t_mgr_dept_type where 1 = 1 and domain =? ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
         List<Object> param = new ArrayList<>();
         param.add(domain);
         dealData(arguments, stb, param);
-
+        stb.append(" order by  type_index");
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
         ArrayList<DeptType> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
@@ -92,7 +92,7 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
             throw new CustomException(ResultCode.FAILED, "code 或 name 不能重复,添加组织机构类别失败");
         }
 
-        String sql = "insert into t_mgr_dept_type (id,code,name,rule,description,create_time,update_time,create_user,domain)  values(?,?,?,?,?,?,?,?,?)";
+        String sql = "insert into t_mgr_dept_type (id,code,name,rule,description,create_time,update_time,create_user,domain,type_index)  values(?,?,?,?,?,?,?,?,?,?)";
         //生成主键和时间
         String id = UUID.randomUUID().toString().replace("-", "");
         deptType.setId(id);
@@ -109,6 +109,7 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
             preparedStatement.setObject(7, deptType.getUpdateTime());
             preparedStatement.setObject(8, deptType.getCreateUser());
             preparedStatement.setObject(9, domain);
+            preparedStatement.setObject(10, deptType.getTypeIndex());
 
         });
         return update > 0 ? deptType : null;
@@ -124,7 +125,7 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
             throw new CustomException(ResultCode.FAILED, "code 或 name 不能重复,修改组织机构类别失败");
         }
         String sql = "update t_mgr_dept_type  set code = ?,name = ?,rule=?,description = ?,create_time = ?," +
-                "update_time = ?,create_user = ?,domain= ?  where id=?";
+                "update_time = ?,create_user = ?,domain= ?,type_index= ?  where id=?";
         Timestamp date = new Timestamp(System.currentTimeMillis());
         return jdbcIGA.update(sql, preparedStatement -> {
             preparedStatement.setObject(1, deptType.getCode());
@@ -135,7 +136,8 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
             preparedStatement.setObject(6, date);
             preparedStatement.setObject(7, deptType.getCreateUser());
             preparedStatement.setObject(8, deptType.getDomain());
-            preparedStatement.setObject(9, deptType.getId());
+            preparedStatement.setObject(9, deptType.getTypeIndex());
+            preparedStatement.setObject(10, deptType.getId());
         }) > 0 ? deptType : null;
     }
 
@@ -143,7 +145,7 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
     public DeptType findById(String id) {
         String sql = "select id, code, name,rule, description," +
                 "create_time as createTime, update_time as updateTime, " +
-                "create_user as createUser, domain from t_mgr_dept_type where id= ? ";
+                "create_user as createUser, domain,type_index as typeIndex from t_mgr_dept_type where id= ? ";
 
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id);
         DeptType deptType = new DeptType();

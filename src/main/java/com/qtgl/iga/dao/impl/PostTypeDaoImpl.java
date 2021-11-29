@@ -27,14 +27,14 @@ public class PostTypeDaoImpl implements PostTypeDao {
     public List<PostType> postTypes(Map<String, Object> arguments, String domain) {
         String sql = "select id, code, name, description," +
                 "create_time as createTime, update_time as updateTime, " +
-                "create_user as createUser, domain from t_mgr_post_type where 1 = 1 and domain=?  ";
+                "create_user as createUser, domain,type_index as typeIndex from t_mgr_post_type where 1 = 1 and domain=?  ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
         List<Object> param = new ArrayList<>();
         param.add(domain);
         dealData(arguments, stb, param);
-        stb.append(" order by  code");
+        stb.append(" order by  type_index");
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
         ArrayList<PostType> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
@@ -92,7 +92,7 @@ public class PostTypeDaoImpl implements PostTypeDao {
             throw new CustomException(ResultCode.FAILED, "code 或 name 不能重复,添加组织机构类别失败");
         }
 
-        String sql = "insert into t_mgr_post_type  values(?,?,?,?,?,?,?,?)";
+        String sql = "insert into t_mgr_post_type  values(?,?,?,?,?,?,?,?,?)";
         //生成主键和时间
         String id = UUID.randomUUID().toString().replace("-", "");
         postType.setId(id);
@@ -108,6 +108,7 @@ public class PostTypeDaoImpl implements PostTypeDao {
             preparedStatement.setObject(6, postType.getUpdateTime());
             preparedStatement.setObject(7, postType.getCreateUser());
             preparedStatement.setObject(8, domain);
+            preparedStatement.setObject(9, postType.getTypeIndex());
 
         });
         return update > 0 ? postType : null;
@@ -123,7 +124,7 @@ public class PostTypeDaoImpl implements PostTypeDao {
             throw new CustomException(ResultCode.FAILED, "code 或 name 不能重复,修改组织机构类别失败");
         }
         String sql = "update t_mgr_post_type  set code = ?,name = ?,description = ?,create_time = ?," +
-                "update_time = ?,create_user = ?,domain= ?  where id=?";
+                "update_time = ?,create_user = ?,domain= ?,type_index=?  where id=?";
         Timestamp date = new Timestamp(System.currentTimeMillis());
         return jdbcIGA.update(sql, preparedStatement -> {
             preparedStatement.setObject(1, postType.getCode());
@@ -133,7 +134,8 @@ public class PostTypeDaoImpl implements PostTypeDao {
             preparedStatement.setObject(5, date);
             preparedStatement.setObject(6, postType.getCreateUser());
             preparedStatement.setObject(7, postType.getDomain());
-            preparedStatement.setObject(8, postType.getId());
+            preparedStatement.setObject(8, postType.getTypeIndex());
+            preparedStatement.setObject(9, postType.getId());
         }) > 0 ? postType : null;
     }
 
@@ -141,7 +143,7 @@ public class PostTypeDaoImpl implements PostTypeDao {
     public PostType findById(String id) {
         String sql = "select id, code, name, description," +
                 "create_time as createTime, update_time as updateTime, " +
-                "create_user as createUser, domain from t_mgr_post_type where id= ? ";
+                "create_user as createUser, domain,type_index as typeIndex from t_mgr_post_type where id= ? ";
 
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id);
         PostType postType = new PostType();
@@ -159,12 +161,12 @@ public class PostTypeDaoImpl implements PostTypeDao {
     @Override
     public void initialization(String domain) {
 
-        String sql = "INSERT INTO t_mgr_post_type (id, code, name, description, create_time, update_time, create_user, domain)\n" +
-                "VALUES (uuid(), '01', '人员类别岗位', null, now(), now(), 'iga', ?)," +
-                "       (uuid(), '02', '职务岗位', null, now(), now(), 'iga', ?)," +
-                "       (uuid(), '03', '管理岗位', null, now(), now(), 'iga', ?)," +
-                "       (uuid(), '04', '党务岗位', null, now(), now(), 'iga', ?),  " +
-                "       (uuid(), '05', '业务岗位', null, now(), now(), 'iga', ?);";
+        String sql = "INSERT INTO t_mgr_post_type (id, code, name, description, create_time, update_time, create_user, domain,type_index)\n" +
+                "VALUES (uuid(), '01', '人员类别岗位', null, now(), now(), 'iga', ?,1)," +
+                "       (uuid(), '02', '职务岗位', null, now(), now(), 'iga', ?,2)," +
+                "       (uuid(), '03', '管理岗位', null, now(), now(), 'iga', ?,3)," +
+                "       (uuid(), '04', '党务岗位', null, now(), now(), 'iga', ?,4),  " +
+                "       (uuid(), '05', '业务岗位', null, now(), now(), 'iga', ?,5);";
 
 
         jdbcIGA.update(sql, preparedStatement -> {

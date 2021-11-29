@@ -50,4 +50,10 @@ public class PostType {
      * 租户外键
      */
     private String domain;
+
+
+    /**
+     * 排序
+     */
+    private Integer typeIndex;
 }
