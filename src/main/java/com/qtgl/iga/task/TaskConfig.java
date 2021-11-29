@@ -95,7 +95,7 @@ public class TaskConfig {
                                         TaskLog taskLog = new TaskLog();
                                         taskLog.setId(UUID.randomUUID().toString());
                                         taskLog.setReason("sso开启了同步配置，请先关闭！");
-                                        taskLogService.save(taskLog, domainInfo.getId(), "failed");
+                                        taskLogService.save(taskLog, domainInfo.getId(), "skip-error");
                                         return;
                                     }
                                 }

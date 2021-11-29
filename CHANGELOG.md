@@ -1,5 +1,8 @@
 ### new
 
+**数据库**
+- - 执行iga/update/update.sql下 20211203的sql
+
 **new**
 - 环境变量 `APP_CLIENT` 改名为 `OAUTH_CLIENT_ID`
 - 环境变量 `APP_SECRET` 改名为 `OAUTH_INTROSPECT_URL`
