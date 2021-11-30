@@ -81,7 +81,7 @@ public class PostServiceImpl implements PostService {
         //    logger.error("请在‘ 身份管理->岗位管理 ’中进行岗位数据初始化导入后再进行治理", tenant.getId());
         //    throw new CustomException(ResultCode.FAILED, "请在‘身份管理->岗位管理’中进行岗位数据初始化导入后再进行治理");
         //}
-        //获取完整的BUILTIN根数据以及加入逻辑根节点
+        //获取完整的非PULL根数据以及加入逻辑根节点
         rootBeans.addAll(ssoBeans);
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
@@ -176,7 +176,7 @@ public class PostServiceImpl implements PostService {
         //    logger.error("请在‘ 身份管理->岗位管理 ’中进行岗位数据初始化导入后再进行治理{}", tenant.getId());
         //    throw new CustomException(ResultCode.FAILED, "请在‘ 身份管理->岗位管理 ’中进行岗位数据初始化导入后再进行治理");
         //}
-        //获取完整的BUILTIN根数据以及加入逻辑根节点
+        //获取完整的非PULL根数据以及加入逻辑根节点
         rootBeans.addAll(ssoBeans);
 
         //轮训比对标记(是否有主键id)
