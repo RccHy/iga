@@ -35,7 +35,7 @@ public class DeptDaoImpl implements DeptDao {
 
     @Override
     public Dept findById(String id) {
-        String sql = "select id, code, name, type_id as typeId,create_time as createTime,abbreviation,relation_type as relationType,dept_en_name as enName  from dept where id= ? ";
+        String sql = "select id, code, name,independent, type_id as typeId,create_time as createTime,abbreviation,relation_type as relationType,dept_en_name as enName  from dept where id= ? ";
 
         List<Map<String, Object>> mapList = jdbcSSOAPI.queryForList(sql, id);
         Dept dept = new Dept();
@@ -52,7 +52,7 @@ public class DeptDaoImpl implements DeptDao {
 
     @Override
     public List<TreeBean> findByTenantId(String id, String treeType, Integer delMark) {
-        String sql = "select dept_code as code , dept_name as name , parent_code as parentCode ,dept_en_name as enName, " +
+        String sql = "select dept_code as code , dept_name as name , parent_code as parentCode ,independent,dept_en_name as enName, " +
                 " update_time as createTime , source, tree_type as treeType,data_source as dataSource, abbreviation,tags,type,update_time as updateTime,del_mark as delMark,active,relation_type as relationType,dept_en_name as enName  from dept where tenant_id = ? ";
         List<Object> param = new ArrayList<>();
         param.add(id);
@@ -107,8 +107,9 @@ public class DeptDaoImpl implements DeptDao {
     @Override
     public ArrayList<TreeBean> updateDept(ArrayList<TreeBean> list, String tenantId) {
         String str = "update dept set  dept_name=?,dept_en_name=?, parent_code=?, del_mark=? ,tenant_id =?" +
-                ",source =?, data_source=?, description=?,update_time=?,tags=?,tree_type= ?,active=? ,abbreviation=?,del_mark=0 ,type = ?,relation_type=?,dept_en_name=?  " +
-                "where dept_code =? and update_time< ?";
+                ",source =?, data_source=?, description=?,update_time=?,tags=?,tree_type= ?,active=? ,abbreviation=?,del_mark=0 ," +
+                " type = ?,relation_type=?,dept_en_name=?,independent=?  " +
+                " where dept_code =? and update_time< ? ";
         boolean contains = false;
 
         int[] ints = jdbcSSOAPI.batchUpdate(str, new BatchPreparedStatementSetter() {
@@ -130,8 +131,9 @@ public class DeptDaoImpl implements DeptDao {
                 preparedStatement.setObject(14, null == list.get(i).getType() ? null : list.get(i).getType());
                 preparedStatement.setObject(15, list.get(i).getRelationType());
                 preparedStatement.setObject(16, list.get(i).getEnName());
-                preparedStatement.setObject(17, list.get(i).getCode());
-                preparedStatement.setObject(18, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
+                preparedStatement.setObject(17, null == list.get(i).getIndependent()?0:list.get(i).getIndependent());
+                preparedStatement.setObject(18, list.get(i).getCode());
+                preparedStatement.setObject(19, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
 
             }
 
@@ -149,8 +151,8 @@ public class DeptDaoImpl implements DeptDao {
 
     @Override
     public ArrayList<TreeBean> saveDept(ArrayList<TreeBean> list, String tenantId) {
-        String str = "insert into dept (id,dept_code, dept_name,dept_en_name, parent_code, del_mark ,tenant_id ,source, data_source, description,create_time,tags,active,active_time,tree_type,dept_index,abbreviation,update_time,type,relation_type) values" +
-                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        String str = "insert into dept (id,dept_code, dept_name,dept_en_name, parent_code, del_mark ,tenant_id ,source, data_source, description,create_time,tags,active,active_time,tree_type,dept_index,abbreviation,update_time,type,relation_type,independent) values" +
+                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         boolean contains = false;
 
         int[] ints = jdbcSSOAPI.batchUpdate(str, new BatchPreparedStatementSetter() {
@@ -176,6 +178,7 @@ public class DeptDaoImpl implements DeptDao {
                 preparedStatement.setObject(18, LocalDateTime.now());
                 preparedStatement.setObject(19, list.get(i).getType());
                 preparedStatement.setObject(20, list.get(i).getRelationType());
+                preparedStatement.setObject(21, null == list.get(i).getIndependent() ? 0 : list.get(i).getIndependent());
             }
 
             @Override
@@ -218,8 +221,8 @@ public class DeptDaoImpl implements DeptDao {
     @Override
     public Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, ArrayList<TreeBean> invalidList, String tenantId) {
         String insertStr = "insert into dept (id,dept_code, dept_name,dept_en_name, parent_code, del_mark ,tenant_id ,source, data_source, description," +
-                "create_time,tags,active,active_time,tree_type,dept_index,abbreviation,update_time,type,relation_type) values" +
-                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                "create_time,tags,active,active_time,tree_type,dept_index,abbreviation,update_time,type,relation_type,independent) values" +
+                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         return txTemplate.execute(transactionStatus -> {
 
             try {
@@ -247,6 +250,7 @@ public class DeptDaoImpl implements DeptDao {
                             preparedStatement.setObject(18, insertList.get(i).getUpdateTime());
                             preparedStatement.setObject(19, insertList.get(i).getType());
                             preparedStatement.setObject(20, insertList.get(i).getRelationType());
+                            preparedStatement.setObject(21, null == insertList.get(i).getIndependent() ? 0 : insertList.get(i).getIndependent());
                         }
 
                         @Override
@@ -256,8 +260,8 @@ public class DeptDaoImpl implements DeptDao {
                     });
                 }
                 String updateStr = "update dept set  dept_name=?,dept_en_name=?, parent_code=?, del_mark=? ,tenant_id =?" +
-                        ",source =?, data_source=?, description=?,update_time=?,tags=?,tree_type= ?,active=? ,abbreviation=?,type = ?,dept_index=?,relation_type=?  " +
-                        "where dept_code =? and update_time<= ?";
+                        ",source =?, data_source=?, description=?,update_time=?,tags=?,tree_type= ?,active=? ,abbreviation=?,type = ?,dept_index=?,relation_type=?,independent=?  " +
+                        " where dept_code =? and update_time<= ?";
                 if (null != updateList && updateList.size() > 0) {
                     int[] i = jdbcSSOAPI.batchUpdate(updateStr, new BatchPreparedStatementSetter() {
                         @Override
@@ -278,8 +282,9 @@ public class DeptDaoImpl implements DeptDao {
                             preparedStatement.setObject(14, updateList.get(i).getType());
                             preparedStatement.setObject(15, updateList.get(i).getDeptIndex());
                             preparedStatement.setObject(16, updateList.get(i).getRelationType());
-                            preparedStatement.setObject(17, updateList.get(i).getCode());
-                            preparedStatement.setObject(18, updateList.get(i).getUpdateTime());
+                            preparedStatement.setObject(17, null==updateList.get(i).getIndependent()?0:updateList.get(i).getIndependent());
+                            preparedStatement.setObject(18, updateList.get(i).getCode());
+                            preparedStatement.setObject(19, updateList.get(i).getUpdateTime());
 
                         }
 
@@ -330,7 +335,7 @@ public class DeptDaoImpl implements DeptDao {
 
     @Override
     public List<TreeBean> findBySourceAndTreeType(String api, String treeType, String tenantId) {
-        String sql = "select dept_code as code , dept_name as name ,dept_en_name as enName , parent_code as parentCode ,relation_type as relationType ," +
+        String sql = "select dept_code as code , dept_name as name ,independent,dept_en_name as enName , parent_code as parentCode ,relation_type as relationType ," +
                 " update_time as createTime , source, tree_type as treeType,data_source as dataSource, abbreviation,tags,type,update_time as updateTime,del_mark as delMark,active  from dept where tenant_id = ? and data_source=?  and del_mark=0 ";
         List<Object> param = new ArrayList<>();
         param.add(tenantId);
@@ -349,7 +354,7 @@ public class DeptDaoImpl implements DeptDao {
 
     @Override
     public List<TreeBean> findActiveDataByTenantId(String tenantId) {
-        String sql = "select dept_code as code , dept_name as name ,dept_en_name as enName , parent_code as parentCode ,relation_type as relationType , " +
+        String sql = "select dept_code as code , dept_name as name ,independent,dept_en_name as enName , parent_code as parentCode ,relation_type as relationType , " +
                 " update_time as createTime , source, tree_type as treeType,data_source as dataSource, abbreviation,tags,type,update_time as updateTime,del_mark as delMark,active  from dept where tenant_id = ? " +
                 " and active=true and del_mark=false ";
         List<Object> param = new ArrayList<>();
