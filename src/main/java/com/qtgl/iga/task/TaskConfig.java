@@ -203,6 +203,8 @@ public class TaskConfig {
                                         taskLog.setReason(e.getErrorMsg());
                                         if (StringUtils.isNotBlank(TaskConfig.errorData.get(domainInfo.getId()))) {
                                             this.upload(domainInfo, taskLog);
+                                        }else{
+                                            taskLogService.save(taskLog,domainInfo.getDomainId(),"update");
                                         }
                                         e.printStackTrace();
                                     } catch (Exception e) {
@@ -211,6 +213,8 @@ public class TaskConfig {
                                         taskLog.setReason(e.getMessage());
                                         if (StringUtils.isNotBlank(TaskConfig.errorData.get(domainInfo.getId()))) {
                                             this.upload(domainInfo, taskLog);
+                                        }else{
+                                            taskLogService.save(taskLog,domainInfo.getDomainId(),"update");
                                         }
                                         e.printStackTrace();
                                     }
