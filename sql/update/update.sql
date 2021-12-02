@@ -61,6 +61,8 @@ comment '组织机构关系类型表';
 
 alter table t_mgr_dept_type add rule varchar(50) null comment '监控规则 暂不启用' after name;
 
+
+
 -- 20211203
 alter table t_mgr_dept_type add type_index int null comment '排序' after domain;
 alter table t_mgr_post_type add type_index int null comment '排序' after domain;
