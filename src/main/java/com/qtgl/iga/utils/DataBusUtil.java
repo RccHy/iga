@@ -96,7 +96,8 @@ public class DataBusUtil {
         String[] split = upstreamType.getGraphqlUrl().split("/");
 
         //根据url 获取请求地址
-        String substring = new StringBuffer(UrlUtil.getUrl(busUrl)).append("?access_token=").append(key).toString();
+        String substring = new StringBuffer(UrlUtil.getUrl(busUrl)).append("?access_token=").append(key)
+                .append("&domain=").append(serverName).toString();
         //工具类过滤处理url
         String dealUrl = UrlUtil.getUrl(substring);
         //调用获取资源url
@@ -327,13 +328,14 @@ public class DataBusUtil {
         return null;
     }
 
-    public Map getDataByBus(UpstreamType upstreamType, Integer offset, Integer first) throws Exception {
+    public Map getDataByBus(UpstreamType upstreamType, Integer offset, Integer first,DomainInfo domain) throws Exception {
         //获取token
         String key = getToken(null);
         String[] split = upstreamType.getGraphqlUrl().split("/");
 
         //根据url 获取请求地址
-        String substring = new StringBuffer(UrlUtil.getUrl(busUrl)).append("?access_token=").append(key).toString();
+        String substring = new StringBuffer(UrlUtil.getUrl(busUrl)).append("?access_token=").append(key)
+                .append("&domain=").append(domain.getDomainName()).toString();
         //工具类过滤处理url
         String dealUrl = UrlUtil.getUrl(substring);
 
@@ -341,7 +343,7 @@ public class DataBusUtil {
         //调用获取资源url
         String dataUrl = invokeUrl(dealUrl, split);
         //请求获取资源
-        String u = dataUrl + "/" + "?access_token=" + key;
+        String u = dataUrl + "/" + "?access_token=" + key+"&domain="+domain.getDomainName();
 
         return invokeForMapData(UrlUtil.getUrl(u), upstreamType, offset, first);
     }
@@ -659,7 +661,7 @@ public class DataBusUtil {
         log.debug("pub graphql: {}", graphql);
 
         String token = getToken(domain.getDomainName());
-        return sendPostRequest(busUrl + "?access_token=" + token, params);
+        return sendPostRequest(busUrl + "?access_token=" + token+"&domain="+domain.getDomainName(), params);
 
     }
 

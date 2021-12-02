@@ -542,7 +542,7 @@ public class OccupyServiceImpl implements OccupyService {
         if (null != upstreamType && upstreamType.getIsPage()) {
             Map dataMap = null;
             try {
-                dataMap = dataBusUtil.getDataByBus(upstreamType, offset, first);
+                dataMap = dataBusUtil.getDataByBus(upstreamType, offset, first,domain);
             } catch (CustomException e) {
                 throw e;
             } catch (Exception e) {

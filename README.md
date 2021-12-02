@@ -21,7 +21,8 @@ iga/sql/update/update.sql
 # 如何安装
 
 1：运行数据脚本 <br/>
-2：安装接口: http://ip:端口/iga/api/event <br/>
+**20211203后可忽略 2：安装接口**
+~~2：安装接口: http://ip:端口/iga/api/event <br/>
 入参参考：<br/>
 {
 "clientId": "", // 应用client_id <br/>
@@ -42,7 +43,7 @@ curl --location --request POST 'http://ip:端口/iga/api/event' \
     "authCode": "XXX",
     "clientId": "XXX",
     "timestamp": XXX
-}'
+}'~~
 
 3:将iga注册进maker，可获取到 clientId 和 clientSecret<br/>
 

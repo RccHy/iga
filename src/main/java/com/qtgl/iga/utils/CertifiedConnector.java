@@ -21,6 +21,8 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
+import java.sql.Timestamp;
+import java.util.Date;
 import java.util.Map;
 
 
@@ -36,9 +38,16 @@ public class CertifiedConnector {
     @Value("${sso.introspect.url}")
     String url;
 
-    public void set(DomainInfoService domainInfoService, String url) {
+    @Value("${app.client}")
+    String clientId;
+    @Value("${app.secret}")
+    String clientSecret;
+
+    public void set(DomainInfoService domainInfoService, String url, String clientId, String clientSecret) {
         this.domainInfoService = domainInfoService;
         this.url = url;
+        this.clientId = clientId;
+        this.clientSecret = clientSecret;
     }
 
     @PostConstruct
@@ -46,6 +55,8 @@ public class CertifiedConnector {
         certifiedConnector = this;
         certifiedConnector.domainInfoService = this.domainInfoService;
         certifiedConnector.url = this.url;
+        certifiedConnector.clientId = this.clientId;
+        certifiedConnector.clientSecret = this.clientSecret;
     }
 
     /**
@@ -79,7 +90,15 @@ public class CertifiedConnector {
         }
         DomainInfo byDomainName = certifiedConnector.domainInfoService.getByDomainName(domainName);
         if (null == byDomainName) {
-            throw new Exception("No domain info");
+            // 创建租户
+            byDomainName = new DomainInfo(domainName, null, new Timestamp(System.currentTimeMillis()), 0, certifiedConnector.clientId, certifiedConnector.clientSecret);
+            try {
+                certifiedConnector.domainInfoService.install(byDomainName);
+                //GraphQLService.setDomainGraphQLMap(certifiedConnector.runner.buildGraphql());
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new Exception("create tenant error");
+            }
         }
         return byDomainName;
     }

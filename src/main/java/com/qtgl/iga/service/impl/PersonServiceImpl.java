@@ -1008,7 +1008,7 @@ public class PersonServiceImpl implements PersonService {
         if (null != upstreamType && upstreamType.getIsPage()) {
             Map dataMap = null;
             try {
-                dataMap = dataBusUtil.getDataByBus(upstreamType, offset, first);
+                dataMap = dataBusUtil.getDataByBus(upstreamType, offset, first, domain);
             } catch (CustomException e) {
                 log.error("人员治理中:{} 类型 {} ", upstreamType.getDescription(), e.getMessage());
                 throw new CustomException(ResultCode.PERSON_ERROR, null, null, upstreamType.getDescription(), e.getErrorMsg());
