@@ -722,7 +722,7 @@ public class NodeRulesCalculationServiceImpl {
                                                         .equals(null == value.getTreeType() ? "" : value.getTreeType()))
                                         ) {
                                             //如果为API数据移除mainTree中的数据
-                                            if ("API".equals(value.getDataSource())) {
+                                            if ("API".equals(value.getDataSource()) || "ENTERPRISE".equals(value.getDataSource())) {
                                                 mainTreeMap.remove(key);
                                             } else {
                                                 //如果为BUILTIN数据移除merge中的数据
@@ -886,7 +886,7 @@ public class NodeRulesCalculationServiceImpl {
 
                     DeptTreeType deptTreeType = deptTreeTypeDao.findByCode(bean.getTreeType(), domainInfo.getId());
 
-                    if (("API".equals(bean.getDataSource())) || ("BUILTIN".equals(bean.getDataSource()))) {
+                    if (("API".equals(bean.getDataSource())) || ("BUILTIN".equals(bean.getDataSource())) || ("ENTERPRISE".equals(bean.getDataSource()))) {
                         deptTreeName = (null == deptTreeType ? "" : deptTreeType.getName());
                         treeBeanName = "".equals(bean.getCode()) ? "根节点" : bean.getName();
                         treeBeanCode = bean.getCode();
@@ -910,7 +910,7 @@ public class NodeRulesCalculationServiceImpl {
                         treeBean.setTreeType("");
                     }
                     DeptTreeType deptTreeType2 = deptTreeTypeDao.findByCode(treeBean.getTreeType(), domainInfo.getId());
-                    if (("API".equals(treeBean.getDataSource())) || ("BUILTIN".equals(treeBean.getDataSource()))) {
+                    if (("API".equals(treeBean.getDataSource())) || ("BUILTIN".equals(treeBean.getDataSource())) || ("ENTERPRISE".equals(treeBean.getDataSource()))) {
                         deptTreeNameM = null == deptTreeType2 ? "" : deptTreeType2.getName();
                         treeBeanNameM = "".equals(treeBean.getCode()) ? "根节点" : treeBean.getName();
                         treeBeanCodeM = treeBean.getCode();
@@ -968,7 +968,7 @@ public class NodeRulesCalculationServiceImpl {
 
                     DeptTreeType deptTreeType = deptTreeTypeDao.findByCode(bean.getTreeType(), domainInfo.getId());
 
-                    if (("API".equals(bean.getDataSource())) || ("BUILTIN".equals(bean.getDataSource()))) {
+                    if (("API".equals(bean.getDataSource())) || ("BUILTIN".equals(bean.getDataSource())) || ("ENTERPRISE".equals(bean.getDataSource()))) {
                         deptTreeName = (null == deptTreeType ? "" : deptTreeType.getName());
                         treeBeanName = "".equals(bean.getCode()) ? "根节点" : bean.getName();
                         treeBeanCode = bean.getCode();
@@ -996,7 +996,7 @@ public class NodeRulesCalculationServiceImpl {
                         treeBean.setTreeType("");
                     }
                     DeptTreeType deptTreeType2 = deptTreeTypeDao.findByCode(treeBean.getTreeType(), domainInfo.getId());
-                    if (("API".equals(treeBean.getDataSource())) || ("BUILTIN".equals(treeBean.getDataSource()))) {
+                    if (("API".equals(treeBean.getDataSource())) || ("BUILTIN".equals(treeBean.getDataSource())) || ("ENTERPRISE".equals(treeBean.getDataSource()))) {
 //                        ex.append(null == deptTreeType2 ? "" : deptTreeType2.getName()).append("节点 (").append("".equals(treeBean.getCode()) ? "根节点" : treeBean.getName())
 //                                .append("(").append(treeBean.getCode()).append("))").append("中的数据").append(treeBean.getName()).append("(").append(treeBean.getCode())
 //                                .append(")").append("循环依赖");
@@ -1090,7 +1090,7 @@ public class NodeRulesCalculationServiceImpl {
                         treeBean1.setTreeType("");
                     }
                     DeptTreeType deptTreeType = deptTreeTypeDao.findByCode(treeBean1.getTreeType(), domainInfo.getId());
-                    if (("API".equals(treeBean1.getDataSource())) || ("BUILTIN".equals(treeBean1.getDataSource()))) {
+                    if (("API".equals(treeBean1.getDataSource())) || ("BUILTIN".equals(treeBean1.getDataSource())) || ("ENTERPRISE".equals(treeBean1.getDataSource()))) {
 
                         deptTreeName = (null == deptTreeType ? "" : deptTreeType.getName());
                         treeBeanName = "".equals(treeBean1.getCode()) ? "根节点" : treeBean1.getName();
@@ -1116,7 +1116,7 @@ public class NodeRulesCalculationServiceImpl {
                         treeBean.setTreeType("");
                     }
                     DeptTreeType deptTreeType2 = deptTreeTypeDao.findByCode(treeBean.getTreeType(), domainInfo.getId());
-                    if (("API".equals(treeBean.getDataSource())) || ("BUILTIN".equals(treeBean.getDataSource()))) {
+                    if (("API".equals(treeBean.getDataSource())) || ("BUILTIN".equals(treeBean.getDataSource())) || ("ENTERPRISE".equals(treeBean.getDataSource()))) {
                         deptTreeNameM = null == deptTreeType2 ? "" : deptTreeType2.getName();
                         treeBeanNameM = "".equals(treeBean.getCode()) ? "根节点" : treeBean.getName();
                         treeBeanCodeM = treeBean.getCode();

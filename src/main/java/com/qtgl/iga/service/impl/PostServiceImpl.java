@@ -65,25 +65,27 @@ public class PostServiceImpl implements PostService {
         //  查sso BUILTIN 的岗位
         //  置空 mainTree
         ArrayList<TreeBean> rootBeans = new ArrayList<>();
-        //TreeBean treeBean = new TreeBean();
-        //treeBean.setCode("");
-        //rootBeans.add(treeBean);
+        TreeBean treeBean = new TreeBean();
+        treeBean.setCode("");
+        treeBean.setActive(1);
+        treeBean.setDelMark(0);
+        rootBeans.add(treeBean);
         List<TreeBean> ssoBeans = postDao.findRootData(tenant.getId());
-        if (null != ssoBeans && ssoBeans.size() > 0) {
-            for (TreeBean rootBean : ssoBeans) {
-                if (null == rootBean.getParentCode()) {
-                    rootBean.setParentCode("");
-                }
-            }
-        } else {
-            logger.error("请在‘ 身份管理->岗位管理 ’中进行岗位数据初始化导入后再进行治理", tenant.getId());
-            throw new CustomException(ResultCode.FAILED, "请在‘身份管理->岗位管理’中进行岗位数据初始化导入后再进行治理");
-        }
-        //获取完整的BUILTIN根数据以及加入逻辑根节点
+        //if (null != ssoBeans && ssoBeans.size() > 0) {
+        //    for (TreeBean rootBean : ssoBeans) {
+        //        if (null == rootBean.getParentCode()) {
+        //            rootBean.setParentCode("");
+        //        }
+        //    }
+        //} else {
+        //    logger.error("请在‘ 身份管理->岗位管理 ’中进行岗位数据初始化导入后再进行治理", tenant.getId());
+        //    throw new CustomException(ResultCode.FAILED, "请在‘身份管理->岗位管理’中进行岗位数据初始化导入后再进行治理");
+        //}
+        //获取完整的非PULL根数据以及加入逻辑根节点
         rootBeans.addAll(ssoBeans);
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
-        ArrayList<TreeBean> treeBeans = new ArrayList<>();
+        //ArrayList<TreeBean> treeBeans = new ArrayList<>();
 
         List<TreeBean> mainTreeBeans = new ArrayList<>();
 //        Map<String, TreeBean> rootBeansMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
@@ -119,9 +121,7 @@ public class PostServiceImpl implements PostService {
 //        if (null != rootBeansMap && rootBeansMap.size() > 0) {
 //            rootBeans = new ArrayList<>(rootBeansMap.values());
 //        }
-        TreeBean treeBean = new TreeBean();
-        treeBean.setCode("");
-        rootBeans.add(treeBean);
+
         // 判断重复(code)
         calculationService.groupByCode(beans, 0, domain);
         //
@@ -160,26 +160,28 @@ public class PostServiceImpl implements PostService {
         }
         //  置空 mainTree
         ArrayList<TreeBean> rootBeans = new ArrayList<>();
-        //TreeBean treeBean = new TreeBean();
-        //treeBean.setCode("");
-        //rootBeans.add(treeBean);
+        TreeBean treeBean = new TreeBean();
+        treeBean.setCode("");
+        treeBean.setActive(1);
+        treeBean.setDelMark(0);
+        rootBeans.add(treeBean);
         List<TreeBean> ssoBeans = postDao.findRootData(tenant.getId());
-        if (null != ssoBeans && ssoBeans.size() > 0) {
-            for (TreeBean rootBean : ssoBeans) {
-                if (null == rootBean.getParentCode()) {
-                    rootBean.setParentCode("");
-                }
-            }
-        } else {
-            logger.error("请在‘ 身份管理->岗位管理 ’中进行岗位数据初始化导入后再进行治理{}", tenant.getId());
-            throw new CustomException(ResultCode.FAILED, "请在‘ 身份管理->岗位管理 ’中进行岗位数据初始化导入后再进行治理");
-        }
-        //获取完整的BUILTIN根数据以及加入逻辑根节点
+        //if (null != ssoBeans && ssoBeans.size() > 0) {
+        //    for (TreeBean rootBean : ssoBeans) {
+        //        if (null == rootBean.getParentCode()) {
+        //            rootBean.setParentCode("");
+        //        }
+        //    }
+        //} else {
+        //    logger.error("请在‘ 身份管理->岗位管理 ’中进行岗位数据初始化导入后再进行治理{}", tenant.getId());
+        //    throw new CustomException(ResultCode.FAILED, "请在‘ 身份管理->岗位管理 ’中进行岗位数据初始化导入后再进行治理");
+        //}
+        //获取完整的非PULL根数据以及加入逻辑根节点
         rootBeans.addAll(ssoBeans);
 
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
-        ArrayList<TreeBean> treeBeans = new ArrayList<>();
+        //ArrayList<TreeBean> treeBeans = new ArrayList<>();
 
         List<TreeBean> mainTreeBeans = new ArrayList<>();
         final LocalDateTime now = LocalDateTime.now();
@@ -215,9 +217,7 @@ public class PostServiceImpl implements PostService {
 //        if (null != rootBeansMap && rootBeansMap.size() > 0) {
 //            rootBeans = new ArrayList<>(rootBeansMap.values());
 //        }
-        TreeBean treeBean = new TreeBean();
-        treeBean.setCode("");
-        rootBeans.add(treeBean);
+
         // 判断重复(code)
         calculationService.groupByCode(beans, status, domain);
 
@@ -481,7 +481,18 @@ public class PostServiceImpl implements PostService {
                                     ssoBean.setActive(pullBean.getActive());
                                     //将数据放入修改集合
                                     ssoCollect.put(ssoBean.getCode(), ssoBean);
+                                    logger.info("手动从失效中恢复{}", ssoBean);
 
+                                    result.put(ssoBean, "update");
+                                }
+
+                                //上游未提供delmark并且sso与上游源该字段值不一致
+                                if (!delFlag && !delRecoverFlag && (!ssoBean.getDelMark().equals(pullBean.getDelMark()))) {
+                                    ssoBean.setUpdateTime(now);
+                                    ssoBean.setDelMark(pullBean.getDelMark());
+                                    //将数据放入修改集合
+                                    ssoCollect.put(ssoBean.getCode(), ssoBean);
+                                    logger.info("手动从删除中恢复{}", ssoBean);
                                     result.put(ssoBean, "update");
                                 }
 

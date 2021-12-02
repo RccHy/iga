@@ -59,7 +59,7 @@ public class DataBusUtil {
 
     @Value("${app.scope}")
     private String appScope;
-    @Value("${sso.url}")
+    @Value("${sso.token.url}")
     private String ssoUrl;
     @Value("${app.client}")
     private String appKey;
@@ -96,13 +96,14 @@ public class DataBusUtil {
         String[] split = upstreamType.getGraphqlUrl().split("/");
 
         //根据url 获取请求地址
-        String substring = new StringBuffer(UrlUtil.getUrl(busUrl)).append(graphqlUrl).append("/").append("builtin").append("?access_token=").append(key).toString();
+        String substring = new StringBuffer(UrlUtil.getUrl(busUrl)).append("?access_token=").append(key)
+                .append("&domain=").append(serverName).toString();
         //工具类过滤处理url
         String dealUrl = UrlUtil.getUrl(substring);
         //调用获取资源url
         String dataUrl = invokeUrl(dealUrl, split);
         //请求获取资源
-        String u = dataUrl + "/" + "?access_token=" + key;
+        String u = dataUrl + "/" + "?access_token=" + key+"&domain="+serverName;
 
         return invokeForData(UrlUtil.getUrl(u), upstreamType);
     }
@@ -130,7 +131,7 @@ public class DataBusUtil {
         OAuthClientRequest oAuthClientRequest = null;
         try {
             oAuthClientRequest = OAuthClientRequest
-                    .tokenLocation(sso + "/oauth2/token").setGrantType(GrantType.CLIENT_CREDENTIALS)
+                    .tokenLocation(sso ).setGrantType(GrantType.CLIENT_CREDENTIALS)
                     .setClientId(byDomainName.getClientId()).setClientSecret(byDomainName.getClientSecret())
                     .setScope(scope.replace(",", " ")).buildBodyMessage();
         } catch (OAuthSystemException e) {
@@ -327,13 +328,14 @@ public class DataBusUtil {
         return null;
     }
 
-    public Map getDataByBus(UpstreamType upstreamType, Integer offset, Integer first) throws Exception {
+    public Map getDataByBus(UpstreamType upstreamType, Integer offset, Integer first,DomainInfo domain) throws Exception {
         //获取token
         String key = getToken(null);
         String[] split = upstreamType.getGraphqlUrl().split("/");
 
         //根据url 获取请求地址
-        String substring = new StringBuffer(UrlUtil.getUrl(busUrl)).append(graphqlUrl).append("/").append("builtin").append("?access_token=").append(key).toString();
+        String substring = new StringBuffer(UrlUtil.getUrl(busUrl)).append("?access_token=").append(key)
+                .append("&domain=").append(domain.getDomainName()).toString();
         //工具类过滤处理url
         String dealUrl = UrlUtil.getUrl(substring);
 
@@ -341,7 +343,7 @@ public class DataBusUtil {
         //调用获取资源url
         String dataUrl = invokeUrl(dealUrl, split);
         //请求获取资源
-        String u = dataUrl + "/" + "?access_token=" + key;
+        String u = dataUrl + "/" + "?access_token=" + key+"&domain="+domain.getDomainName();
 
         return invokeForMapData(UrlUtil.getUrl(u), upstreamType, offset, first);
     }
@@ -659,7 +661,7 @@ public class DataBusUtil {
         log.debug("pub graphql: {}", graphql);
 
         String token = getToken(domain.getDomainName());
-        return sendPostRequest(busUrl + "/graphql/builtin?access_token=" + token, params);
+        return sendPostRequest(busUrl + "?access_token=" + token+"&domain="+domain.getDomainName(), params);
 
     }
 

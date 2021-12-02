@@ -3,6 +3,8 @@ package com.qtgl.iga.bo;
 import lombok.Data;
 
 import java.sql.Timestamp;
+import java.util.Date;
+import java.util.UUID;
 
 /**
  * 注册用户表
@@ -47,6 +49,19 @@ public class DomainInfo {
      * 注册人员
      */
     private String createUser;
+
+
+     public DomainInfo(){};
+
+    public DomainInfo(String domainName, String domainId, Timestamp createTime, Integer status, String clientId, String clientSecret){
+        this.id= UUID.randomUUID().toString();
+        this.domainName=domainName;
+        this.createTime=createTime;
+        this.domainId=domainId;
+        this.status=status;
+        this.clientId=clientId;
+        this.clientSecret=clientSecret;
+    }
 
 
 }

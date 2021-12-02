@@ -21,6 +21,8 @@ type DeptType{
     name:String
     # 监控规则
     rule:String
+    # 排序
+    typeIndex:Int
     # 描述
     description:String
     # 创建日期
@@ -37,6 +39,8 @@ input InputDeptType{
     id:ID
     code:String
     name:String
+    typeIndex:Int
+    rule:String
     description:String
     createTime:Timestamp
     updateTime:Timestamp
@@ -46,6 +50,7 @@ input InputDeptType{
 input DeptTypeFilter{
     code:stringFilter
     name:stringFilter
+    rule:stringFilter
     createTime:timestampFilter
     updateTime:timestampFilter
 }

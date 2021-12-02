@@ -21,6 +21,8 @@ type PostType{
     code:String
     # 机构类型名称
     name:String
+    # 排序
+    typeIndex:Int
     # 描述
     description:String
     # 创建日期
@@ -37,6 +39,7 @@ input InputPostType{
     id:ID
     code:String
     name:String
+    typeIndex:Int
     description:String
     createTime:Timestamp
     updateTime:Timestamp

@@ -41,6 +41,10 @@ public class UrlUtil implements InitializingBean {
                     port = "";
                 }
                 String base = request.getScheme() + "://" + request.getServerName() + port;
+                if("localhost".equals(request.getServerName())){
+                    base=originUrl;
+                }
+
                 personalUrl = personalUrl.startsWith("/") ? personalUrl : ("/" + personalUrl);
                 personalUrl = base + personalUrl;
             } else {

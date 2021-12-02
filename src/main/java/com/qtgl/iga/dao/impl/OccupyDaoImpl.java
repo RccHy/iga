@@ -42,7 +42,7 @@ public class OccupyDaoImpl implements OccupyDao {
                 "       u.user_type               as postCode," +
                 "       u.dept_code               as deptCode," +
                 "       u.card_type               as identityCardType," +
-                "       u.card_no                 as identityCardNo," +
+                "       u.user_code                 as identityCardNo," +
                 "       u.del_mark                  as delMark," +
                 "       u.start_time                  as startTime," +
                 "       u.end_time                  as endTime," +
@@ -85,8 +85,8 @@ public class OccupyDaoImpl implements OccupyDao {
                 if (occupyMap.containsKey("insert")) {
                     List<OccupyDto> list = occupyMap.get("insert");
                     String sql = "INSERT INTO user " +
-                            "               (id, user_type, card_type, card_no,user_code, del_mark, start_time, end_time, create_time, update_time, tenant_id, dept_code, source, data_source, active, active_time,user_index,post_code,account_no,valid_start_time,valid_end_time,orphan) " +
-                            "               VALUES (?,?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                            "               (id, user_type, card_type,user_code, del_mark, start_time, end_time, create_time, update_time, tenant_id, dept_code, source, data_source, active, active_time,user_index,post_code,account_no,valid_start_time,valid_end_time,orphan) " +
+                            "               VALUES (?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
                     int[] ints = jdbcSSO.batchUpdate(sql, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
@@ -94,23 +94,22 @@ public class OccupyDaoImpl implements OccupyDao {
                             preparedStatement.setObject(2, list.get(i).getPostCode());
                             preparedStatement.setObject(3, list.get(i).getIdentityCardType());
                             preparedStatement.setObject(4, list.get(i).getIdentityCardNo());
-                            preparedStatement.setObject(5, list.get(i).getIdentityCardNo());
-                            preparedStatement.setObject(6, list.get(i).getStartTime());
-                            preparedStatement.setObject(7, list.get(i).getEndTime());
-                            preparedStatement.setObject(8, list.get(i).getCreateTime());
-                            preparedStatement.setObject(9, list.get(i).getUpdateTime());
-                            preparedStatement.setObject(10, tenantId);
-                            preparedStatement.setObject(11, list.get(i).getDeptCode());
-                            preparedStatement.setObject(12, list.get(i).getSource());
-                            preparedStatement.setObject(13, "PULL");
-                            preparedStatement.setObject(14, list.get(i).getActive());
-                            preparedStatement.setObject(15, LocalDateTime.now());
-                            preparedStatement.setObject(16, list.get(i).getIndex());
-                            preparedStatement.setObject(17, list.get(i).getPostCode());
-                            preparedStatement.setObject(18, list.get(i).getAccountNo());
-                            preparedStatement.setObject(19, list.get(i).getValidStartTime());
-                            preparedStatement.setObject(20, list.get(i).getValidEndTime());
-                            preparedStatement.setObject(21, list.get(i).getOrphan());
+                            preparedStatement.setObject(5, list.get(i).getStartTime());
+                            preparedStatement.setObject(6, list.get(i).getEndTime());
+                            preparedStatement.setObject(7, list.get(i).getCreateTime());
+                            preparedStatement.setObject(8, list.get(i).getUpdateTime());
+                            preparedStatement.setObject(9, tenantId);
+                            preparedStatement.setObject(10, list.get(i).getDeptCode());
+                            preparedStatement.setObject(11, list.get(i).getSource());
+                            preparedStatement.setObject(12, "PULL");
+                            preparedStatement.setObject(13, list.get(i).getActive());
+                            preparedStatement.setObject(14, LocalDateTime.now());
+                            preparedStatement.setObject(15, list.get(i).getIndex());
+                            preparedStatement.setObject(16, list.get(i).getPostCode());
+                            preparedStatement.setObject(17, list.get(i).getAccountNo());
+                            preparedStatement.setObject(18, list.get(i).getValidStartTime());
+                            preparedStatement.setObject(19, list.get(i).getValidEndTime());
+                            preparedStatement.setObject(20, list.get(i).getOrphan());
                         }
 
                         @Override
@@ -149,7 +148,7 @@ public class OccupyDaoImpl implements OccupyDao {
                     }
 
 
-                    String sql = "UPDATE `user` SET user_type = ?, card_type = ?, card_no = ?,user_code = ?, del_mark = ?, start_time = ?, end_time = ?, update_time = ?,dept_code = ?,  " +
+                    String sql = "UPDATE `user` SET user_type = ?, card_type = ?, user_code = ?, del_mark = ?, start_time = ?, end_time = ?, update_time = ?,dept_code = ?,  " +
                             " source = ?, data_source = ?,  user_index = ?,active=?,active_time=?,account_no=?,valid_start_time=?,valid_end_time=?,orphan=?" +
                             " WHERE id = ? and update_time < ?  ";
 
@@ -159,23 +158,22 @@ public class OccupyDaoImpl implements OccupyDao {
                             preparedStatement.setObject(1, list.get(i).getPostCode());
                             preparedStatement.setObject(2, list.get(i).getIdentityCardType());
                             preparedStatement.setObject(3, list.get(i).getIdentityCardNo());
-                            preparedStatement.setObject(4, list.get(i).getIdentityCardNo());
-                            preparedStatement.setObject(5, list.get(i).getDelMark());
-                            preparedStatement.setObject(6, list.get(i).getStartTime());
-                            preparedStatement.setObject(7, list.get(i).getEndTime());
-                            preparedStatement.setObject(8, list.get(i).getUpdateTime());
-                            preparedStatement.setObject(9, list.get(i).getDeptCode());
-                            preparedStatement.setObject(10, list.get(i).getSource());
-                            preparedStatement.setObject(11, list.get(i).getDataSource());
-                            preparedStatement.setObject(12, list.get(i).getIndex());
-                            preparedStatement.setObject(13, list.get(i).getActive());
-                            preparedStatement.setObject(14, list.get(i).getActiveTime());
-                            preparedStatement.setObject(15, list.get(i).getAccountNo());
-                            preparedStatement.setObject(16, list.get(i).getValidStartTime());
-                            preparedStatement.setObject(17, list.get(i).getValidEndTime());
-                            preparedStatement.setObject(18, list.get(i).getOrphan() == null ? 0 : list.get(i).getOrphan());
-                            preparedStatement.setObject(19, list.get(i).getOccupyId());
-                            preparedStatement.setObject(20, list.get(i).getUpdateTime());
+                            preparedStatement.setObject(4, list.get(i).getDelMark());
+                            preparedStatement.setObject(5, list.get(i).getStartTime());
+                            preparedStatement.setObject(6, list.get(i).getEndTime());
+                            preparedStatement.setObject(7, list.get(i).getUpdateTime());
+                            preparedStatement.setObject(8, list.get(i).getDeptCode());
+                            preparedStatement.setObject(9, list.get(i).getSource());
+                            preparedStatement.setObject(10, list.get(i).getDataSource());
+                            preparedStatement.setObject(11, list.get(i).getIndex());
+                            preparedStatement.setObject(12, list.get(i).getActive());
+                            preparedStatement.setObject(13, list.get(i).getActiveTime());
+                            preparedStatement.setObject(14, list.get(i).getAccountNo());
+                            preparedStatement.setObject(15, list.get(i).getValidStartTime());
+                            preparedStatement.setObject(16, list.get(i).getValidEndTime());
+                            preparedStatement.setObject(17, list.get(i).getOrphan() == null ? 0 : list.get(i).getOrphan());
+                            preparedStatement.setObject(18, list.get(i).getOccupyId());
+                            preparedStatement.setObject(19, list.get(i).getUpdateTime());
                         }
 
                         @Override

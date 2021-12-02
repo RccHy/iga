@@ -21,6 +21,8 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
+import java.sql.Timestamp;
+import java.util.Date;
 import java.util.Map;
 
 
@@ -33,12 +35,19 @@ public class CertifiedConnector {
 
     @Autowired
     DomainInfoService domainInfoService;
-    @Value("${sso.url}")
+    @Value("${sso.introspect.url}")
     String url;
 
-    public void set(DomainInfoService domainInfoService, String url) {
+    @Value("${app.client}")
+    String clientId;
+    @Value("${app.secret}")
+    String clientSecret;
+
+    public void set(DomainInfoService domainInfoService, String url, String clientId, String clientSecret) {
         this.domainInfoService = domainInfoService;
         this.url = url;
+        this.clientId = clientId;
+        this.clientSecret = clientSecret;
     }
 
     @PostConstruct
@@ -46,6 +55,8 @@ public class CertifiedConnector {
         certifiedConnector = this;
         certifiedConnector.domainInfoService = this.domainInfoService;
         certifiedConnector.url = this.url;
+        certifiedConnector.clientId = this.clientId;
+        certifiedConnector.clientSecret = this.clientSecret;
     }
 
     /**
@@ -73,13 +84,21 @@ public class CertifiedConnector {
         // 如果url是相对路径
         String ssoUrl = UrlUtil.getUrl(certifiedConnector.url);
         DomainInfo domainInfo = certifiedConnector.domainInfoService.findAll().get(0);
-        String domainName = CertifiedConnector.introspect(request, ssoUrl.replace("/oauth2/authorize", ""), domainInfo.getClientId(), domainInfo.getClientSecret());
-        if (null == domainName) {
+        String domainName = CertifiedConnector.introspect(request, ssoUrl, domainInfo.getClientId(), domainInfo.getClientSecret());
+        if (null == domainName||"".equals(domainName)) {
             throw new Exception("No access authorization");
         }
         DomainInfo byDomainName = certifiedConnector.domainInfoService.getByDomainName(domainName);
         if (null == byDomainName) {
-            throw new Exception("No domain info");
+            // 创建租户
+            byDomainName = new DomainInfo(domainName, null, new Timestamp(System.currentTimeMillis()), 0, certifiedConnector.clientId, certifiedConnector.clientSecret);
+            try {
+                certifiedConnector.domainInfoService.install(byDomainName);
+                //GraphQLService.setDomainGraphQLMap(certifiedConnector.runner.buildGraphql());
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new Exception("create tenant error");
+            }
         }
         return byDomainName;
     }
@@ -107,14 +126,14 @@ public class CertifiedConnector {
         headers.add("Authorization", "Basic " + base64Creds);
 
         HttpEntity<String> httpEntity = new HttpEntity<>("body", headers);
-        String url = String.format("%s?token=%s", uri.concat("/oauth2/introspect"), token);
+        String url = String.format("%s?token=%s", uri, token);
         if (uri.indexOf("/oauth2/introspect") > -1)
             url = String.format("%s?token=%s", uri, token);
         try {
             ResponseEntity responseEntity = new RestTemplate().exchange(url, HttpMethod.POST, httpEntity, String.class);
             Map introspection = new ObjectMapper().readValue(responseEntity.getBody().toString(), Map.class);
             if (introspection != null && (Boolean) introspection.get("active")) {
-                return introspection.get("tenant").toString();
+                return introspection.containsKey("tenant")?introspection.get("tenant").toString():request.getParameter("domain");
             } else {
                 return null;
             }
