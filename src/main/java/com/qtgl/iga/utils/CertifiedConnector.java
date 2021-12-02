@@ -85,7 +85,7 @@ public class CertifiedConnector {
         String ssoUrl = UrlUtil.getUrl(certifiedConnector.url);
         DomainInfo domainInfo = certifiedConnector.domainInfoService.findAll().get(0);
         String domainName = CertifiedConnector.introspect(request, ssoUrl, domainInfo.getClientId(), domainInfo.getClientSecret());
-        if (null == domainName) {
+        if (null == domainName||"".equals(domainName)) {
             throw new Exception("No access authorization");
         }
         DomainInfo byDomainName = certifiedConnector.domainInfoService.getByDomainName(domainName);
@@ -133,7 +133,7 @@ public class CertifiedConnector {
             ResponseEntity responseEntity = new RestTemplate().exchange(url, HttpMethod.POST, httpEntity, String.class);
             Map introspection = new ObjectMapper().readValue(responseEntity.getBody().toString(), Map.class);
             if (introspection != null && (Boolean) introspection.get("active")) {
-                return introspection.get("tenant").toString();
+                return introspection.containsKey("tenant")?introspection.get("tenant").toString():request.getParameter("domain");
             } else {
                 return null;
             }

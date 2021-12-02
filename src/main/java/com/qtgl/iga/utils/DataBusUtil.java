@@ -103,7 +103,7 @@ public class DataBusUtil {
         //调用获取资源url
         String dataUrl = invokeUrl(dealUrl, split);
         //请求获取资源
-        String u = dataUrl + "/" + "?access_token=" + key;
+        String u = dataUrl + "/" + "?access_token=" + key+"&domain="+serverName;
 
         return invokeForData(UrlUtil.getUrl(u), upstreamType);
     }
