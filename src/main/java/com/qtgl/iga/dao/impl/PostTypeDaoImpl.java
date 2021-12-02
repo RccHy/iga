@@ -87,7 +87,7 @@ public class PostTypeDaoImpl implements PostTypeDao {
         //判重
         Object[] param = new Object[]{postType.getCode(), postType.getName(), domain};
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select id,code,name,description,create_time as createTime" +
-                ",update_time as updateTime,create_user as createUser, domain from t_mgr_post_type where code =? or name = ? and domain=? ", param);
+                ",update_time as updateTime,create_user as createUser, domain from t_mgr_post_type where (code =? or name = ?) and domain=? ", param);
         if (null != mapList && mapList.size() > 0) {
             throw new CustomException(ResultCode.FAILED, "code 或 name 不能重复,添加组织机构类别失败");
         }
@@ -117,9 +117,9 @@ public class PostTypeDaoImpl implements PostTypeDao {
     @Override
     public PostType updatePostType(PostType postType) throws Exception {
         //判重
-        Object[] param = new Object[]{postType.getCode(), postType.getName(), postType.getId()};
+        Object[] param = new Object[]{postType.getCode(), postType.getName(), postType.getId(),postType.getDomain()};
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select id,code,name,description,create_time as createTime," +
-                "update_time as updateTime,create_user as createUser, domain from t_mgr_post_type where (code = ? or name = ?) and id != ?  ", param);
+                "update_time as updateTime,create_user as createUser, domain from t_mgr_post_type where (code = ? or name = ?) and id != ? and domain=?  ", param);
         if (null != mapList && mapList.size() > 0) {
             throw new CustomException(ResultCode.FAILED, "code 或 name 不能重复,修改组织机构类别失败");
         }
