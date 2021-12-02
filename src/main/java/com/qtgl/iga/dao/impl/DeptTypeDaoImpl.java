@@ -87,7 +87,7 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
         //判重
         Object[] param = new Object[]{deptType.getCode(), deptType.getName(), domain};
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select id,code,name,rule,description,create_time as createTime" +
-                ",update_time as updateTime,create_user as createUser, domain from t_mgr_dept_type where code =? or name = ? and domain =? ", param);
+                ",update_time as updateTime,create_user as createUser, domain from t_mgr_dept_type where (code =? or name = ?) and domain =? ", param);
         if (null != mapList && mapList.size() > 0) {
             throw new CustomException(ResultCode.FAILED, "code 或 name 不能重复,添加组织机构类别失败");
         }
@@ -118,9 +118,9 @@ public class DeptTypeDaoImpl implements DeptTypeDao {
     @Override
     public DeptType updateDeptTypes(DeptType deptType) throws Exception {
         //判重
-        Object[] param = new Object[]{deptType.getCode(), deptType.getName(), deptType.getId()};
+        Object[] param = new Object[]{deptType.getCode(), deptType.getName(), deptType.getId(),deptType.getDomain()};
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select id,code,name,description,create_time as createTime," +
-                "update_time as updateTime,create_user as createUser, domain from t_mgr_dept_type where (code = ? or name = ?) and id != ?  ", param);
+                "update_time as updateTime,create_user as createUser, domain from t_mgr_dept_type where (code = ? or name = ?) and id != ? and domain=?  ", param);
         if (null != mapList && mapList.size() > 0) {
             throw new CustomException(ResultCode.FAILED, "code 或 name 不能重复,修改组织机构类别失败");
         }

@@ -61,7 +61,7 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
     public DeptTreeType saveDeptTreeType(DeptTreeType deptTreeType, String domain) throws Exception {
         //判重
         Object[] param = new Object[]{deptTreeType.getCode(), deptTreeType.getName(), domain};
-        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_dept_tree_type where code =? or name = ? and domain= ?", param);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_dept_tree_type where (code =? or name = ?) and domain= ?", param);
         if (null != mapList && mapList.size() > 0) {
             throw new CustomException(ResultCode.FAILED, "code 或 name 不能重复,添加组织机构树类别失败");
         }
@@ -124,8 +124,8 @@ public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
     @Transactional
     public DeptTreeType updateDeptTreeType(DeptTreeType deptTreeType) throws Exception {
         //判重
-        Object[] param = new Object[]{deptTreeType.getCode(), deptTreeType.getName(), deptTreeType.getId()};
-        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_dept_tree_type where (code = ? or name = ?) and id != ?  ", param);
+        Object[] param = new Object[]{deptTreeType.getCode(), deptTreeType.getName(), deptTreeType.getId(),deptTreeType.getDomain()};
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_dept_tree_type where (code = ? or name = ?) and id != ?  and domain=?", param);
         if (null != mapList && mapList.size() > 0) {
             throw new CustomException(ResultCode.FAILED, "code 或 name 不能重复,修改组织机构类别树失败");
         }
