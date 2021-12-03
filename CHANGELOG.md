@@ -1,16 +1,31 @@
-### new
+### 20211203
 
 **数据库**
 - - 执行iga/update/update.sql下 20211203的sql
+    
+**请检测部署方式是否为StatefulSet，若不是需调整**
+
+**bug fix**
+- 多租环境下编辑岗位类型、单位类型、单位树类型报错bug
 
 **new**
 - 环境变量 `APP_CLIENT` 改名为 `OAUTH_CLIENT_ID`
 - 环境变量 `APP_SECRET` 改名为 `OAUTH_INTROSPECT_URL`
 - 环境变量 `BUS_URL` 的值发生更改，改为标准 BUS服务地址.可参考[README.md]
-- 新增环境变量 `OAUTH_TOKEN_URL`
-- 新增环境变量 `OAUTH_AUTHORIZE_URL`
+- 新增环境变量 `OAUTH_TOKEN_URL` 可参考[README.md]
+- 新增环境变量 `OAUTH_AUTHORIZE_URL` 可参考[README.md]
+- 后端新增 `岗位类型` `部门类型` 排序字段
 **delete**
 - 删除环境变量 `SSO_URL`
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20211203
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20211203
+
 
 
 ### 20211110

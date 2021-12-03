@@ -76,9 +76,9 @@ vm构建命令，根据实际环境替换对应的值<br/>
 | SSO_API_DATASOURCE_URL      | sso-api项目数据库地址                                       | jdbc:mysql://XXXX:3306/sso-api?rewriteBatchedStatements=true |
 | SSO_API_DATASOURCE_USERNAME | 数据库用户名                                                | -----                                                        |
 | SSO_API_DATASOURCE_PASSWORD | 数据库地址                                                  | -----                                                        |
-| OAUTH_AUTHORIZE_URL         | OAuth Authority 地址                                        | https://cloud.ketanyun.cn/sso/oauth2/authorize 支持多租环境，多组环境下任意挑选其中一租户的sso绝对路径 |
-| OAUTH_TOKEN_URL             | OAuth Token 地址                                            | https://cloud.ketanyun.cn/sso/oauth2/token 支持多租环境，多组环境下任意挑选其中一租户的sso绝对路径 |
-| BUS_URL                     | BUS服务地址                                                 | https://cloud.ketanyun.cn/bus/graphql/builtin 支持多租环境，多组环境下任意挑选其中一租户的bus绝对路径 |
+| OAUTH_AUTHORIZE_URL         | OAuth Authority 地址                                        | /sso/oauth2/authorize 支持多租环境，多租环境下任意挑选其中一租户的sso绝对路径 |
+| OAUTH_TOKEN_URL             | OAuth Token 地址                                            | /sso/oauth2/token 支持多租环境，多租环境下任意挑选其中一租户的sso绝对路径 |
+| BUS_URL                     | BUS服务地址                                                 | /bus/graphql/builtin 支持多租环境，多租环境下任意挑选其中一租户的bus绝对路径 |
 | OAUTH_CLIENT                | 应用id                                                      | ------                                                       |
 | OAUTH_CLIENT_SECRET         | 应用密钥                                                    | ------                                                       |
 | TASK_CRON                   | 同步时间                                                    | 控制定时同步任务间隔时间。默认值 0 */5 * * * ?               |
