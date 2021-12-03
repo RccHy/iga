@@ -18,7 +18,13 @@
 **delete**
 - 删除环境变量 `SSO_URL`
 
+**image：**
 
+- docker.qtgl.com.cn/product/iga:20211203
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20211203
 
 
 
