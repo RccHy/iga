@@ -4,6 +4,7 @@ package com.qtgl.iga.utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.service.DomainInfoService;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.oltu.oauth2.common.utils.OAuthUtils;
 import org.apache.tomcat.util.codec.binary.Base64;
@@ -27,6 +28,7 @@ import java.util.Map;
 
 
 @Component
+@Slf4j
 public class CertifiedConnector {
 
 
@@ -130,6 +132,8 @@ public class CertifiedConnector {
         if (uri.indexOf("/oauth2/introspect") > -1)
             url = String.format("%s?token=%s", uri, token);
         try {
+            log.info("introspect base64Creds:"+base64Creds);
+            log.info("introspect url:"+url);
             ResponseEntity responseEntity = new RestTemplate().exchange(url, HttpMethod.POST, httpEntity, String.class);
             Map introspection = new ObjectMapper().readValue(responseEntity.getBody().toString(), Map.class);
             if (introspection != null && (Boolean) introspection.get("active")) {
