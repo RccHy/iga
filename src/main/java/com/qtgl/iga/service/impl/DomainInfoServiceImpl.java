@@ -1,21 +1,13 @@
 package com.qtgl.iga.service.impl;
 
-import com.qtgl.iga.bo.DeptType;
 import com.qtgl.iga.bo.DomainInfo;
-import com.qtgl.iga.dao.DeptTreeTypeDao;
-import com.qtgl.iga.dao.DeptTypeDao;
-import com.qtgl.iga.dao.DomainInfoDao;
-import com.qtgl.iga.dao.PostTypeDao;
+import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.DomainInfoService;
-import com.qtgl.iga.utils.enumerate.ResultCode;
-import com.qtgl.iga.utils.exception.CustomException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Timestamp;
 import java.util.List;
-import java.util.UUID;
 
 
 @Service
@@ -31,6 +23,8 @@ public class DomainInfoServiceImpl implements DomainInfoService {
     DeptTypeDao deptTypeDao;
     @Autowired
     PostTypeDao postTypeDao;
+    @Autowired
+    DeptRelationTypeDao deptRelationTypeDao;
 
     @Override
     public List<DomainInfo> findAll() {
@@ -60,6 +54,8 @@ public class DomainInfoServiceImpl implements DomainInfoService {
         }*/
         // 组织机构类型
         deptTreeTypeDao.initialization(domainInfo.getId());
+        // 组织机构关系类型
+        deptRelationTypeDao.initialization(domainInfo.getId());
         // 岗位类型
         postTypeDao.initialization(domainInfo.getId());
         // 插入租户信息

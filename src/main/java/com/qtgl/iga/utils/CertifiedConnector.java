@@ -2,7 +2,9 @@ package com.qtgl.iga.utils;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.qtgl.iga.bo.DeptRelationType;
 import com.qtgl.iga.bo.DomainInfo;
+import com.qtgl.iga.dao.DeptRelationTypeDao;
 import com.qtgl.iga.service.DomainInfoService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -24,6 +26,7 @@ import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import java.sql.Timestamp;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 
@@ -37,6 +40,8 @@ public class CertifiedConnector {
 
     @Autowired
     DomainInfoService domainInfoService;
+    @Autowired
+    DeptRelationTypeDao deptRelationTypeDao;
     @Value("${sso.introspect.url}")
     String url;
 
@@ -45,11 +50,12 @@ public class CertifiedConnector {
     @Value("${app.secret}")
     String clientSecret;
 
-    public void set(DomainInfoService domainInfoService, String url, String clientId, String clientSecret) {
+    public void set(DomainInfoService domainInfoService, String url, String clientId, String clientSecret,DeptRelationTypeDao deptRelationTypeDao) {
         this.domainInfoService = domainInfoService;
         this.url = url;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
+        this.deptRelationTypeDao=deptRelationTypeDao;
     }
 
     @PostConstruct
@@ -59,6 +65,7 @@ public class CertifiedConnector {
         certifiedConnector.url = this.url;
         certifiedConnector.clientId = this.clientId;
         certifiedConnector.clientSecret = this.clientSecret;
+        certifiedConnector.deptRelationTypeDao=this.deptRelationTypeDao;
     }
 
     /**
@@ -102,6 +109,12 @@ public class CertifiedConnector {
                 throw new Exception("create tenant error");
             }
         }
+        // 修复历史版本升级丢失 组织机构关系数据
+        final List<DeptRelationType> all = certifiedConnector.deptRelationTypeDao.findAll(byDomainName.getId());
+        if(null==all||all.size()<=0){
+            certifiedConnector.deptRelationTypeDao.initialization(byDomainName.getId());
+        }
+
         return byDomainName;
     }
 
