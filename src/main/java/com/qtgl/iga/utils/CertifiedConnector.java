@@ -24,6 +24,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import java.sql.Timestamp;
+import java.util.HashMap;
 import java.util.Map;
 
 
@@ -46,6 +47,9 @@ public class CertifiedConnector {
     String clientId;
     @Value("${app.secret}")
     String clientSecret;
+
+
+
 
     public void set(DomainInfoService domainInfoService, String url, String clientId, String clientSecret, DeptRelationTypeService deptRelationTypeService) {
         this.domainInfoService = domainInfoService;
