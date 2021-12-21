@@ -2,9 +2,8 @@ package com.qtgl.iga.utils;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.qtgl.iga.bo.DeptRelationType;
 import com.qtgl.iga.bo.DomainInfo;
-import com.qtgl.iga.dao.DeptRelationTypeDao;
+import com.qtgl.iga.service.DeptRelationTypeService;
 import com.qtgl.iga.service.DomainInfoService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -25,8 +24,6 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import java.sql.Timestamp;
-import java.util.Date;
-import java.util.List;
 import java.util.Map;
 
 
@@ -41,7 +38,7 @@ public class CertifiedConnector {
     @Autowired
     DomainInfoService domainInfoService;
     @Autowired
-    DeptRelationTypeDao deptRelationTypeDao;
+    DeptRelationTypeService deptRelationTypeService;
     @Value("${sso.introspect.url}")
     String url;
 
@@ -50,12 +47,12 @@ public class CertifiedConnector {
     @Value("${app.secret}")
     String clientSecret;
 
-    public void set(DomainInfoService domainInfoService, String url, String clientId, String clientSecret,DeptRelationTypeDao deptRelationTypeDao) {
+    public void set(DomainInfoService domainInfoService, String url, String clientId, String clientSecret, DeptRelationTypeService deptRelationTypeService) {
         this.domainInfoService = domainInfoService;
         this.url = url;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
-        this.deptRelationTypeDao=deptRelationTypeDao;
+        this.deptRelationTypeService = deptRelationTypeService;
     }
 
     @PostConstruct
@@ -65,7 +62,7 @@ public class CertifiedConnector {
         certifiedConnector.url = this.url;
         certifiedConnector.clientId = this.clientId;
         certifiedConnector.clientSecret = this.clientSecret;
-        certifiedConnector.deptRelationTypeDao=this.deptRelationTypeDao;
+        certifiedConnector.deptRelationTypeService = this.deptRelationTypeService;
     }
 
     /**
@@ -93,7 +90,7 @@ public class CertifiedConnector {
         // 如果url是相对路径
         String ssoUrl = UrlUtil.getUrl(certifiedConnector.url);
         //DomainInfo domainInfo = certifiedConnector.domainInfoService.findAll().get(0);
-        String domainName = CertifiedConnector.introspect(request, ssoUrl, certifiedConnector.clientId,certifiedConnector.clientSecret);
+        String domainName = CertifiedConnector.introspect(request, ssoUrl, certifiedConnector.clientId, certifiedConnector.clientSecret);
         if (null == domainName) {
             throw new Exception("No access authorization");
         }
@@ -108,12 +105,9 @@ public class CertifiedConnector {
                 e.printStackTrace();
                 throw new Exception("create tenant error");
             }
-        }else {
+        } else {
             // 修复历史版本升级丢失 组织机构关系数据
-            final List<DeptRelationType> all = certifiedConnector.deptRelationTypeDao.findAll(byDomainName.getId());
-            if (null == all || all.size() <= 0) {
-                certifiedConnector.deptRelationTypeDao.initialization(byDomainName.getId());
-            }
+            certifiedConnector.deptRelationTypeService.initialization(byDomainName.getId());
         }
 
         return byDomainName;
@@ -146,12 +140,12 @@ public class CertifiedConnector {
         if (uri.indexOf("/oauth2/introspect") > -1)
             url = String.format("%s?token=%s", uri, token);
         try {
-            log.info("introspect base64Creds:"+base64Creds);
-            log.info("introspect url:"+url);
+            log.info("introspect base64Creds:" + base64Creds);
+            log.info("introspect url:" + url);
             ResponseEntity responseEntity = new RestTemplate().exchange(url, HttpMethod.POST, httpEntity, String.class);
             Map introspection = new ObjectMapper().readValue(responseEntity.getBody().toString(), Map.class);
             if (introspection != null && (Boolean) introspection.get("active")) {
-                return introspection.containsKey("tenant")?introspection.get("tenant").toString():request.getParameter("domain");
+                return introspection.containsKey("tenant") ? introspection.get("tenant").toString() : request.getParameter("domain");
             } else {
                 return null;
             }
