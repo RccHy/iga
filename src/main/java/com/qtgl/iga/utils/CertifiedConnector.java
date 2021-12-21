@@ -108,11 +108,12 @@ public class CertifiedConnector {
                 e.printStackTrace();
                 throw new Exception("create tenant error");
             }
-        }
-        // 修复历史版本升级丢失 组织机构关系数据
-        final List<DeptRelationType> all = certifiedConnector.deptRelationTypeDao.findAll(byDomainName.getId());
-        if(null==all||all.size()<=0){
-            certifiedConnector.deptRelationTypeDao.initialization(byDomainName.getId());
+        }else {
+            // 修复历史版本升级丢失 组织机构关系数据
+            final List<DeptRelationType> all = certifiedConnector.deptRelationTypeDao.findAll(byDomainName.getId());
+            if (null == all || all.size() <= 0) {
+                certifiedConnector.deptRelationTypeDao.initialization(byDomainName.getId());
+            }
         }
 
         return byDomainName;

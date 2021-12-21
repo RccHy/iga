@@ -1,5 +1,6 @@
 package com.qtgl.iga.service.impl;
 
+import com.qtgl.iga.bo.DeptTreeType;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.DomainInfoService;
