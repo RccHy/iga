@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface DeptRelationTypeService {
      List<DeptRelationType> findAll(String domain);
+      void initialization(String domainInfo);
 }
