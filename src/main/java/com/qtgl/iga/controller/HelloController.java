@@ -69,11 +69,12 @@ public class HelloController {
             arguments.put("status", 1);
             TaskLog taskLog = new TaskLog();
             taskLog.setId(UUID.randomUUID().toString());
-            final DomainInfo domainInfo = domainInfoService.findAll().get(0);
+            final DomainInfo domainInfo = domainInfoService.findAll().get(1);
             try {
                 taskLogService.save(taskLog, domainInfo.getId(), "save");
-                //部门数据同步至sso
                 TaskLog lastTaskLog = taskLogService.last(domainInfo.getId());
+              /*  //部门数据同步至sso
+
                 Map<TreeBean, String> deptResult = deptService.buildDeptUpdateResult(domainInfo, lastTaskLog);
                 Map<String, List<Map.Entry<TreeBean, String>>> deptResultMap = deptResult.entrySet().stream().collect(Collectors.groupingBy(Map.Entry::getValue));
                 String deptNo = (deptResultMap.containsKey("insert") ? String.valueOf(deptResultMap.get("insert").size()) : "0") + "/"
@@ -107,7 +108,7 @@ public class HelloController {
                 taskLog.setPersonNo(personNo);
                 taskLogService.save(taskLog, domainInfo.getId(), "update");
 
-
+*/
                 //人员身份同步至sso
                 final Map<String, List<OccupyDto>> occupyResult = occupyService.buildOccupy(domainInfo, lastTaskLog);
                 String occupyNo = (occupyResult.containsKey("insert") ? String.valueOf(occupyResult.get("insert").size()) : "0") + "/"

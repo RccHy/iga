@@ -97,7 +97,7 @@ public class PersonServiceImpl implements PersonService {
             throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
         // 所有证件类型
-        List<CardType> cardTypes = cardTypeDao.findAll(tenant.getId());
+        List<CardType> cardTypes = cardTypeDao.findAllUser(tenant.getId());
         Map<String, CardType> cardTypeMap = cardTypes.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
 
 

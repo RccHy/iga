@@ -6,6 +6,14 @@
 **bug fix**
 - 修复初始化部署安装初始化bug。
 
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20211221
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20211221
+
 
 ### 20211203
 
