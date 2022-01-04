@@ -34,7 +34,7 @@ sso:
 app:
   client: ${OAUTH_CLIENT_ID}
   secret: ${OAUTH_CLIENT_SECRET}
-  scope: data,introspect,acl
+  scope: data,introspect,storage
 
 
 # 数据网关地址
