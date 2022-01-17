@@ -157,7 +157,7 @@ public class OccupyServiceImpl implements OccupyService {
             final List<OccupyDto> occupies = dataByBus.toJavaList(OccupyDto.class);
             // TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(occupies)));
             for (OccupyDto occupyDto : occupies) {
-                if(occupyDto.getIdentityCardNo().equals("200302101")){
+                if (("200302101").equals(occupyDto.getIdentityCardNo())) {
                     System.out.println("1");
                 }
                 // 人员标识 证件类型、证件号码   OR    用户名 accountNo  OR  身份标识  必提供一个
@@ -170,7 +170,7 @@ public class OccupyServiceImpl implements OccupyService {
                         } else {
                             if (identityCardTypeMap.containsKey(occupyDto.getIdentityCardType())) {
                                 String cardTypeReg = identityCardTypeMap.get(occupyDto.getIdentityCardType()).getCardTypeReg();
-                                if (StringUtils.isNotBlank(cardTypeReg)&& !Pattern.matches(cardTypeReg, occupyDto.getIdentityCardNo())) {
+                                if (StringUtils.isNotBlank(cardTypeReg) && !Pattern.matches(cardTypeReg, occupyDto.getIdentityCardNo())) {
                                     log.error("人员身份信息中身份证件号码不符合规则{}", occupyDto);
                                     extracted(domain, occupyDto, "人员身份信息中身份证件号码不符合规则");
                                     continue;
