@@ -5,5 +5,6 @@ import com.qtgl.iga.bo.CardType;
 import java.util.List;
 
 public interface CardTypeDao {
-    List<CardType> findAll(String domain);
+    List<CardType> findAllUser(String domain);
+    List<CardType> findAllFromIdentity(String domain);
 }

@@ -57,6 +57,9 @@ public class DataBusUtil {
     @Autowired
     DomainInfoService domainInfoService;
 
+    @Autowired
+    CertifiedConnector certifiedConnector;
+
     @Value("${app.scope}")
     private String appScope;
     @Value("${sso.token.url}")
@@ -103,21 +106,19 @@ public class DataBusUtil {
         //调用获取资源url
         String dataUrl = invokeUrl(dealUrl, split);
         //请求获取资源
-        String u = dataUrl + "/" + "?access_token=" + key+"&domain="+serverName;
+        String u = dataUrl + "/" + "?access_token=" + key + "&domain=" + serverName;
 
         return invokeForData(UrlUtil.getUrl(u), upstreamType);
     }
 
     public String getToken(String serverName) {
         String sso = UrlUtil.getUrl(ssoUrl);
-        //判断是否已有未过期token
-        if (StringUtils.isBlank(serverName)) {
-            HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
-            serverName = request.getServerName();
-        }
 
         //获取domain 信息
         DomainInfo byDomainName = domainInfoService.getByDomainName(serverName);
+        if (null == byDomainName) {
+            throw new CustomException(ResultCode.FAILED, "解析token获取租户失败,请检查当前token");
+        }
         Token token = tokenMap.get(serverName);
         if (null != token) {
             int i = token.getExpireIn().compareTo(System.currentTimeMillis());
@@ -131,7 +132,7 @@ public class DataBusUtil {
         OAuthClientRequest oAuthClientRequest = null;
         try {
             oAuthClientRequest = OAuthClientRequest
-                    .tokenLocation(sso ).setGrantType(GrantType.CLIENT_CREDENTIALS)
+                    .tokenLocation(sso).setGrantType(GrantType.CLIENT_CREDENTIALS)
                     .setClientId(byDomainName.getClientId()).setClientSecret(byDomainName.getClientSecret())
                     .setScope(scope.replace(",", " ")).buildBodyMessage();
         } catch (OAuthSystemException e) {
@@ -328,9 +329,16 @@ public class DataBusUtil {
         return null;
     }
 
-    public Map getDataByBus(UpstreamType upstreamType, Integer offset, Integer first,DomainInfo domain) throws Exception {
+    public Map getDataByBus(UpstreamType upstreamType, Integer offset, Integer first, DomainInfo domain) throws Exception {
+
+        //todo通过token内省获取域名
+        HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
+
+        DomainInfo introspect = certifiedConnector.introspect(request);
+
+
         //获取token
-        String key = getToken(null);
+        String key = getToken(introspect.getDomainName());
         String[] split = upstreamType.getGraphqlUrl().split("/");
 
         //根据url 获取请求地址
@@ -343,7 +351,7 @@ public class DataBusUtil {
         //调用获取资源url
         String dataUrl = invokeUrl(dealUrl, split);
         //请求获取资源
-        String u = dataUrl + "/" + "?access_token=" + key+"&domain="+domain.getDomainName();
+        String u = dataUrl + "/" + "?access_token=" + key + "&domain=" + domain.getDomainName();
 
         return invokeForMapData(UrlUtil.getUrl(u), upstreamType, offset, first);
     }
@@ -661,7 +669,7 @@ public class DataBusUtil {
         log.debug("pub graphql: {}", graphql);
 
         String token = getToken(domain.getDomainName());
-        return sendPostRequest(busUrl + "?access_token=" + token+"&domain="+domain.getDomainName(), params);
+        return sendPostRequest(busUrl + "?access_token=" + token + "&domain=" + domain.getDomainName(), params);
 
     }
 
