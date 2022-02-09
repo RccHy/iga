@@ -1,5 +1,6 @@
 package com.qtgl.iga.dao;
 
+import com.qtgl.iga.bo.DynamicValue;
 import com.qtgl.iga.bo.Person;
 
 import java.util.List;
@@ -11,7 +12,6 @@ public interface PersonDao {
     List<Person> getAll(String tenantId);
 
 
-
-    Integer saveToSso(Map<String, List<Person>> personMap, String tenantId);
+    Integer saveToSso(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert);
 
 }

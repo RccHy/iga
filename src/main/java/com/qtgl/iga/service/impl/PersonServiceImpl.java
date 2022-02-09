@@ -1,12 +1,15 @@
 package com.qtgl.iga.service.impl;
 
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.PersonConnection;
 import com.qtgl.iga.bean.PersonEdge;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
+import com.qtgl.iga.dao.impl.DynamicAttrDaoImpl;
+import com.qtgl.iga.dao.impl.DynamicValueDaoImpl;
 import com.qtgl.iga.service.PersonService;
 import com.qtgl.iga.task.TaskConfig;
 import com.qtgl.iga.utils.ClassCompareUtil;
@@ -53,9 +56,14 @@ public class PersonServiceImpl implements PersonService {
     PersonDao personDao;
     @Autowired
     NodeRulesCalculationServiceImpl calculationService;
-
+    @Autowired
+    DynamicAttrDaoImpl dynamicAttrDao;
+    @Autowired
+    DynamicValueDaoImpl dynamicValueDao;
 
     public static ConcurrentHashMap<String, List<JSONObject>> personErrorData = null;
+    //类型
+    private final String TYPE = "USER";
 
     /**
      * <p>
@@ -100,6 +108,32 @@ public class PersonServiceImpl implements PersonService {
         List<CardType> cardTypes = cardTypeDao.findAllUser(tenant.getId());
         Map<String, CardType> cardTypeMap = cardTypes.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
 
+        //获取扩展字段列表
+        List<String> dynamicCodes = new ArrayList<>();
+
+        List<DynamicValue> dynamicValues = new ArrayList<>();
+
+        List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
+        //扩展字段修改容器
+        List<DynamicValue> valueUpdate = new ArrayList<>();
+        //扩展字段新增容器
+        ArrayList<DynamicValue> valueInsert = new ArrayList<>();
+
+        if (!CollectionUtils.isEmpty(dynamicAttrs)) {
+            dynamicCodes = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getCode()).collect(Collectors.toList());
+            //获取扩展value
+            List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getId()).collect(Collectors.toList());
+
+            dynamicValues = dynamicValueDao.findAllByAttrId(attrIds, tenant.getId());
+        }
+
+        //扩展字段值分组
+        Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(dynamicValues)) {
+            valueMap = dynamicValues.stream().collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
+        }
+        List<String> finalDynamicCodes = dynamicCodes;
+        Map<String, List<DynamicValue>> finalValueMap = valueMap;
 
         // 获取规则
         Map arguments = new ConcurrentHashMap();
@@ -139,13 +173,17 @@ public class PersonServiceImpl implements PersonService {
                 throw new CustomException(ResultCode.PERSON_ERROR, null, null, upstreamType.getDescription(), e.getMessage());
             }
 
-            List<Person> personUpstreamList = dataByBus.toJavaList(Person.class);
+            //List<Person> personUpstreamList = dataByBus.toJavaList(Person.class);
+            List<Person> personUpstreamList = new ArrayList<>();
             //将该源数据放入errorData,方便程序运行异常后排查数据源头问题
             //  TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(personUpstreamList)));
 
             //遍历权威源数据进行数据规范化
-            if (null != personUpstreamList) {
-                for (Person personUpstream : personUpstreamList) {
+            if (null != dataByBus) {
+                for (Object o : dataByBus) {
+
+                    JSONObject personObj = JSON.parseObject(JSON.toJSONString(o));
+                    Person personUpstream = personObj.toJavaObject(Person.class);
 
                     if (null != personUpstream.getActive() && personUpstream.getActive() != 0 && personUpstream.getActive() != 1) {
                         extracted(domain, personUpstream, "人员是否有效字段不合法");
@@ -208,6 +246,24 @@ public class PersonServiceImpl implements PersonService {
                     }
                     //赋予activeTime默认值
                     personUpstream.setActiveTime(LocalDateTime.now());
+
+                    //处理扩展字段
+                    ConcurrentHashMap<String, String> map = null;
+                    if (!CollectionUtils.isEmpty(finalDynamicCodes)) {
+                        map = new ConcurrentHashMap<>();
+                        for (String dynamicCode : finalDynamicCodes) {
+                            if (personObj.containsKey(dynamicCode)) {
+                                if (StringUtils.isNotBlank(personObj.getString(dynamicCode))) {
+                                    map.put(dynamicCode, personObj.getString(dynamicCode));
+                                } else {
+                                    map.put(dynamicCode, null);
+                                }
+                            }
+                        }
+                        personUpstream.setDynamic(map);
+                    }
+                    personUpstreamList.add(personUpstream);
+
 
                     // 人员标识 证件类型、证件号码 OR 用户名 accountNo必提供一个  都提供以证件类型+证件号码为标识
 
@@ -388,13 +444,20 @@ public class PersonServiceImpl implements PersonService {
             Map<String, Person> personFromSSOMapByAccountAll = personFromSSOList.stream().filter(person ->
                     !StringUtils.isBlank(person.getAccountNo())).collect(Collectors.toMap(Person::getAccountNo, person -> person, (v1, v2) -> v2));
 
+            //扩展字段逻辑处理
+            //扩展字段id与code对应map
+            Map<String, String> attrMap = new ConcurrentHashMap<>();
+            if (!CollectionUtils.isEmpty(dynamicAttrs)) {
+                attrMap = dynamicAttrs.stream().collect(Collectors.toMap(DynamicAttr::getId, DynamicAttr::getCode));
+            }
 
+            Map<String, String> finalAttrMap = attrMap;
             personFromSSOMap.forEach((key, personFromSSO) -> {
-                calculate(personFromUpstream, personRepeatByAccount, now, result, key, personFromSSO, domain);
+                calculate(personFromUpstream, personRepeatByAccount, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdate, valueInsert);
             });
 
             personFromSSOMapByAccount.forEach((key, personFromSSO) -> {
-                calculate(personFromUpstreamByAccount, personRepeatByAccount, now, result, key, personFromSSO);
+                calculate(personFromUpstreamByAccount, personRepeatByAccount, now, result, key, personFromSSO, finalAttrMap, finalValueMap, valueUpdate, valueInsert);
             });
 
             personFromUpstreamByAccount.forEach((key, val) -> {
@@ -409,12 +472,32 @@ public class PersonServiceImpl implements PersonService {
             calculationService.monitorRules(domain, taskLog, personFromSSOList.size(), result.get("delete"));
             // sso 批量新增
             try {
-                personDao.saveToSso(result, tenant.getId());
+                List<Person> insert = result.get("insert");
+                if (null != insert && insert.size() > 0) {
+                    for (Person key : insert) {
+
+                        String id = UUID.randomUUID().toString();
+                        key.setId(id);
+                        Map<String, String> dynamic = key.getDynamic();
+                        if (!CollectionUtils.isEmpty(dynamic)) {
+                            for (Map.Entry<String, String> str : dynamic.entrySet()) {
+                                DynamicValue dynamicValue = new DynamicValue();
+                                dynamicValue.setId(UUID.randomUUID().toString());
+                                dynamicValue.setValue(str.getValue());
+                                dynamicValue.setEntityId(id);
+                                dynamicValue.setTenantId(tenant.getId());
+                                dynamicValue.setAttrId(attrMap.get(str.getKey()));
+                                valueInsert.add(dynamicValue);
+                            }
+                        }
+                    }
+                }
+                personDao.saveToSso(result, tenant.getId(), valueUpdate, valueInsert);
             } catch (CustomException e) {
                 TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(personFromUpstream) + JSONObject.toJSONString(personFromUpstreamByAccount));
                 throw new CustomException(ResultCode.FAILED, e.getErrorMsg());
             }
-            if(!CollectionUtils.isEmpty(personErrorData.get(domain.getId()))){
+            if (!CollectionUtils.isEmpty(personErrorData.get(domain.getId()))) {
                 TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(personErrorData.get(domain.getId())));
             }
             return result;
@@ -502,7 +585,7 @@ public class PersonServiceImpl implements PersonService {
     //    }
     //}
 
-    private void calculate(Map<String, Person> personFromUpstream, Map<String, Person> personRepeatByAccount, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO) {
+    private void calculate(Map<String, Person> personFromUpstream, Map<String, Person> personRepeatByAccount, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO, Map<String, String> attrMap, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert) {
         // 对比出需要修改的person
         if (personFromUpstream.containsKey(key) &&
                 personFromUpstream.get(key).getCreateTime().isAfter(personFromSSO.getUpdateTime())) {
@@ -516,6 +599,8 @@ public class PersonServiceImpl implements PersonService {
             boolean passwordFlag = false;
             //恢复失效标识
             // boolean invalidRecoverFlag = true;
+            //是否处理扩展字段标识
+            boolean dyFlag = true;
 
             Person newPerson = personFromUpstream.get(key);
             List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(newPerson.getUpstreamType());
@@ -639,12 +724,23 @@ public class PersonServiceImpl implements PersonService {
                         personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
                     }
 
-                    if (result.containsKey("update")) {
-                        result.get("update").add(personFromSSO);
-                    } else {
-                        result.put("update", new ArrayList<Person>() {{
-                            this.add(personFromSSO);
-                        }});
+                    //if (result.containsKey("update")) {
+                    //    result.get("update").add(personFromSSO);
+                    //} else {
+                    //    result.put("update", new ArrayList<Person>() {{
+                    //        this.add(personFromSSO);
+                    //    }});
+                    //}
+                    if (dyFlag) {
+                        //上游的扩展字段
+                        Map<String, String> dynamic = newPerson.getDynamic();
+                        List<DynamicValue> dyValuesFromSSO = null;
+                        //数据库的扩展字段
+                        if (!CollectionUtils.isEmpty(valueMap)) {
+                            dyValuesFromSSO = valueMap.get(personFromSSO.getId());
+                        }
+                        dynamicProcessing(valueUpdate, valueInsert, attrMap, personFromSSO, dynamic, dyValuesFromSSO);
+                        dyFlag = false;
                     }
                 }
                 log.info("人员对比后需要修改{}", personFromSSO);
@@ -658,6 +754,43 @@ public class PersonServiceImpl implements PersonService {
                     personFromSSO.setActive(newPerson.getActive());
                     personFromSSO.setActiveTime(newPerson.getUpdateTime());
                     personFromSSO.setUpdateTime(newPerson.getUpdateTime());
+                    if (dyFlag) {
+                        //上游的扩展字段
+                        Map<String, String> dynamic = newPerson.getDynamic();
+                        List<DynamicValue> dyValuesFromSSO = null;
+                        //数据库的扩展字段
+                        if (!CollectionUtils.isEmpty(valueMap)) {
+                            dyValuesFromSSO = valueMap.get(personFromSSO.getId());
+                        }
+                        dynamicProcessing(valueUpdate, valueInsert, attrMap, personFromSSO, dynamic, dyValuesFromSSO);
+                        dyFlag = false;
+                    }
+
+                }
+
+            }
+            //防止重复将数据放入
+            if (!dyFlag) {
+                if (result.containsKey("update")) {
+                    result.get("update").add(personFromSSO);
+                } else {
+                    result.put("update", new ArrayList<Person>() {{
+                        this.add(personFromSSO);
+                    }});
+                }
+            }
+
+            //处理扩展字段对比     修改标识为false则认为主体字段没有差异
+            if (!updateFlag && dyFlag) {
+                //上游的扩展字段
+                Map<String, String> dynamic = newPerson.getDynamic();
+                List<DynamicValue> dyValuesFromSSO = null;
+                //数据库的扩展字段
+                if (!CollectionUtils.isEmpty(valueMap)) {
+                    dyValuesFromSSO = valueMap.get(personFromSSO.getId());
+                }
+                Boolean valueFlag = dynamicProcessing(valueUpdate, valueInsert, attrMap, personFromSSO, dynamic, dyValuesFromSSO);
+                if (valueFlag) {
                     if (result.containsKey("update")) {
                         result.get("update").add(personFromSSO);
                     } else {
@@ -665,7 +798,6 @@ public class PersonServiceImpl implements PersonService {
                             this.add(personFromSSO);
                         }});
                     }
-
                 }
 
             }
@@ -758,7 +890,7 @@ public class PersonServiceImpl implements PersonService {
                     }
                 }
                 // 对新增用户判断是否提供 冻结时间
-                if (null==val.getFreezeTime()) {
+                if (null == val.getFreezeTime()) {
                     val.setFreezeTime(val.getCreateTime());
                 }
                 //根据主键判断新增还是修改
@@ -787,7 +919,7 @@ public class PersonServiceImpl implements PersonService {
         }
     }
 
-    private void calculate(Map<String, Person> personFromUpstream, Map<String, Person> personRepeatByAccount, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO, DomainInfo domainInfo) {
+    private void calculate(Map<String, Person> personFromUpstream, Map<String, Person> personRepeatByAccount, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO, DomainInfo domainInfo, Map<String, String> attrMap, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert) {
         // 对比出需要修改的person
         if (personFromUpstream.containsKey(key) &&
                 personFromUpstream.get(key).getCreateTime().isAfter(personFromSSO.getUpdateTime())) {
@@ -803,6 +935,8 @@ public class PersonServiceImpl implements PersonService {
             boolean passwordFlag = false;
             //恢复失效标识
             // boolean invalidRecoverFlag = true;
+            //是否处理扩展字段标识
+            boolean dyFlag = true;
 
             Person newPerson = personFromUpstream.get(key);
             List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(newPerson.getUpstreamType());
@@ -943,12 +1077,23 @@ public class PersonServiceImpl implements PersonService {
                         personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
                     }
 
-                    if (result.containsKey("update")) {
-                        result.get("update").add(personFromSSO);
-                    } else {
-                        result.put("update", new ArrayList<Person>() {{
-                            this.add(personFromSSO);
-                        }});
+                    //if (result.containsKey("update")) {
+                    //    result.get("update").add(personFromSSO);
+                    //} else {
+                    //    result.put("update", new ArrayList<Person>() {{
+                    //        this.add(personFromSSO);
+                    //    }});
+                    //}
+                    if (dyFlag) {
+                        //上游的扩展字段
+                        Map<String, String> dynamic = newPerson.getDynamic();
+                        List<DynamicValue> dyValuesFromSSO = null;
+                        //数据库的扩展字段
+                        if (!CollectionUtils.isEmpty(valueMap)) {
+                            dyValuesFromSSO = valueMap.get(personFromSSO.getId());
+                        }
+                        dynamicProcessing(valueUpdate, valueInsert, attrMap, personFromSSO, dynamic, dyValuesFromSSO);
+                        dyFlag = false;
                     }
                 }
                 log.info("人员对比后需要修改{}", personFromSSO);
@@ -962,6 +1107,46 @@ public class PersonServiceImpl implements PersonService {
                     personFromSSO.setActive(newPerson.getActive());
                     personFromSSO.setActiveTime(newPerson.getUpdateTime());
                     personFromSSO.setUpdateTime(newPerson.getUpdateTime());
+
+                    if (dyFlag) {
+                        //上游的扩展字段
+                        Map<String, String> dynamic = newPerson.getDynamic();
+                        List<DynamicValue> dyValuesFromSSO = null;
+                        //数据库的扩展字段
+                        if (!CollectionUtils.isEmpty(valueMap)) {
+                            dyValuesFromSSO = valueMap.get(personFromSSO.getId());
+                        }
+                        dynamicProcessing(valueUpdate, valueInsert, attrMap, personFromSSO, dynamic, dyValuesFromSSO);
+                        dyFlag = false;
+                    }
+
+
+                }
+
+            }
+            //}
+            //防止重复将数据放入
+            if (!dyFlag) {
+                if (result.containsKey("update")) {
+                    result.get("update").add(personFromSSO);
+                } else {
+                    result.put("update", new ArrayList<Person>() {{
+                        this.add(personFromSSO);
+                    }});
+                }
+            }
+
+            //处理扩展字段对比     修改标识为false则认为主体字段没有差异
+            if (!updateFlag && dyFlag) {
+                //上游的扩展字段
+                Map<String, String> dynamic = newPerson.getDynamic();
+                List<DynamicValue> dyValuesFromSSO = null;
+                //数据库的扩展字段
+                if (!CollectionUtils.isEmpty(valueMap)) {
+                    dyValuesFromSSO = valueMap.get(personFromSSO.getId());
+                }
+                Boolean valueFlag = dynamicProcessing(valueUpdate, valueInsert, attrMap, personFromSSO, dynamic, dyValuesFromSSO);
+                if (valueFlag) {
                     if (result.containsKey("update")) {
                         result.get("update").add(personFromSSO);
                     } else {
@@ -969,11 +1154,9 @@ public class PersonServiceImpl implements PersonService {
                             this.add(personFromSSO);
                         }});
                     }
-
                 }
 
             }
-            //}
 
 
         } else if (!personFromUpstream.containsKey(key)
@@ -1037,6 +1220,48 @@ public class PersonServiceImpl implements PersonService {
             throw new CustomException(ResultCode.FAILED, "数据类型不合法,请检查");
         }
 
+    }
+
+
+    private Boolean dynamicProcessing(List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, String> attrMap, Person ssoBean, Map<String, String> dynamic, List<DynamicValue> dyValuesFromSSO) {
+        Boolean valueFlag = false;
+        if (!CollectionUtils.isEmpty(dyValuesFromSSO)) {
+            Map<String, DynamicValue> collect = dyValuesFromSSO.stream().collect(Collectors.toMap(DynamicValue::getAttrId, dynamicValue -> dynamicValue));
+            for (Map.Entry<String, String> str : attrMap.entrySet()) {
+                String o = dynamic.get(str.getValue());
+                if (collect.containsKey(str.getKey())) {
+                    DynamicValue dynamicValue = collect.get(str.getKey());
+                    if (null != o && !o.equals(dynamicValue.getValue())) {
+                        dynamicValue.setValue(o);
+                        valueUpdate.add(dynamicValue);
+                        valueFlag = true;
+                    }
+                } else {
+                    //上游有  数据库没有则新增
+                    DynamicValue dynamicValue = new DynamicValue();
+                    dynamicValue.setId(UUID.randomUUID().toString());
+                    dynamicValue.setValue(o);
+                    dynamicValue.setEntityId(ssoBean.getId());
+                    dynamicValue.setAttrId(str.getKey());
+                    valueFlag = true;
+                    valueInsert.add(dynamicValue);
+                }
+            }
+        } else {
+            for (Map.Entry<String, String> str : attrMap.entrySet()) {
+                String o = dynamic.get(str.getValue());
+                valueFlag = true;
+                //上游有  数据库没有则新增
+                DynamicValue dynamicValue = new DynamicValue();
+                dynamicValue.setId(UUID.randomUUID().toString());
+                dynamicValue.setValue(o);
+                dynamicValue.setEntityId(ssoBean.getId());
+                dynamicValue.setAttrId(str.getKey());
+                valueInsert.add(dynamicValue);
+
+            }
+        }
+        return valueFlag;
     }
 
 
