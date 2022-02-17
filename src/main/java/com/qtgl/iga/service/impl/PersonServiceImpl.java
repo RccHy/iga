@@ -447,8 +447,10 @@ public class PersonServiceImpl implements PersonService {
             //扩展字段逻辑处理
             //扩展字段id与code对应map
             Map<String, String> attrMap = new ConcurrentHashMap<>();
+            Map<String, String> attrReverseMap = new ConcurrentHashMap<>();
             if (!CollectionUtils.isEmpty(dynamicAttrs)) {
                 attrMap = dynamicAttrs.stream().collect(Collectors.toMap(DynamicAttr::getId, DynamicAttr::getCode));
+                attrReverseMap = dynamicAttrs.stream().collect(Collectors.toMap(DynamicAttr::getCode, DynamicAttr::getId));
             }
 
             Map<String, String> finalAttrMap = attrMap;
@@ -486,7 +488,7 @@ public class PersonServiceImpl implements PersonService {
                                 dynamicValue.setValue(str.getValue());
                                 dynamicValue.setEntityId(id);
                                 dynamicValue.setTenantId(tenant.getId());
-                                dynamicValue.setAttrId(attrMap.get(str.getKey()));
+                                dynamicValue.setAttrId(attrReverseMap.get(str.getKey()));
                                 valueInsert.add(dynamicValue);
                             }
                         }
