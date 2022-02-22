@@ -264,7 +264,7 @@ public class DeptDaoImpl implements DeptDao {
                 }
                 String updateStr = "update dept set  dept_name=?,dept_en_name=?, parent_code=?, del_mark=? ,tenant_id =?" +
                         ",source =?, data_source=?, description=?,update_time=?,tags=?,tree_type= ?,active=? ,abbreviation=?,type = ?,dept_index=?,relation_type=?,independent=?  " +
-                        " where dept_code =? and update_time<= ?";
+                        " where dept_code =? and tenant_id=? and  update_time<= ?";
                 if (null != updateList && updateList.size() > 0) {
                     int[] i = jdbcSSOAPI.batchUpdate(updateStr, new BatchPreparedStatementSetter() {
                         @Override
@@ -287,7 +287,8 @@ public class DeptDaoImpl implements DeptDao {
                             preparedStatement.setObject(16, updateList.get(i).getRelationType());
                             preparedStatement.setObject(17, null == updateList.get(i).getIndependent() ? 0 : updateList.get(i).getIndependent());
                             preparedStatement.setObject(18, updateList.get(i).getCode());
-                            preparedStatement.setObject(19, updateList.get(i).getUpdateTime());
+                            preparedStatement.setObject(19, tenantId);
+                            preparedStatement.setObject(20, updateList.get(i).getUpdateTime());
 
                         }
 
@@ -298,7 +299,7 @@ public class DeptDaoImpl implements DeptDao {
                     });
                 }
                 String deleteStr = "update dept set   active = ?,active_time= ?,del_mark=? ,update_time =?  " +
-                        "where dept_code =? and update_time<= ? ";
+                        "where dept_code =? and tenant_id = ? and update_time<= ? ";
                 ArrayList<TreeBean> treeBeans = new ArrayList<>();
                 if (null != deleteList && deleteList.size() > 0) {
                     treeBeans.addAll(deleteList);
@@ -315,7 +316,8 @@ public class DeptDaoImpl implements DeptDao {
                             preparedStatement.setObject(3, treeBeans.get(i).getDelMark());
                             preparedStatement.setObject(4, treeBeans.get(i).getUpdateTime());
                             preparedStatement.setObject(5, treeBeans.get(i).getCode());
-                            preparedStatement.setObject(6, treeBeans.get(i).getUpdateTime());
+                            preparedStatement.setObject(6, tenantId);
+                            preparedStatement.setObject(7, treeBeans.get(i).getUpdateTime());
                         }
 
                         @Override
@@ -362,6 +364,7 @@ public class DeptDaoImpl implements DeptDao {
             } catch (Exception e) {
                 transactionStatus.setRollbackOnly();
                 // transactionStatus.rollbackToSavepoint(savepoint);
+                e.printStackTrace();
                 throw new CustomException(ResultCode.FAILED, "同步终止，部门同步异常！");
 
             }

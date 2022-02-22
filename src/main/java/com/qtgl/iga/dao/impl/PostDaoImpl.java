@@ -264,7 +264,7 @@ public class PostDaoImpl implements PostDao {
                 }
                 String updateStr = "update user_type set  name=?, parent_code=?, del_mark=? ,tenant_id =?" +
                         ", data_source=?, description=?,update_time=?,tags=?,source=?" +
-                        ", user_type_index = ?,post_type=?,active=?,formal=?  where user_type =? and update_time<= ?";
+                        ", user_type_index = ?,post_type=?,active=?,formal=?  where user_type =? and tenant_id=? and update_time<= ?";
                 if (null != updateList && updateList.size() > 0) {
                     jdbcSSO.batchUpdate(updateStr, new BatchPreparedStatementSetter() {
                         @Override
@@ -283,7 +283,8 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(12, updateList.get(i).getActive());
                             preparedStatement.setObject(13, updateList.get(i).getFormal());
                             preparedStatement.setObject(14, updateList.get(i).getCode());
-                            preparedStatement.setObject(15, updateList.get(i).getUpdateTime());
+                            preparedStatement.setObject(15, tenantId);
+                            preparedStatement.setObject(16, updateList.get(i).getUpdateTime());
 
                         }
 
@@ -294,7 +295,7 @@ public class PostDaoImpl implements PostDao {
                     });
                 }
                 String deleteStr = "update user_type set   del_mark= ? , active = ?,active_time= ? ,update_time=? " +
-                        "where user_type =?  and update_time<= ? ";
+                        "where user_type =? and tenant_id=? and update_time<= ? ";
 
                 ArrayList<TreeBean> treeBeans = new ArrayList<>();
                 if (null != deleteList && deleteList.size() > 0) {
@@ -312,7 +313,8 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(3, LocalDateTime.now());
                             preparedStatement.setObject(4, treeBeans.get(i).getUpdateTime());
                             preparedStatement.setObject(5, treeBeans.get(i).getCode());
-                            preparedStatement.setObject(6, treeBeans.get(i).getUpdateTime());
+                            preparedStatement.setObject(6, tenantId);
+                            preparedStatement.setObject(7, treeBeans.get(i).getUpdateTime());
                         }
 
                         @Override
