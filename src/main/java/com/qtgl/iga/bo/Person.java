@@ -3,6 +3,7 @@ package com.qtgl.iga.bo;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /**
  * @author 1
@@ -97,5 +98,7 @@ public class Person {
      * 密码
      */
     private String password;
+
+    private Map<String,String> dynamic;
 
 }

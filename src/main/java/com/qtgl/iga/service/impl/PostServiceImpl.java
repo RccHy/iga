@@ -2,11 +2,10 @@ package com.qtgl.iga.service.impl;
 
 
 import com.qtgl.iga.bean.TreeBean;
-import com.qtgl.iga.bo.DomainInfo;
-import com.qtgl.iga.bo.TaskLog;
-import com.qtgl.iga.bo.Tenant;
-import com.qtgl.iga.bo.UpstreamTypeField;
+import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
+import com.qtgl.iga.dao.impl.DynamicAttrDaoImpl;
+import com.qtgl.iga.dao.impl.DynamicValueDaoImpl;
 import com.qtgl.iga.service.NodeService;
 import com.qtgl.iga.service.PostService;
 import com.qtgl.iga.utils.ClassCompareUtil;
@@ -20,9 +19,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,7 +47,10 @@ public class PostServiceImpl implements PostService {
     OccupyDao occupyDao;
     @Autowired
     MonitorRulesDao monitorRulesDao;
-
+    @Autowired
+    DynamicAttrDaoImpl dynamicAttrDao;
+    @Autowired
+    DynamicValueDaoImpl dynamicValueDao;
 
     @Value("${iga.hostname}")
     String hostname;
@@ -90,11 +94,41 @@ public class PostServiceImpl implements PostService {
         List<TreeBean> mainTreeBeans = new ArrayList<>();
 //        Map<String, TreeBean> rootBeansMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
         final LocalDateTime now = LocalDateTime.now();
+
+        //获取扩展字段列表
+        List<String> dynamicCodes = new ArrayList<>();
+
+        List<DynamicValue> dynamicValues = new ArrayList<>();
+
+        List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
+
+        List<DynamicValue> valueUpdate = new ArrayList<>();
+
+        //扩展字段新增容器
+        ArrayList<DynamicValue> valueInsert = new ArrayList<>();
+
+        //扩展字段id与code对应map
+        Map<String, String> attrMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(dynamicAttrs)) {
+            attrMap = dynamicAttrs.stream().collect(Collectors.toMap(DynamicAttr::getCode, DynamicAttr::getId));
+        }
+        if (!CollectionUtils.isEmpty(dynamicAttrs)) {
+            dynamicCodes = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getCode()).collect(Collectors.toList());
+            //获取扩展value
+            List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getId()).collect(Collectors.toList());
+
+            dynamicValues = dynamicValueDao.findAllByAttrId(attrIds, tenant.getId());
+        }
+        //扩展字段值分组
+        Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(dynamicValues)) {
+            valueMap = dynamicValues.stream().collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
+        }
         mainTreeBeans.addAll(ssoBeans);
 
         for (TreeBean rootBean : rootBeans) {
 
-            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE);
+            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes);
 
         }
         // 判断重复(code)
@@ -114,7 +148,7 @@ public class PostServiceImpl implements PostService {
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
 
         //同步到sso
-        beans = dataProcessing(mainTreeMap, domain, "", beans, result, now);
+        beans = dataProcessing(mainTreeMap, domain, "", beans, result, now, dynamicAttrs, valueMap, valueUpdate, valueInsert);
 //        if (null != beans) {
 //            beans.addAll(treeBeans);
 //        }
@@ -130,7 +164,7 @@ public class PostServiceImpl implements PostService {
         // 验证监控规则
         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
         calculationService.monitorRules(domain, lastTaskLog, beans.size(), delete, "post");
-        saveToSso(collect, tenant.getId());
+        saveToSso(collect, tenant.getId(), attrMap, valueUpdate, valueInsert);
 
         return result;
 
@@ -185,12 +219,41 @@ public class PostServiceImpl implements PostService {
 
         List<TreeBean> mainTreeBeans = new ArrayList<>();
         final LocalDateTime now = LocalDateTime.now();
+        //获取扩展字段列表
+        List<String> dynamicCodes = new ArrayList<>();
+
+        List<DynamicValue> dynamicValues = new ArrayList<>();
+
+        List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
+
+        List<DynamicValue> valueUpdate = new ArrayList<>();
+
+        //扩展字段新增容器
+        ArrayList<DynamicValue> valueInsert = new ArrayList<>();
+
+        ////扩展字段id与code对应map
+        //Map<String, String> attrMap = new ConcurrentHashMap<>();
+        //if (!CollectionUtils.isEmpty(dynamicAttrs)) {
+        //    attrMap = dynamicAttrs.stream().collect(Collectors.toMap(DynamicAttr::getCode, DynamicAttr::getId));
+        //}
+        if (!CollectionUtils.isEmpty(dynamicAttrs)) {
+            dynamicCodes = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getCode()).collect(Collectors.toList());
+            //获取扩展value
+            List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getId()).collect(Collectors.toList());
+
+            dynamicValues = dynamicValueDao.findAllByAttrId(attrIds, tenant.getId());
+        }
+        //扩展字段值分组
+        Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(dynamicValues)) {
+            valueMap = dynamicValues.stream().collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
+        }
         Map<String, TreeBean> rootBeansMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
 
         mainTreeBeans.addAll(ssoBeans);
         for (TreeBean rootBean : rootBeans) {
 
-            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE);
+            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, dynamicCodes);
 
         }
 
@@ -209,7 +272,7 @@ public class PostServiceImpl implements PostService {
         beans = new ArrayList<>(collect.values());
         //数据对比处理
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-        beans = dataProcessing(mainTreeMap, domain, "", beans, result, now);
+        beans = dataProcessing(mainTreeMap, domain, "", beans, result, now, dynamicAttrs, valueMap, valueUpdate, valueInsert);
 
 //        if (null != beans) {
 //            beans.addAll(treeBeans);
@@ -231,7 +294,7 @@ public class PostServiceImpl implements PostService {
      * @Description: 增量插入sso数据库
      * @return: void
      */
-    private void saveToSso(Map<String, List<Map.Entry<TreeBean, String>>> collect, String tenantId) {
+    private void saveToSso(Map<String, List<Map.Entry<TreeBean, String>>> collect, String tenantId, Map<String, String> attrMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert) {
 
 
         ArrayList<TreeBean> insertList = new ArrayList<>();
@@ -251,6 +314,21 @@ public class PostServiceImpl implements PostService {
 
         if (null != insert && insert.size() > 0) {
             for (Map.Entry<TreeBean, String> key : insert) {
+                TreeBean bean = key.getKey();
+                String id = UUID.randomUUID().toString();
+                bean.setId(id);
+                Map<String, String> dynamic = bean.getDynamic();
+                if (!CollectionUtils.isEmpty(dynamic)) {
+                    for (Map.Entry<String, String> str : dynamic.entrySet()) {
+                        DynamicValue dynamicValue = new DynamicValue();
+                        dynamicValue.setId(UUID.randomUUID().toString());
+                        dynamicValue.setValue(str.getValue());
+                        dynamicValue.setEntityId(id);
+                        dynamicValue.setTenantId(tenantId);
+                        dynamicValue.setAttrId(attrMap.get(str.getKey()));
+                        valueInsert.add(dynamicValue);
+                    }
+                }
                 logger.debug("岗位对比后新增{}", key.getKey().toString());
                 insertList.add(key.getKey());
             }
@@ -290,7 +368,7 @@ public class PostServiceImpl implements PostService {
             }
         }
 
-        Integer flag = postDao.renewData(insertList, updateList, deleteList, invalidList, tenantId);
+        Integer flag = postDao.renewData(insertList, updateList, deleteList, invalidList, valueUpdate, valueInsert, tenantId);
         if (null != flag && flag > 0) {
 
             logger.info("post插入 {} 条数据  {}", insertList.size(), System.currentTimeMillis());
@@ -338,7 +416,7 @@ public class PostServiceImpl implements PostService {
      * E: 删除恢复  之前被标记为删除后再通过推送了相同的数据   (上游必须del_mark字段)
      * E: 失效恢复  之前被标记为失效后再通过推送了相同的数据   提供active则修改对比时直接覆盖,不提供则手动恢复
      **/
-    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> ssoBeans, Map<TreeBean, String> result, LocalDateTime now) {
+    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> ssoBeans, Map<TreeBean, String> result, LocalDateTime now, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert) {
         //将sso的数据转化为map方便对比
         Map<String, TreeBean> ssoCollect = new HashMap<>();
         if (null != ssoBeans && ssoBeans.size() > 0) {
@@ -347,6 +425,12 @@ public class PostServiceImpl implements PostService {
         //拉取的数据
         Collection<TreeBean> mainDept = mainTree.values();
         ArrayList<TreeBean> pullBeans = new ArrayList<>(mainDept);
+        // 处理扩展字段
+        //扩展字段id与code对应map
+        Map<String, String> attrMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(dynamicAttrs)) {
+            attrMap = dynamicAttrs.stream().collect(Collectors.toMap(DynamicAttr::getId, DynamicAttr::getCode));
+        }
         //遍历拉取数据
         for (TreeBean pullBean : pullBeans) {
             //标记新增还是修改
@@ -373,6 +457,8 @@ public class PostServiceImpl implements PostService {
 //                                boolean invalidRecoverFlag = true;
                                 //上游是否提供active字段
                                 boolean activeFlag = false;
+                                //是否处理扩展字段标识
+                                boolean dyFlag = true;
 
                                 if (!"BUILTIN".equalsIgnoreCase(pullBean.getDataSource())) {
                                     ssoBean.setDataSource("PULL");
@@ -470,7 +556,17 @@ public class PostServiceImpl implements PostService {
                                         //将数据放入修改集合
                                         ssoCollect.put(ssoBean.getCode(), ssoBean);
 
-                                        result.put(ssoBean, "update");
+                                        if (dyFlag) {
+                                            //上游的扩展字段
+                                            Map<String, String> dynamic = pullBean.getDynamic();
+                                            List<DynamicValue> dyValuesFromSSO = null;
+                                            //数据库的扩展字段
+                                            if (!CollectionUtils.isEmpty(valueMap)) {
+                                                dyValuesFromSSO = valueMap.get(ssoBean.getId());
+                                            }
+                                            dynamicProcessing(valueUpdate, valueInsert, attrMap, ssoBean, dynamic, dyValuesFromSSO);
+                                            dyFlag = false;
+                                        }
                                     }
                                     logger.info("岗位对比后需要修改{}", ssoBean);
 
@@ -482,8 +578,17 @@ public class PostServiceImpl implements PostService {
                                     //将数据放入修改集合
                                     ssoCollect.put(ssoBean.getCode(), ssoBean);
                                     logger.info("手动从失效中恢复{}", ssoBean);
-
-                                    result.put(ssoBean, "update");
+                                    if (dyFlag) {
+                                        //上游的扩展字段
+                                        Map<String, String> dynamic = pullBean.getDynamic();
+                                        List<DynamicValue> dyValuesFromSSO = null;
+                                        //数据库的扩展字段
+                                        if (!CollectionUtils.isEmpty(valueMap)) {
+                                            dyValuesFromSSO = valueMap.get(ssoBean.getId());
+                                        }
+                                        dynamicProcessing(valueUpdate, valueInsert, attrMap, ssoBean, dynamic, dyValuesFromSSO);
+                                        dyFlag = false;
+                                    }
                                 }
 
                                 //上游未提供delmark并且sso与上游源该字段值不一致
@@ -493,9 +598,39 @@ public class PostServiceImpl implements PostService {
                                     //将数据放入修改集合
                                     ssoCollect.put(ssoBean.getCode(), ssoBean);
                                     logger.info("手动从删除中恢复{}", ssoBean);
+                                    if (dyFlag) {
+                                        //上游的扩展字段
+                                        Map<String, String> dynamic = pullBean.getDynamic();
+                                        List<DynamicValue> dyValuesFromSSO = null;
+                                        //数据库的扩展字段
+                                        if (!CollectionUtils.isEmpty(valueMap)) {
+                                            dyValuesFromSSO = valueMap.get(ssoBean.getId());
+                                        }
+                                        dynamicProcessing(valueUpdate, valueInsert, attrMap, ssoBean, dynamic, dyValuesFromSSO);
+                                        dyFlag = false;
+                                    }
+                                }
+
+                                //防止重复将数据放入
+                                if (!dyFlag) {
                                     result.put(ssoBean, "update");
                                 }
 
+                                //处理扩展字段对比     修改标识为false则认为主体字段没有差异
+                                if (!updateFlag && dyFlag) {
+                                    //上游的扩展字段
+                                    Map<String, String> dynamic = pullBean.getDynamic();
+                                    List<DynamicValue> dyValuesFromSSO = null;
+                                    //数据库的扩展字段
+                                    if (!CollectionUtils.isEmpty(valueMap)) {
+                                        dyValuesFromSSO = valueMap.get(ssoBean.getId());
+                                    }
+                                    Boolean valueFlag = dynamicProcessing(valueUpdate, valueInsert, attrMap, ssoBean, dynamic, dyValuesFromSSO);
+                                    if (valueFlag) {
+                                        result.put(ssoBean, "update");
+                                    }
+
+                                }
                             } else {
                                 //如果数据不是最新的则忽略
                                 result.put(pullBean, "obsolete");
@@ -557,6 +692,47 @@ public class PostServiceImpl implements PostService {
         Collection<TreeBean> values = ssoCollect.values();
         List<TreeBean> collect = new ArrayList<>(values).stream().filter(post -> post.getActive() != 0 && post.getDelMark() != 1).collect(Collectors.toList());
         return collect;
+    }
+
+    private Boolean dynamicProcessing(List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, String> attrMap, TreeBean ssoBean, Map<String, String> dynamic, List<DynamicValue> dyValuesFromSSO) {
+        Boolean valueFlag = false;
+        if (!CollectionUtils.isEmpty(dyValuesFromSSO)) {
+            Map<String, DynamicValue> collect = dyValuesFromSSO.stream().collect(Collectors.toMap(DynamicValue::getAttrId, dynamicValue -> dynamicValue));
+            for (Map.Entry<String, String> str : attrMap.entrySet()) {
+                String o = dynamic.get(str.getValue());
+                if (collect.containsKey(str.getKey())) {
+                    DynamicValue dynamicValue = collect.get(str.getKey());
+                    if (null != o && !o.equals(dynamicValue.getValue())) {
+                        dynamicValue.setValue(o);
+                        valueUpdate.add(dynamicValue);
+                        valueFlag = true;
+                    }
+                } else {
+                    //上游有  数据库没有则新增
+                    DynamicValue dynamicValue = new DynamicValue();
+                    dynamicValue.setId(UUID.randomUUID().toString());
+                    dynamicValue.setValue(o);
+                    dynamicValue.setEntityId(ssoBean.getId());
+                    dynamicValue.setAttrId(str.getKey());
+                    valueFlag = true;
+                    valueInsert.add(dynamicValue);
+                }
+            }
+        } else {
+            for (Map.Entry<String, String> str : attrMap.entrySet()) {
+                String o = dynamic.get(str.getValue());
+                valueFlag = true;
+                //上游有  数据库没有则新增
+                DynamicValue dynamicValue = new DynamicValue();
+                dynamicValue.setId(UUID.randomUUID().toString());
+                dynamicValue.setValue(o);
+                dynamicValue.setEntityId(ssoBean.getId());
+                dynamicValue.setAttrId(str.getKey());
+                valueInsert.add(dynamicValue);
+
+            }
+        }
+        return valueFlag;
     }
 
 

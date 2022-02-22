@@ -1,6 +1,7 @@
 package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bean.TreeBean;
+import com.qtgl.iga.bo.DynamicValue;
 import com.qtgl.iga.dao.PostDao;
 import com.qtgl.iga.utils.MyBeanUtils;
 import com.qtgl.iga.utils.enumerate.ResultCode;
@@ -11,6 +12,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.lang.reflect.InvocationTargetException;
@@ -35,7 +37,7 @@ public class PostDaoImpl implements PostDao {
     @Override
     public List<TreeBean> findByTenantId(String id) {
         //
-        String sql = "select  user_type as code , name, parent_code as parentCode , " +
+        String sql = "select id, user_type as code , name, parent_code as parentCode , " +
                 " update_time as createTime," +
                 "source,data_source as dataSource,user_type_index as deptIndex,del_mark as delMark,update_time as updateTime,post_type as type,active from user_type where tenant_id = ? and client_id is null or client_id = ''  ";
 
@@ -224,7 +226,7 @@ public class PostDaoImpl implements PostDao {
     }
 
     @Override
-    public Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, ArrayList<TreeBean> invalidList, String tenantId) {
+    public Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, ArrayList<TreeBean> invalidList, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, String tenantId) {
         String insertStr = "insert into user_type (id,user_type, name, parent_code, can_login ,tenant_id ,tags," +
                 " data_source, description,create_time,del_mark,active,active_time,update_time,source,user_type_index,post_type,formal) values" +
                 "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
@@ -234,7 +236,7 @@ public class PostDaoImpl implements PostDao {
                     jdbcSSO.batchUpdate(insertStr, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, UUID.randomUUID().toString().replace("-", ""));
+                            preparedStatement.setObject(1, insertList.get(i).getId());
                             preparedStatement.setObject(2, insertList.get(i).getCode());
                             preparedStatement.setObject(3, insertList.get(i).getName());
                             preparedStatement.setObject(4, insertList.get(i).getParentCode());
@@ -262,7 +264,7 @@ public class PostDaoImpl implements PostDao {
                 }
                 String updateStr = "update user_type set  name=?, parent_code=?, del_mark=? ,tenant_id =?" +
                         ", data_source=?, description=?,update_time=?,tags=?,source=?" +
-                        ", user_type_index = ?,post_type=?,active=?,formal=?  where user_type =? and update_time<= ?";
+                        ", user_type_index = ?,post_type=?,active=?,formal=?  where user_type =? and tenant_id=? and update_time<= ?";
                 if (null != updateList && updateList.size() > 0) {
                     jdbcSSO.batchUpdate(updateStr, new BatchPreparedStatementSetter() {
                         @Override
@@ -281,7 +283,8 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(12, updateList.get(i).getActive());
                             preparedStatement.setObject(13, updateList.get(i).getFormal());
                             preparedStatement.setObject(14, updateList.get(i).getCode());
-                            preparedStatement.setObject(15, updateList.get(i).getUpdateTime());
+                            preparedStatement.setObject(15, tenantId);
+                            preparedStatement.setObject(16, updateList.get(i).getUpdateTime());
 
                         }
 
@@ -292,7 +295,7 @@ public class PostDaoImpl implements PostDao {
                     });
                 }
                 String deleteStr = "update user_type set   del_mark= ? , active = ?,active_time= ? ,update_time=? " +
-                        "where user_type =?  and update_time<= ? ";
+                        "where user_type =? and tenant_id=? and update_time<= ? ";
 
                 ArrayList<TreeBean> treeBeans = new ArrayList<>();
                 if (null != deleteList && deleteList.size() > 0) {
@@ -310,12 +313,48 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(3, LocalDateTime.now());
                             preparedStatement.setObject(4, treeBeans.get(i).getUpdateTime());
                             preparedStatement.setObject(5, treeBeans.get(i).getCode());
-                            preparedStatement.setObject(6, treeBeans.get(i).getUpdateTime());
+                            preparedStatement.setObject(6, tenantId);
+                            preparedStatement.setObject(7, treeBeans.get(i).getUpdateTime());
                         }
 
                         @Override
                         public int getBatchSize() {
                             return treeBeans.size();
+                        }
+                    });
+                }
+
+                if (!CollectionUtils.isEmpty(valueInsert)) {
+                    String valueStr = "INSERT INTO dynamic_value (`id`, `attr_id`, `entity_id`, `value`, `tenant_id`) VALUES (?, ?, ?, ?, ?)";
+                    jdbcSSO.batchUpdate(valueStr, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, valueInsert.get(i).getId());
+                            preparedStatement.setObject(2, valueInsert.get(i).getAttrId());
+                            preparedStatement.setObject(3, valueInsert.get(i).getEntityId());
+                            preparedStatement.setObject(4, valueInsert.get(i).getValue());
+                            preparedStatement.setObject(5, tenantId);
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return valueInsert.size();
+                        }
+                    });
+                }
+
+                if (!CollectionUtils.isEmpty(valueUpdate)) {
+                    String valueStr = "update dynamic_value set `value`=? where id= ?";
+                    jdbcSSO.batchUpdate(valueStr, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, valueUpdate.get(i).getValue());
+                            preparedStatement.setObject(2, valueUpdate.get(i).getId());
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return valueUpdate.size();
                         }
                     });
                 }

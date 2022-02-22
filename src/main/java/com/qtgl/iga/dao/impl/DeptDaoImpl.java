@@ -2,6 +2,7 @@ package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.Dept;
+import com.qtgl.iga.bo.DynamicValue;
 import com.qtgl.iga.dao.DeptDao;
 import com.qtgl.iga.utils.MyBeanUtils;
 import com.qtgl.iga.utils.enumerate.ResultCode;
@@ -12,6 +13,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.lang.reflect.InvocationTargetException;
@@ -28,6 +30,7 @@ public class DeptDaoImpl implements DeptDao {
 
     @Resource(name = "jdbcSSO")
     JdbcTemplate jdbcSSOAPI;
+
 
     @Resource(name = "api-txTemplate")
     TransactionTemplate txTemplate;
@@ -52,7 +55,7 @@ public class DeptDaoImpl implements DeptDao {
 
     @Override
     public List<TreeBean> findByTenantId(String id, String treeType, Integer delMark) {
-        String sql = "select dept_code as code , dept_name as name , parent_code as parentCode ,independent,dept_en_name as enName, " +
+        String sql = "select id ,dept_code as code , dept_name as name , parent_code as parentCode ,independent,dept_en_name as enName, " +
                 " update_time as createTime , source, tree_type as treeType,data_source as dataSource, abbreviation,tags,type,update_time as updateTime,del_mark as delMark,active,relation_type as relationType,dept_en_name as enName  from dept where tenant_id = ? ";
         List<Object> param = new ArrayList<>();
         param.add(id);
@@ -131,7 +134,7 @@ public class DeptDaoImpl implements DeptDao {
                 preparedStatement.setObject(14, null == list.get(i).getType() ? null : list.get(i).getType());
                 preparedStatement.setObject(15, list.get(i).getRelationType());
                 preparedStatement.setObject(16, list.get(i).getEnName());
-                preparedStatement.setObject(17, null == list.get(i).getIndependent()?0:list.get(i).getIndependent());
+                preparedStatement.setObject(17, null == list.get(i).getIndependent() ? 0 : list.get(i).getIndependent());
                 preparedStatement.setObject(18, list.get(i).getCode());
                 preparedStatement.setObject(19, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
 
@@ -219,7 +222,7 @@ public class DeptDaoImpl implements DeptDao {
     }
 
     @Override
-    public Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, ArrayList<TreeBean> invalidList, String tenantId) {
+    public Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, ArrayList<TreeBean> invalidList, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, String tenantId) {
         String insertStr = "insert into dept (id,dept_code, dept_name,dept_en_name, parent_code, del_mark ,tenant_id ,source, data_source, description," +
                 "create_time,tags,active,active_time,tree_type,dept_index,abbreviation,update_time,type,relation_type,independent) values" +
                 "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
@@ -230,7 +233,7 @@ public class DeptDaoImpl implements DeptDao {
                     jdbcSSOAPI.batchUpdate(insertStr, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, UUID.randomUUID().toString().replace("-", ""));
+                            preparedStatement.setObject(1, insertList.get(i).getId());
                             preparedStatement.setObject(2, insertList.get(i).getCode());
                             preparedStatement.setObject(3, insertList.get(i).getName());
                             preparedStatement.setObject(4, insertList.get(i).getEnName());
@@ -261,7 +264,7 @@ public class DeptDaoImpl implements DeptDao {
                 }
                 String updateStr = "update dept set  dept_name=?,dept_en_name=?, parent_code=?, del_mark=? ,tenant_id =?" +
                         ",source =?, data_source=?, description=?,update_time=?,tags=?,tree_type= ?,active=? ,abbreviation=?,type = ?,dept_index=?,relation_type=?,independent=?  " +
-                        " where dept_code =? and update_time<= ?";
+                        " where dept_code =? and tenant_id=? and  update_time<= ?";
                 if (null != updateList && updateList.size() > 0) {
                     int[] i = jdbcSSOAPI.batchUpdate(updateStr, new BatchPreparedStatementSetter() {
                         @Override
@@ -282,9 +285,10 @@ public class DeptDaoImpl implements DeptDao {
                             preparedStatement.setObject(14, updateList.get(i).getType());
                             preparedStatement.setObject(15, updateList.get(i).getDeptIndex());
                             preparedStatement.setObject(16, updateList.get(i).getRelationType());
-                            preparedStatement.setObject(17, null==updateList.get(i).getIndependent()?0:updateList.get(i).getIndependent());
+                            preparedStatement.setObject(17, null == updateList.get(i).getIndependent() ? 0 : updateList.get(i).getIndependent());
                             preparedStatement.setObject(18, updateList.get(i).getCode());
-                            preparedStatement.setObject(19, updateList.get(i).getUpdateTime());
+                            preparedStatement.setObject(19, tenantId);
+                            preparedStatement.setObject(20, updateList.get(i).getUpdateTime());
 
                         }
 
@@ -295,7 +299,7 @@ public class DeptDaoImpl implements DeptDao {
                     });
                 }
                 String deleteStr = "update dept set   active = ?,active_time= ?,del_mark=? ,update_time =?  " +
-                        "where dept_code =? and update_time<= ? ";
+                        "where dept_code =? and tenant_id = ? and update_time<= ? ";
                 ArrayList<TreeBean> treeBeans = new ArrayList<>();
                 if (null != deleteList && deleteList.size() > 0) {
                     treeBeans.addAll(deleteList);
@@ -312,7 +316,8 @@ public class DeptDaoImpl implements DeptDao {
                             preparedStatement.setObject(3, treeBeans.get(i).getDelMark());
                             preparedStatement.setObject(4, treeBeans.get(i).getUpdateTime());
                             preparedStatement.setObject(5, treeBeans.get(i).getCode());
-                            preparedStatement.setObject(6, treeBeans.get(i).getUpdateTime());
+                            preparedStatement.setObject(6, tenantId);
+                            preparedStatement.setObject(7, treeBeans.get(i).getUpdateTime());
                         }
 
                         @Override
@@ -321,10 +326,45 @@ public class DeptDaoImpl implements DeptDao {
                         }
                     });
                 }
+                if (!CollectionUtils.isEmpty(valueInsert)) {
+                    String valueStr = "INSERT INTO dynamic_value (`id`, `attr_id`, `entity_id`, `value`, `tenant_id`) VALUES (?, ?, ?, ?, ?)";
+                    jdbcSSOAPI.batchUpdate(valueStr, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, valueInsert.get(i).getId());
+                            preparedStatement.setObject(2, valueInsert.get(i).getAttrId());
+                            preparedStatement.setObject(3, valueInsert.get(i).getEntityId());
+                            preparedStatement.setObject(4, valueInsert.get(i).getValue());
+                            preparedStatement.setObject(5, tenantId);
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return valueInsert.size();
+                        }
+                    });
+                }
+
+                if (!CollectionUtils.isEmpty(valueUpdate)) {
+                    String valueStr = "update dynamic_value set `value`=? where id= ?";
+                    jdbcSSOAPI.batchUpdate(valueStr, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, valueUpdate.get(i).getValue());
+                            preparedStatement.setObject(2, valueUpdate.get(i).getId());
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return valueUpdate.size();
+                        }
+                    });
+                }
                 return 1;
             } catch (Exception e) {
                 transactionStatus.setRollbackOnly();
                 // transactionStatus.rollbackToSavepoint(savepoint);
+                e.printStackTrace();
                 throw new CustomException(ResultCode.FAILED, "同步终止，部门同步异常！");
 
             }

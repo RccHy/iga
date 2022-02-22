@@ -6,12 +6,18 @@ import lombok.Data;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /**
  * @author 1
  */
 @Data
 public class TreeBean implements Serializable {
+
+    /**
+     * 主键标识
+     */
+    private String id;
     /**
      * 代码
      */
@@ -107,6 +113,8 @@ public class TreeBean implements Serializable {
      * 组织机构-关系类型
      */
     private String relationType;
+
+    private Map<String,String> dynamic;
 
 //    private String deptTreeTypeId;
 //    public DeptBean(Dept dept) {

@@ -4,6 +4,8 @@ package com.qtgl.iga.service.impl;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
+import com.qtgl.iga.dao.impl.DynamicAttrDaoImpl;
+import com.qtgl.iga.dao.impl.DynamicValueDaoImpl;
 import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.service.NodeService;
 import com.qtgl.iga.utils.ClassCompareUtil;
@@ -16,9 +18,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -51,6 +55,10 @@ public class DeptServiceImpl implements DeptService {
     MonitorRulesDao monitorRulesDao;
     @Autowired
     NodeRulesCalculationServiceImpl rulesCalculationService;
+    @Autowired
+    DynamicAttrDaoImpl dynamicAttrDao;
+    @Autowired
+    DynamicValueDaoImpl dynamicValueDao;
 
     @Value("${iga.hostname}")
     String hostname;
@@ -99,6 +107,37 @@ public class DeptServiceImpl implements DeptService {
         // 获取租户下开启的部门类型
         List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
         final LocalDateTime now = LocalDateTime.now();
+
+        //获取扩展字段列表
+        List<String> dynamicCodes = new ArrayList<>();
+
+        List<DynamicValue> dynamicValues = new ArrayList<>();
+
+        List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
+
+        List<DynamicValue> valueUpdate = new ArrayList<>();
+
+        //扩展字段新增容器
+        ArrayList<DynamicValue> valueInsert = new ArrayList<>();
+
+        ////扩展字段id与code对应map
+        //Map<String, String> attrMap = new ConcurrentHashMap<>();
+        //if (!CollectionUtils.isEmpty(dynamicAttrs)) {
+        //    attrMap = dynamicAttrs.stream().collect(Collectors.toMap(DynamicAttr::getCode, DynamicAttr::getId));
+        //}
+        if (!CollectionUtils.isEmpty(dynamicAttrs)) {
+            dynamicCodes = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getCode()).collect(Collectors.toList());
+            //获取扩展value
+            List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getId()).collect(Collectors.toList());
+
+            dynamicValues = dynamicValueDao.findAllByAttrId(attrIds, tenant.getId());
+        }
+        //扩展字段值分组
+        Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(dynamicValues)) {
+            valueMap = dynamicValues.stream().collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
+        }
+
         for (DeptTreeType deptType : deptTreeTypes) {
 
             List<TreeBean> ssoApiBeans = deptDao.findBySourceAndTreeType("API", deptType.getCode(), tenant.getId());
@@ -106,17 +145,18 @@ public class DeptServiceImpl implements DeptService {
                 mainTreeBeans.addAll(ssoApiBeans);
                 rulesCalculationService.groupByCode(mainTreeBeans, status, domain);
                 for (TreeBean ssoApiBean : ssoApiBeans) {
-                    mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), ssoApiBean.getCode(), mainTreeBeans, status, TYPE);
+                    mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), ssoApiBean.getCode(), mainTreeBeans, status, TYPE, dynamicCodes);
                 }
             }
 
             // id 改为code
-            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE);
+            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE, dynamicCodes);
 
         }
         //同步到sso
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-        beans = dataProcessing(mainTreeMap, domain, beans, result, insert, now);
+        beans = dataProcessing(mainTreeMap, domain, beans, result, insert, now, dynamicAttrs, valueMap, valueUpdate, valueInsert);
+
 //        //如果插入的数据不为空则加入返回集
 //        if (null != beans) {
 //            beans.addAll(insert);
@@ -173,6 +213,35 @@ public class DeptServiceImpl implements DeptService {
         // 获取租户下开启的部门类型
         List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
         final LocalDateTime now = LocalDateTime.now();
+        //获取扩展字段列表
+        List<String> dynamicCodes = new ArrayList<>();
+
+        List<DynamicValue> dynamicValues = new ArrayList<>();
+
+        List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
+
+        List<DynamicValue> valueUpdate = new ArrayList<>();
+
+        //扩展字段新增容器
+        ArrayList<DynamicValue> valueInsert = new ArrayList<>();
+
+        //扩展字段id与code对应map
+        Map<String, String> attrMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(dynamicAttrs)) {
+            attrMap = dynamicAttrs.stream().collect(Collectors.toMap(DynamicAttr::getCode, DynamicAttr::getId));
+        }
+        if (!CollectionUtils.isEmpty(dynamicAttrs)) {
+            dynamicCodes = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getCode()).collect(Collectors.toList());
+            //获取扩展value
+            List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getId()).collect(Collectors.toList());
+
+            dynamicValues = dynamicValueDao.findAllByAttrId(attrIds, tenant.getId());
+        }
+        //扩展字段值分组
+        Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(dynamicValues)) {
+            valueMap = dynamicValues.stream().collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
+        }
         for (DeptTreeType deptType : deptTreeTypes) {
 
             List<TreeBean> ssoApiBeans = deptDao.findBySourceAndTreeType("API", deptType.getCode(), tenant.getId());
@@ -181,19 +250,17 @@ public class DeptServiceImpl implements DeptService {
                 mainTreeBeans.addAll(ssoApiBeans);
                 rulesCalculationService.groupByCode(mainTreeBeans, 0, domain);
                 for (TreeBean ssoApiBean : ssoApiBeans) {
-                    mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), ssoApiBean.getCode(), mainTreeBeans, 0, TYPE);
+                    mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), ssoApiBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes);
                 }
             }
             //  id 改为code
-            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE);
+            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE, dynamicCodes);
 
         }
         //同步到sso
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-        beans = dataProcessing(mainTreeMap, domain, beans, result, treeBeans, now);
-//        if (null != treeBeans && treeBeans.size() > 0) {
-//            beans.addAll(treeBeans);
-//        }
+        beans = dataProcessing(mainTreeMap, domain, beans, result, treeBeans, now, dynamicAttrs, valueMap, valueUpdate, valueInsert);
+
         //code重复性校验
         calculationService.groupByCode(beans, 0, domain);
 
@@ -203,7 +270,7 @@ public class DeptServiceImpl implements DeptService {
         calculationService.monitorRules(domain, lastTaskLog, beans.size(), delete, "dept");
 
         //保存到数据库
-        saveToSso(collect, tenant.getId());
+        saveToSso(collect, tenant.getId(), attrMap, valueUpdate, valueInsert);
         return result;
     }
 
@@ -214,7 +281,7 @@ public class DeptServiceImpl implements DeptService {
      * @Description: 插入sso数据库
      * @return: void
      */
-    public void saveToSso(Map<String, List<Map.Entry<TreeBean, String>>> collect, String tenantId) {
+    public void saveToSso(Map<String, List<Map.Entry<TreeBean, String>>> collect, String tenantId, Map<String, String> attrMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert) {
         //声明存储插入,修改,删除数据的容器
         ArrayList<TreeBean> insertList = new ArrayList<>();
         ArrayList<TreeBean> updateList = new ArrayList<>();
@@ -232,6 +299,21 @@ public class DeptServiceImpl implements DeptService {
         List<Map.Entry<TreeBean, String>> insert = collect.get("insert");
         if (null != insert && insert.size() > 0) {
             for (Map.Entry<TreeBean, String> key : insert) {
+                TreeBean bean = key.getKey();
+                String id = UUID.randomUUID().toString();
+                bean.setId(id);
+                Map<String, String> dynamic = bean.getDynamic();
+                if (!CollectionUtils.isEmpty(dynamic)) {
+                    for (Map.Entry<String, String> str : dynamic.entrySet()) {
+                        DynamicValue dynamicValue = new DynamicValue();
+                        dynamicValue.setId(UUID.randomUUID().toString());
+                        dynamicValue.setValue(str.getValue());
+                        dynamicValue.setEntityId(id);
+                        dynamicValue.setTenantId(tenantId);
+                        dynamicValue.setAttrId(attrMap.get(str.getKey()));
+                        valueInsert.add(dynamicValue);
+                    }
+                }
                 logger.debug("部门对比后新增{}", key.getKey().toString());
                 insertList.add(key.getKey());
             }
@@ -249,7 +331,6 @@ public class DeptServiceImpl implements DeptService {
         //修改数据
         if (null != update && update.size() > 0) {
             for (Map.Entry<TreeBean, String> key : update) {
-
                 logger.info("部门对比后需要修改{}", key.getKey().toString());
                 updateList.add(key.getKey());
 
@@ -276,7 +357,7 @@ public class DeptServiceImpl implements DeptService {
         }
 
 
-        Integer flag = deptDao.renewData(insertList, updateList, deleteList, invalidList, tenantId);
+        Integer flag = deptDao.renewData(insertList, updateList, deleteList, invalidList, valueUpdate, valueInsert, tenantId);
         if (null != flag && flag > 0) {
 
 
@@ -309,9 +390,12 @@ public class DeptServiceImpl implements DeptService {
      * D: 无效  上游曾经提供后，不再提供 OR 上游提供了active
      * E: 删除恢复  之前被标记为删除后再通过推送了相同的数据   (上游必须del_mark字段)
      * E: 失效恢复  之前被标记为失效后再通过推送了相同的数据   提供active则修改对比时直接覆盖,不提供则手动恢复
+     * 补充 : 忽略时对比扩展字段进行更新
+     * 如果已标识为修改则扩展字段不需对比直接覆盖
+     * 新增正常添加 其余情况不单独处理扩展字段
      **/
     //String treeTypeId
-    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, List<TreeBean> ssoBeans, Map<TreeBean, String> result, ArrayList<TreeBean> insert, LocalDateTime now) {
+    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, List<TreeBean> ssoBeans, Map<TreeBean, String> result, ArrayList<TreeBean> insert, LocalDateTime now, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert) {
         //将sso的数据转化为map方便对比
         Map<String, TreeBean> ssoCollect = new HashMap<>();
         if (null != ssoBeans && ssoBeans.size() > 0) {
@@ -320,6 +404,13 @@ public class DeptServiceImpl implements DeptService {
         //拉取的数据
         Collection<TreeBean> mainDept = mainTree.values();
         ArrayList<TreeBean> pullBeans = new ArrayList<>(mainDept);
+        // 处理扩展字段
+        //扩展字段id与code对应map
+        Map<String, String> attrMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(dynamicAttrs)) {
+            attrMap = dynamicAttrs.stream().collect(Collectors.toMap(DynamicAttr::getId, DynamicAttr::getCode));
+        }
+
         //遍历拉取数据
         for (TreeBean pullBean : pullBeans) {
             //标记新增标识
@@ -334,6 +425,9 @@ public class DeptServiceImpl implements DeptService {
                         if (null != pullBean.getCreateTime()) {
                             //修改
                             if (null == ssoBean.getCreateTime() || pullBean.getCreateTime().isAfter(ssoBean.getCreateTime())) {
+                                //if ("党委办公室".equals(ssoBean.getName()) || "党委办公室".equals(pullBean.getName())) {
+                                //    System.out.println(1);
+                                //}
 
                                 //修改标识 1.source为API 则进行覆盖  2.source都为PULL则对比字段 有修改再标识为true
                                 boolean updateFlag = false;
@@ -347,6 +441,8 @@ public class DeptServiceImpl implements DeptService {
 //                                boolean invalidRecoverFlag = true;
                                 //上游是否提供active字段
                                 boolean activeFlag = false;
+                                //是否处理扩展字段标识
+                                boolean dyFlag = true;
 
                                 //使用sso的对象,将需要修改的值赋值
                                 if ("API".equals(ssoBean.getDataSource())) {
@@ -441,7 +537,17 @@ public class DeptServiceImpl implements DeptService {
                                         //将数据放入修改集合
                                         ssoCollect.put(ssoBean.getCode(), ssoBean);
 
-                                        result.put(ssoBean, "update");
+                                        if (dyFlag) {
+                                            //上游的扩展字段
+                                            Map<String, String> dynamic = pullBean.getDynamic();
+                                            List<DynamicValue> dyValuesFromSSO = null;
+                                            //数据库的扩展字段
+                                            if (!CollectionUtils.isEmpty(valueMap)) {
+                                                dyValuesFromSSO = valueMap.get(ssoBean.getId());
+                                            }
+                                            dynamicProcessing(valueUpdate, valueInsert, attrMap, ssoBean, dynamic, dyValuesFromSSO);
+                                            dyFlag = false;
+                                        }
                                     }
                                     logger.info("部门对比后需要修改{}", ssoBean);
 
@@ -454,7 +560,17 @@ public class DeptServiceImpl implements DeptService {
                                     ssoCollect.put(ssoBean.getCode(), ssoBean);
                                     logger.info("手动从失效中恢复{}", ssoBean);
 
-                                    result.put(ssoBean, "update");
+                                    if (dyFlag) {
+                                        //上游的扩展字段
+                                        Map<String, String> dynamic = pullBean.getDynamic();
+                                        List<DynamicValue> dyValuesFromSSO = null;
+                                        //数据库的扩展字段
+                                        if (!CollectionUtils.isEmpty(valueMap)) {
+                                            dyValuesFromSSO = valueMap.get(ssoBean.getId());
+                                        }
+                                        dynamicProcessing(valueUpdate, valueInsert, attrMap, ssoBean, dynamic, dyValuesFromSSO);
+                                        dyFlag = false;
+                                    }
                                 }
                                 //上游未提供delmark并且sso与上游源该字段值不一致
                                 if (!delFlag && !delRecoverFlag && (!ssoBean.getDelMark().equals(pullBean.getDelMark()))) {
@@ -462,8 +578,41 @@ public class DeptServiceImpl implements DeptService {
                                     ssoBean.setDelMark(pullBean.getDelMark());
                                     //将数据放入修改集合
                                     ssoCollect.put(ssoBean.getCode(), ssoBean);
+
+                                    if (dyFlag) {
+                                        //上游的扩展字段
+                                        Map<String, String> dynamic = pullBean.getDynamic();
+                                        List<DynamicValue> dyValuesFromSSO = null;
+                                        //数据库的扩展字段
+                                        if (!CollectionUtils.isEmpty(valueMap)) {
+                                            dyValuesFromSSO = valueMap.get(ssoBean.getId());
+                                        }
+                                        dynamicProcessing(valueUpdate, valueInsert, attrMap, ssoBean, dynamic, dyValuesFromSSO);
+                                        dyFlag = false;
+                                    }
+
                                     logger.info("手动从删除中恢复{}", ssoBean);
+                                }
+
+                                //防止重复将数据放入
+                                if (!dyFlag) {
                                     result.put(ssoBean, "update");
+                                }
+
+                                //处理扩展字段对比     修改标识为false则认为主体字段没有差异
+                                if (!updateFlag && dyFlag) {
+                                    //上游的扩展字段
+                                    Map<String, String> dynamic = pullBean.getDynamic();
+                                    List<DynamicValue> dyValuesFromSSO = null;
+                                    //数据库的扩展字段
+                                    if (!CollectionUtils.isEmpty(valueMap)) {
+                                        dyValuesFromSSO = valueMap.get(ssoBean.getId());
+                                    }
+                                    Boolean valueFlag = dynamicProcessing(valueUpdate, valueInsert, attrMap, ssoBean, dynamic, dyValuesFromSSO);
+                                    if (valueFlag) {
+                                        result.put(ssoBean, "update");
+                                    }
+
                                 }
                             } else {
                                 //如果数据不是最新的则忽略
@@ -528,6 +677,47 @@ public class DeptServiceImpl implements DeptService {
         return collect;
 
 
+    }
+
+    private Boolean dynamicProcessing(List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, String> attrMap, TreeBean ssoBean, Map<String, String> dynamic, List<DynamicValue> dyValuesFromSSO) {
+        Boolean valueFlag = false;
+        if (!CollectionUtils.isEmpty(dyValuesFromSSO)) {
+            Map<String, DynamicValue> collect = dyValuesFromSSO.stream().collect(Collectors.toMap(DynamicValue::getAttrId, dynamicValue -> dynamicValue));
+            for (Map.Entry<String, String> str : attrMap.entrySet()) {
+                String o = dynamic.get(str.getValue());
+                if (collect.containsKey(str.getKey())) {
+                    DynamicValue dynamicValue = collect.get(str.getKey());
+                    if (null != o && !o.equals(dynamicValue.getValue())) {
+                        dynamicValue.setValue(o);
+                        valueUpdate.add(dynamicValue);
+                        valueFlag = true;
+                    }
+                } else {
+                    //上游有  数据库没有则新增
+                    DynamicValue dynamicValue = new DynamicValue();
+                    dynamicValue.setId(UUID.randomUUID().toString());
+                    dynamicValue.setValue(o);
+                    dynamicValue.setEntityId(ssoBean.getId());
+                    dynamicValue.setAttrId(str.getKey());
+                    valueFlag = true;
+                    valueInsert.add(dynamicValue);
+                }
+            }
+        } else {
+            for (Map.Entry<String, String> str : attrMap.entrySet()) {
+                String o = dynamic.get(str.getValue());
+                valueFlag = true;
+                //上游有  数据库没有则新增
+                DynamicValue dynamicValue = new DynamicValue();
+                dynamicValue.setId(UUID.randomUUID().toString());
+                dynamicValue.setValue(o);
+                dynamicValue.setEntityId(ssoBean.getId());
+                dynamicValue.setAttrId(str.getKey());
+                valueInsert.add(dynamicValue);
+
+            }
+        }
+        return valueFlag;
     }
 
 
