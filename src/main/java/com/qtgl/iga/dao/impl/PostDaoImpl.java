@@ -240,7 +240,8 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(2, insertList.get(i).getCode());
                             preparedStatement.setObject(3, insertList.get(i).getName());
                             preparedStatement.setObject(4, insertList.get(i).getParentCode());
-                            preparedStatement.setObject(5, 0);
+                            // 默认是否能登陆 默认为true
+                            preparedStatement.setObject(5, 1);
                             preparedStatement.setObject(6, tenantId);
                             preparedStatement.setObject(7, insertList.get(i).getTags());
                             preparedStatement.setObject(8, "PULL");
