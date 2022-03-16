@@ -139,7 +139,7 @@ public class PersonServiceImpl implements PersonService {
         //扩展字段值分组
         Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
         if (!CollectionUtils.isEmpty(dynamicValues)) {
-            valueMap = dynamicValues.stream().collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
+            valueMap = dynamicValues.stream().filter(dynamicValue -> !StringUtils.isBlank(dynamicValue.getEntityId())).collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
         }
         List<String> finalDynamicCodes = dynamicCodes;
         Map<String, List<DynamicValue>> finalValueMap = valueMap;
