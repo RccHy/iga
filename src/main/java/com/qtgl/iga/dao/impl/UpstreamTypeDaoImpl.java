@@ -48,24 +48,29 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
                 UpstreamTypeVo upstreamTypeVo = new UpstreamTypeVo();
                 BeanMap beanMap = BeanMap.create(upstreamTypeVo);
                 beanMap.putAll(map);
-                List<Map<String, Object>> filedList = jdbcIGA.queryForList("select id,upstream_type_id as upstreamTypeId,source_field as sourceField , target_field as targetField,create_time as createTime,update_time as updateTime,domain from t_mgr_upstream_types_field where upstream_type_id = ? ", upstreamTypeVo.getId());
+                //List<Map<String, Object>> filedList = jdbcIGA.queryForList("select id,upstream_type_id as upstreamTypeId,source_field as sourceField , target_field as targetField,create_time as createTime,update_time as updateTime,domain from t_mgr_upstream_types_field where upstream_type_id = ? ", upstreamTypeVo.getId());
+                //
+                ////映射字段
+                //ArrayList<UpstreamTypeField> upstreamTypeFields = getUpstreamTypeFields(filedList);
+                //upstreamTypeVo.setUpstreamTypeFields(upstreamTypeFields);
+                //
+                ////权威源查询
+                //
+                //Upstream upstream = getUpstream(upstreamTypeVo.getUpstreamId());
+                //upstreamTypeVo.setUpstream(upstream);
+                ////source赋值
+                //upstreamTypeVo.setSource(upstream.getAppName() + "(" + upstream.getAppCode() + ")");
+                //
+                ////组织机构类型查询
+                //DeptType deptType = getDeptType(upstreamTypeVo.getDeptTypeId());
+                //upstreamTypeVo.setDeptType(deptType);
+                //
+                ////组织机构类型树查询
+                //DeptTreeType byId = getDeptTreeType(upstreamTypeVo.getDeptTreeTypeId());
+                //upstreamTypeVo.setDeptTreeType(byId);
+                //
+                ////是否有nodeRules
 
-                //映射字段
-                ArrayList<UpstreamTypeField> upstreamTypeFields = getUpstreamTypeFields(filedList);
-                upstreamTypeVo.setUpstreamTypeFields(upstreamTypeFields);
-
-                //权威源查询
-
-                Upstream upstream = getUpstream(upstreamTypeVo.getUpstreamId());
-                upstreamTypeVo.setUpstream(upstream);
-
-                //组织机构类型查询
-                DeptType deptType = getDeptType(upstreamTypeVo.getDeptTypeId());
-                upstreamTypeVo.setDeptType(deptType);
-
-                //组织机构类型树查询
-                DeptTreeType byId = getDeptTreeType(upstreamTypeVo.getDeptTreeTypeId());
-                upstreamTypeVo.setDeptTreeType(byId);
 
                 list.add(upstreamTypeVo);
             }
