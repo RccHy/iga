@@ -62,8 +62,8 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
                 //组织机构类型树查询
                 DeptTreeType byId = deptTreeTypeDao.findById(upstreamTypeVo.getDeptTreeTypeId());
                 upstreamTypeVo.setDeptTreeType(byId);
-                //发布状态的nodeRules
-                List<NodeRules> nodeRules = nodeRulesDao.findNodeRulesByUpStreamTypeId(upstreamTypeVo.getId(), 0);
+                //发布状态的nodeRules 通过同步方式,serviceKey以及发布状态获取nodeRule
+                List<NodeRules> nodeRules = nodeRulesDao.findNodeRulesByServiceKey(upstreamTypeVo.getId(), 0, upstreamTypeVo.getSynWay());
 
                 if (!CollectionUtils.isEmpty(nodeRules)) {
                     upstreamTypeVo.setNodeRules(nodeRules);

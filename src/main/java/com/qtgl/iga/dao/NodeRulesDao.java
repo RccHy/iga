@@ -32,4 +32,6 @@ public interface NodeRulesDao {
     List<NodeRules> findNodeRulesByUpStreamTypeId(String id, Integer status);
 
     Integer makeNodeRulesToHistory(String id, Integer status);
+
+    List<NodeRules> findNodeRulesByServiceKey(String id, Integer status, Integer type);
 }
