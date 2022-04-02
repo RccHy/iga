@@ -45,13 +45,19 @@ server:
   servlet:
     context-path: /iga
   origin: ${SERVICE_ORIGIN}
-
+  tomcat:
+    remoteip:
+      remote-ip-header: X-Forwarded-For
+    protocol:
+      protocol-header: X-Forwarded-Proto
+  use-forward-headers: true
 file:
   url: ${FILE_URL}
 
 
 task:
   cron: ${TASK_CRON}
+
 
 
 
