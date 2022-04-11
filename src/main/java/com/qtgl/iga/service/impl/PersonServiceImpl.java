@@ -10,6 +10,7 @@ import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.dao.impl.DynamicAttrDaoImpl;
 import com.qtgl.iga.dao.impl.DynamicValueDaoImpl;
+import com.qtgl.iga.service.ConfigService;
 import com.qtgl.iga.service.PersonService;
 import com.qtgl.iga.task.TaskConfig;
 import com.qtgl.iga.utils.ClassCompareUtil;
@@ -27,6 +28,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -60,10 +63,14 @@ public class PersonServiceImpl implements PersonService {
     DynamicAttrDaoImpl dynamicAttrDao;
     @Autowired
     DynamicValueDaoImpl dynamicValueDao;
+    @Autowired
+    ConfigService configService;
 
     public static ConcurrentHashMap<String, List<JSONObject>> personErrorData = null;
     //类型
     private final String TYPE = "USER";
+    //加密方式
+    private String pwdConfig = "";
 
     /**
      * <p>
@@ -107,6 +114,8 @@ public class PersonServiceImpl implements PersonService {
         // 所有证件类型
         List<CardType> cardTypes = cardTypeDao.findAllUser(tenant.getId());
         Map<String, CardType> cardTypeMap = cardTypes.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
+        //获取密码加密方式
+        pwdConfig = configService.getPasswordConfigByTenantIdAndStatusAndPluginNameAndDelMarkIsFalse(tenant.getId(), "ENABLED", "CommonPlugin");
 
         //获取扩展字段列表
         List<String> dynamicCodes = new ArrayList<>();
@@ -130,7 +139,7 @@ public class PersonServiceImpl implements PersonService {
         //扩展字段值分组
         Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
         if (!CollectionUtils.isEmpty(dynamicValues)) {
-            valueMap = dynamicValues.stream().collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
+            valueMap = dynamicValues.stream().filter(dynamicValue -> !StringUtils.isBlank(dynamicValue.getEntityId())).collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
         }
         List<String> finalDynamicCodes = dynamicCodes;
         Map<String, List<DynamicValue>> finalValueMap = valueMap;
@@ -616,18 +625,16 @@ public class PersonServiceImpl implements PersonService {
                     //对于密码字段不处理
                     if (sourceField.equalsIgnoreCase("password")) {
                         if (null == oldValue && null != newValue) {
-                            try {
-                                String password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(((String) newValue).getBytes()).toCharArray()));
-                                personFromSSO.setPassword(password);
-                                if (result.containsKey("password")) {
-                                    result.get("password").add(personFromSSO);
-                                } else {
-                                    result.put("password", new ArrayList<Person>() {{
-                                        this.add(personFromSSO);
-                                    }});
-                                }
-                            } catch (DecoderException e) {
-                                e.printStackTrace();
+                            //todo加密方式调整
+                            String password = getPasswordByConfig(pwdConfig, newValue);
+                            //String password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(((String) newValue).getBytes()).toCharArray()));
+                            personFromSSO.setPassword(password);
+                            if (result.containsKey("password")) {
+                                result.get("password").add(personFromSSO);
+                            } else {
+                                result.put("password", new ArrayList<Person>() {{
+                                    this.add(personFromSSO);
+                                }});
                             }
                         }
                         continue;
@@ -656,13 +663,11 @@ public class PersonServiceImpl implements PersonService {
                     }
                     if (sourceField.equalsIgnoreCase("password") && null != newValue) {
                         //   if (StringUtils.isBlank((String) oldValue) && !StringUtils.isBlank((String) newValue)) {
-                        try {
-                            String password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(((String) newValue).getBytes()).toCharArray()));
-                            passwordFlag = true;
-                            personFromSSO.setPassword(password);
-                        } catch (DecoderException e) {
-                            e.printStackTrace();
-                        }
+                        //todo加密方式调整
+                        String password = getPasswordByConfig(pwdConfig, newValue);
+                        //String password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(((String) newValue).getBytes()).toCharArray()));
+                        passwordFlag = true;
+                        personFromSSO.setPassword(password);
                         continue;
                         // }
                     }
@@ -844,7 +849,7 @@ public class PersonServiceImpl implements PersonService {
                 if (val.getActive() == 1 || val.getActive().equals(person.getActive())) {
                     if (StringUtils.isNotBlank(person.getCardNo()) && StringUtils.isNotBlank(person.getCardType())) {
                         if (person.getCardType().equals(val.getCardType()) && val.getCardNo().equals(person.getCardNo())) {
-                            //todo 
+                            //todo
                             val.setId(person.getId());
                             val.setOpenId(person.getOpenId());
                             val.setPassword(person.getPassword());
@@ -877,12 +882,10 @@ public class PersonServiceImpl implements PersonService {
                 // 对新增的用户 判断是否提供 password字段
                 if (!StringUtils.isBlank(val.getPassword())) {
                     String password = val.getPassword();
-                    try {
-                        password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(password.getBytes()).toCharArray()));
-                        val.setPassword(password);
-                    } catch (DecoderException e) {
-                        e.printStackTrace();
-                    }
+                    //todo加密方式调整
+                    password = getPasswordByConfig(pwdConfig, password);
+                    //password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(password.getBytes()).toCharArray()));
+                    val.setPassword(password);
                     if (result.containsKey("password")) {
                         result.get("password").add(val);
                     } else {
@@ -952,18 +955,16 @@ public class PersonServiceImpl implements PersonService {
                     //对于密码字段不处理
                     if (sourceField.equalsIgnoreCase("password")) {
                         if (null == oldValue && null != newValue) {
-                            try {
-                                String password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(((String) newValue).getBytes()).toCharArray()));
-                                personFromSSO.setPassword(password);
-                                if (result.containsKey("password")) {
-                                    result.get("password").add(personFromSSO);
-                                } else {
-                                    result.put("password", new ArrayList<Person>() {{
-                                        this.add(personFromSSO);
-                                    }});
-                                }
-                            } catch (DecoderException e) {
-                                e.printStackTrace();
+                            //todo加密方式调整
+                            String password = getPasswordByConfig(pwdConfig, newValue);
+                            //String password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(((String) newValue).getBytes()).toCharArray()));
+                            personFromSSO.setPassword(password);
+                            if (result.containsKey("password")) {
+                                result.get("password").add(personFromSSO);
+                            } else {
+                                result.put("password", new ArrayList<Person>() {{
+                                    this.add(personFromSSO);
+                                }});
                             }
                         }
                         continue;
@@ -1008,13 +1009,12 @@ public class PersonServiceImpl implements PersonService {
                     }
                     if (sourceField.equalsIgnoreCase("password") && null != newValue) {
                         //   if (StringUtils.isBlank((String) oldValue) && !StringUtils.isBlank((String) newValue)) {
-                        try {
-                            String password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(((String) newValue).getBytes()).toCharArray()));
-                            passwordFlag = true;
-                            personFromSSO.setPassword(password);
-                        } catch (DecoderException e) {
-                            e.printStackTrace();
-                        }
+                        //todo加密方式调整
+                        String password = getPasswordByConfig(pwdConfig, newValue);
+
+                        //String password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(((String) newValue).getBytes()).toCharArray()));
+                        passwordFlag = true;
+                        personFromSSO.setPassword(password);
                         continue;
                         // }
                     }
@@ -1266,5 +1266,25 @@ public class PersonServiceImpl implements PersonService {
         return valueFlag;
     }
 
+
+    private String getPasswordByConfig(String pwdConfig, Object newValue) {
+        try {
+            switch (pwdConfig) {
+                case "SHA-1":
+                    MessageDigest md = MessageDigest.getInstance("SHA-1");
+                    md.update(((String) newValue).getBytes());
+                    byte[] digest = md.digest();
+                    return "{SHA}" + Base64.encodeBase64String(digest);
+                case "MD5":
+
+                default:
+                    return "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(((String) newValue).getBytes()).toCharArray()));
+            }
+        } catch (DecoderException | NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
 
 }

@@ -54,6 +54,12 @@ type UpstreamType{
     isPage:Boolean
     #方式  推送0/拉取1
     synWay:Int
+    #来源
+    source:String
+    #是否有nodeRule
+    hasRules:Boolean
+    # nodeRules
+    nodeRules:[NodeRules]
 
 }
 

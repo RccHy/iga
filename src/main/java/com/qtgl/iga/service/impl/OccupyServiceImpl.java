@@ -350,12 +350,17 @@ public class OccupyServiceImpl implements OccupyService {
                 JSONArray jsonArray = JSONObject.parseArray(data);
 
                 if (null != jsonArray) {
-                    jsonArray.addAll(occupyErrorData.get(domain.getId()));
+                    //
+                    if (!CollectionUtils.isEmpty(occupyErrorData.get(domain.getId()))) {
+                        jsonArray.addAll(occupyErrorData.get(domain.getId()));
+                    }
                 }
                 TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(jsonArray));
 
             } else {
-                TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(occupyErrorData.get(domain.getId())));
+                if (!CollectionUtils.isEmpty(occupyErrorData.get(domain.getId()))) {
+                    TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(occupyErrorData.get(domain.getId())));
+                }
             }
 
 

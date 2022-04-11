@@ -312,6 +312,38 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
         return update;
     }
 
+    @Override
+    public List<NodeRules> findNodeRulesByServiceKey(String id, Integer status, Integer type) {
+        List<NodeRules> nodeRules = new ArrayList<>();
+        String sql = "select id,node_id as nodeId,type as type,active as active," +
+                "create_time as createTime,service_key as serviceKey,upstream_types_id as upstreamTypesId,inherit_id as inheritId," +
+                "active_time as activeTime,update_time as updateTime,sort,status from t_mgr_node_rules where 1 = 1 and service_key= ? and type=? ";
+        List<Object> param = new ArrayList<>();
+        param.add(id);
+        param.add(type);
+        if (null != status) {
+            sql = sql + "and status =? ";
+            param.add(status);
+        } else {
+            sql = sql + "and status !=? ";
+            param.add(2);
+        }
+        List<Map<String, Object>> maps = jdbcIGA.queryForList(sql, param.toArray());
+        if (null != maps && maps.size() > 0) {
+            for (Map<String, Object> map : maps) {
+                NodeRules nodeRule = new NodeRules();
+                try {
+                    MyBeanUtils.populate(nodeRule, map);
+                } catch (IllegalAccessException | InvocationTargetException e) {
+                    e.printStackTrace();
+                }
+                nodeRules.add(nodeRule);
+            }
+            return nodeRules;
+        }
+        return null;
+    }
+
 
     private void dealData(Map<String, Object> arguments, StringBuffer stb, List<Object> param) {
         Iterator<Map.Entry<String, Object>> it = arguments.entrySet().iterator();
