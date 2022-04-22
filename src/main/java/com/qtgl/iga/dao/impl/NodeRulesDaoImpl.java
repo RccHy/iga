@@ -83,6 +83,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
 
             }
         }
+        //todo 修改时间
         List<NodeRulesVo> nodeRules = nodeDto.getNodeRules();
         int[] ints = jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
             @Override
@@ -317,7 +318,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
         List<NodeRules> nodeRules = new ArrayList<>();
         String sql = "select id,node_id as nodeId,type as type,active as active," +
                 "create_time as createTime,service_key as serviceKey,upstream_types_id as upstreamTypesId,inherit_id as inheritId," +
-                "active_time as activeTime,update_time as updateTime,sort,status from t_mgr_node_rules where 1 = 1 and service_key= ? and type=? ";
+                "active_time as activeTime,update_time as updateTime,sort,status from t_mgr_node_rules where 1 = 1 and service_key= ? and type=? and active=true";
         List<Object> param = new ArrayList<>();
         param.add(id);
         param.add(type);
