@@ -2,6 +2,7 @@ package com.qtgl.iga.service.impl;
 
 
 import com.qtgl.iga.bean.UpstreamDto;
+import com.qtgl.iga.bo.Node;
 import com.qtgl.iga.bo.NodeRules;
 import com.qtgl.iga.bo.Upstream;
 import com.qtgl.iga.bo.UpstreamType;
@@ -9,15 +10,15 @@ import com.qtgl.iga.dao.NodeRulesDao;
 import com.qtgl.iga.dao.UpstreamDao;
 import com.qtgl.iga.dao.impl.UpstreamTypeDaoImpl;
 import com.qtgl.iga.service.UpstreamService;
+import com.qtgl.iga.utils.RoleBingUtil;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import javax.annotation.Resource;
+import java.util.*;
 
 @Service
 @Transactional
@@ -29,6 +30,8 @@ public class UpstreamServiceImpl implements UpstreamService {
     UpstreamTypeDaoImpl upstreamTypeDao;
     @Autowired
     NodeRulesDao nodeRulesDao;
+    @Resource
+    RoleBingUtil roleBingUtil;
 
     @Override
     public List<Upstream> findAll(Map<String, Object> arguments, String domain) {
@@ -88,6 +91,7 @@ public class UpstreamServiceImpl implements UpstreamService {
     }
 
     @Override
+    @Transactional
     public UpstreamDto saveUpstreamAndTypes(UpstreamDto upstreamDto, String id) throws Exception {
         // 添加权威源
         Upstream upstream = upstreamDao.saveUpstream(upstreamDto, id);
@@ -193,5 +197,108 @@ public class UpstreamServiceImpl implements UpstreamService {
         }
 
     }
+
+    @Override
+    public UpstreamDto saveUpstreamAndTypesAndRoleBing(UpstreamDto upstreamDto, String domain, String deptTreeType) throws Exception {
+        // 权威源
+        //判重
+        upstreamDao.findByAppNameAndAppCode(upstreamDto.getAppName(), upstreamDto.getAppCode(), domain);
+
+        String upstreamId = UUID.randomUUID().toString();
+        upstreamDto.setId(upstreamId);
+        // 处理权威源类型
+        ArrayList<UpstreamType> upstreamTypesRes = new ArrayList<>();
+        List<UpstreamType> upstreamTypes = upstreamDto.getUpstreamTypes();
+        if (null != upstreamTypes) {
+            for (UpstreamType upstreamType : upstreamTypes) {
+                upstreamType.setUpstreamId(upstreamId);
+                //校验名称重复
+                List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType);
+                if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
+                    throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
+                }
+                upstreamType.setId(UUID.randomUUID().toString());
+                upstreamTypesRes.add(upstreamType);
+            }
+        }
+        upstreamDto.setUpstreamTypes(upstreamTypesRes);
+        //添加roleBing
+        ArrayList<String> deptPermissions = new ArrayList<>();
+        deptPermissions.add("departments");
+        deptPermissions.add("addDepartment");
+        deptPermissions.add("editDepartment");
+        deptPermissions.add("deleteDepartment");
+        ArrayList<String> postPermissions = new ArrayList<>();
+        postPermissions.add("posts");
+        postPermissions.add("addPost");
+        postPermissions.add("editPost");
+        postPermissions.add("deletePost");
+        ArrayList<String> personPermissions = new ArrayList<>();
+        personPermissions.add("users");
+        personPermissions.add("addUser");
+        personPermissions.add("editUser");
+        personPermissions.add("deleteUser");
+        ArrayList<String> occupyPermissions = new ArrayList<>();
+        occupyPermissions.add("triples");
+        occupyPermissions.add("addTriple");
+        occupyPermissions.add("editTriple");
+        occupyPermissions.add("deleteTriple");
+
+        //组织机构
+        HashMap<String, String> deptMap = new HashMap<>();
+        deptMap.put("deptTreeType", deptTreeType);
+        roleBingUtil.addRoleBinding(upstreamTypesRes.get(0).getServiceCode(), domain, "dept", deptMap, deptPermissions);
+        //岗位
+        HashMap<String, String> postMap = new HashMap<>();
+        postMap.put("postTreeType", "*");
+        roleBingUtil.addRoleBinding(upstreamTypesRes.get(0).getServiceCode(), domain, "post", postMap, postPermissions);
+        //人员
+        roleBingUtil.addRoleBinding(upstreamTypesRes.get(0).getServiceCode(), domain, "person", null, personPermissions);
+        //人员身份
+        roleBingUtil.addRoleBinding(upstreamTypesRes.get(0).getServiceCode(), domain, "occupy", null, occupyPermissions);
+
+        //处理规则
+        HashMap<String, Object> map = dealNodeByUpstreamType(upstreamTypesRes, domain, deptTreeType);
+        upstreamDao.saveUpstreamAndTypesAndNode(upstreamDto, map, domain);
+
+
+        return upstreamDto;
+    }
+
+    @Transactional
+    public HashMap<String, Object> dealNodeByUpstreamType(ArrayList<UpstreamType> list, String domain, String deptTreeType) throws Exception {
+        long now = System.currentTimeMillis();
+        List<Node> nodes = new ArrayList<>();
+        List<NodeRules> nodeRulesList = new ArrayList<>();
+        for (UpstreamType upstreamType : list) {
+            Node node = new Node();
+            String nodeId = UUID.randomUUID().toString();
+            node.setId(nodeId);
+            node.setCreateTime(now);
+            node.setDomain(domain);
+            node.setManual(node.getManual());
+            node.setNodeCode("");
+            node.setStatus(0);
+            node.setType(upstreamType.getSynType());
+            if ("dept".equals(upstreamType.getSynType())) {
+                node.setDeptTreeType(deptTreeType);
+            }
+            nodes.add(node);
+            NodeRules nodeRules = new NodeRules();
+            nodeRules.setId(UUID.randomUUID().toString());
+            nodeRules.setNodeId(nodeId);
+            nodeRules.setType(0);
+            nodeRules.setActive(true);
+            nodeRules.setActiveTime(now);
+            nodeRules.setServiceKey(upstreamType.getId());
+            nodeRules.setStatus(0);
+            nodeRulesList.add(nodeRules);
+        }
+        HashMap<String, Object> map = new HashMap<>();
+        map.put("node", nodes);
+        map.put("rules", nodeRulesList);
+        return map;
+    }
+
 
 }

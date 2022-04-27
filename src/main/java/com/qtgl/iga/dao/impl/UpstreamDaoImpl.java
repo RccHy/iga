@@ -1,19 +1,26 @@
 package com.qtgl.iga.dao.impl;
 
 
+import com.qtgl.iga.bean.UpstreamDto;
+import com.qtgl.iga.bo.Node;
+import com.qtgl.iga.bo.NodeRules;
 import com.qtgl.iga.bo.Upstream;
+import com.qtgl.iga.bo.UpstreamType;
 import com.qtgl.iga.dao.UpstreamDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
 import org.springframework.cglib.beans.BeanMap;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.annotation.Resource;
-
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
 
@@ -25,6 +32,8 @@ public class UpstreamDaoImpl implements UpstreamDao {
 
     @Resource(name = "jdbcIGA")
     JdbcTemplate jdbcIGA;
+    @Resource(name = "iga-txTemplate")
+    TransactionTemplate txTemplate;
 
 
     @Override
@@ -165,6 +174,139 @@ public class UpstreamDaoImpl implements UpstreamDao {
             return upstream;
         }
         return null;
+    }
+
+    @Override
+    public Integer saveUpstreamAndTypesAndNode(UpstreamDto upstreamDto, HashMap<String, Object> map, String domain) {
+        return txTemplate.execute(transactionStatus -> {
+
+            try {
+                //添加权威源
+                String upstreamSql = "insert into t_mgr_upstream  values(?,?,?,?,?,?,?,?,?,?,?)";
+                //生成主键和时间
+
+                Timestamp date = new Timestamp(System.currentTimeMillis());
+                upstreamDto.setCreateTime(date);
+                jdbcIGA.update(upstreamSql, preparedStatement -> {
+                    preparedStatement.setObject(1, upstreamDto.getId());
+                    preparedStatement.setObject(2, upstreamDto.getAppCode());
+                    preparedStatement.setObject(3, upstreamDto.getAppName());
+                    preparedStatement.setObject(4, upstreamDto.getDataCode());
+                    preparedStatement.setObject(5, date);
+                    preparedStatement.setObject(6, upstreamDto.getCreateUser());
+                    preparedStatement.setObject(7, upstreamDto.getActive());
+                    preparedStatement.setObject(8, upstreamDto.getColor());
+                    preparedStatement.setObject(9, domain);
+                    preparedStatement.setObject(10, date);
+                    preparedStatement.setObject(11, date);
+
+                });
+                //添加权威源类型
+                List<UpstreamType> upstreamTypes = upstreamDto.getUpstreamTypes();
+                String upstreamTypeSql = "insert into t_mgr_upstream_types  values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                if (null != upstreamTypes && upstreamTypes.size() > 0) {
+                    jdbcIGA.batchUpdate(upstreamTypeSql, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, upstreamTypes.get(i).getId());
+                            preparedStatement.setObject(2, upstreamTypes.get(i).getUpstreamId());
+                            preparedStatement.setObject(3, upstreamTypes.get(i).getDescription());
+                            preparedStatement.setObject(4, upstreamTypes.get(i).getSynType());
+                            preparedStatement.setObject(5, upstreamTypes.get(i).getDeptTypeId());
+                            preparedStatement.setObject(6, upstreamTypes.get(i).getEnablePrefix());
+                            preparedStatement.setObject(7, upstreamTypes.get(i).getActive());
+                            preparedStatement.setObject(8, upstreamTypes.get(i).getActiveTime());
+                            preparedStatement.setObject(9, upstreamTypes.get(i).getRoot());
+                            preparedStatement.setObject(10, date);
+                            preparedStatement.setObject(11, null);
+                            preparedStatement.setObject(12, upstreamTypes.get(i).getGraphqlUrl());
+                            preparedStatement.setObject(13, upstreamTypes.get(i).getServiceCode());
+                            preparedStatement.setObject(14, domain);
+                            preparedStatement.setObject(15, upstreamTypes.get(i).getDeptTreeTypeId());
+                            preparedStatement.setObject(16, 0);
+                            preparedStatement.setObject(17, upstreamTypes.get(i).getSynWay());
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return upstreamTypes.size();
+                        }
+                    });
+                }
+                //添加node
+                List<Node> nodes = (List<Node>) map.get("node");
+                String nodeSql = "insert into t_mgr_node  (id,manual,node_code,create_time,update_time,domain,dept_tree_type,status,type)values(?,?,?,?,?,?,?,?,?)";
+                if (null != nodes && nodes.size() > 0) {
+                    jdbcIGA.batchUpdate(nodeSql, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, nodes.get(i).getId());
+                            preparedStatement.setObject(2, nodes.get(i).getManual());
+                            preparedStatement.setObject(3, nodes.get(i).getNodeCode());
+                            preparedStatement.setObject(4, date);
+                            preparedStatement.setObject(5, null);
+                            preparedStatement.setObject(6, nodes.get(i).getDomain());
+                            preparedStatement.setObject(7, nodes.get(i).getDeptTreeType());
+                            preparedStatement.setObject(8, nodes.get(i).getStatus());
+                            preparedStatement.setObject(9, nodes.get(i).getType());
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return nodes.size();
+                        }
+                    });
+                }
+                //添加nodeRules
+                List<NodeRules> nodeRulesList = (List<NodeRules>) map.get("rules");
+
+                String nodeRulesSql = "insert into t_mgr_node_rules (id,node_id,type,active,active_time,create_time,update_time,service_key,upstream_types_id,inherit_id,sort,status) values(?,?,?,?,?,?,?,?,?,?,?,?)";
+
+                if (null != nodeRulesList && nodeRulesList.size() > 0) {
+                    jdbcIGA.batchUpdate(nodeRulesSql, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, nodeRulesList.get(i).getId());
+                            preparedStatement.setObject(2, nodeRulesList.get(i).getNodeId());
+                            preparedStatement.setObject(3, nodeRulesList.get(i).getType());
+                            preparedStatement.setObject(4, nodeRulesList.get(i).getActive());
+                            preparedStatement.setObject(5, null);
+                            preparedStatement.setObject(6, date);
+                            preparedStatement.setObject(7, null);
+                            preparedStatement.setObject(8, nodeRulesList.get(i).getServiceKey());
+                            preparedStatement.setObject(9, nodeRulesList.get(i).getUpstreamTypesId());
+                            preparedStatement.setObject(10, nodeRulesList.get(i).getInheritId());
+                            preparedStatement.setObject(11, 0);
+                            preparedStatement.setObject(12, nodeRulesList.get(i).getStatus());
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return nodeRulesList.size();
+                        }
+                    });
+                }
+
+
+                return 1;
+            } catch (Exception e) {
+                transactionStatus.setRollbackOnly();
+                // transactionStatus.rollbackToSavepoint(savepoint);
+                e.printStackTrace();
+                throw new CustomException(ResultCode.FAILED, "权威源授权异常！");
+            }
+
+        });
+
+    }
+
+    @Override
+    public void findByAppNameAndAppCode(String appName, String appCode, String domain) {
+        Object[] param = new Object[]{appCode, appName, domain};
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_upstream where app_code =? or app_name = ? and domain=? ", param);
+        if (null != mapList && mapList.size() > 0) {
+            throw new CustomException(ResultCode.REPEAT_UPSTREAM_ERROR, null, null, appCode, appName);
+        }
     }
 
 

@@ -18,9 +18,11 @@ public interface UpstreamService {
 
     Upstream updateUpstream(Upstream upstream) throws Exception;
 
-    UpstreamDto saveUpstreamAndTypes(UpstreamDto upstream, String id) throws Exception;
+    UpstreamDto saveUpstreamAndTypes(UpstreamDto upstream, String domain) throws Exception;
 
     List<UpstreamDto> upstreamsAndTypes(Map<String, Object> arguments, String id);
 
     UpstreamDto updateUpstreamAndTypes(UpstreamDto upstream) throws Exception;
+
+    UpstreamDto saveUpstreamAndTypesAndRoleBing(UpstreamDto upstreamDto, String domain, String deptTreeType) throws Exception;
 }
