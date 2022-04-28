@@ -1,11 +1,9 @@
 package com.qtgl.iga.dao;
 
 
-import com.qtgl.iga.bean.UpstreamDto;
-import com.qtgl.iga.bo.Upstream;
+import com.qtgl.iga.bo.*;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -23,7 +21,7 @@ public interface UpstreamDao {
 
     ArrayList<Upstream> getUpstreams(String id, String domain);
 
-    Integer saveUpstreamAndTypesAndNode(UpstreamDto upstreamDto, HashMap<String, Object> map, String domain);
+    Integer saveUpstreamAndTypesAndNode(Upstream upstream, List<UpstreamType> upstreamTypes, List<Node> nodes, List<NodeRules> nodeRulesList, DomainInfo domainInfo);
 
     void findByAppNameAndAppCode(String appName, String appCode, String domain);
 }

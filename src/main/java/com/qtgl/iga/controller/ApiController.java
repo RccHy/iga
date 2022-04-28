@@ -1,11 +1,11 @@
 package com.qtgl.iga.controller;
 
 
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.qtgl.iga.bean.UpstreamDto;
-import com.qtgl.iga.bo.DomainInfo;
-import com.qtgl.iga.bo.Upstream;
-import com.qtgl.iga.bo.UpstreamType;
+import com.qtgl.iga.bo.*;
+import com.qtgl.iga.dao.UpstreamDao;
+import com.qtgl.iga.dao.impl.UpstreamTypeDaoImpl;
 import com.qtgl.iga.service.DomainInfoService;
 import com.qtgl.iga.service.UpstreamService;
 import com.qtgl.iga.utils.DataBusUtil;
@@ -24,7 +24,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,6 +48,10 @@ public class ApiController {
     private String busUrl;
     @Autowired
     private UpstreamService upstreamService;
+    @Autowired
+    UpstreamDao upstreamDao;
+    @Autowired
+    UpstreamTypeDaoImpl upstreamTypeDao;
 
     @PostMapping("/event")
     @ResponseBody
@@ -161,57 +164,138 @@ public class ApiController {
 
     @PostMapping(value = "/bootstrap")
     @ResponseBody
-    public JSONObject addClient(HttpServletRequest request, HttpServletResponse httpServletResponse) {
+    public JSONObject postBootstrap(HttpServletRequest request) {
         String resource = request.getParameter("resource");
         logger.info(resource);
-        //resource = "{" +
-        //        " \"apiVersion\": \"sss\" ," +
-        //        " \"kind\": \"CustomResourceDefinition\"," +
-        //        " \"metadata\": {" +
-        //        " \"name\": \"qdatasource.ketanyun.cn\" " +
-        //        " }," +
-        //        "\"spec\": {" +
-        //        " \"type\": \"object\"," +
-        //        " \"required\": \"[upstream]\"," +
-        //        " \"upstream\": {" +
-        //        " \"appCode\": \"0426\"," +
-        //        " \"appName\": \"LQZTEST\"," +
-        //        " \"tenant\": \"devel.ketanyun.cn\"," +
-        //        " \"appClientId\": \"gDGqfDGm8OrJAXCFDiuI\"," +
-        //        " \"deptTreeType\": \"01\"," +
-        //        " " +
-        //        " }" +
-        //        " }" +
-        //        "}";
+        //resource = "{\n" +
+        //        "  \"apiVersion\": \"apiextensions.k8s.io/v1\",\n" +
+        //        "  \"kind\": \"CustomResourceDefinition\",\n" +
+        //        "  \"metadata\": {\n" +
+        //        "    \"name\": \"qdatasource.ketanyun.cn\"\n" +
+        //        "  },\n" +
+        //        "  \"spec\": {\n" +
+        //        "    \"type\": \"object\",\n" +
+        //        "    \"required\": [\n" +
+        //        "      \"upstream\"\n" +
+        //        "    ],\n" +
+        //        "    \"upstream\": {\n" +
+        //        "      \"code\": \"0428\",\n" +
+        //        "      \"name\": \"LQZTEST\",\n" +
+        //        "      \"dataCode\": \" \",\n" +
+        //        "      \"color\": \" \",\n" +
+        //        "      \"tenant\": \"devel.ketanyun.cn\",\n" +
+        //        "      \"upstreamTypes\": {\n" +
+        //        "      \"dept\": [\n" +
+        //        "        {\n" +
+        //        "          \"treeType\": \"01\",\n" +
+        //        "          \"description\": \"0428测试部门\",\n" +
+        //        "          \"clientId\": \"gDGqfDGm8OrJAXCFDiuI\",\n" +
+        //        "          \"node\": {\n" +
+        //        "               \"code\": \" 01\",\n" +
+        //        "                 \"treeType\": \"01\"\n" +
+        //        "            }\n" +
+        //        "        }\n" +
+        //        "      ],\n" +
+        //        "		\"post\": [\n" +
+        //        "        {\n" +
+        //        "          \"description\": \"0428测试岗位\",\n" +
+        //        "          \"clientId\": \"gDGqfDGm8OrJAXCFDiuI\",\n" +
+        //        "          \"node\": {\n" +
+        //        "                \"code\": \" \" \n" +
+        //        "            }\n" +
+        //        "        }\n" +
+        //        "      ],\n" +
+        //        "		\"person\": [\n" +
+        //        "        {\n" +
+        //        "          \"description\": \"0428测试人员\",\n" +
+        //        "          \"clientId\": \"gDGqfDGm8OrJAXCFDiuI\" \n" +
+        //        "        }\n" +
+        //        "      ],\n" +
+        //        " 		\"occupy\": [\n" +
+        //        "        {\n" +
+        //        "          \"description\": \"0428测试人员身份\",\n" +
+        //        "          \"clientId\": \"gDGqfDGm8OrJAXCFDiuI\" \n" +
+        //        "        }\n" +
+        //        "      ]\n" +
+        //        "    }\n" +
+        //        "    }\n" +
+        //        "  }\n" +
+        //        "}"
+        ;
 
         JSONObject jsonObject = JSONObject.parseObject(resource);
         JSONObject result = new JSONObject();
 
         try {
-            check(jsonObject);
-            Upstream upstream = getUpstream(jsonObject);
-            //添加权威源及权威源类型
-            UpstreamDto upstreamDto = new UpstreamDto(upstream);
+            //check(jsonObject);
+            JSONObject metadata = jsonObject.getJSONObject("metadata");
+            JSONObject spec = jsonObject.getJSONObject("spec");
+            JSONObject upstreamJson = spec.getJSONObject("upstream");
+            JSONObject upstreamTypesJson = upstreamJson.getJSONObject("upstreamTypes");
+
+            if (metadata == null || spec == null || null == upstreamJson || null == upstreamTypesJson) {
+                throw new CustomException(ResultCode.INVALID_PARAMETER, "INVALID_PARAMETER");
+            }
+
+            String tenant = upstreamJson.getString("tenant");
+            DomainInfo domainInfo = new DomainInfo();
+            //检查租户
+            if (StringUtils.isBlank(tenant)) {
+                throw new CustomException(ResultCode.INVALID_PARAMETER, "INVALID_PARAMETER");
+            } else {
+                domainInfo = domainInfoService.getByDomainName(tenant);
+                if (domainInfo == null) {
+                    throw new CustomException(ResultCode.INVALID_PARAMETER, "INVALID_DOMAIN");
+                }
+            }
+            //处理权威源
+            Upstream upstream = getUpstream(upstreamJson, domainInfo);
+            //判重
+            upstreamDao.findByAppNameAndAppCode(upstream.getAppName(), upstream.getAppCode(), domainInfo.getId());
+            //处理权威源类型及node
+            JSONArray deptJson = upstreamTypesJson.getJSONArray("dept");
+            JSONArray postJson = upstreamTypesJson.getJSONArray("post");
+            JSONArray personJson = upstreamTypesJson.getJSONArray("person");
+            JSONArray occupyJson = upstreamTypesJson.getJSONArray("occupy");
+            List<UpstreamType> upstreamTypes = new ArrayList<>();
+            List<Node> nodes = new ArrayList<>();
+            List<NodeRules> nodeRulesList = new ArrayList<>();
+            long now = System.currentTimeMillis();
+            //组织机构
+            if (null != deptJson) {
+                dealUpstreamTypeAndNodes(deptJson,"dept",now,domainInfo,upstreamTypes,nodes,nodeRulesList,upstream);
+            }
+            if (null != postJson) {
+                dealUpstreamTypeAndNodes(postJson,"post",now,domainInfo,upstreamTypes,nodes,nodeRulesList,upstream);
+            }
+            if (null != personJson) {
+                dealUpstreamTypeAndNodes(personJson,"person",now,domainInfo,upstreamTypes,nodes,nodeRulesList,upstream);
+            }
+            if (null != occupyJson) {
+                dealUpstreamTypeAndNodes(occupyJson,"occupy",now,domainInfo,upstreamTypes,nodes,nodeRulesList,upstream);
+            }
+            //List<UpstreamType> upstreamTypes = getUpstreamTypes(upstream, upstreamTypesJson, domainInfo);
+
+            //UpstreamDto upstreamDto = new UpstreamDto(upstream);
             //权威源类型
-            String appClientId = jsonObject.getJSONObject("spec").getJSONObject("upstream").getString("appClientId");
-            String domain = jsonObject.getJSONObject("spec").getJSONObject("upstream").getString("tenant");
-            String deptTreeType = jsonObject.getJSONObject("spec").getJSONObject("upstream").getString("deptTreeType");
-            List<UpstreamType> upstreamTypes = getUpstreamTypes(upstream, appClientId);
-            upstreamDto.setUpstreamTypes(upstreamTypes);
-            upstreamService.saveUpstreamAndTypesAndRoleBing(upstreamDto, upstream.getDomain(), deptTreeType);
+            //upstreamDto.setUpstreamTypes(upstreamTypes);
+            upstreamService.saveUpstreamAndTypesAndRoleBing(upstream, upstreamTypes, nodes,nodeRulesList,domainInfo);
 
             result.put("code", 200);
+            result.put("status","success");
             result.put("message", "添加成功");
 
         } catch (CustomException e) {
             e.printStackTrace();
             result.put("code", 500);
+            result.put("status","failed");
             result.put("message", e.getErrorMsg());
             logger.error(e + "");
             return result;
         } catch (Exception e) {
             e.printStackTrace();
             result.put("code", 500);
+            result.put("status","failed");
             result.put("message", e.getMessage());
             logger.error(e.getMessage());
             return result;
@@ -219,57 +303,60 @@ public class ApiController {
         return result;
     }
 
-    private List<UpstreamType> getUpstreamTypes(Upstream upstream, String clientId) {
-        List<UpstreamType> upstreamTypes = new ArrayList<>();
-        //组织机构
-        UpstreamType deptUpstreamType = new UpstreamType();
-        deptUpstreamType.setSynWay(0);
-        deptUpstreamType.setActive(true);
-        deptUpstreamType.setServiceCode(clientId);
-        deptUpstreamType.setSynType("dept");
-        deptUpstreamType.setDescription(upstream.getAppName() + "部门推送权限");
-        upstreamTypes.add(deptUpstreamType);
-        //岗位
-        UpstreamType postUpstreamType = new UpstreamType();
-        postUpstreamType.setSynWay(0);
-        postUpstreamType.setActive(true);
-        postUpstreamType.setServiceCode(clientId);
-        postUpstreamType.setSynType("post");
-        postUpstreamType.setDescription(upstream.getAppName() + "岗位推送权限");
-        upstreamTypes.add(postUpstreamType);
+    private List<UpstreamType> getUpstreamTypes(Upstream upstream, JSONObject upstreamTypesJson, DomainInfo domainInfo) {
 
-        //人员
-        UpstreamType personUpstreamType = new UpstreamType();
-        personUpstreamType.setSynWay(0);
-        personUpstreamType.setActive(true);
-        personUpstreamType.setServiceCode(clientId);
-        personUpstreamType.setSynType("person");
-        personUpstreamType.setDescription(upstream.getAppName() + "人员推送权限");
-        upstreamTypes.add(personUpstreamType);
 
-        //人员身份
-        UpstreamType occupyUpstreamType = new UpstreamType();
-        occupyUpstreamType.setSynWay(0);
-        occupyUpstreamType.setActive(true);
-        occupyUpstreamType.setServiceCode(clientId);
-        occupyUpstreamType.setSynType("occupy");
-        occupyUpstreamType.setDescription(upstream.getAppName() + "人员身份推送权限");
-        upstreamTypes.add(occupyUpstreamType);
-        return upstreamTypes;
+
+
+        //
+        ////岗位
+        //if(null != postJson){
+        //
+        //}
+        //UpstreamType postUpstreamType = new UpstreamType();
+        //postUpstreamType.setSynWay(0);
+        //postUpstreamType.setActive(true);
+        //postUpstreamType.setServiceCode(clientId);
+        //postUpstreamType.setSynType("post");
+        //postUpstreamType.setDescription(upstream.getAppName() + "岗位推送权限");
+        //upstreamTypes.add(postUpstreamType);
+        //
+        ////人员
+        //UpstreamType personUpstreamType = new UpstreamType();
+        //personUpstreamType.setSynWay(0);
+        //personUpstreamType.setActive(true);
+        //personUpstreamType.setServiceCode(clientId);
+        //personUpstreamType.setSynType("person");
+        //personUpstreamType.setDescription(upstream.getAppName() + "人员推送权限");
+        //upstreamTypes.add(personUpstreamType);
+        //
+        ////人员身份
+        //UpstreamType occupyUpstreamType = new UpstreamType();
+        //occupyUpstreamType.setSynWay(0);
+        //occupyUpstreamType.setActive(true);
+        //occupyUpstreamType.setServiceCode(clientId);
+        //occupyUpstreamType.setSynType("occupy");
+        //occupyUpstreamType.setDescription(upstream.getAppName() + "人员身份推送权限");
+        //upstreamTypes.add(occupyUpstreamType);
+        //return upstreamTypes;
+        return null;
     }
 
-    private Upstream getUpstream(JSONObject resource) {
-
-        JSONObject spec = resource.getJSONObject("spec");
-        JSONObject upstreamJson = spec.getJSONObject("upstream");
-
-        String tenantName = upstreamJson.getString("tenant");
-        String appCode = upstreamJson.getString("appCode");
-        String appName = upstreamJson.getString("appName");
+    private Upstream getUpstream(JSONObject upstreamJson, DomainInfo domainInfo) {
+        String appCode = upstreamJson.getString("code");
+        String appName = upstreamJson.getString("name");
         String dataCode = upstreamJson.getString("dataCode");
         String color = upstreamJson.getString("color");
-        DomainInfo domainInfo = domainInfoService.getByDomainName(tenantName);
+        //校验必填参数
+        if (StringUtils.isBlank(appCode)) {
+            throw new CustomException(ResultCode.FAILED, "INVALID_PARAMETER");
+        }
+        if (StringUtils.isBlank(appName)) {
+            throw new CustomException(ResultCode.FAILED, "INVALID_PARAMETER");
+        }
         Upstream upstream = new Upstream();
+        String upstreamId = UUID.randomUUID().toString();
+        upstream.setId(upstreamId);
         upstream.setAppCode(appCode);
         upstream.setAppName(appName);
         upstream.setColor(color);
@@ -281,6 +368,92 @@ public class ApiController {
         return upstream;
     }
 
+    private void dealUpstreamTypeAndNodes(JSONArray dataJson,String type,long now,DomainInfo domainInfo,List<UpstreamType> upstreamTypes,List<Node> nodes,List<NodeRules> nodeRulesList,Upstream upstream){
+        for (int i = 0; i < dataJson.size(); i++) {
+            JSONObject jsonObject = dataJson.getJSONObject(i);
+            String description = jsonObject.getString("description");
+            //校验必填参数
+            if (StringUtils.isBlank(description)) {
+                throw new CustomException(ResultCode.FAILED, "INVALID_PARAMETER");
+            }
+            String clientId = jsonObject.getString("clientId");
+            //校验必填参数
+            if (StringUtils.isBlank(clientId)) {
+                throw new CustomException(ResultCode.FAILED, "INVALID_PARAMETER");
+            }
+            JSONObject nodeJson = jsonObject.getJSONObject("node");
+            UpstreamType deptUpstreamType = new UpstreamType();
+            String upstreamTypeId = UUID.randomUUID().toString();
+            deptUpstreamType.setId(upstreamTypeId);
+            deptUpstreamType.setUpstreamId(upstream.getId());
+            deptUpstreamType.setSynWay(0);
+            deptUpstreamType.setActive(true);
+            deptUpstreamType.setServiceCode(clientId);
+            deptUpstreamType.setSynType(type);
+            deptUpstreamType.setDescription(description);
+            deptUpstreamType.setIsPage(false);
+            //校验名称重复
+            List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(deptUpstreamType);
+            if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
+                throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
+            }
+            if (null != nodeJson) {
+                String treeType = nodeJson.getString("treeType");
+                String code = nodeJson.getString("code");
+                //校验必填参数
+                if("dept".equals(type)){
+                    if (StringUtils.isBlank(treeType)) {
+                        throw new CustomException(ResultCode.FAILED, "INVALID_PARAMETER");
+                    }
+                }
+                //处理node
+                Node node = new Node();
+                String nodeId = UUID.randomUUID().toString();
+                node.setId(nodeId);
+                node.setCreateTime(now);
+                node.setDomain(domainInfo.getId());
+                //node.setManual(node.getManual());
+                node.setNodeCode(StringUtils.isBlank(code) ? " " : code);
+                node.setStatus(0);
+                node.setType(deptUpstreamType.getSynType());
+                node.setDeptTreeType(treeType);
+                nodes.add(node);
+                NodeRules nodeRules = new NodeRules();
+                nodeRules.setId(UUID.randomUUID().toString());
+                nodeRules.setNodeId(nodeId);
+                nodeRules.setType(0);
+                nodeRules.setActive(true);
+                nodeRules.setActiveTime(now);
+                nodeRules.setServiceKey(upstreamTypeId);
+                nodeRules.setStatus(0);
+                nodeRulesList.add(nodeRules);
+            }else {
+                //人员身份和人员
+                //处理node
+                Node node = new Node();
+                String nodeId = UUID.randomUUID().toString();
+                node.setId(nodeId);
+                node.setCreateTime(now);
+                node.setDomain(domainInfo.getId());
+                //node.setManual(node.getManual());
+                node.setNodeCode(" ");
+                node.setStatus(0);
+                node.setType(deptUpstreamType.getSynType());
+                nodes.add(node);
+                NodeRules nodeRules = new NodeRules();
+                nodeRules.setId(UUID.randomUUID().toString());
+                nodeRules.setNodeId(nodeId);
+                nodeRules.setType(0);
+                nodeRules.setActive(true);
+                nodeRules.setActiveTime(now);
+                nodeRules.setServiceKey(upstreamTypeId);
+                nodeRules.setStatus(0);
+                nodeRulesList.add(nodeRules);
+            }
+            upstreamTypes.add(deptUpstreamType);
+        }
+    }
+
     private void check(JSONObject resource) {
 
         JSONObject metadata = resource.getJSONObject("metadata");
@@ -290,11 +463,18 @@ public class ApiController {
         if (metadata == null || spec == null || null == upstreamJson) {
             throw new CustomException(ResultCode.INVALID_PARAMETER, "INVALID_PARAMETER");
         }
+
         String tenant = upstreamJson.getString("tenant");
-        String appCode = upstreamJson.getString("appCode");
-        String appName = upstreamJson.getString("appName");
-        String appClientId = upstreamJson.getString("appClientId");
-        String deptTreeType = upstreamJson.getString("deptTreeType");
+        String appCode = upstreamJson.getString("code");
+        String appName = upstreamJson.getString("name");
+        String dataCode = upstreamJson.getString("dataCode");
+        String color = upstreamJson.getString("color");
+        JSONObject upstreamTypesJson = upstreamJson.getJSONObject("upstreamTypes");
+        JSONArray deptJson = upstreamTypesJson.getJSONArray("dept");
+        JSONArray postJson = upstreamTypesJson.getJSONArray("post");
+        JSONArray personJson = upstreamTypesJson.getJSONArray("person");
+        JSONArray occupyJson = upstreamTypesJson.getJSONArray("occupy");
+
 
         if (StringUtils.isBlank(tenant)) {
             throw new CustomException(ResultCode.INVALID_PARAMETER, "INVALID_PARAMETER");
@@ -310,12 +490,12 @@ public class ApiController {
         if (StringUtils.isBlank(appName)) {
             throw new CustomException(ResultCode.FAILED, "INVALID_PARAMETER");
         }
-        if (StringUtils.isBlank(appClientId)) {
-            throw new CustomException(ResultCode.FAILED, "INVALID_PARAMETER");
-        }
-        if (StringUtils.isBlank(deptTreeType)) {
-            throw new CustomException(ResultCode.FAILED, "INVALID_PARAMETER");
-        }
+        //if (StringUtils.isBlank(appClientId)) {
+        //    throw new CustomException(ResultCode.FAILED, "INVALID_PARAMETER");
+        //}
+        //if (StringUtils.isBlank(deptTreeType)) {
+        //    throw new CustomException(ResultCode.FAILED, "INVALID_PARAMETER");
+        //}
     }
 
 }

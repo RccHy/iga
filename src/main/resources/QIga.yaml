@@ -33,17 +33,16 @@ spec:
               upstream:
                 type: object
                 required:
-                  - appCode
-                  - appName
+                  - code
+                  - name
                   - tenant
-                  - appClientId
-                  - deptTreeType
+                  - upstreamTypes
                 properties:
-                  # 应用代码
-                  appCode:
+                  # 权威源代码
+                  code:
                     type: string
-                  # 应用名称
-                  appName:
+                  # 权威源名称
+                  name:
                     type: string
                   # 数据前缀代码 HR
                   dataCode:
@@ -54,10 +53,90 @@ spec:
                    # 租户
                   tenant:
                     type: string
-                  # 应用ClientId
-                  appClientId:
-                    type: string
-                  #需要授权的组织机构类型(01:单位类型组织机构,02:党务类型组织机构,03:学术类型组织机构,04:议事协调类型组织机构)
-                  deptTreeType:
-                    type: string
-                    enum: 01
+                  #权威源类型
+                  upstreamTypes:
+                    type: object
+                    required:
+                    - dept
+                    - post
+                    - person
+                    - occupy
+                    properties:
+                      #组织机构
+                      dept:
+                        type: array
+                        items:
+                          type: object
+                          required:
+                          -treeType
+                          -clientId
+                          -description
+                          properties:
+                            #权威源类型描述
+                            description:
+                              type: string
+                            #应用clientId
+                            clientId:
+                              type: string
+                            #node规则
+                            node:
+                              type: object
+                              required:
+                                -treeType
+                                #需要授权的组织机构类型(01:单位类型组织机构,02:党务类型组织机构,03:学术类型组织机构,04:议事协调类型组织机构)
+                                treeType:
+                                  type: string
+                                    enum: 01
+                                #需要授权的code节点代码(node为空默认为根节点)
+                                code:
+                                  type: string
+                      #岗位
+                      post:
+                        type: array
+                        items:
+                          type: object
+                          required:
+                          -clientId
+                          -description
+                          properties:
+                            #权威源类型描述
+                            description:
+                              type: string
+                            #应用clientId
+                            clientId:
+                              type: string
+                            node:
+                              type: object
+                                #需要授权的code节点代码(node为空默认为根节点)
+                                code:
+                                  type: string
+                      #人员
+                      person:
+                        type: array
+                        items:
+                          type: object
+                          required:
+                            -clientId
+                            -description
+                            properties:
+                              #权威源类型描述
+                              description:
+                                type: string
+                              #应用clientId
+                              clientId:
+                                type: string
+                      #人员身份
+                      occupy:
+                        type: array
+                          items:
+                            type: object
+                            required:
+                              -clientId
+                              -description
+                              properties:
+                                #权威源类型描述
+                                description:
+                                  type: string
+                                #应用clientId
+                                clientId:
+                                  type: string

@@ -35,7 +35,7 @@ public class RoleBingUtil {
         GraphqlClient graphqlClient = GraphqlClient.buildGraphqlClient(busUrl);
         Map<String, String> map = new HashMap<>();
         map.put("Authorization", "Bearer " + dataBusUtil.getToken(serviceName));
-        //map.put("Authorization", "Bearer 32c5bbdb6c59cd2c7aa9128c63ddfc70");
+        //map.put("Authorization", "Bearer 3426299750c494733395edd6b4b889d3");
         graphqlClient.setHttpHeaders(map);
 
         GraphqlMutation graphqlMutation = new DefaultGraphqlMutation("addRoleBinding");
@@ -76,7 +76,13 @@ public class RoleBingUtil {
 
                     HashMap<String, Object> codeMap = new HashMap<>();
                     Map<String, Object> filter = new HashMap<>();
-                    codeMap.put("eq", igaRules.get(key));
+                    if (!"parent".equals(key)) {
+                        codeMap.put("eq", igaRules.get(key));
+                    } else {
+                        ArrayList<String> objects = new ArrayList<>();
+                        objects.add(igaRules.get(key));
+                        codeMap.put("in", objects.toArray());
+                    }
                     filter.put(key, codeMap);
                     rule.put("filter", filter);
                     rules.add(rule);

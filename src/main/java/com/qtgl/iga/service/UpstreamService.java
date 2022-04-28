@@ -2,7 +2,7 @@ package com.qtgl.iga.service;
 
 
 import com.qtgl.iga.bean.UpstreamDto;
-import com.qtgl.iga.bo.Upstream;
+import com.qtgl.iga.bo.*;
 
 import java.util.List;
 import java.util.Map;
@@ -24,5 +24,5 @@ public interface UpstreamService {
 
     UpstreamDto updateUpstreamAndTypes(UpstreamDto upstream) throws Exception;
 
-    UpstreamDto saveUpstreamAndTypesAndRoleBing(UpstreamDto upstreamDto, String domain, String deptTreeType) throws Exception;
+    void saveUpstreamAndTypesAndRoleBing(Upstream upstream, List<UpstreamType> upstreamTypes, List<Node> nodes, List<NodeRules> nodeRulesList, DomainInfo domainInfo) throws Exception;
 }

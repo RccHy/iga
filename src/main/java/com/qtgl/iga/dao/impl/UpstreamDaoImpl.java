@@ -1,11 +1,7 @@
 package com.qtgl.iga.dao.impl;
 
 
-import com.qtgl.iga.bean.UpstreamDto;
-import com.qtgl.iga.bo.Node;
-import com.qtgl.iga.bo.NodeRules;
-import com.qtgl.iga.bo.Upstream;
-import com.qtgl.iga.bo.UpstreamType;
+import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.UpstreamDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import com.qtgl.iga.utils.enumerate.ResultCode;
@@ -177,7 +173,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
     }
 
     @Override
-    public Integer saveUpstreamAndTypesAndNode(UpstreamDto upstreamDto, HashMap<String, Object> map, String domain) {
+    public Integer saveUpstreamAndTypesAndNode(Upstream upstream, List<UpstreamType> upstreamTypes, List<Node> nodes, List<NodeRules> nodeRulesList, DomainInfo domainInfo) {
         return txTemplate.execute(transactionStatus -> {
 
             try {
@@ -186,23 +182,21 @@ public class UpstreamDaoImpl implements UpstreamDao {
                 //生成主键和时间
 
                 Timestamp date = new Timestamp(System.currentTimeMillis());
-                upstreamDto.setCreateTime(date);
                 jdbcIGA.update(upstreamSql, preparedStatement -> {
-                    preparedStatement.setObject(1, upstreamDto.getId());
-                    preparedStatement.setObject(2, upstreamDto.getAppCode());
-                    preparedStatement.setObject(3, upstreamDto.getAppName());
-                    preparedStatement.setObject(4, upstreamDto.getDataCode());
+                    preparedStatement.setObject(1, upstream.getId());
+                    preparedStatement.setObject(2, upstream.getAppCode());
+                    preparedStatement.setObject(3, upstream.getAppName());
+                    preparedStatement.setObject(4, upstream.getDataCode());
                     preparedStatement.setObject(5, date);
-                    preparedStatement.setObject(6, upstreamDto.getCreateUser());
-                    preparedStatement.setObject(7, upstreamDto.getActive());
-                    preparedStatement.setObject(8, upstreamDto.getColor());
-                    preparedStatement.setObject(9, domain);
+                    preparedStatement.setObject(6, upstream.getCreateUser());
+                    preparedStatement.setObject(7, upstream.getActive());
+                    preparedStatement.setObject(8, upstream.getColor());
+                    preparedStatement.setObject(9, domainInfo.getId());
                     preparedStatement.setObject(10, date);
                     preparedStatement.setObject(11, date);
 
                 });
                 //添加权威源类型
-                List<UpstreamType> upstreamTypes = upstreamDto.getUpstreamTypes();
                 String upstreamTypeSql = "insert into t_mgr_upstream_types  values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
                 if (null != upstreamTypes && upstreamTypes.size() > 0) {
                     jdbcIGA.batchUpdate(upstreamTypeSql, new BatchPreparedStatementSetter() {
@@ -221,7 +215,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
                             preparedStatement.setObject(11, null);
                             preparedStatement.setObject(12, upstreamTypes.get(i).getGraphqlUrl());
                             preparedStatement.setObject(13, upstreamTypes.get(i).getServiceCode());
-                            preparedStatement.setObject(14, domain);
+                            preparedStatement.setObject(14, domainInfo.getId());
                             preparedStatement.setObject(15, upstreamTypes.get(i).getDeptTreeTypeId());
                             preparedStatement.setObject(16, 0);
                             preparedStatement.setObject(17, upstreamTypes.get(i).getSynWay());
@@ -234,7 +228,6 @@ public class UpstreamDaoImpl implements UpstreamDao {
                     });
                 }
                 //添加node
-                List<Node> nodes = (List<Node>) map.get("node");
                 String nodeSql = "insert into t_mgr_node  (id,manual,node_code,create_time,update_time,domain,dept_tree_type,status,type)values(?,?,?,?,?,?,?,?,?)";
                 if (null != nodes && nodes.size() > 0) {
                     jdbcIGA.batchUpdate(nodeSql, new BatchPreparedStatementSetter() {
@@ -258,7 +251,6 @@ public class UpstreamDaoImpl implements UpstreamDao {
                     });
                 }
                 //添加nodeRules
-                List<NodeRules> nodeRulesList = (List<NodeRules>) map.get("rules");
 
                 String nodeRulesSql = "insert into t_mgr_node_rules (id,node_id,type,active,active_time,create_time,update_time,service_key,upstream_types_id,inherit_id,sort,status) values(?,?,?,?,?,?,?,?,?,?,?,?)";
 
