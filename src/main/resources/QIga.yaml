@@ -50,17 +50,17 @@ spec:
                   # 代表色
                   color:
                     type: string
-                   # 租户
+                    # 租户
                   tenant:
                     type: string
                   #权威源类型
                   upstreamTypes:
                     type: object
                     required:
-                    - dept
-                    - post
-                    - person
-                    - occupy
+                      - dept
+                      - post
+                      - person
+                      - occupy
                     properties:
                       #组织机构
                       dept:
@@ -68,9 +68,9 @@ spec:
                         items:
                           type: object
                           required:
-                          -treeType
-                          -clientId
-                          -description
+                            - treeType
+                            - clientId
+                            - description
                           properties:
                             #权威源类型描述
                             description:
@@ -82,7 +82,8 @@ spec:
                             node:
                               type: object
                               required:
-                                -treeType
+                                - treeType
+                              properties:
                                 #需要授权的组织机构类型(01:单位类型组织机构,02:党务类型组织机构,03:学术类型组织机构,04:议事协调类型组织机构)
                                 treeType:
                                   type: string
@@ -96,8 +97,8 @@ spec:
                         items:
                           type: object
                           required:
-                          -clientId
-                          -description
+                            - clientId
+                            - description
                           properties:
                             #权威源类型描述
                             description:
@@ -107,6 +108,7 @@ spec:
                               type: string
                             node:
                               type: object
+                              properties:
                                 #需要授权的code节点代码(node为空默认为根节点)
                                 code:
                                   type: string
@@ -116,8 +118,23 @@ spec:
                         items:
                           type: object
                           required:
-                            -clientId
-                            -description
+                            - clientId
+                            - description
+                          properties:
+                            #权威源类型描述
+                            description:
+                              type: string
+                            #应用clientId
+                            clientId:
+                              type: string
+                      #人员身份
+                      occupy:
+                        type: array
+                          items:
+                            type: object
+                            required:
+                              - clientId
+                              - description
                             properties:
                               #权威源类型描述
                               description:
@@ -125,18 +142,3 @@ spec:
                               #应用clientId
                               clientId:
                                 type: string
-                      #人员身份
-                      occupy:
-                        type: array
-                          items:
-                            type: object
-                            required:
-                              -clientId
-                              -description
-                              properties:
-                                #权威源类型描述
-                                description:
-                                  type: string
-                                #应用clientId
-                                clientId:
-                                  type: string
