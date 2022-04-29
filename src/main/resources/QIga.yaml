@@ -65,58 +65,65 @@ spec:
                       #组织机构
                       dept:
                         type: array
-                        items:
-                          type: object
-                          required:
+                        required:
                             - treeType
                             - clientId
                             - description
-                          properties:
+                        properties:
                             #权威源类型描述
-                            description:
-                              type: string
+                          description:
+                            type: string
                             #应用clientId
-                            clientId:
-                              type: string
+                          clientId:
+                            type: string
                             #node规则
-                            node:
-                              type: object
-                              required:
-                                - treeType
-                              properties:
-                                #需要授权的组织机构类型(01:单位类型组织机构,02:党务类型组织机构,03:学术类型组织机构,04:议事协调类型组织机构)
-                                treeType:
-                                  type: string
-                                    enum: 01
-                                #需要授权的code节点代码(node为空默认为根节点)
-                                code:
-                                  type: string
+                          node:
+                            type: object
+                            required:
+                              - treeType
+                            properties:
+                              #需要授权的组织机构类型(01:单位类型组织机构,02:党务类型组织机构,03:学术类型组织机构,04:议事协调类型组织机构)
+                              treeType:
+                                type: string
+                                enum: 01
+                                #需要授权的code节点代码(node为空默认为根节点),授权范围为该节点及其所有子节点
+                              code:
+                                type: string
                       #岗位
                       post:
                         type: array
-                        items:
-                          type: object
-                          required:
-                            - clientId
-                            - description
-                          properties:
-                            #权威源类型描述
-                            description:
-                              type: string
-                            #应用clientId
-                            clientId:
-                              type: string
-                            node:
-                              type: object
-                              properties:
-                                #需要授权的code节点代码(node为空默认为根节点)
-                                code:
-                                  type: string
+                        required:
+                          - clientId
+                          - description
+                        properties:
+                          #权威源类型描述
+                          description:
+                            type: string
+                          #应用clientId
+                          clientId:
+                            type: string
+                          node:
+                            type: object
+                            properties:
+                              #需要授权的code节点代码(node为空默认为根节点),授权范围为该节点及其所有子节点
+                              code:
+                                type: string
                       #人员
                       person:
                         type: array
-                        items:
-                          type: object
+                        required:
+                          - clientId
+                          - description
+                        properties:
+                          #权威源类型描述
+                          description:
+                            type: string
+                          #应用clientId
+                          clientId:
+                            type: string
+                      #人员身份
+                      occupy:
+                        type: array
                           required:
                             - clientId
                             - description
@@ -127,18 +134,3 @@ spec:
                             #应用clientId
                             clientId:
                               type: string
-                      #人员身份
-                      occupy:
-                        type: array
-                          items:
-                            type: object
-                            required:
-                              - clientId
-                              - description
-                            properties:
-                              #权威源类型描述
-                              description:
-                                type: string
-                              #应用clientId
-                              clientId:
-                                type: string
