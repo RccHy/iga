@@ -242,6 +242,7 @@ public class DeptServiceImpl implements DeptService {
         if (!CollectionUtils.isEmpty(dynamicValues)) {
             valueMap = dynamicValues.stream().collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
         }
+        logger.info("获取到当前租户{}的映射字段集为{}", tenant.getId(), dynamicAttrs);
         for (DeptTreeType deptType : deptTreeTypes) {
 
             List<TreeBean> ssoApiBeans = deptDao.findBySourceAndTreeType("API", deptType.getCode(), tenant.getId());
@@ -355,7 +356,8 @@ public class DeptServiceImpl implements DeptService {
                 updateList.add(key.getKey());
             }
         }
-
+        logger.info("组织机构处理结束:扩展字段处理需要修改{},需要新增{}", CollectionUtils.isEmpty(valueUpdate) ? 0 : valueUpdate.size(), CollectionUtils.isEmpty(valueInsert) ? 0 : valueInsert.size());
+        logger.debug("组织机构处理结束:扩展字段处理需要修改{},需要新增{}", valueUpdate, valueInsert);
 
         Integer flag = deptDao.renewData(insertList, updateList, deleteList, invalidList, valueUpdate, valueInsert, tenantId);
         if (null != flag && flag > 0) {

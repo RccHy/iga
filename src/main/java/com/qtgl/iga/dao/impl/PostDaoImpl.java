@@ -295,7 +295,7 @@ public class PostDaoImpl implements PostDao {
                         }
                     });
                 }
-                String deleteStr = "update user_type set   del_mark= ? , active = ?,active_time= ? ,update_time=? " +
+                String deleteStr = "update user_type set   del_mark= ? , active = ?,active_time= ? ,update_time=? , data_source=? " +
                         "where user_type =? and tenant_id=? and update_time<= ? ";
 
                 ArrayList<TreeBean> treeBeans = new ArrayList<>();
@@ -313,9 +313,10 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(2, treeBeans.get(i).getActive());
                             preparedStatement.setObject(3, LocalDateTime.now());
                             preparedStatement.setObject(4, treeBeans.get(i).getUpdateTime());
-                            preparedStatement.setObject(5, treeBeans.get(i).getCode());
-                            preparedStatement.setObject(6, tenantId);
-                            preparedStatement.setObject(7, treeBeans.get(i).getUpdateTime());
+                            preparedStatement.setObject(5, "PULL");
+                            preparedStatement.setObject(6, treeBeans.get(i).getCode());
+                            preparedStatement.setObject(7, tenantId);
+                            preparedStatement.setObject(8, treeBeans.get(i).getUpdateTime());
                         }
 
                         @Override

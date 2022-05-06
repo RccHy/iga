@@ -123,6 +123,8 @@ public class PersonServiceImpl implements PersonService {
         List<DynamicValue> dynamicValues = new ArrayList<>();
 
         List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
+        log.info("获取到当前租户{}的映射字段集为{}", tenant.getId(), dynamicAttrs);
+
         //扩展字段修改容器
         List<DynamicValue> valueUpdate = new ArrayList<>();
         //扩展字段新增容器
@@ -264,11 +266,10 @@ public class PersonServiceImpl implements PersonService {
                             if (personObj.containsKey(dynamicCode)) {
                                 if (StringUtils.isNotBlank(personObj.getString(dynamicCode))) {
                                     map.put(dynamicCode, personObj.getString(dynamicCode));
-                                } else {
-                                    map.put(dynamicCode, null);
                                 }
                             }
                         }
+                        log.info("处理{}的上游扩展字段值为{}", personObj, map);
                         personUpstream.setDynamic(map);
                     }
                     personUpstreamList.add(personUpstream);
@@ -503,6 +504,8 @@ public class PersonServiceImpl implements PersonService {
                         }
                     }
                 }
+                log.info("人员处理结束:扩展字段处理需要修改{},需要新增{}", CollectionUtils.isEmpty(valueUpdate) ? 0 : valueUpdate.size(), CollectionUtils.isEmpty(valueInsert) ? 0 : valueInsert.size());
+                log.debug("人员处理结束:扩展字段处理需要修改{},需要新增{}", valueUpdate, valueInsert);
                 personDao.saveToSso(result, tenant.getId(), valueUpdate, valueInsert);
             } catch (CustomException e) {
                 TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(personFromUpstream) + JSONObject.toJSONString(personFromUpstreamByAccount));
@@ -1234,6 +1237,7 @@ public class PersonServiceImpl implements PersonService {
                 if (collect.containsKey(str.getKey())) {
                     DynamicValue dynamicValue = collect.get(str.getKey());
                     if (null != o && !o.equals(dynamicValue.getValue())) {
+                        log.info("主体{}扩展字段不同{}->{},修改扩展字段", ssoBean.getName()+":"+ssoBean.getAccountNo(), dynamicValue.getValue(), o);
                         dynamicValue.setValue(o);
                         valueUpdate.add(dynamicValue);
                         valueFlag = true;
@@ -1246,6 +1250,7 @@ public class PersonServiceImpl implements PersonService {
                     dynamicValue.setEntityId(ssoBean.getId());
                     dynamicValue.setAttrId(str.getKey());
                     valueFlag = true;
+                    log.info("主体{}扩展字段新增{}", ssoBean.getName()+":"+ssoBean.getAccountNo(), o);
                     valueInsert.add(dynamicValue);
                 }
             }
@@ -1259,6 +1264,7 @@ public class PersonServiceImpl implements PersonService {
                 dynamicValue.setValue(o);
                 dynamicValue.setEntityId(ssoBean.getId());
                 dynamicValue.setAttrId(str.getKey());
+                log.info("主体{}扩展字段新增{}", ssoBean.getName()+":"+ssoBean.getAccountNo(), o);
                 valueInsert.add(dynamicValue);
 
             }

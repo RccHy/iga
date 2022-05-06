@@ -643,11 +643,10 @@ public class NodeRulesCalculationServiceImpl {
                                     if (dept.containsKey(dynamicCode)) {
                                         if (StringUtils.isNotBlank(dept.getString(dynamicCode))) {
                                             map.put(dynamicCode, dept.getString(dynamicCode));
-                                        } else {
-                                            map.put(dynamicCode, null);
                                         }
                                     }
                                 }
+                                logger.info("处理{}的上游扩展字段值为{}", dept, map);
                                 dept.put("dynamic", map);
                             }
                             upstreamDept.add(dept.toJavaObject(TreeBean.class));

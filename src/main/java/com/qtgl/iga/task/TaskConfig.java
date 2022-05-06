@@ -239,7 +239,7 @@ public class TaskConfig {
         }
     }
 
-    private void upload(DomainInfo domainInfo, TaskLog taskLog) {
+    public void upload(DomainInfo domainInfo, TaskLog taskLog) {
         try {
             String fileName = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()) + ".txt";
             String utf8 = fileUtil.putFile(TaskConfig.errorData.get(domainInfo.getId()).getBytes("UTF8"), fileName, domainInfo);

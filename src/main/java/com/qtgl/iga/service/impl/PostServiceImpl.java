@@ -248,6 +248,8 @@ public class PostServiceImpl implements PostService {
         if (!CollectionUtils.isEmpty(dynamicValues)) {
             valueMap = dynamicValues.stream().collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
         }
+        logger.info("获取到当前租户{}的映射字段集为{}", tenant.getId(), dynamicAttrs);
+
         Map<String, TreeBean> rootBeansMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
 
         mainTreeBeans.addAll(ssoBeans);
@@ -367,7 +369,8 @@ public class PostServiceImpl implements PostService {
                 updateList.add(key.getKey());
             }
         }
-
+        logger.info("组织机构处理结束:扩展字段处理需要修改{},需要新增{}", CollectionUtils.isEmpty(valueUpdate) ? 0 : valueUpdate.size(), CollectionUtils.isEmpty(valueInsert) ? 0 : valueInsert.size());
+        logger.debug("组织机构处理结束:扩展字段处理需要修改{},需要新增{}", valueUpdate, valueInsert);
         Integer flag = postDao.renewData(insertList, updateList, deleteList, invalidList, valueUpdate, valueInsert, tenantId);
         if (null != flag && flag > 0) {
 
