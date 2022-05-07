@@ -462,7 +462,10 @@ public class PostServiceImpl implements PostService {
                                 boolean activeFlag = false;
                                 //是否处理扩展字段标识
                                 boolean dyFlag = true;
-
+                                //处理sso数据的active为null的情况
+                                if(null==ssoBean.getActive()||"".equals(ssoBean.getActive())){
+                                    ssoBean.setActive(1);
+                                }
                                 if (!"BUILTIN".equalsIgnoreCase(pullBean.getDataSource())) {
                                     ssoBean.setDataSource("PULL");
                                     ssoBean.setSource(pullBean.getSource());

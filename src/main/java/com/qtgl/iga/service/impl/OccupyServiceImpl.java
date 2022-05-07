@@ -386,6 +386,10 @@ public class OccupyServiceImpl implements OccupyService {
         // 对比出需要修改的occupy
         if (occupyDtoFromUpstream.containsKey(key) &&
                 occupyDtoFromUpstream.get(key).getCreateTime().isAfter(occupyFromSSO.getUpdateTime())) {
+            //处理sso数据的active为null的情况
+            if (null == occupyFromSSO.getActive() || "".equals(occupyFromSSO.getActive())) {
+                occupyFromSSO.setActive(1);
+            }
             //修改标识
             boolean updateFlag = false;
             //删除恢复标识

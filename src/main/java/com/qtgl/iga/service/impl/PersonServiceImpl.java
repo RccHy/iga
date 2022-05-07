@@ -603,6 +603,10 @@ public class PersonServiceImpl implements PersonService {
         // 对比出需要修改的person
         if (personFromUpstream.containsKey(key) &&
                 personFromUpstream.get(key).getCreateTime().isAfter(personFromSSO.getUpdateTime())) {
+            //处理sso数据的active为null的情况
+            if(null==personFromSSO.getActive()||"".equals(personFromSSO.getActive())){
+                personFromSSO.setActive(1);
+            }
             //修改标识
             boolean updateFlag = false;
             //del字段标识
@@ -931,6 +935,10 @@ public class PersonServiceImpl implements PersonService {
         // 对比出需要修改的person
         if (personFromUpstream.containsKey(key) &&
                 personFromUpstream.get(key).getCreateTime().isAfter(personFromSSO.getUpdateTime())) {
+            //处理sso数据的active为null的情况
+            if(null==personFromSSO.getActive()||"".equals(personFromSSO.getActive())){
+                personFromSSO.setActive(1);
+            }
             ////修改是否合法标识
             //boolean licitFlag = true;
             //修改标识

@@ -450,6 +450,10 @@ public class DeptServiceImpl implements DeptService {
                                 if ("API".equals(ssoBean.getDataSource())) {
                                     updateFlag = true;
                                 }
+                                //处理sso数据的active为null的情况
+                                if(null==ssoBean.getActive()||"".equals(ssoBean.getActive())){
+                                    ssoBean.setActive(1);
+                                }
                                 ssoBean.setDataSource("PULL");
                                 ssoBean.setSource(pullBean.getSource());
                                 ssoBean.setUpdateTime(now);
