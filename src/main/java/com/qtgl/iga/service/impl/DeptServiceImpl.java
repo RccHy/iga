@@ -59,6 +59,8 @@ public class DeptServiceImpl implements DeptService {
     DynamicAttrDaoImpl dynamicAttrDao;
     @Autowired
     DynamicValueDaoImpl dynamicValueDao;
+    @Autowired
+    UpstreamDao upstreamDao;
 
     @Value("${iga.hostname}")
     String hostname;
@@ -155,7 +157,10 @@ public class DeptServiceImpl implements DeptService {
         }
         //同步到sso
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-        beans = dataProcessing(mainTreeMap, domain, beans, result, insert, now, dynamicAttrs, valueMap, valueUpdate, valueInsert);
+        //获取该租户下的当前类型的有效权威源
+        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsTrue(domain.getId());
+        Map<String, Upstream> upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
+        beans = dataProcessing(mainTreeMap, domain, beans, result, insert, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap);
 
 //        //如果插入的数据不为空则加入返回集
 //        if (null != beans) {
@@ -260,7 +265,10 @@ public class DeptServiceImpl implements DeptService {
         }
         //同步到sso
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-        beans = dataProcessing(mainTreeMap, domain, beans, result, treeBeans, now, dynamicAttrs, valueMap, valueUpdate, valueInsert);
+        //获取该租户下的当前类型的有效权威源
+        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsTrue(domain.getId());
+        Map<String, Upstream> upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
+        beans = dataProcessing(mainTreeMap, domain, beans, result, treeBeans, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap);
 
         //code重复性校验
         calculationService.groupByCode(beans, 0, domain);
@@ -397,7 +405,7 @@ public class DeptServiceImpl implements DeptService {
      * 新增正常添加 其余情况不单独处理扩展字段
      **/
     //String treeTypeId
-    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, List<TreeBean> ssoBeans, Map<TreeBean, String> result, ArrayList<TreeBean> insert, LocalDateTime now, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert) {
+    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, List<TreeBean> ssoBeans, Map<TreeBean, String> result, ArrayList<TreeBean> insert, LocalDateTime now, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamMap) {
         //将sso的数据转化为map方便对比
         Map<String, TreeBean> ssoCollect = new HashMap<>();
         if (null != ssoBeans && ssoBeans.size() > 0) {
@@ -451,7 +459,7 @@ public class DeptServiceImpl implements DeptService {
                                     updateFlag = true;
                                 }
                                 //处理sso数据的active为null的情况
-                                if(null==ssoBean.getActive()||"".equals(ssoBean.getActive())){
+                                if (null == ssoBean.getActive() || "".equals(ssoBean.getActive())) {
                                     ssoBean.setActive(1);
                                 }
                                 ssoBean.setDataSource("PULL");
@@ -518,13 +526,19 @@ public class DeptServiceImpl implements DeptService {
                                 }
                                 //标识为删除的数据
                                 if (delFlag) {
-                                    //将数据放入删除集合
-                                    ssoBean.setDelMark(1);
-                                    ssoCollect.remove(ssoBean.getCode());
-                                    result.put(ssoBean, "delete");
-                                    //修改标记置为false
-                                    updateFlag = false;
-                                    logger.info("部门对比后需要删除{}", ssoBean);
+                                    if (upstreamMap.containsKey(ssoBean.getSource())) {
+                                        //将数据放入删除集合
+                                        ssoBean.setDelMark(1);
+                                        ssoCollect.remove(ssoBean.getCode());
+                                        result.put(ssoBean, "delete");
+                                        //修改标记置为false
+                                        updateFlag = false;
+                                        logger.info("部门对比后需要删除{}", ssoBean.getId());
+                                    } else {
+                                        result.put(ssoBean, "obsolete");
+                                        logger.info("部门对比后应删除{},但检测到对应权威源以无效或被删除,跳过该数据", ssoBean.getId());
+                                    }
+
                                 }
 
 
@@ -534,7 +548,13 @@ public class DeptServiceImpl implements DeptService {
                                     ssoBean.setUpdateTime(now);
                                     //失效
                                     if (invalidFlag) {
-                                        result.put(ssoBean, "invalid");
+                                        if (upstreamMap.containsKey(ssoBean.getSource())) {
+                                            result.put(ssoBean, "invalid");
+                                            logger.info("部门对比后需要置为失效{}", ssoBean.getId());
+                                        } else {
+                                            result.put(ssoBean, "obsolete");
+                                            logger.info("部门对比后应置为失效{},但检测到对应权威源以无效或被删除,跳过该数据", ssoBean.getId());
+                                        }
                                     } else {
 //                                        //恢复失效数据  未提供active手动处理
 //                                        if (invalidRecoverFlag && ssoBean.getActive() != 1) {
@@ -668,10 +688,17 @@ public class DeptServiceImpl implements DeptService {
                         ssoCollect.remove(ssoBean.getCode());
                         //只处理有效的置为无效, 本身就无效的忽略
                         if (ssoBean.getActive() == 1) {
-                            ssoBean.setActive(0);
-                            ssoBean.setUpdateTime(now);
-                            result.put(ssoBean, "invalid");
+                            if (upstreamMap.containsKey(ssoBean.getSource())) {
+                                ssoBean.setActive(0);
+                                ssoBean.setUpdateTime(now);
+                                result.put(ssoBean, "invalid");
+                                logger.info("部门对比后需要置为失效{}", ssoBean.getId());
+                            } else {
+                                result.put(ssoBean, "obsolete");
+                                logger.info("部门对比后应置为失效{},但检测到对应权威源以无效或被删除,跳过该数据", ssoBean.getId());
+                            }
                         }
+
                     }
                 }
             }

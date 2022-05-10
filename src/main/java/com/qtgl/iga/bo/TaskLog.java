@@ -55,4 +55,8 @@ public class TaskLog {
      * 数据
      */
     private String data;
+    /**
+     * 备注
+     */
+    private String remark;
 }

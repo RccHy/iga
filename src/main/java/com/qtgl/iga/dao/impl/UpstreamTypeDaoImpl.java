@@ -465,7 +465,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         String sql = "select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_type_id as deptTypeId," +
                 "enable_prefix as enablePrefix,active,active_time as activeTime,root,create_time as createTime," +
                 "update_time as updateTime, graphql_url as graphqlUrl,service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId , " +
-                "is_page as isPage,syn_way as synWay  from  t_mgr_upstream_types where id= ?   ";
+                "is_page as isPage,syn_way as synWay  from  t_mgr_upstream_types where id= ? and active=true  ";
 
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id);
         UpstreamType upstreamType = new UpstreamType();

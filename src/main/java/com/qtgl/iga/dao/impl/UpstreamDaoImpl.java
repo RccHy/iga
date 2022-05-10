@@ -110,7 +110,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
         Object[] objects = new Object[2];
         objects[0] = id;
         objects[1] = domain;
-        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select id,app_code as appCode,app_name as appName,data_code as dataCode,create_time as createTime,create_user as createUser,active,color,domain ,active_time as activeTime,update_time as updateTime from t_mgr_upstream  where id =? and domain=?", objects);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select id,app_code as appCode,app_name as appName,data_code as dataCode,create_time as createTime,create_user as createUser,active,color,domain ,active_time as activeTime,update_time as updateTime from t_mgr_upstream  where id =? and domain=? and active=true ", objects);
 
         ArrayList<Upstream> upstreamList = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
@@ -157,7 +157,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
     public Upstream findById(String id) {
         String sql = "select id,app_code as appCode,app_name as appName,data_code as dataCode," +
                 "create_time as createTime,create_user as createUser,active,color,domain ," +
-                "active_time as activeTime,update_time as updateTime from t_mgr_upstream where id= ? ";
+                "active_time as activeTime,update_time as updateTime from t_mgr_upstream where id= ? and active=true ";
 
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id);
         Upstream upstream = new Upstream();
@@ -299,6 +299,31 @@ public class UpstreamDaoImpl implements UpstreamDao {
         if (null != mapList && mapList.size() > 0) {
             throw new CustomException(ResultCode.REPEAT_UPSTREAM_ERROR, null, null, appCode, appName);
         }
+    }
+
+    @Override
+    public ArrayList<Upstream> findByDomainAndActiveIsTrue(String domain) {
+        String sql = "select id,app_code as appCode,app_name as appName,data_code as dataCode," +
+                "create_time as createTime,create_user as createUser,active,color,domain ," +
+                "active_time as activeTime,update_time as updateTime from t_mgr_upstream where 1 = 1 and domain=? and active=true";
+        //拼接sql
+        StringBuffer stb = new StringBuffer(sql);
+        //存入参数
+        List<Object> param = new ArrayList<>();
+        param.add(domain);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
+
+        ArrayList<Upstream> list = new ArrayList<>();
+        if (null != mapList && mapList.size() > 0) {
+            for (Map<String, Object> map : mapList) {
+                Upstream upstream = new Upstream();
+                BeanMap beanMap = BeanMap.create(upstream);
+                beanMap.putAll(map);
+                list.add(upstream);
+            }
+            return list;
+        }
+        return null;
     }
 
 

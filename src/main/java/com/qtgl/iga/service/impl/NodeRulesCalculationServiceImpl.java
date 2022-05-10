@@ -550,8 +550,8 @@ public class NodeRulesCalculationServiceImpl {
                         logger.info("开始'{}'节点拉取规则，上游:{}", code, nodeRule.getUpstreamTypesId());
                         // 每次循环都能拿到一个部门树，并计算出需要挂载的内容
                         if (null == nodeRule.getUpstreamTypesId()) {
-                            logger.error("对应拉取节点'{}'无上有源类型数据", code);
-                            throw new CustomException(ResultCode.NO_UPSTREAM_TYPE, null, null, code);
+                            logger.error("对应拉取节点'{}'无权威源类型数据", code);
+                            throw new CustomException(ResultCode.NO_UPSTREAM_TYPE, null, null, "", code);
                         }
                         if (StringUtils.isNotEmpty(nodeRule.getInheritId())) {
                             logger.info("对应拉取节点'{}'继承自父级{}，跳过计算", code, nodeRule.getInheritId());
@@ -559,8 +559,16 @@ public class NodeRulesCalculationServiceImpl {
                         }
                         // 根据id 获取 UpstreamType
                         UpstreamType upstreamType = upstreamTypeDao.findById(nodeRule.getUpstreamTypesId());
+                        if (null == upstreamType) {
+                            logger.error("对应拉取节点规则'{}'无有效权威源类型数据", code);
+                            throw new CustomException(ResultCode.NO_UPSTREAM_TYPE, null, null, "", code);
+                        }
                         //获取来源
                         Upstream upstream = upstreamDao.findById(upstreamType.getUpstreamId());
+                        if (null == upstream) {
+                            logger.error("对应拉取节点规则'{}'无有效权威源数据", code);
+                            throw new CustomException(ResultCode.NO_UPSTREAM, null, null, "", code);
+                        }
                         //获得部门树
                         JSONArray upstreamTree = new JSONArray();
                         //   请求graphql查询，获得部门树
