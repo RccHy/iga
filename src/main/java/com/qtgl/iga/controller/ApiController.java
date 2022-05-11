@@ -31,6 +31,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.RejectedExecutionException;
 
 /**
  * @author rcc
@@ -529,7 +530,13 @@ public class ApiController {
         try {
             DomainInfo domainInfo = CertifiedConnector.getDomain();
             taskConfig.executeTask(domainInfo);
-        } catch (Exception e) {
+
+        } catch (RejectedExecutionException e) {
+            e.printStackTrace();
+            jsonObject.put("code","FAILED");
+            jsonObject.put("message","当前线程正在进行数据同步,请稍后再试");
+            return jsonObject;
+        }catch (Exception e) {
             e.printStackTrace();
             jsonObject.put("code","FAILED");
             jsonObject.put("message",e.getMessage());
