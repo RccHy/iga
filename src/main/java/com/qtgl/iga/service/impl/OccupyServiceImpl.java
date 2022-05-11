@@ -132,9 +132,56 @@ public class OccupyServiceImpl implements OccupyService {
         // 获取sso中人员身份信息
         final List<OccupyDto> occupiesFromSSO = occupyDao.findAll(tenant.getId(), null, null);
         log.info("数据库中人员身份数据获取完成:{}", occupiesFromSSO.size());
-        final Map<String, OccupyDto> occupiesFromSSOIdentityMap = occupiesFromSSO.stream().filter(occupyDto ->
+        //处理数据库重复身份数据
+        ConcurrentHashMap<String, OccupyDto> concurrentHashMap = new ConcurrentHashMap<>();
+        ArrayList<OccupyDto> deleteFromSSO = new ArrayList<>();
+        for (OccupyDto occupyDto : occupiesFromSSO) {
+            String key = occupyDto.getPersonId() + ":" + occupyDto.getDeptCode() + ":" + occupyDto.getPostCode();
+            //已有相同标识的身份
+            if (concurrentHashMap.containsKey(key)) {
+                OccupyDto occupyDtoFromMap = concurrentHashMap.get(key);
+                //当前身份有效
+                if (1 == occupyDto.getActive()) {
+                    //对比map中身份是否有效
+                    if (1 == occupyDtoFromMap.getActive()) {
+                        //均有效则对比是否有工号
+                        if (StringUtils.isNotBlank(occupyDto.getAccountNo())) {
+                            if (StringUtils.isNotBlank(occupyDtoFromMap.getAccountNo())) {
+                                //均有工号则对比修改时间
+                                if (occupyDto.getUpdateTime().isAfter(occupyDtoFromMap.getUpdateTime())) {
+                                    //当前数据更新迟于map中
+                                    deleteFromSSO.add(occupyDtoFromMap);
+                                    concurrentHashMap.put(key, occupyDto);
+                                } else {
+                                    deleteFromSSO.add(occupyDtoFromMap);
+                                }
+                            } else {
+                                //map中身份无工号
+                                deleteFromSSO.add(occupyDtoFromMap);
+                                concurrentHashMap.put(key, occupyDto);
+                            }
+                        } else {
+                            //当前身份无工号
+                            deleteFromSSO.add(occupyDto);
+                        }
+                    } else {
+                        //map中身份无效
+                        deleteFromSSO.add(occupyDtoFromMap);
+                        concurrentHashMap.put(key, occupyDto);
+                    }
+                } else {
+                    //当前身份无效
+                    deleteFromSSO.add(occupyDto);
+                }
+            } else {
+                concurrentHashMap.put(key, occupyDto);
+            }
+        }
+        ArrayList<OccupyDto> occupyDtosFromSSO = new ArrayList<>(concurrentHashMap.values());
+        final Map<String, OccupyDto> occupiesFromSSOIdentityMap = occupyDtosFromSSO.stream().filter(occupyDto ->
                 StringUtils.isNotBlank(occupyDto.getIdentityCardType()) && StringUtils.isNotBlank(occupyDto.getIdentityCardNo()))
                 .collect(Collectors.toMap(occupyDto -> (occupyDto.getIdentityCardType() + ":" + occupyDto.getIdentityCardNo()), occupyDto -> occupyDto, (v1, v2) -> v2));
+        log.info("数据库中人员身份数据经过重复过滤后:{}", occupiesFromSSO.size());
 
         // 获取所有规则 字段，用于更新验证
         Map<String, OccupyDto> occupyDtoFromUpstream = new HashMap<>();
@@ -343,7 +390,16 @@ public class OccupyServiceImpl implements OccupyService {
 
             // 验证监控规则
             calculationService.monitorRules(domain, lastTaskLog, occupiesFromSSO.size(), result.get("delete"));
-
+            //数据库重复身份删除
+            if (!CollectionUtils.isEmpty(deleteFromSSO)) {
+                if (result.containsKey("delete")) {
+                    result.get("delete").addAll(deleteFromSSO);
+                } else {
+                    result.put("delete", new ArrayList<OccupyDto>() {{
+                        this.addAll(deleteFromSSO);
+                    }});
+                }
+            }
 
             try {
                 occupyDao.saveToSso(result, tenant.getId());

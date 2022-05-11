@@ -187,7 +187,7 @@ public class OccupyDaoImpl implements OccupyDao {
                 if (occupyMap.containsKey("delete")) {
                     List<OccupyDto> list = occupyMap.get("delete");
                     String sql = "UPDATE `user` SET  del_mark = 1, update_time = ?, data_source=? " +
-                            " WHERE id = ? and update_time < ?  ";
+                            " WHERE id = ? and update_time <= ?  ";
                     int[] ints = jdbcSSO.batchUpdate(sql, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
