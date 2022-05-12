@@ -144,9 +144,9 @@ public class OccupyServiceImpl implements OccupyService {
                 if (1 == occupyDto.getActive()) {
                     //对比map中身份是否有效
                     if (1 == occupyDtoFromMap.getActive()) {
-                        //均有效则对比是否有工号
-                        if (StringUtils.isNotBlank(occupyDto.getAccountNo())) {
-                            if (StringUtils.isNotBlank(occupyDtoFromMap.getAccountNo())) {
+                        // 均有效则对比是否有工号 usercode
+                        if (StringUtils.isNotBlank(occupyDto.getIdentityCardNo())) {
+                            if (StringUtils.isNotBlank(occupyDtoFromMap.getIdentityCardNo())) {
                                 //均有工号则对比修改时间
                                 if (occupyDto.getUpdateTime().isAfter(occupyDtoFromMap.getUpdateTime())) {
                                     //当前数据更新迟于map中

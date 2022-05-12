@@ -108,7 +108,7 @@ public class TaskConfig {
                                 log.info("{}sso正在进行同步,跳过本次同步任务", domainInfo.getId());
                                 TaskLog taskLog = new TaskLog();
                                 if(null!=domain){
-                                    taskLog.setRemark("手动同步");
+                                    taskLog.setSynWay(1);
                                 }
                                 taskLog.setId(UUID.randomUUID().toString());
                                 taskLog.setReason("sso开启了同步配置，请先关闭！");
@@ -122,7 +122,7 @@ public class TaskConfig {
                         final List<NodeRules> nodeRules = nodeRulesService.findNodeRules(arguments, domainInfo.getId());
                         TaskLog taskLog = new TaskLog();
                         if(null!=domain){
-                            taskLog.setRemark("手动同步");
+                            taskLog.setSynWay(1);
                         }
                         taskLog.setId(UUID.randomUUID().toString());
                         // 如果有编辑中的规则，则不进行数据同步 &&

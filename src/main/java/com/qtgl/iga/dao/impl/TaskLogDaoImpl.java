@@ -28,7 +28,7 @@ public class TaskLogDaoImpl implements TaskLogDao {
         try {
             List<TaskLog> taskLogs = new ArrayList<>();
             String sql = "select id,status,dept_no as deptNo,post_no as postNo,person_no as personNo" +
-                    ",occupy_no occupyNo ,create_time as createTime , update_time as updateTime ,reason,data,remark  from t_mgr_task_log where domain=?  order by create_time desc";
+                    ",occupy_no occupyNo ,create_time as createTime , update_time as updateTime ,reason,data,syn_way as synWay  from t_mgr_task_log where domain=?  order by create_time desc";
             List<Map<String, Object>> taskLogMap = jdbcIGA.queryForList(sql, domain);
             if (null != taskLogMap && taskLogMap.size() > 0) {
                 for (Map<String, Object> map : taskLogMap) {
@@ -51,23 +51,23 @@ public class TaskLogDaoImpl implements TaskLogDao {
     public Integer save(TaskLog taskLog, String domain, String type) {
         int update = 0;
         if ("skip".equals(type)) {
-            String sql = "INSERT INTO t_mgr_task_log (id, status,  create_time,update_time, reason,domain,data,remark)" +
+            String sql = "INSERT INTO t_mgr_task_log (id, status,  create_time,update_time, reason,domain,data,syn_way)" +
                     " VALUES (?, ?, now(),now(), ?,?,?,?);";
-            update = jdbcIGA.update(sql, taskLog.getId(), "skip", taskLog.getReason(), domain, taskLog.getData(),taskLog.getRemark());
-        }else if("skip-error".equals(type)){
-            String sql = "INSERT INTO t_mgr_task_log (id, status,  create_time,update_time, reason,domain,data,remark)" +
+            update = jdbcIGA.update(sql, taskLog.getId(), "skip", taskLog.getReason(), domain, taskLog.getData(), taskLog.getSynWay());
+        } else if ("skip-error".equals(type)) {
+            String sql = "INSERT INTO t_mgr_task_log (id, status,  create_time,update_time, reason,domain,data,syn_way)" +
                     " VALUES (?, ?, now(),now(), ?,?,?,?);";
-            update = jdbcIGA.update(sql, taskLog.getId(), "failed", taskLog.getReason(), domain, taskLog.getData(),taskLog.getRemark());
+            update = jdbcIGA.update(sql, taskLog.getId(), "failed", taskLog.getReason(), domain, taskLog.getData(), taskLog.getSynWay());
         } else if ("save".equals(type)) {
-            String sql = "INSERT INTO t_mgr_task_log (id, status,  create_time, domain,data,remark )" +
+            String sql = "INSERT INTO t_mgr_task_log (id, status,  create_time, domain,data,syn_way )" +
                     " VALUES ( ?, ?, now(), ? ,?,? );";
-            update = jdbcIGA.update(sql, taskLog.getId(), "doing", domain, taskLog.getData(),taskLog.getRemark());
+            update = jdbcIGA.update(sql, taskLog.getId(), "doing", domain, taskLog.getData(), taskLog.getSynWay());
         } else {
             String sql = "UPDATE t_mgr_task_log " +
-                    "SET reason=?,status = ?, dept_no = ?, post_no = ?, person_no = ?, occupy_no = ?, update_time = now(),data =?,remark=?  WHERE id = ?;";
+                    "SET reason=?,status = ?, dept_no = ?, post_no = ?, person_no = ?, occupy_no = ?, update_time = now(),data =?,syn_way=?  WHERE id = ?;";
 
             update = jdbcIGA.update(sql, taskLog.getReason(), taskLog.getStatus(), taskLog.getDeptNo(), taskLog.getPostNo(),
-                    taskLog.getPersonNo(), taskLog.getOccupyNo(), taskLog.getData(),taskLog.getRemark(), taskLog.getId());
+                    taskLog.getPersonNo(), taskLog.getOccupyNo(), taskLog.getData(), taskLog.getSynWay(), taskLog.getId());
         }
 
         return update;
@@ -81,7 +81,7 @@ public class TaskLogDaoImpl implements TaskLogDao {
         List<TaskLogEdge> taskLogEdges = new ArrayList<>();
         try {
             String sql = "select id,status,dept_no as deptNo,post_no as postNo,person_no as personNo" +
-                    ",occupy_no occupyNo ,create_time as createTime , update_time as updateTime,reason,data,remark from t_mgr_task_log where domain=? ";
+                    ",occupy_no occupyNo ,create_time as createTime , update_time as updateTime,reason,data,syn_way as synWay from t_mgr_task_log where domain=? ";
             //拼接sql
             StringBuffer stb = new StringBuffer(sql);
             //存入参数
@@ -91,7 +91,7 @@ public class TaskLogDaoImpl implements TaskLogDao {
 
             stb.append(" order by create_time desc ");
             //查询所有
-            if (!(arguments.get("offset").equals(-1)) && !(arguments.get("first").equals(-1))) {
+            if (null != arguments.get("offset") && null != arguments.get("first")) {
 
                 stb.append(" limit ?,? ");
                 param.add(null == arguments.get("offset") ? 0 : arguments.get("offset"));
@@ -127,7 +127,7 @@ public class TaskLogDaoImpl implements TaskLogDao {
         try {
             List<TaskLog> taskLogs = new ArrayList<>();
             String sql = "select id,status,dept_no as deptNo,post_no as postNo,person_no as personNo" +
-                    ",occupy_no occupyNo ,create_time as createTime , update_time as updateTime,reason,data,remark from t_mgr_task_log where domain=?  order by create_time desc limit 1 ";
+                    ",occupy_no occupyNo ,create_time as createTime , update_time as updateTime,reason,data,syn_way as synWay  from t_mgr_task_log where domain=?  order by create_time desc limit 1 ";
             List<Map<String, Object>> taskLogMap = jdbcIGA.queryForList(sql, domain);
             if (null != taskLogMap && taskLogMap.size() > 0) {
                 for (Map<String, Object> map : taskLogMap) {
@@ -159,7 +159,7 @@ public class TaskLogDaoImpl implements TaskLogDao {
 
     @Override
     public TaskLog last(String domain) {
-        String sql = "select id,reason,status,data,remark from t_mgr_task_log where domain=? order by create_time desc limit 1";
+        String sql = "select id,reason,status,data,syn_way as synWay from t_mgr_task_log where domain=? order by create_time desc limit 1";
         List<TaskLog> taskLogs = new ArrayList<>();
         try {
             List<Map<String, Object>> taskLogMap = jdbcIGA.queryForList(sql, domain);
@@ -179,7 +179,7 @@ public class TaskLogDaoImpl implements TaskLogDao {
     }
 
     @Override
-    public Map<String,String> downLog(String id, String domainId) {
+    public Map<String, String> downLog(String id, String domainId) {
         String sql = "select data from t_mgr_task_log where domain=? and id =? ";
         Map<String, Object> url = jdbcIGA.queryForMap(sql, domainId, id);
         String data = null == url.get("data") ? null : String.valueOf(url.get("data"));
@@ -188,10 +188,10 @@ public class TaskLogDaoImpl implements TaskLogDao {
             JSONObject object = JSONObject.parseObject(data);
             String uri = object.getJSONArray("entities").getJSONObject(0).getString("uri");
             String fileName = object.getJSONArray("entities").getJSONObject(0).getString("name");
-            map.put("uri",uri);
-            map.put("fileName",fileName);
+            map.put("uri", uri);
+            map.put("fileName", fileName);
             return map;
-        }else {
+        } else {
             return null;
         }
 

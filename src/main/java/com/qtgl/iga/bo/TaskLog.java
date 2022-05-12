@@ -56,7 +56,7 @@ public class TaskLog {
      */
     private String data;
     /**
-     * 备注
+     * 同步方式
      */
-    private String remark;
+    private Integer synWay;
 }

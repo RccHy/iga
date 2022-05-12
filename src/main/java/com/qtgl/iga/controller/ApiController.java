@@ -529,6 +529,13 @@ public class ApiController {
 
         try {
             DomainInfo domainInfo = CertifiedConnector.getDomain();
+
+            TaskLog lastTaskLog = taskLogService.last(domainInfo.getId());
+            if((null != lastTaskLog && lastTaskLog.getStatus().equals("failed"))){
+                jsonObject.put("code","FAILED");
+                jsonObject.put("message","最近一次同步任务状态异常,请处理后再进行同步");
+                return jsonObject;
+            }
             taskConfig.executeTask(domainInfo);
 
         } catch (RejectedExecutionException e) {
@@ -543,7 +550,7 @@ public class ApiController {
             return jsonObject;
         }
         jsonObject.put("code","SUCCESS");
-        jsonObject.put("message","同步成功");
+        jsonObject.put("message","触发成功");
         return jsonObject;
     }
 
