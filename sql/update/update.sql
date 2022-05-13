@@ -67,6 +67,19 @@ alter table t_mgr_dept_type add rule varchar(50) null comment '监控规则 暂�
 alter table t_mgr_dept_type add type_index int null comment '排序' after domain;
 alter table t_mgr_post_type add type_index int null comment '排序' after domain;
 
+--20220513
+ALTER TABLE `t_mgr_task_log`
+ADD COLUMN `syn_way` int(11) NULL COMMENT '同步方式 :1为手动同步' AFTER `data`;
+
+UPDATE t_mgr_upstream set active = true where active is null
+
+--如果执行该sql只有一条结果的话,执行下一条sql,如果有多条,请跟开发人员沟通
+SELECT	* FROM	`t_mgr_upstream_types` WHERE	syn_type = 'post' 	AND syn_way = 1;
+
+UPDATE t_mgr_upstream_types_field SET source_field = 'type' WHERE	source_field = 'depttype'
+	AND upstream_type_id = ( SELECT id FROM `t_mgr_upstream_types` WHERE syn_type = 'post' AND syn_way = 1 );
+
+
 
 
 

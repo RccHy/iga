@@ -91,7 +91,8 @@ create table t_mgr_task_log
     update_time timestamp   null,
     domain      varchar(50) null comment '租户',
     reason      text        null,
-    data        text        null
+    data        text        null,
+    syn_way     int(11)     null comment '同步方式 :1为手动同步'
 )
     comment '同步任务日志表';
 
