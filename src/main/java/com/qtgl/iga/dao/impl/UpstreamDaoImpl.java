@@ -110,7 +110,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
         Object[] objects = new Object[2];
         objects[0] = id;
         objects[1] = domain;
-        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select id,app_code as appCode,app_name as appName,data_code as dataCode,create_time as createTime,create_user as createUser,active,color,domain ,active_time as activeTime,update_time as updateTime from t_mgr_upstream  where id =? and domain=? and active=true ", objects);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select id,app_code as appCode,app_name as appName,data_code as dataCode,create_time as createTime,create_user as createUser,active,color,domain ,active_time as activeTime,update_time as updateTime from t_mgr_upstream  where id =? and domain=?  ", objects);
 
         ArrayList<Upstream> upstreamList = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
@@ -157,7 +157,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
     public Upstream findById(String id) {
         String sql = "select id,app_code as appCode,app_name as appName,data_code as dataCode," +
                 "create_time as createTime,create_user as createUser,active,color,domain ," +
-                "active_time as activeTime,update_time as updateTime from t_mgr_upstream where id= ? and active=true ";
+                "active_time as activeTime,update_time as updateTime from t_mgr_upstream where id= ? ";
 
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id);
         Upstream upstream = new Upstream();
