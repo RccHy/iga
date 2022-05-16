@@ -150,10 +150,13 @@ public class PostServiceImpl implements PostService {
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
 
         //同步到sso
-        //获取该租户下的当前类型的有效权威源
-        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsTrue(domain.getId());
-        Map<String, Upstream> upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
-        beans = dataProcessing(mainTreeMap, domain, "", beans, result, now, dynamicAttrs, valueMap, valueUpdate, valueInsert,upstreamMap);
+        //获取该租户下的当前类型的无效权威源
+        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
+        Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(upstreams)) {
+            upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
+        }
+        beans = dataProcessing(mainTreeMap, domain, "", beans, result, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap);
 //        if (null != beans) {
 //            beans.addAll(treeBeans);
 //        }
@@ -279,10 +282,13 @@ public class PostServiceImpl implements PostService {
         beans = new ArrayList<>(collect.values());
         //数据对比处理
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-        //获取该租户下的当前类型的有效权威源
-        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsTrue(domain.getId());
-        Map<String, Upstream> upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
-        beans = dataProcessing(mainTreeMap, domain, "", beans, result, now, dynamicAttrs, valueMap, valueUpdate, valueInsert,upstreamMap);
+        //获取该租户下的当前类型的无效权威源
+        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
+        Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(upstreams)) {
+            upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
+        }
+        beans = dataProcessing(mainTreeMap, domain, "", beans, result, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap);
 
 //        if (null != beans) {
 //            beans.addAll(treeBeans);
@@ -471,7 +477,7 @@ public class PostServiceImpl implements PostService {
                                 //是否处理扩展字段标识
                                 boolean dyFlag = true;
                                 //处理sso数据的active为null的情况
-                                if(null==ssoBean.getActive()||"".equals(ssoBean.getActive())){
+                                if (null == ssoBean.getActive() || "".equals(ssoBean.getActive())) {
                                     ssoBean.setActive(1);
                                 }
                                 if (!"BUILTIN".equalsIgnoreCase(pullBean.getDataSource())) {
@@ -542,7 +548,10 @@ public class PostServiceImpl implements PostService {
                                 }
                                 //标识为删除的数据
                                 if (delFlag) {
-                                    if (upstreamMap.containsKey(ssoBean.getSource())) {
+                                    if (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource())) {
+                                        result.put(ssoBean, "obsolete");
+                                        logger.info("岗位对比后应删除{},但检测到对应权威源已经无效,跳过该数据", ssoBean.getId());
+                                    } else {
                                         //将数据放入删除集合
                                         ssoBean.setDelMark(1);
                                         ssoCollect.remove(ssoBean.getCode());
@@ -550,9 +559,7 @@ public class PostServiceImpl implements PostService {
                                         //修改标记置为false
                                         updateFlag = false;
                                         logger.info("岗位对比后需要删除{}", ssoBean.getId());
-                                    } else {
-                                        result.put(ssoBean, "obsolete");
-                                        logger.info("岗位对比后应删除{},但检测到对应权威源以无效或被删除,跳过该数据", ssoBean.getId());
+
                                     }
                                 }
 //                                //恢复失效数据  未提供active手动处理
@@ -570,12 +577,12 @@ public class PostServiceImpl implements PostService {
                                     ssoBean.setUpdateTime(now);
                                     //失效
                                     if (invalidFlag) {
-                                        if (upstreamMap.containsKey(ssoBean.getSource())) {
+                                        if (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource())) {
+                                            result.put(ssoBean, "obsolete");
+                                            logger.info("岗位对比后应置为失效{},但检测到对应权威源已无效,跳过该数据", ssoBean.getId());
+                                        } else {
                                             result.put(ssoBean, "invalid");
                                             logger.info("岗位对比后需要置为失效{}", ssoBean.getId());
-                                        } else {
-                                            result.put(ssoBean, "obsolete");
-                                            logger.info("岗位对比后应置为失效{},但检测到对应权威源以无效或被删除,跳过该数据", ssoBean.getId());
                                         }
                                     } else {
                                         //将数据放入修改集合
@@ -702,14 +709,14 @@ public class PostServiceImpl implements PostService {
                             //如果为有效的再走失效并更新修改时间,
                             //本身就是无效的则不做处理
                             if (1 == ssoBean.getActive()) {
-                                if (upstreamMap.containsKey(ssoBean.getSource())) {
+                                if (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource())) {
+                                    result.put(ssoBean, "obsolete");
+                                    logger.info("岗位对比后应置为失效{},但检测到对应权威源已无效,跳过该数据", ssoBean.getId());
+                                } else {
                                     ssoBean.setActive(0);
                                     ssoBean.setUpdateTime(now);
                                     result.put(ssoBean, "invalid");
                                     logger.info("岗位对比后需要置为失效{}", ssoBean.getId());
-                                } else {
-                                    result.put(ssoBean, "obsolete");
-                                    logger.info("岗位对比后应置为失效{},但检测到对应权威源以无效或被删除,跳过该数据", ssoBean.getId());
                                 }
 
 

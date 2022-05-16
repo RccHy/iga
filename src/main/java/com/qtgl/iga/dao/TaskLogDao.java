@@ -27,4 +27,6 @@ public interface TaskLogDao {
     TaskLog last(String domain);
 
     Map<String,String> downLog(String id, String domainId);
+
+    List<TaskLog> findByDomainAndLimit(String domain);
 }

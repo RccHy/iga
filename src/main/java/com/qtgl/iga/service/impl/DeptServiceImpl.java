@@ -157,9 +157,12 @@ public class DeptServiceImpl implements DeptService {
         }
         //同步到sso
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-        //获取该租户下的当前类型的有效权威源
-        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsTrue(domain.getId());
-        Map<String, Upstream> upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
+        //获取该租户下的当前类型的无效权威源
+        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
+        Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(upstreams)) {
+            upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
+        }
         beans = dataProcessing(mainTreeMap, domain, beans, result, insert, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap);
 
 //        //如果插入的数据不为空则加入返回集
@@ -265,9 +268,12 @@ public class DeptServiceImpl implements DeptService {
         }
         //同步到sso
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-        //获取该租户下的当前类型的有效权威源
-        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsTrue(domain.getId());
-        Map<String, Upstream> upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
+        //获取该租户下的当前类型的无效权威源
+        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
+        Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(upstreams)) {
+            upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
+        }
         beans = dataProcessing(mainTreeMap, domain, beans, result, treeBeans, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap);
 
         //code重复性校验
@@ -526,7 +532,10 @@ public class DeptServiceImpl implements DeptService {
                                 }
                                 //标识为删除的数据
                                 if (delFlag) {
-                                    if (upstreamMap.containsKey(ssoBean.getSource())) {
+                                    if (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource())) {
+                                        result.put(ssoBean, "obsolete");
+                                        logger.info("部门对比后应删除{},但检测到对应权威源已无效,跳过该数据", ssoBean.getId());
+                                    } else {
                                         //将数据放入删除集合
                                         ssoBean.setDelMark(1);
                                         ssoCollect.remove(ssoBean.getCode());
@@ -534,9 +543,6 @@ public class DeptServiceImpl implements DeptService {
                                         //修改标记置为false
                                         updateFlag = false;
                                         logger.info("部门对比后需要删除{}", ssoBean.getId());
-                                    } else {
-                                        result.put(ssoBean, "obsolete");
-                                        logger.info("部门对比后应删除{},但检测到对应权威源以无效或被删除,跳过该数据", ssoBean.getId());
                                     }
 
                                 }
@@ -548,12 +554,12 @@ public class DeptServiceImpl implements DeptService {
                                     ssoBean.setUpdateTime(now);
                                     //失效
                                     if (invalidFlag) {
-                                        if (upstreamMap.containsKey(ssoBean.getSource())) {
+                                        if (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource())) {
+                                            result.put(ssoBean, "obsolete");
+                                            logger.info("部门对比后应置为失效{},但检测到对应权威源已无效,跳过该数据", ssoBean.getId());
+                                        } else {
                                             result.put(ssoBean, "invalid");
                                             logger.info("部门对比后需要置为失效{}", ssoBean.getId());
-                                        } else {
-                                            result.put(ssoBean, "obsolete");
-                                            logger.info("部门对比后应置为失效{},但检测到对应权威源以无效或被删除,跳过该数据", ssoBean.getId());
                                         }
                                     } else {
 //                                        //恢复失效数据  未提供active手动处理
@@ -688,14 +694,14 @@ public class DeptServiceImpl implements DeptService {
                         ssoCollect.remove(ssoBean.getCode());
                         //只处理有效的置为无效, 本身就无效的忽略
                         if (ssoBean.getActive() == 1) {
-                            if (upstreamMap.containsKey(ssoBean.getSource())) {
+                            if (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource())) {
+                                result.put(ssoBean, "obsolete");
+                                logger.info("部门对比后应置为失效{},但检测到对应权威源已无效,跳过该数据", ssoBean.getId());
+                            } else {
                                 ssoBean.setActive(0);
                                 ssoBean.setUpdateTime(now);
                                 result.put(ssoBean, "invalid");
                                 logger.info("部门对比后需要置为失效{}", ssoBean.getId());
-                            } else {
-                                result.put(ssoBean, "obsolete");
-                                logger.info("部门对比后应置为失效{},但检测到对应权威源以无效或被删除,跳过该数据", ssoBean.getId());
                             }
                         }
 

@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -67,5 +68,22 @@ public class TaskLogServiceImpl implements TaskLogService {
         Map<String, String> map = taskLogDao.downLog(id, domainId);
 
         return map;
+    }
+
+    @Override
+    public Boolean checkTaskStatus(String domain) {
+        List<TaskLog> taskLogs = taskLogDao.findByDomainAndLimit(domain);
+        if (!CollectionUtils.isEmpty(taskLogs)) {
+            if (taskLogs.size() != 3) {
+                return true;
+            } else {
+                if (taskLogs.get(0).getStatus().equals("failed") && taskLogs.get(1).getStatus().equals("failed") && taskLogs.get(2).getStatus().equals("failed")) {
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+        }
+        return true;
     }
 }

@@ -302,10 +302,10 @@ public class UpstreamDaoImpl implements UpstreamDao {
     }
 
     @Override
-    public ArrayList<Upstream> findByDomainAndActiveIsTrue(String domain) {
+    public ArrayList<Upstream> findByDomainAndActiveIsFalse(String domain) {
         String sql = "select id,app_code as appCode,app_name as appName,data_code as dataCode," +
                 "create_time as createTime,create_user as createUser,active,color,domain ," +
-                "active_time as activeTime,update_time as updateTime from t_mgr_upstream where 1 = 1 and domain=? and active=true";
+                "active_time as activeTime,update_time as updateTime from t_mgr_upstream where 1 = 1 and domain=? and active=false";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数

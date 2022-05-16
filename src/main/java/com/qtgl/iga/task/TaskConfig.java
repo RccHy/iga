@@ -94,10 +94,14 @@ public class TaskConfig {
             if (TaskThreadPool.executorServiceMap.containsKey(domainInfo.getDomainName())) {
                 ExecutorService executorService = TaskThreadPool.executorServiceMap.get(domainInfo.getDomainName());
                 executorService.execute(() -> {
+                    //获取最近三次同步状态,均为失败则不同步,其余情况正常同步
+                    Boolean aBoolean = taskLogService.checkTaskStatus(domainInfo.getId());
                     // 如果 获取最近一次同步任务状况
                     TaskLog lastTaskLog = taskLogService.last(domainInfo.getId());
                     //  最近一次同步任务 状态成功后才能继续同步
-                    if ((null == lastTaskLog) || (null != lastTaskLog.getId() && !lastTaskLog.getStatus().equals("failed"))) {
+                    //if ((null == lastTaskLog) || (null != lastTaskLog.getId() && !lastTaskLog.getStatus().equals("failed"))) {
+
+                    if (aBoolean) {
                         errorData.remove(domainInfo.getId());
                         Tenant tenant = tenantDao.findByDomainName(domainInfo.getDomainName());
                         //判断sso是否有定时任务

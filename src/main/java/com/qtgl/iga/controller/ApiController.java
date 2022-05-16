@@ -287,39 +287,39 @@ public class ApiController {
             long now = System.currentTimeMillis();
             //组织机构
             if (null != deptJson) {
-                dealUpstreamTypeAndNodes(deptJson,"dept",now,domainInfo,upstreamTypes,nodes,nodeRulesList,upstream);
+                dealUpstreamTypeAndNodes(deptJson, "dept", now, domainInfo, upstreamTypes, nodes, nodeRulesList, upstream);
             }
             if (null != postJson) {
-                dealUpstreamTypeAndNodes(postJson,"post",now,domainInfo,upstreamTypes,nodes,nodeRulesList,upstream);
+                dealUpstreamTypeAndNodes(postJson, "post", now, domainInfo, upstreamTypes, nodes, nodeRulesList, upstream);
             }
             if (null != personJson) {
-                dealUpstreamTypeAndNodes(personJson,"person",now,domainInfo,upstreamTypes,nodes,nodeRulesList,upstream);
+                dealUpstreamTypeAndNodes(personJson, "person", now, domainInfo, upstreamTypes, nodes, nodeRulesList, upstream);
             }
             if (null != occupyJson) {
-                dealUpstreamTypeAndNodes(occupyJson,"occupy",now,domainInfo,upstreamTypes,nodes,nodeRulesList,upstream);
+                dealUpstreamTypeAndNodes(occupyJson, "occupy", now, domainInfo, upstreamTypes, nodes, nodeRulesList, upstream);
             }
             //List<UpstreamType> upstreamTypes = getUpstreamTypes(upstream, upstreamTypesJson, domainInfo);
 
             //UpstreamDto upstreamDto = new UpstreamDto(upstream);
             //权威源类型
             //upstreamDto.setUpstreamTypes(upstreamTypes);
-            upstreamService.saveUpstreamAndTypesAndRoleBing(upstream, upstreamTypes, nodes,nodeRulesList,domainInfo);
+            upstreamService.saveUpstreamAndTypesAndRoleBing(upstream, upstreamTypes, nodes, nodeRulesList, domainInfo);
 
             result.put("code", 200);
-            result.put("status","success");
+            result.put("status", "success");
             result.put("message", "添加成功");
 
         } catch (CustomException e) {
             e.printStackTrace();
             result.put("code", 500);
-            result.put("status","failed");
+            result.put("status", "failed");
             result.put("message", e.getErrorMsg());
             logger.error(e + "");
             return result;
         } catch (Exception e) {
             e.printStackTrace();
             result.put("code", 500);
-            result.put("status","failed");
+            result.put("status", "failed");
             result.put("message", e.getMessage());
             logger.error(e.getMessage());
             return result;
@@ -328,8 +328,6 @@ public class ApiController {
     }
 
     private List<UpstreamType> getUpstreamTypes(Upstream upstream, JSONObject upstreamTypesJson, DomainInfo domainInfo) {
-
-
 
 
         //
@@ -392,7 +390,7 @@ public class ApiController {
         return upstream;
     }
 
-    private void dealUpstreamTypeAndNodes(JSONArray dataJson,String type,long now,DomainInfo domainInfo,List<UpstreamType> upstreamTypes,List<Node> nodes,List<NodeRules> nodeRulesList,Upstream upstream){
+    private void dealUpstreamTypeAndNodes(JSONArray dataJson, String type, long now, DomainInfo domainInfo, List<UpstreamType> upstreamTypes, List<Node> nodes, List<NodeRules> nodeRulesList, Upstream upstream) {
         for (int i = 0; i < dataJson.size(); i++) {
             JSONObject jsonObject = dataJson.getJSONObject(i);
             String description = jsonObject.getString("description");
@@ -425,7 +423,7 @@ public class ApiController {
                 String treeType = nodeJson.getString("treeType");
                 String code = nodeJson.getString("code");
                 //校验必填参数
-                if("dept".equals(type)){
+                if ("dept".equals(type)) {
                     if (StringUtils.isBlank(treeType)) {
                         throw new CustomException(ResultCode.FAILED, "INVALID_PARAMETER");
                     }
@@ -451,7 +449,7 @@ public class ApiController {
                 nodeRules.setServiceKey(upstreamTypeId);
                 nodeRules.setStatus(0);
                 nodeRulesList.add(nodeRules);
-            }else {
+            } else {
                 //人员身份和人员
                 //处理node
                 Node node = new Node();
@@ -524,33 +522,39 @@ public class ApiController {
 
     @RequestMapping("/invokeTask")
     @ResponseBody
-    public JSONObject invokeTask(){
+    public JSONObject invokeTask() {
         JSONObject jsonObject = new JSONObject();
 
         try {
             DomainInfo domainInfo = CertifiedConnector.getDomain();
 
-            TaskLog lastTaskLog = taskLogService.last(domainInfo.getId());
-            if((null != lastTaskLog && lastTaskLog.getStatus().equals("failed"))){
-                jsonObject.put("code","FAILED");
-                jsonObject.put("message","最近一次同步任务状态异常,请处理后再进行同步");
+            //TaskLog lastTaskLog = taskLogService.last(domainInfo.getId());
+            Boolean flag = taskLogService.checkTaskStatus(domainInfo.getId());
+            //if((null != lastTaskLog && lastTaskLog.getStatus().equals("failed"))){
+            //    jsonObject.put("code","FAILED");
+            //    jsonObject.put("message","最近一次同步任务状态异常,请处理后再进行同步");
+            //    return jsonObject;
+            //}
+            if (!flag) {
+                jsonObject.put("code", "FAILED");
+                jsonObject.put("message", "最近三次同步状态均为失败,请处理后再进行同步");
                 return jsonObject;
             }
             taskConfig.executeTask(domainInfo);
 
         } catch (RejectedExecutionException e) {
             e.printStackTrace();
-            jsonObject.put("code","FAILED");
-            jsonObject.put("message","当前线程正在进行数据同步,请稍后再试");
+            jsonObject.put("code", "FAILED");
+            jsonObject.put("message", "当前线程正在进行数据同步,请稍后再试");
             return jsonObject;
-        }catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
-            jsonObject.put("code","FAILED");
-            jsonObject.put("message",e.getMessage());
+            jsonObject.put("code", "FAILED");
+            jsonObject.put("message", e.getMessage());
             return jsonObject;
         }
-        jsonObject.put("code","SUCCESS");
-        jsonObject.put("message","触发成功");
+        jsonObject.put("code", "SUCCESS");
+        jsonObject.put("message", "触发成功");
         return jsonObject;
     }
 
