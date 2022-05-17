@@ -52,6 +52,10 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
                 //权威源查询
 
                 Upstream upstream = upstreamDao.findById(upstreamTypeVo.getUpstreamId());
+                if(null==upstream){
+                    logger.error("权威源规则无有效权威源数据");
+                    throw new CustomException(ResultCode.FAILED, "权威源规则无对应有效权威源");
+                }
                 upstreamTypeVo.setUpstream(upstream);
                 //source赋值
                 upstreamTypeVo.setSource(upstream.getAppName() + "(" + upstream.getAppCode() + ")");

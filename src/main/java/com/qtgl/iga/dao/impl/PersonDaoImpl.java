@@ -127,7 +127,7 @@ public class PersonDaoImpl implements PersonDao {
                     });
                 }
                 if (personMap.containsKey("update") || personMap.containsKey("invalid")) {
-                    String str = "UPDATE identity set  `name`= ?, account_no=?,  del_mark=?, update_time=?, tenant_id=?,  cellphone=?, email=?, data_source=?, tags=?,  `active`=?, active_time=? ,`source`= ?,data_source=?,valid_start_time=?,valid_end_time=? ," +
+                    String str = "UPDATE identity set  `name`= ?, account_no=?,  del_mark=?, update_time=?, tenant_id=?,  cellphone=?, email=?,  tags=?,  `active`=?, active_time=? ,`source`= ?,data_source=?,valid_start_time=?,valid_end_time=? ," +
                             " card_type =? ,card_no=? where id=? and update_time< ? ";
                     List<Person> list = new ArrayList<>();
                     List<Person> update = personMap.get("update");
@@ -149,18 +149,17 @@ public class PersonDaoImpl implements PersonDao {
                             preparedStatement.setObject(5, tenantId);
                             preparedStatement.setObject(6, list.get(i).getCellphone());
                             preparedStatement.setObject(7, list.get(i).getEmail());
-                            preparedStatement.setObject(8, list.get(i).getDataSource());
-                            preparedStatement.setObject(9, list.get(i).getTags());
-                            preparedStatement.setObject(10, list.get(i).getActive());
-                            preparedStatement.setObject(11, list.get(i).getActiveTime());
-                            preparedStatement.setObject(12, list.get(i).getSource());
-                            preparedStatement.setObject(13, "PULL");
-                            preparedStatement.setObject(14, list.get(i).getValidStartTime());
-                            preparedStatement.setObject(15, list.get(i).getValidEndTime());
-                            preparedStatement.setObject(16, list.get(i).getCardType());
-                            preparedStatement.setObject(17, list.get(i).getCardNo());
-                            preparedStatement.setObject(18, list.get(i).getId());
-                            preparedStatement.setObject(19, list.get(i).getUpdateTime());
+                            preparedStatement.setObject(8, list.get(i).getTags());
+                            preparedStatement.setObject(9, list.get(i).getActive());
+                            preparedStatement.setObject(10, list.get(i).getActiveTime());
+                            preparedStatement.setObject(11, list.get(i).getSource());
+                            preparedStatement.setObject(12, "PULL");
+                            preparedStatement.setObject(13, list.get(i).getValidStartTime());
+                            preparedStatement.setObject(14, list.get(i).getValidEndTime());
+                            preparedStatement.setObject(15, list.get(i).getCardType());
+                            preparedStatement.setObject(16, list.get(i).getCardNo());
+                            preparedStatement.setObject(17, list.get(i).getId());
+                            preparedStatement.setObject(18, list.get(i).getUpdateTime());
                         }
 
                         @Override
@@ -173,13 +172,14 @@ public class PersonDaoImpl implements PersonDao {
                 if (personMap.containsKey("delete")) {
                     final List<Person> list = personMap.get("delete");
 
-                    String str = "UPDATE identity set  del_mark= 1 , update_time=now()" +
+                    String str = "UPDATE identity set  del_mark= 1 , update_time=now() , data_source=? " +
                             " where id= ?  ";
 
                     int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, list.get(i).getId());
+                            preparedStatement.setObject(1, "PULL");
+                            preparedStatement.setObject(2, list.get(i).getId());
                         }
 
                         @Override

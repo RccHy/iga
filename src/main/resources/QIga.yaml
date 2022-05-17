@@ -1,0 +1,136 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: qiga.ketanyun.cn
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: ketanyun.cn
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: qiga
+    # singular name to be used as an alias on the CLI and for display
+    singular: qiga
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: QIga
+  # list of versions supported by this CustomResourceDefinition
+  versions:
+    - name: v1alpha1
+      # Each version can be enabled/disabled by Served flag.
+      served: true
+      # One and only one version must be marked as the storage version.
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - upstream
+              upstream:
+                type: object
+                required:
+                  - code
+                  - name
+                  - tenant
+                  - upstreamTypes
+                properties:
+                  # 权威源代码
+                  code:
+                    type: string
+                  # 权威源名称
+                  name:
+                    type: string
+                  # 数据前缀代码 HR
+                  dataCode:
+                    type: string
+                  # 代表色
+                  color:
+                    type: string
+                    # 租户
+                  tenant:
+                    type: string
+                  #权威源类型
+                  upstreamTypes:
+                    type: object
+                    required:
+                      - dept
+                      - post
+                      - person
+                      - occupy
+                    properties:
+                      #组织机构
+                      dept:
+                        type: array
+                        required:
+                            - treeType
+                            - clientId
+                            - description
+                        properties:
+                            #权威源类型描述
+                          description:
+                            type: string
+                            #应用clientId
+                          clientId:
+                            type: string
+                            #node规则
+                          node:
+                            type: object
+                            required:
+                              - treeType
+                            properties:
+                              #需要授权的组织机构类型(01:单位类型组织机构,02:党务类型组织机构,03:学术类型组织机构,04:议事协调类型组织机构)
+                              treeType:
+                                type: string
+                                enum: 01
+                                #需要授权的code节点代码(node为空默认为根节点),授权范围为该节点及其所有子节点
+                              code:
+                                type: string
+                      #岗位
+                      post:
+                        type: array
+                        required:
+                          - clientId
+                          - description
+                        properties:
+                          #权威源类型描述
+                          description:
+                            type: string
+                          #应用clientId
+                          clientId:
+                            type: string
+                          node:
+                            type: object
+                            properties:
+                              #需要授权的code节点代码(node为空默认为根节点),授权范围为该节点及其所有子节点
+                              code:
+                                type: string
+                      #人员
+                      person:
+                        type: array
+                        required:
+                          - clientId
+                          - description
+                        properties:
+                          #权威源类型描述
+                          description:
+                            type: string
+                          #应用clientId
+                          clientId:
+                            type: string
+                      #人员身份
+                      occupy:
+                        type: array
+                          required:
+                            - clientId
+                            - description
+                          properties:
+                            #权威源类型描述
+                            description:
+                              type: string
+                            #应用clientId
+                            clientId:
+                              type: string

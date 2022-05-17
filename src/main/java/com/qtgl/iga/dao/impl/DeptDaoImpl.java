@@ -298,7 +298,7 @@ public class DeptDaoImpl implements DeptDao {
                         }
                     });
                 }
-                String deleteStr = "update dept set   active = ?,active_time= ?,del_mark=? ,update_time =?  " +
+                String deleteStr = "update dept set   active = ?,active_time= ?,del_mark=? ,update_time =?, data_source=?  " +
                         "where dept_code =? and tenant_id = ? and update_time<= ? ";
                 ArrayList<TreeBean> treeBeans = new ArrayList<>();
                 if (null != deleteList && deleteList.size() > 0) {
@@ -315,9 +315,10 @@ public class DeptDaoImpl implements DeptDao {
                             preparedStatement.setObject(2, LocalDateTime.now());
                             preparedStatement.setObject(3, treeBeans.get(i).getDelMark());
                             preparedStatement.setObject(4, treeBeans.get(i).getUpdateTime());
-                            preparedStatement.setObject(5, treeBeans.get(i).getCode());
-                            preparedStatement.setObject(6, tenantId);
-                            preparedStatement.setObject(7, treeBeans.get(i).getUpdateTime());
+                            preparedStatement.setObject(5, "PULL");
+                            preparedStatement.setObject(6, treeBeans.get(i).getCode());
+                            preparedStatement.setObject(7, tenantId);
+                            preparedStatement.setObject(8, treeBeans.get(i).getUpdateTime());
                         }
 
                         @Override

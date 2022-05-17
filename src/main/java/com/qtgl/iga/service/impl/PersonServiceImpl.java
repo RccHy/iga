@@ -123,6 +123,8 @@ public class PersonServiceImpl implements PersonService {
         List<DynamicValue> dynamicValues = new ArrayList<>();
 
         List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
+        log.info("获取到当前租户{}的映射字段集为{}", tenant.getId(), dynamicAttrs);
+
         //扩展字段修改容器
         List<DynamicValue> valueUpdate = new ArrayList<>();
         //扩展字段新增容器
@@ -169,7 +171,15 @@ public class PersonServiceImpl implements PersonService {
         userRules.forEach(rules -> {
             // 通过规则获取数据
             UpstreamType upstreamType = upstreamTypeDao.findById(rules.getUpstreamTypesId());
+            if (null == upstreamType) {
+                log.error("人员对应拉取节点规则'{}'无有效权威源类型数据", rules);
+                throw new CustomException(ResultCode.NO_UPSTREAM_TYPE, null, null, "人员", rules.getId());
+            }
             ArrayList<Upstream> upstreams = upstreamDao.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
+            if (CollectionUtils.isEmpty(upstreams)) {
+                log.error("人员对应拉取节点规则'{}'无有效权威源数据", rules.getId());
+                throw new CustomException(ResultCode.NO_UPSTREAM, null, null, "人员", rules.getId());
+            }
             JSONArray dataByBus = null;
             try {
                 dataByBus = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
@@ -264,11 +274,10 @@ public class PersonServiceImpl implements PersonService {
                             if (personObj.containsKey(dynamicCode)) {
                                 if (StringUtils.isNotBlank(personObj.getString(dynamicCode))) {
                                     map.put(dynamicCode, personObj.getString(dynamicCode));
-                                } else {
-                                    map.put(dynamicCode, null);
                                 }
                             }
                         }
+                        log.info("处理{}的上游扩展字段值为{}", personObj, map);
                         personUpstream.setDynamic(map);
                     }
                     personUpstreamList.add(personUpstream);
@@ -461,14 +470,20 @@ public class PersonServiceImpl implements PersonService {
                 attrMap = dynamicAttrs.stream().collect(Collectors.toMap(DynamicAttr::getId, DynamicAttr::getCode));
                 attrReverseMap = dynamicAttrs.stream().collect(Collectors.toMap(DynamicAttr::getCode, DynamicAttr::getId));
             }
-
+            //获取该租户下的当前类型的无效有效权威源
+            ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
+            Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
+            if (!CollectionUtils.isEmpty(upstreams)) {
+                upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
+            }
             Map<String, String> finalAttrMap = attrMap;
+            Map<String, Upstream> finalUpstreamMap = upstreamMap;
             personFromSSOMap.forEach((key, personFromSSO) -> {
-                calculate(personFromUpstream, personRepeatByAccount, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdate, valueInsert);
+                calculate(personFromUpstream, personRepeatByAccount, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdate, valueInsert, finalUpstreamMap);
             });
 
             personFromSSOMapByAccount.forEach((key, personFromSSO) -> {
-                calculate(personFromUpstreamByAccount, personRepeatByAccount, now, result, key, personFromSSO, finalAttrMap, finalValueMap, valueUpdate, valueInsert);
+                calculate(personFromUpstreamByAccount, personRepeatByAccount, now, result, key, personFromSSO, finalAttrMap, finalValueMap, valueUpdate, valueInsert, finalUpstreamMap);
             });
 
             personFromUpstreamByAccount.forEach((key, val) -> {
@@ -503,6 +518,8 @@ public class PersonServiceImpl implements PersonService {
                         }
                     }
                 }
+                log.info("人员处理结束:扩展字段处理需要修改{},需要新增{}", CollectionUtils.isEmpty(valueUpdate) ? 0 : valueUpdate.size(), CollectionUtils.isEmpty(valueInsert) ? 0 : valueInsert.size());
+                log.debug("人员处理结束:扩展字段处理需要修改{},需要新增{}", valueUpdate, valueInsert);
                 personDao.saveToSso(result, tenant.getId(), valueUpdate, valueInsert);
             } catch (CustomException e) {
                 TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(personFromUpstream) + JSONObject.toJSONString(personFromUpstreamByAccount));
@@ -596,10 +613,14 @@ public class PersonServiceImpl implements PersonService {
     //    }
     //}
 
-    private void calculate(Map<String, Person> personFromUpstream, Map<String, Person> personRepeatByAccount, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO, Map<String, String> attrMap, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert) {
+    private void calculate(Map<String, Person> personFromUpstream, Map<String, Person> personRepeatByAccount, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO, Map<String, String> attrMap, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamMap) {
         // 对比出需要修改的person
         if (personFromUpstream.containsKey(key) &&
                 personFromUpstream.get(key).getCreateTime().isAfter(personFromSSO.getUpdateTime())) {
+            //处理sso数据的active为null的情况
+            if (null == personFromSSO.getActive() || "".equals(personFromSSO.getActive())) {
+                personFromSSO.setActive(1);
+            }
             //修改标识
             boolean updateFlag = false;
             //del字段标识
@@ -682,18 +703,22 @@ public class PersonServiceImpl implements PersonService {
 
 
             if (delFlag) {
-                personFromSSO.setDelMark(1);
-                personFromSSO.setUpdateTime(newPerson.getUpdateTime());
-                personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                if (result.containsKey("delete")) {
-                    result.get("delete").add(personFromSSO);
+                if (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource())) {
+                    personFromSSO.setDelMark(1);
+                    personFromSSO.setUpdateTime(newPerson.getUpdateTime());
+                    personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                    personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                    if (result.containsKey("delete")) {
+                        result.get("delete").add(personFromSSO);
+                    } else {
+                        result.put("delete", new ArrayList<Person>() {{
+                            this.add(personFromSSO);
+                        }});
+                    }
+                    log.info("人员信息删除{}", personFromSSO.getId());
                 } else {
-                    result.put("delete", new ArrayList<Person>() {{
-                        this.add(personFromSSO);
-                    }});
+                    log.info("人员对比后应删除{},但检测到对应权威源已无效,跳过该数据", personFromSSO.getId());
                 }
-                log.info("人员信息删除{}", personFromSSO.getId());
             }
             if (updateFlag && personFromSSO.getDelMark() != 1) {
                 personFromSSO.setSource(newPerson.getSource());
@@ -710,16 +735,21 @@ public class PersonServiceImpl implements PersonService {
                 }
                 //失效
                 if (invalidFlag) {
-                    personFromSSO.setActive(0);
-                    personFromSSO.setActiveTime(newPerson.getUpdateTime());
-                    personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                    personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                    if (result.containsKey("invalid")) {
-                        result.get("invalid").add(personFromSSO);
+                    if (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource())) {
+                        personFromSSO.setActive(0);
+                        personFromSSO.setActiveTime(newPerson.getUpdateTime());
+                        personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                        personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                        if (result.containsKey("invalid")) {
+                            result.get("invalid").add(personFromSSO);
+                        } else {
+                            result.put("invalid", new ArrayList<Person>() {{
+                                this.add(personFromSSO);
+                            }});
+                        }
+                        log.info("人员置为失效{}", personFromSSO.getId());
                     } else {
-                        result.put("invalid", new ArrayList<Person>() {{
-                            this.add(personFromSSO);
-                        }});
+                        log.info("人员对比后应置为失效{},但检测到对应权威源已无效,跳过该数据", personFromSSO.getId());
                     }
                 } else {
                     if (!personFromSSO.getActive().equals(newPerson.getActive())) {
@@ -814,20 +844,25 @@ public class PersonServiceImpl implements PersonService {
                 && 1 != personFromSSO.getDelMark()
                 && (null == personFromSSO.getActive() || personFromSSO.getActive() == 1)
                 && "PULL".equalsIgnoreCase(personFromSSO.getDataSource())) {
-            personFromSSO.setActive(0);
-            personFromSSO.setActiveTime(now);
-            personFromSSO.setUpdateTime(now);
-            personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-            personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-            if (result.containsKey("invalid")) {
-                result.get("invalid").add(personFromSSO);
-            } else {
-                result.put("invalid", new ArrayList<Person>() {{
-                    this.add(personFromSSO);
-                }});
-            }
 
-            log.info("人员对比后上游丢失{}", personFromSSO);
+            if (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource())) {
+                personFromSSO.setActive(0);
+                personFromSSO.setActiveTime(now);
+                personFromSSO.setUpdateTime(now);
+                personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                if (result.containsKey("invalid")) {
+                    result.get("invalid").add(personFromSSO);
+                } else {
+                    result.put("invalid", new ArrayList<Person>() {{
+                        this.add(personFromSSO);
+                    }});
+                }
+
+                log.info("人员对比后上游丢失{}", personFromSSO.getId());
+            } else {
+                log.info("人员对比后应置为失效{},但检测到对应权威源已无效,跳过该数据", personFromSSO.getId());
+            }
         }
     }
 
@@ -924,10 +959,14 @@ public class PersonServiceImpl implements PersonService {
         }
     }
 
-    private void calculate(Map<String, Person> personFromUpstream, Map<String, Person> personRepeatByAccount, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO, DomainInfo domainInfo, Map<String, String> attrMap, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert) {
+    private void calculate(Map<String, Person> personFromUpstream, Map<String, Person> personRepeatByAccount, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO, DomainInfo domainInfo, Map<String, String> attrMap, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamMap) {
         // 对比出需要修改的person
         if (personFromUpstream.containsKey(key) &&
                 personFromUpstream.get(key).getCreateTime().isAfter(personFromSSO.getUpdateTime())) {
+            //处理sso数据的active为null的情况
+            if (null == personFromSSO.getActive() || "".equals(personFromSSO.getActive())) {
+                personFromSSO.setActive(1);
+            }
             ////修改是否合法标识
             //boolean licitFlag = true;
             //修改标识
@@ -1030,18 +1069,22 @@ public class PersonServiceImpl implements PersonService {
 
             //if (licitFlag) {
             if (delFlag) {
-                personFromSSO.setDelMark(1);
-                personFromSSO.setUpdateTime(newPerson.getUpdateTime());
-                personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                if (result.containsKey("delete")) {
-                    result.get("delete").add(personFromSSO);
+                if (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource())) {
+                    personFromSSO.setDelMark(1);
+                    personFromSSO.setUpdateTime(newPerson.getUpdateTime());
+                    personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                    personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                    if (result.containsKey("delete")) {
+                        result.get("delete").add(personFromSSO);
+                    } else {
+                        result.put("delete", new ArrayList<Person>() {{
+                            this.add(personFromSSO);
+                        }});
+                    }
+                    log.info("人员信息删除{}", personFromSSO.getId());
                 } else {
-                    result.put("delete", new ArrayList<Person>() {{
-                        this.add(personFromSSO);
-                    }});
+                    log.info("人员对比后应删除{},但检测到对应权威源已无效,跳过该数据", personFromSSO.getId());
                 }
-                log.info("人员信息删除{}", personFromSSO.getId());
             }
             if (updateFlag && personFromSSO.getDelMark() != 1) {
                 personFromSSO.setSource(newPerson.getSource());
@@ -1058,16 +1101,21 @@ public class PersonServiceImpl implements PersonService {
                 }
                 //失效
                 if (invalidFlag) {
-                    personFromSSO.setActive(0);
-                    personFromSSO.setActiveTime(newPerson.getUpdateTime());
-                    personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                    personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                    if (result.containsKey("invalid")) {
-                        result.get("invalid").add(personFromSSO);
+                    if (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource())) {
+                        personFromSSO.setActive(0);
+                        personFromSSO.setActiveTime(newPerson.getUpdateTime());
+                        personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                        personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                        if (result.containsKey("invalid")) {
+                            result.get("invalid").add(personFromSSO);
+                        } else {
+                            result.put("invalid", new ArrayList<Person>() {{
+                                this.add(personFromSSO);
+                            }});
+                        }
+                        log.info("人员对比后置为失效{}", personFromSSO.getId());
                     } else {
-                        result.put("invalid", new ArrayList<Person>() {{
-                            this.add(personFromSSO);
-                        }});
+                        log.info("人员对比后应置为失效{},但检测到对应权威源已无效,跳过该数据", personFromSSO.getId());
                     }
                 } else {
                     if (!personFromSSO.getActive().equals(newPerson.getActive())) {
@@ -1166,20 +1214,24 @@ public class PersonServiceImpl implements PersonService {
                 && 1 != personFromSSO.getDelMark()
                 && (null == personFromSSO.getActive() || personFromSSO.getActive() == 1)
                 && "PULL".equalsIgnoreCase(personFromSSO.getDataSource())) {
-            personFromSSO.setActive(0);
-            personFromSSO.setActiveTime(now);
-            personFromSSO.setUpdateTime(now);
-            personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-            personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-            if (result.containsKey("invalid")) {
-                result.get("invalid").add(personFromSSO);
-            } else {
-                result.put("invalid", new ArrayList<Person>() {{
-                    this.add(personFromSSO);
-                }});
-            }
+            if (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource())) {
+                personFromSSO.setActive(0);
+                personFromSSO.setActiveTime(now);
+                personFromSSO.setUpdateTime(now);
+                personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                if (result.containsKey("invalid")) {
+                    result.get("invalid").add(personFromSSO);
+                } else {
+                    result.put("invalid", new ArrayList<Person>() {{
+                        this.add(personFromSSO);
+                    }});
+                }
 
-            log.info("人员对比后上游丢失{}", personFromSSO);
+                log.info("人员对比后上游丢失{}", personFromSSO);
+            } else {
+                log.info("人员对比后应置为失效{},但检测到对应权威源已无效,跳过该数据", personFromSSO.getId());
+            }
         }
     }
 
@@ -1234,6 +1286,7 @@ public class PersonServiceImpl implements PersonService {
                 if (collect.containsKey(str.getKey())) {
                     DynamicValue dynamicValue = collect.get(str.getKey());
                     if (null != o && !o.equals(dynamicValue.getValue())) {
+                        log.info("主体{}扩展字段不同{}->{},修改扩展字段", ssoBean.getName() + ":" + ssoBean.getAccountNo(), dynamicValue.getValue(), o);
                         dynamicValue.setValue(o);
                         valueUpdate.add(dynamicValue);
                         valueFlag = true;
@@ -1246,6 +1299,7 @@ public class PersonServiceImpl implements PersonService {
                     dynamicValue.setEntityId(ssoBean.getId());
                     dynamicValue.setAttrId(str.getKey());
                     valueFlag = true;
+                    log.info("主体{}扩展字段新增{}", ssoBean.getName() + ":" + ssoBean.getAccountNo(), o);
                     valueInsert.add(dynamicValue);
                 }
             }
@@ -1259,6 +1313,7 @@ public class PersonServiceImpl implements PersonService {
                 dynamicValue.setValue(o);
                 dynamicValue.setEntityId(ssoBean.getId());
                 dynamicValue.setAttrId(str.getKey());
+                log.info("主体{}扩展字段新增{}", ssoBean.getName() + ":" + ssoBean.getAccountNo(), o);
                 valueInsert.add(dynamicValue);
 
             }

@@ -35,6 +35,8 @@ type TaskLog{
     reason:String
     # 数据
     data:String
+    # 同步方式 1为手动同步
+    synWay:Int
 
 
 }

@@ -164,7 +164,7 @@ public class OccupyDaoImpl implements OccupyDao {
                             preparedStatement.setObject(7, list.get(i).getUpdateTime());
                             preparedStatement.setObject(8, list.get(i).getDeptCode());
                             preparedStatement.setObject(9, list.get(i).getSource());
-                            preparedStatement.setObject(10, list.get(i).getDataSource());
+                            preparedStatement.setObject(10, "PULL");
                             preparedStatement.setObject(11, list.get(i).getIndex());
                             preparedStatement.setObject(12, list.get(i).getActive());
                             preparedStatement.setObject(13, list.get(i).getActiveTime());
@@ -186,14 +186,15 @@ public class OccupyDaoImpl implements OccupyDao {
 
                 if (occupyMap.containsKey("delete")) {
                     List<OccupyDto> list = occupyMap.get("delete");
-                    String sql = "UPDATE `user` SET  del_mark = 1, update_time = ?" +
-                            " WHERE id = ? and update_time < ?  ";
+                    String sql = "UPDATE `user` SET  del_mark = 1, update_time = ?, data_source=? " +
+                            " WHERE id = ? and update_time <= ?  ";
                     int[] ints = jdbcSSO.batchUpdate(sql, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
                             preparedStatement.setObject(1, list.get(i).getUpdateTime());
-                            preparedStatement.setObject(2, list.get(i).getOccupyId());
-                            preparedStatement.setObject(3, list.get(i).getUpdateTime());
+                            preparedStatement.setObject(2, "PULL");
+                            preparedStatement.setObject(3, list.get(i).getOccupyId());
+                            preparedStatement.setObject(4, list.get(i).getUpdateTime());
                         }
 
                         @Override

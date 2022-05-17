@@ -1,9 +1,7 @@
 package com.qtgl.iga.controller;
 
 import com.qtgl.iga.bean.OccupyDto;
-import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.DomainInfo;
-import com.qtgl.iga.bo.Person;
 import com.qtgl.iga.bo.TaskLog;
 import com.qtgl.iga.config.TaskThreadPool;
 import com.qtgl.iga.service.*;
@@ -14,10 +12,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.stream.Collectors;
 
 /**
  * @author 1
@@ -44,7 +44,6 @@ public class HelloController {
     DomainInfoService domainInfoService;
     @Autowired
     TaskLogService taskLogService;
-
 
     @RequestMapping("/xc")
     @ResponseBody
