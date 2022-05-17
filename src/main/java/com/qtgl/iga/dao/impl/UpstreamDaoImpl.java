@@ -81,7 +81,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
             preparedStatement.setObject(4, upstream.getDataCode());
             preparedStatement.setObject(5, date);
             preparedStatement.setObject(6, upstream.getCreateUser());
-            preparedStatement.setObject(7, null == upstream.getActive() ? true : false);
+            preparedStatement.setObject(7, null == upstream.getActive() ? true : upstream.getActive());
             preparedStatement.setObject(8, upstream.getColor());
             preparedStatement.setObject(9, domain);
             preparedStatement.setObject(10, date);
@@ -143,7 +143,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
             preparedStatement.setObject(2, upstream.getAppName());
             preparedStatement.setObject(3, upstream.getDataCode());
             preparedStatement.setObject(4, upstream.getCreateUser());
-            preparedStatement.setObject(5, null == upstream.getActive() ? true : false);
+            preparedStatement.setObject(5, null == upstream.getActive() ? true : upstream.getActive());
             preparedStatement.setObject(6, upstream.getColor());
             preparedStatement.setObject(7, upstream.getDomain());
             preparedStatement.setObject(8, date);
@@ -189,7 +189,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
                     preparedStatement.setObject(4, upstream.getDataCode());
                     preparedStatement.setObject(5, date);
                     preparedStatement.setObject(6, upstream.getCreateUser());
-                    preparedStatement.setObject(7, null == upstream.getActive() ? true : false);
+                    preparedStatement.setObject(7, null == upstream.getActive() ? true : upstream.getActive());
                     preparedStatement.setObject(8, upstream.getColor());
                     preparedStatement.setObject(9, domainInfo.getId());
                     preparedStatement.setObject(10, date);
