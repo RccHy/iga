@@ -526,7 +526,7 @@ public class NodeRulesCalculationServiceImpl {
                 String code = node.getNodeCode();
                 logger.info("开始'{}'节点规则运算", code);
                 //获取节点的[拉取] 规则，来获取部门树
-                List<NodeRules> nodeRules = rulesDao.getByNodeAndType(node.getId(), 1, true, status);
+                List<NodeRules> nodeRules = rulesDao.getByNodeAndType(node.getId(), 1, null, status);
 
                 //将主树进行 分组
                 Map<String, TreeBean> mainTreeMap = mainTree.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
@@ -566,7 +566,7 @@ public class NodeRulesCalculationServiceImpl {
                         //获取来源
                         Upstream upstream = upstreamDao.findById(upstreamType.getUpstreamId());
                         if (null == upstream) {
-                            logger.error("对应拉取节点规则'{}'无有效权威源数据", code);
+                            logger.error("对应拉取节点规则'{}'无权威源数据", code);
                             throw new CustomException(ResultCode.NO_UPSTREAM, null, null, "", code);
                         }
                         //获得部门树
@@ -657,6 +657,8 @@ public class NodeRulesCalculationServiceImpl {
                                 logger.info("处理{}的上游扩展字段值为{}", dept, map);
                                 dept.put("dynamic", map);
                             }
+                            //逻辑处理字段,规则是否启用
+                            dept.put("ruleStatus",nodeRule.getActive());
                             upstreamDept.add(dept.toJavaObject(TreeBean.class));
                         }
 

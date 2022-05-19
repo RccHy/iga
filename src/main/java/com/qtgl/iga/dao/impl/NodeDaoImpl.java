@@ -313,6 +313,16 @@ public class NodeDaoImpl implements NodeDao {
         return null;
     }
 
+    @Override
+    public Integer deleteNodeById(String id, String domain) {
+        Object[] params = new Object[2];
+        params[0] = id;
+        params[1] = domain;
+        String sql = "delete from t_mgr_node where  id = ? and domain = ? ";
+
+        return jdbcIGA.update(sql, params);
+    }
+
     private List<Node> getNodes(ArrayList<Node> nodes, List<Map<String, Object>> mapList) {
         for (Map<String, Object> map : mapList) {
             try {

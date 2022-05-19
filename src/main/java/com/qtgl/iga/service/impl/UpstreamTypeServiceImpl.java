@@ -3,6 +3,7 @@ package com.qtgl.iga.service.impl;
 
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
+import com.qtgl.iga.service.NodeRulesService;
 import com.qtgl.iga.service.UpstreamTypeService;
 import com.qtgl.iga.utils.DataBusUtil;
 import com.qtgl.iga.utils.enumerate.ResultCode;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -38,6 +40,8 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
     DeptTypeDao deptTypeDao;
     @Autowired
     DeptTreeTypeDao deptTreeTypeDao;
+    @Resource
+    NodeRulesService nodeRulesService;
 
     public static Logger logger = LoggerFactory.getLogger(UpstreamTypeServiceImpl.class);
 
@@ -52,7 +56,7 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
                 //权威源查询
 
                 Upstream upstream = upstreamDao.findById(upstreamTypeVo.getUpstreamId());
-                if(null==upstream){
+                if (null == upstream) {
                     logger.error("权威源规则无有效权威源数据");
                     throw new CustomException(ResultCode.FAILED, "权威源规则无对应有效权威源");
                 }
@@ -90,7 +94,9 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
         }
         List<NodeRules> oldRules = nodeRulesDao.findNodeRulesByUpStreamTypeId((String) arguments.get("id"), 2);
         if (null != oldRules && oldRules.size() > 0) {
-            throw new CustomException(ResultCode.FAILED, "删除权威源类型失败,有绑定的历史node规则");
+            //删除历史版本
+            nodeRulesService.deleteBatchRules(oldRules, domain);
+            //throw new CustomException(ResultCode.FAILED, "删除权威源类型失败,有绑定的历史node规则");
         }
         return upstreamTypeDao.deleteUpstreamType((String) arguments.get("id"), domain);
     }

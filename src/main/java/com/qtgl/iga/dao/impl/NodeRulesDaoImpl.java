@@ -30,11 +30,15 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
         List<NodeRules> nodeRules = null;
         List<Object> para = new ArrayList<>();
         para.add(nodeId);
-        para.add(active);
+        //para.add(active);
         StringBuffer sql = new StringBuffer("select id, node_id as nodeId,type,active,inherit_id as inheritId," +
                 " active_time as activeTime, create_time as createTime,  update_time as updateTime," +
                 "service_key as serviceKey,upstream_types_id as upstreamTypesId,sort,status " +
-                " from t_mgr_node_rules where node_id=? and active=?  ");
+                " from t_mgr_node_rules where node_id=?  ");
+        if (null != active) {
+            sql.append(" and active=? ");
+            para.add(active);
+        }
         if (null != type) {
             sql.append(" and type=? ");
             para.add(type);

@@ -100,5 +100,9 @@ public class Person {
     private String password;
 
     private Map<String,String> dynamic;
+    /**
+     * 逻辑处理字段 规则是否启用
+     */
+    private Boolean ruleStatus;
 
 }
