@@ -140,4 +140,48 @@ public class DeptDataFetcher {
 
         };
     }
+
+    public DataFetcher preViewPersons() {
+        return dataFetchingEvn -> {
+            //1。更具token信息验证是否合法，并判断其租户
+            DomainInfo domain = CertifiedConnector.getDomain();
+            // 获取传入参数
+            Map<String, Object> arguments = dataFetchingEvn.getArguments();
+
+
+            try {
+                PersonConnection persons = personService.preViewPersons(arguments, domain);
+                return persons;
+            } catch (CustomException e) {
+                e.printStackTrace();
+                logger.error(domain.getDomainName() + e.getMessage());
+
+                return GraphqlExceptionUtils.getObject("查询人员失败", e);
+
+            }
+
+
+        };
+    }
+
+    public DataFetcher preViewOccupies() {
+        return dataFetchingEvn -> {
+            //1。更具token信息验证是否合法，并判断其租户
+            DomainInfo domain = CertifiedConnector.getDomain();
+            // 获取传入参数
+            Map<String, Object> arguments = dataFetchingEvn.getArguments();
+
+            try {
+                OccupyConnection occupies = occupyService.preViewOccupies(arguments, domain);
+                return occupies;
+            } catch (CustomException e) {
+                e.printStackTrace();
+                logger.error(domain.getDomainName() + e.getMessage());
+
+                return GraphqlExceptionUtils.getObject("查询人员身份失败", e);
+            }
+
+
+        };
+    }
 }

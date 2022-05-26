@@ -1,4 +1,4 @@
-### 2022XXX
+### 20220520
 
 **数据库**
 - 执行iga/update/update.sql下 20220513的sql
@@ -7,7 +7,7 @@
 - iga CRD相关接口开发
 - 手动触发定时任务功能
 - 权威源失效则本批数据不做删除失效处理
-**bug fix**
+  **bug fix**
 - 校验规则 查询有效条件
 - 同步扩展字段bug fix @欧云海
 - 人员身份数据库重复身份处理,重复的身份以包含工号及修改时间进行冗余数据删除处理
@@ -16,11 +16,12 @@
 
 **image：**
 
-- docker.qtgl.com.cn/product/iga:2022XXX
+- docker.qtgl.com.cn/product/iga:20220520
 
 **依赖其他项目：**
 
-- docker.qtgl.com.cn/product/console:2022XXX
+- docker.qtgl.com.cn/product/console:20220520
+
 
 
 

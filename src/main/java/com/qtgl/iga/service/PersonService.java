@@ -14,4 +14,6 @@ public interface PersonService {
     Map<String, List<Person>> buildPerson(DomainInfo domain, TaskLog lastTaskLog) throws Exception;
 
     PersonConnection findPersons(Map<String, Object> arguments, DomainInfo domain) throws Exception;
+
+    PersonConnection preViewPersons(Map<String, Object> arguments, DomainInfo domain) throws Exception;
 }

@@ -5,10 +5,14 @@ extend type Query {
     depts(status:Int,scenes:Boolean!):[Dept]
     #查询岗位
     posts(status:Int,scenes:Boolean!):[Dept]
-    #查询人员  offset:跳过几条  first:取几条
+    #查询人员详情  offset:跳过几条  first:取几条
     persons(upstreamTypeId:String,offset:Int,first:Int):PersonConnection
-    #查询人员身份  offset:跳过几条  first:取几条
+    #查询人员身份详情  offset:跳过几条  first:取几条
     occupies(upstreamTypeId:String,offset:Int,first:Int):OccupyConnection
+    #预览人员  offset:跳过几条  first:取几条
+    preViewPersons(type:String,offset:Int,first:Int):PersonConnection
+    #预览人员身份  offset:跳过几条  first:取几条
+    preViewOccupies(type:String,offset:Int,first:Int):OccupyConnection
 }
 
 
@@ -75,6 +79,8 @@ type Person{
     active:Int
     #是否删除
     delMark:Int
+    #扩展字段
+    attrsValues : [DynamicValue]
 
 }
 
@@ -115,6 +121,15 @@ type Occupy{
     index:Int
 
 
+}
+
+type DynamicValue{
+    #key值
+    key : String
+    #代码
+    code : String
+    #值
+    value : String
 }
 
 

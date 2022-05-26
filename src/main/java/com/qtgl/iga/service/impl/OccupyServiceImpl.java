@@ -2,10 +2,7 @@ package com.qtgl.iga.service.impl;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.qtgl.iga.bean.OccupyConnection;
-import com.qtgl.iga.bean.OccupyDto;
-import com.qtgl.iga.bean.OccupyEdge;
-import com.qtgl.iga.bean.TreeBean;
+import com.qtgl.iga.bean.*;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.OccupyService;
@@ -96,11 +93,76 @@ public class OccupyServiceImpl implements OccupyService {
 
         List<CardType> cardTypes2 = cardTypeDao.findAllFromIdentity(tenant.getId());
         Map<String, CardType> identityCardTypeMap = cardTypes2.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
+        // 存储最终需要操作的数据
+        Map<String, List<OccupyDto>> result = new HashMap<>();
+        //重复需要删除的sso身份数据
+        ArrayList<OccupyDto> deleteFromSSO = new ArrayList<>();
+        //上游数据,用于异常的数据展示
+        Map<String, OccupyDto> occupyDtoFromUpstream = new HashMap<>();
 
         // 获取规则
         Map arguments = new ConcurrentHashMap();
         arguments.put("type", "occupy");
         arguments.put("status", 0);
+        dataProcessing(domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream);
+
+        List<OccupyDto> occupiesFromSSO = occupyDao.findAll(tenant.getId(), null, null);
+
+        // 验证监控规则
+        calculationService.monitorRules(domain, lastTaskLog, occupiesFromSSO.size(), result.get("delete"));
+        //数据库重复身份删除
+        if (!CollectionUtils.isEmpty(deleteFromSSO)) {
+            if (result.containsKey("delete")) {
+                result.get("delete").addAll(deleteFromSSO);
+            } else {
+                result.put("delete", new ArrayList<OccupyDto>() {{
+                    this.addAll(deleteFromSSO);
+                }});
+            }
+        }
+
+        try {
+            occupyDao.saveToSso(result, tenant.getId());
+        } catch (CustomException e) {
+            if (!CollectionUtils.isEmpty(occupyDtoFromUpstream)) {
+                TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(occupyDtoFromUpstream));
+            }
+            throw new CustomException(ResultCode.FAILED, e.getErrorMsg());
+        }
+
+        if (StringUtils.isNotBlank(TaskConfig.errorData.get(domain.getId()))) {
+            String data = TaskConfig.errorData.get(domain.getId());
+            JSONArray jsonArray = JSONObject.parseArray(data);
+
+            if (null != jsonArray) {
+                //
+                if (!CollectionUtils.isEmpty(occupyErrorData.get(domain.getId()))) {
+                    jsonArray.addAll(occupyErrorData.get(domain.getId()));
+                }
+            }
+            TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(jsonArray));
+
+        } else {
+            if (!CollectionUtils.isEmpty(occupyErrorData.get(domain.getId()))) {
+                TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(occupyErrorData.get(domain.getId())));
+            }
+        }
+
+
+        //插入人员身份日志表
+        ArrayList<OccupyDto> userLogs = new ArrayList<>();
+        if (result.get("insert") != null) {
+            userLogs.addAll(result.get("insert"));
+        }
+        if (result.get("update") != null) {
+            userLogs.addAll(result.get("update"));
+        }
+        // todo 无效后对甘特图的影响
+        userLogDao.saveUserLog(userLogs, tenant.getId());
+        return result;
+    }
+
+    private List<OccupyDto> dataProcessing(DomainInfo domain, Tenant tenant, Map<String, CardType> userCardTypeMap, Map<String, CardType> identityCardTypeMap, Map arguments, Map<String, List<OccupyDto>> result, ArrayList<OccupyDto> deleteFromSSO, Map<String, OccupyDto> occupyDtoFromUpstream) throws Exception {
         List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
         if (null == nodes || nodes.size() <= 0) {
             throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
@@ -134,7 +196,6 @@ public class OccupyServiceImpl implements OccupyService {
         log.info("数据库中人员身份数据获取完成:{}", occupiesFromSSO.size());
         //处理数据库重复身份数据
         ConcurrentHashMap<String, OccupyDto> concurrentHashMap = new ConcurrentHashMap<>();
-        ArrayList<OccupyDto> deleteFromSSO = new ArrayList<>();
         for (OccupyDto occupyDto : occupiesFromSSO) {
             String key = occupyDto.getPersonId() + ":" + occupyDto.getDeptCode() + ":" + occupyDto.getPostCode();
             //已有相同标识的身份
@@ -184,7 +245,6 @@ public class OccupyServiceImpl implements OccupyService {
         log.info("数据库中人员身份数据经过重复过滤后:{}", occupiesFromSSO.size());
 
         // 获取所有规则 字段，用于更新验证
-        Map<String, OccupyDto> occupyDtoFromUpstream = new HashMap<>();
         if (null == occupyRules || occupyRules.size() == 0) {
             throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
         }
@@ -352,9 +412,13 @@ public class OccupyServiceImpl implements OccupyService {
 
         });
         log.info("所有人员身份数据获取完成:{}", occupyDtoFromUpstream.size());
+        List<OccupyDto> occupyDtos = new ArrayList<>();
         if (null != occupyDtoFromUpstream && occupyDtoFromUpstream.size() > 0) {
-//            TaskConfig.errorData.put(domain.getId(), "");
-            //final List<OccupyDto> occupyDtos = (List<OccupyDto>) occupyDtoFromUpstream.values();
+
+            if (!CollectionUtils.isEmpty(occupyDtosFromSSO)) {
+                occupyDtos.addAll(occupyDtosFromSSO);
+            }
+            Map<String, OccupyDto> preViewOccupyMap = occupyDtos.stream().filter(occupyDto -> !StringUtils.isBlank(occupyDto.getOccupyId())).collect(Collectors.toMap(occupyDto -> (occupyDto.getOccupyId()), occupyDto -> occupyDto, (v1, v2) -> v2));
 
             //获取该租户下的当前类型的无效权威源
             ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
@@ -364,15 +428,14 @@ public class OccupyServiceImpl implements OccupyService {
             }
             Map<String, OccupyDto> occupiesFromSSOMap = occupiesFromSSO.stream().
                     collect(Collectors.toMap(occupy -> (occupy.getPersonId() + ":" + occupy.getPostCode() + ":" + occupy.getDeptCode()), occupy -> occupy, (v1, v2) -> v2));
-            Map<String, List<OccupyDto>> result = new HashMap<>();
             Map<String, Upstream> finalUpstreamMap = upstreamMap;
             occupiesFromSSOMap.forEach((key, occupyFromSSO) -> {
-                calculate(occupyDtoFromUpstream, result, key, occupyFromSSO, finalUpstreamMap);
+                calculate(occupyDtoFromUpstream, result, key, occupyFromSSO, finalUpstreamMap, preViewOccupyMap);
             });
 
             occupyDtoFromUpstream.forEach((key, val) -> {
                 if (!occupiesFromSSOMap.containsKey(key) && (occupyDtoFromUpstream.get(key).getDelMark() != 1)) {
-                    if(val.getRuleStatus()){
+                    if (val.getRuleStatus()) {
                         val.setOccupyId(UUID.randomUUID().toString());
                         val.setStartTime(null != val.getStartTime() ? val.getStartTime() : LocalDateTime.of(1970, 1, 1, 0, 0, 0));
                         val.setEndTime(null != val.getEndTime() ? val.getEndTime() : LocalDateTime.of(2100, 1, 1, 0, 0, 0));
@@ -392,78 +455,30 @@ public class OccupyServiceImpl implements OccupyService {
                             }});
                         }
                         log.debug("人员身份对比后新增{}", val);
-                    }else {
+                    } else {
                         log.debug("人员身份{},对应规则未启用,本次跳过该数据", val);
                     }
                 }
             });
-
-            // 验证监控规则
-            calculationService.monitorRules(domain, lastTaskLog, occupiesFromSSO.size(), result.get("delete"));
-            //数据库重复身份删除
-            if (!CollectionUtils.isEmpty(deleteFromSSO)) {
-                if (result.containsKey("delete")) {
-                    result.get("delete").addAll(deleteFromSSO);
-                } else {
-                    result.put("delete", new ArrayList<OccupyDto>() {{
-                        this.addAll(deleteFromSSO);
-                    }});
-                }
+            //处理人员身份预览数据
+            occupyDtos = new ArrayList<>(preViewOccupyMap.values());
+            if (!CollectionUtils.isEmpty(result.get("insert"))) {
+                occupyDtos.addAll(result.get("insert"));
             }
-
-            try {
-                occupyDao.saveToSso(result, tenant.getId());
-            } catch (CustomException e) {
-                if (!CollectionUtils.isEmpty(occupyDtoFromUpstream)) {
-                    TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(occupyDtoFromUpstream));
-                }
-                throw new CustomException(ResultCode.FAILED, e.getErrorMsg());
-            }
-
-            if (StringUtils.isNotBlank(TaskConfig.errorData.get(domain.getId()))) {
-                String data = TaskConfig.errorData.get(domain.getId());
-                JSONArray jsonArray = JSONObject.parseArray(data);
-
-                if (null != jsonArray) {
-                    //
-                    if (!CollectionUtils.isEmpty(occupyErrorData.get(domain.getId()))) {
-                        jsonArray.addAll(occupyErrorData.get(domain.getId()));
-                    }
-                }
-                TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(jsonArray));
-
-            } else {
-                if (!CollectionUtils.isEmpty(occupyErrorData.get(domain.getId()))) {
-                    TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(occupyErrorData.get(domain.getId())));
-                }
-            }
-
-
-            //插入人员身份日志表
-            ArrayList<OccupyDto> userLogs = new ArrayList<>();
-            if (result.get("insert") != null) {
-                userLogs.addAll(result.get("insert"));
-            }
-            if (result.get("update") != null) {
-                userLogs.addAll(result.get("update"));
-            }
-            // todo 无效后对甘特图的影响
-            userLogDao.saveUserLog(userLogs, tenant.getId());
-
-            return result;
+            return occupyDtos;
         } else {
             log.error("上游提供人员身份数据不符合规范,数据同步失败");
             throw new CustomException(ResultCode.FAILED, "上游提供人员身份数据不符合规范,数据同步失败");
         }
     }
 
-    private void calculate(Map<String, OccupyDto> occupyDtoFromUpstream, Map<String, List<OccupyDto>> result, String key, OccupyDto occupyFromSSO, Map<String, Upstream> upstreamMap) {
+    private void calculate(Map<String, OccupyDto> occupyDtoFromUpstream, Map<String, List<OccupyDto>> result, String key, OccupyDto occupyFromSSO, Map<String, Upstream> upstreamMap, Map<String, OccupyDto> preViewOccupyMap) {
         // 对比出需要修改的occupy
         if (occupyDtoFromUpstream.containsKey(key) &&
                 occupyDtoFromUpstream.get(key).getCreateTime().isAfter(occupyFromSSO.getUpdateTime())) {
             OccupyDto newOccupy = occupyDtoFromUpstream.get(key);
             //当前数据来源规则为启用再进行处理
-            if(newOccupy.getRuleStatus()){
+            if (newOccupy.getRuleStatus()) {
                 //处理sso数据的active为null的情况
                 if (null == occupyFromSSO.getActive() || "".equals(occupyFromSSO.getActive())) {
                     occupyFromSSO.setActive(1);
@@ -552,6 +567,8 @@ public class OccupyServiceImpl implements OccupyService {
                                 this.add(occupyFromSSO);
                             }});
                         }
+                        //处理人员预览数据
+                        preViewOccupyMap.remove(occupyFromSSO.getOccupyId());
                         log.info("人员身份信息删除{}", occupyFromSSO.getOccupyId());
                     } else {
                         log.info("人员身份信息删除{},但检测到对应权威源已无效或规则为启用,跳过该数据", occupyFromSSO.getOccupyId());
@@ -573,6 +590,8 @@ public class OccupyServiceImpl implements OccupyService {
                                     this.add(occupyFromSSO);
                                 }});
                             }
+                            //处理人员预览数据
+                            preViewOccupyMap.remove(occupyFromSSO.getOccupyId());
                             log.info("人员身份信息失效{}", occupyFromSSO.getOccupyId());
                         } else {
                             log.info("人员身份信息失效{},但检测到对应权威源已无效或规则未启用,跳过该数据", occupyFromSSO.getOccupyId());
@@ -592,6 +611,8 @@ public class OccupyServiceImpl implements OccupyService {
                                 this.add(occupyFromSSO);
                             }});
                         }
+                        //处理人员预览数据
+                        preViewOccupyMap.put(occupyFromSSO.getOccupyId(), occupyFromSSO);
                     }
 
 
@@ -610,12 +631,15 @@ public class OccupyServiceImpl implements OccupyService {
                                 this.add(occupyFromSSO);
                             }});
                         }
+                        //处理人员预览数据
+                        preViewOccupyMap.put(occupyFromSSO.getOccupyId(), occupyFromSSO);
+
 
                     }
 
                 }
                 log.debug("人员身份对比后更新{}-{}", occupyFromSSO, occupyDtoFromUpstream.get(key));
-            }else {
+            } else {
                 log.debug("该身份对应{}", occupyFromSSO.getOccupyId());
             }
 
@@ -639,6 +663,8 @@ public class OccupyServiceImpl implements OccupyService {
                         this.add(occupyFromSSO);
                     }});
                 }
+                //处理人员预览数据
+                preViewOccupyMap.remove(occupyFromSSO.getOccupyId());
                 log.debug("人员身份对比后上游丢失{}", occupyFromSSO.getOccupyId());
             } else {
                 log.info("人员身份对比后上游丢失{},但检测到对应权威源已无效或规则未启用,跳过该数据", occupyFromSSO.getOccupyId());
@@ -718,5 +744,48 @@ public class OccupyServiceImpl implements OccupyService {
             log.error("数据类型不合法,请检查");
             throw new CustomException(ResultCode.FAILED, "数据类型不合法,请检查");
         }
+    }
+
+    @Override
+    public OccupyConnection preViewOccupies(Map<String, Object> arguments, DomainInfo domain) throws Exception {
+        //错误数据容器初始化
+        occupyErrorData = new ConcurrentHashMap<>();
+
+        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        if (null == tenant) {
+            throw new CustomException(ResultCode.FAILED, "租户不存在");
+        }
+        // 所有证件类型
+        List<CardType> cardTypes = cardTypeDao.findAllUser(tenant.getId());
+        Map<String, CardType> userCardTypeMap = cardTypes.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
+
+
+        List<CardType> cardTypes2 = cardTypeDao.findAllFromIdentity(tenant.getId());
+        Map<String, CardType> identityCardTypeMap = cardTypes2.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
+        // 存储最终需要操作的数据
+        Map<String, List<OccupyDto>> result = new HashMap<>();
+        //重复需要删除的sso身份数据
+        ArrayList<OccupyDto> deleteFromSSO = new ArrayList<>();
+        //上游数据,用于异常的数据展示
+        Map<String, OccupyDto> occupyDtoFromUpstream = new HashMap<>();
+        List<OccupyDto> occupyDtos = dataProcessing(domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream);
+        OccupyConnection occupyConnection = new OccupyConnection();
+        List<OccupyEdge> upstreamDept = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(occupyDtos)) {
+            Integer offset = (Integer) arguments.get("offset");
+            Integer first = (Integer) arguments.get("first");
+            occupyConnection.setTotalCount(occupyDtos.size());
+            if (null != offset && null != first) {
+                occupyDtos = occupyDtos.stream().sorted(Comparator.comparing(OccupyDto::getUpdateTime).thenComparing(OccupyDto::getCreateTime)).skip(offset).limit(first).collect(Collectors.toList());
+
+            }
+            for (OccupyDto occupyDto : occupyDtos) {
+                OccupyEdge occupyEdge = new OccupyEdge();
+                occupyEdge.setNode(occupyDto);
+                upstreamDept.add(occupyEdge);
+            }
+            occupyConnection.setEdges(upstreamDept);
+        }
+        return occupyConnection;
     }
 }

@@ -14,4 +14,7 @@ public interface OccupyService {
 
     OccupyConnection findOccupies(Map<String, Object> arguments, DomainInfo domain) throws Exception;
 
+    OccupyConnection preViewOccupies(Map<String, Object> arguments, DomainInfo domain) throws Exception;
+
+
 }
