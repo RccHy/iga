@@ -10,9 +10,9 @@ extend type Query {
     #查询人员身份详情  offset:跳过几条  first:取几条
     occupies(upstreamTypeId:String,offset:Int,first:Int):OccupyConnection
     #预览人员  offset:跳过几条  first:取几条
-    preViewPersons(type:String,offset:Int,first:Int):PersonConnection
+    preViewPersons(type:String,active:Boolean,offset:Int,first:Int):PersonConnection
     #预览人员身份  offset:跳过几条  first:取几条
-    preViewOccupies(type:String,offset:Int,first:Int):OccupyConnection
+    preViewOccupies(type:String,active:Boolean,offset:Int,first:Int):OccupyConnection
 }
 
 

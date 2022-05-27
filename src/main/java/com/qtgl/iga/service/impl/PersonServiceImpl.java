@@ -1401,6 +1401,11 @@ public class PersonServiceImpl implements PersonService {
         PersonConnection personConnection = new PersonConnection();
         List<PersonEdge> upstreamDept = new ArrayList<>();
         if (!CollectionUtils.isEmpty(personList)) {
+            Boolean active = (Boolean) arguments.get("active");
+            //是否有效过滤
+            if (null != active) {
+                personList = personList.stream().filter(person -> active.equals((person.getActive()==1?true:false))).collect(Collectors.toList());
+            }
             Integer offset = (Integer) arguments.get("offset");
             Integer first = (Integer) arguments.get("first");
             personConnection.setTotalCount(personList.size());
@@ -1410,10 +1415,11 @@ public class PersonServiceImpl implements PersonService {
             }
             for (Person person : personList) {
                 PersonEdge personEdge = new PersonEdge();
-                //if(!CollectionUtils.isEmpty(finalValueMap.get(person.getId()))){
-                //    List<DynamicValue> dynValues  = finalValueMap.get(person.getId());
-                //    person.setAttrsValues(dynValues);
-                //}
+                //如果上游数据不是最新的获取sso本身的扩展字段值
+                if (CollectionUtils.isEmpty(person.getAttrsValues()) && !CollectionUtils.isEmpty(finalValueMap.get(person.getId()))) {
+                    List<DynamicValue> dynValues = finalValueMap.get(person.getId());
+                    person.setAttrsValues(dynValues);
+                }
                 personEdge.setNode(person);
                 upstreamDept.add(personEdge);
             }

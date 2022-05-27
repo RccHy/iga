@@ -772,6 +772,11 @@ public class OccupyServiceImpl implements OccupyService {
         OccupyConnection occupyConnection = new OccupyConnection();
         List<OccupyEdge> upstreamDept = new ArrayList<>();
         if (!CollectionUtils.isEmpty(occupyDtos)) {
+            Boolean active = (Boolean) arguments.get("active");
+            //是否有效过滤
+            if (null != active) {
+                occupyDtos = occupyDtos.stream().filter(occupyDto -> active.equals((occupyDto.getActive() == 1 ? true : false))).collect(Collectors.toList());
+            }
             Integer offset = (Integer) arguments.get("offset");
             Integer first = (Integer) arguments.get("first");
             occupyConnection.setTotalCount(occupyDtos.size());
