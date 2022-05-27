@@ -59,10 +59,9 @@ deploy:prod:
   before_script:
     - export COMMIT_TIME=$(date +%Y%m%d)
   script:
-#     - kubectl delete -f k8s-deploy.yaml --ignore-not-found=true
-     - kubectl -n ketanyun apply -f k8s-service.yaml
-     - kubectl -n ketanyun apply -f k8s-deploy.yaml
-     - kubectl -n ketanyun  set image -f k8s-deploy.yaml iga="docker.qtgl.com.cn/product/iga:${COMMIT_TIME}"
+    #  - kubectl -n ketanyun apply -f k8s-service.yaml
+    #  - kubectl -n ketanyun apply -f k8s-deploy.yaml
+     - kubectl -n ketanyun  set image deployment/iga iga="docker.qtgl.com.cn/product/iga:${COMMIT_TIME}"
   # disable artifacts downloading from previous steps
   dependencies: [ ]
   environment:
