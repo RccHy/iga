@@ -145,6 +145,9 @@ public class PostServiceImpl implements PostService {
                 if (StringUtils.isBlank(bean.getParentCode())) {
                     bean.setParentCode("");
                 }
+                if("开发者".equals(bean.getName())){
+                    logger.info("开发者:{}",bean);
+                }
             }
         }
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
@@ -518,7 +521,7 @@ public class PostServiceImpl implements PostService {
                                             //将修改表示改为true 标识数据需要修改
                                             updateFlag = true;
                                             if("开发者".equals(ssoBean.getName())){
-                                                logger.info("开发者区别字段{}->{}",oldValue,newValue);
+                                                logger.info("开发者区别字段{}->{},实体:{}->{}",oldValue,newValue,ssoBean,pullBean);
                                             }
                                             //如果上游给出删除标记 则使用上游的   不给则不处理
                                             if ("delMark".equalsIgnoreCase(sourceField) && null != ssoBean.getDelMark() && null != pullBean.getDelMark() && (ssoBean.getDelMark() == 1) && (pullBean.getDelMark() == 0)) {

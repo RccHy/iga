@@ -259,6 +259,9 @@ public class DataBusUtil {
                                 groupList.add(enM.group(0).substring(1));
                             }
                             ignoreMap.put(field.getSourceField(), groupList);
+                            if("tags".equals(field.getSourceField())){
+                                log.info("{}: ignoreMap{}",upstreamType.getSynType(),ignoreMap);
+                            }
                         }
                         // 表达式 最终需要进行运算
                     } else if (!field.getTargetField().contains("=") && field.getTargetField().contains("$ENTITY")) {
@@ -463,6 +466,10 @@ public class DataBusUtil {
                             ScriptEngine engine = sem.getEngineByName("js");
                             final Object eval = engine.eval(reg, bindings);
                             innerMap.put(entry.getKey(), eval);
+                            if("tags".equals(entry.getKey())&&"person".equals(upstreamType.getSynType())){
+                                log.info("{}: ignoreMap:{},bindings:{},reg:{}",upstreamType.getSynType(),ignoreMap,bindings,reg);
+                                log.info("innerMap:{}",innerMap);
+                            }
 
                         } catch (ScriptException e) {
                             log.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
