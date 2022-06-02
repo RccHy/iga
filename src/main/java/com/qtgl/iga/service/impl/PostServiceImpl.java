@@ -494,6 +494,9 @@ public class PostServiceImpl implements PostService {
                                     ssoBean.setColor(pullBean.getColor());
                                     ssoBean.setIsRuled(pullBean.getIsRuled());
                                     ssoBean.setRuleStatus(pullBean.getRuleStatus());
+                                    if("开发者".equals(ssoBean.getName())){
+                                        System.out.println(ssoBean);
+                                    }
 
 
                                     List<UpstreamTypeField> fields = null;

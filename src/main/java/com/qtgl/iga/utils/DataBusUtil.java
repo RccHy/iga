@@ -478,6 +478,9 @@ public class DataBusUtil {
                             innerMap.put(field.getSourceField(), field.getTargetField());
                         }
                     }
+                    if("孙思思33".equals(innerMap.get("name"))){
+                        System.out.println(innerMap);
+                    }
                     resultJson.add(innerMap);
 
                 }
