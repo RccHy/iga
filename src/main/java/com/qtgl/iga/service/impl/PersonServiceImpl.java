@@ -204,7 +204,7 @@ public class PersonServiceImpl implements PersonService {
                     JSONObject personObj = JSON.parseObject(JSON.toJSONString(o));
                     Person personUpstream = personObj.toJavaObject(Person.class);
                     if("孙思思33".equals(personUpstream)){
-                        System.out.println(personUpstream);
+                        log.info("人员debug{}上游数据",personUpstream);
                     }
 
                     if (null != personUpstream.getActive() && personUpstream.getActive() != 0 && personUpstream.getActive() != 1) {

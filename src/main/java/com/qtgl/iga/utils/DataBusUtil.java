@@ -479,7 +479,7 @@ public class DataBusUtil {
                         }
                     }
                     if("孙思思33".equals(innerMap.get("name"))){
-                        System.out.println(innerMap);
+                        log.info("人员debug{}",innerMap);
                     }
                     resultJson.add(innerMap);
 

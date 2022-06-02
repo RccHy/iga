@@ -494,9 +494,6 @@ public class PostServiceImpl implements PostService {
                                     ssoBean.setColor(pullBean.getColor());
                                     ssoBean.setIsRuled(pullBean.getIsRuled());
                                     ssoBean.setRuleStatus(pullBean.getRuleStatus());
-                                    if("开发者".equals(ssoBean.getName())){
-                                        System.out.println(ssoBean);
-                                    }
 
 
                                     List<UpstreamTypeField> fields = null;
@@ -520,6 +517,9 @@ public class PostServiceImpl implements PostService {
                                             }
                                             //将修改表示改为true 标识数据需要修改
                                             updateFlag = true;
+                                            if("开发者".equals(ssoBean.getName())){
+                                                logger.info("开发者区别字段{}->{}",oldValue,newValue);
+                                            }
                                             //如果上游给出删除标记 则使用上游的   不给则不处理
                                             if ("delMark".equalsIgnoreCase(sourceField) && null != ssoBean.getDelMark() && null != pullBean.getDelMark() && (ssoBean.getDelMark() == 1) && (pullBean.getDelMark() == 0)) {
                                                 //恢复标识
