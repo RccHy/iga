@@ -372,7 +372,7 @@ public class OccupyServiceImpl implements OccupyService {
 
             occupyDtoFromUpstream.forEach((key, val) -> {
                 if (!occupiesFromSSOMap.containsKey(key) && (occupyDtoFromUpstream.get(key).getDelMark() != 1)) {
-                    if(val.getRuleStatus()){
+                    if (val.getRuleStatus()) {
                         val.setOccupyId(UUID.randomUUID().toString());
                         val.setStartTime(null != val.getStartTime() ? val.getStartTime() : LocalDateTime.of(1970, 1, 1, 0, 0, 0));
                         val.setEndTime(null != val.getEndTime() ? val.getEndTime() : LocalDateTime.of(2100, 1, 1, 0, 0, 0));
@@ -392,7 +392,7 @@ public class OccupyServiceImpl implements OccupyService {
                             }});
                         }
                         log.debug("人员身份对比后新增{}", val);
-                    }else {
+                    } else {
                         log.debug("人员身份{},对应规则未启用,本次跳过该数据", val);
                     }
                 }
@@ -463,7 +463,7 @@ public class OccupyServiceImpl implements OccupyService {
                 occupyDtoFromUpstream.get(key).getCreateTime().isAfter(occupyFromSSO.getUpdateTime())) {
             OccupyDto newOccupy = occupyDtoFromUpstream.get(key);
             //当前数据来源规则为启用再进行处理
-            if(newOccupy.getRuleStatus()){
+            if (newOccupy.getRuleStatus()) {
                 //处理sso数据的active为null的情况
                 if (null == occupyFromSSO.getActive() || "".equals(occupyFromSSO.getActive())) {
                     occupyFromSSO.setActive(1);
@@ -540,7 +540,7 @@ public class OccupyServiceImpl implements OccupyService {
         //上游提供了删除字段 并且最新为删除
         }*/
                 if (delFlag) {
-                    if (occupyFromSSO.getRuleStatus() && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(occupyFromSSO.getSource()))) {
+                    if ((null == occupyFromSSO.getRuleStatus() || occupyFromSSO.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(occupyFromSSO.getSource()))) {
                         occupyFromSSO.setDelMark(1);
                         occupyFromSSO.setUpdateTime(newOccupy.getUpdateTime());
                         occupyFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
@@ -561,7 +561,7 @@ public class OccupyServiceImpl implements OccupyService {
                     occupyFromSSO.setUpdateTime(newOccupy.getUpdateTime());
                     // 区分出 更新数据  还是 无效数据（上游提供active字段 && 将active变为false）
                     if (invalidFlag) {
-                        if (occupyFromSSO.getRuleStatus() && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(occupyFromSSO.getSource()))) {
+                        if ((null == occupyFromSSO.getRuleStatus() || occupyFromSSO.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(occupyFromSSO.getSource()))) {
                             occupyFromSSO.setActive(0);
                             occupyFromSSO.setActiveTime(newOccupy.getUpdateTime());
                             occupyFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
@@ -615,7 +615,7 @@ public class OccupyServiceImpl implements OccupyService {
 
                 }
                 log.debug("人员身份对比后更新{}-{}", occupyFromSSO, occupyDtoFromUpstream.get(key));
-            }else {
+            } else {
                 log.debug("该身份对应{}", occupyFromSSO.getOccupyId());
             }
 
@@ -625,7 +625,7 @@ public class OccupyServiceImpl implements OccupyService {
                 && (null == occupyFromSSO.getActive() || occupyFromSSO.getActive() == 1)
                 && "PULL".equalsIgnoreCase(occupyFromSSO.getDataSource())) {
             // 如果sso 有，上游源没有 &&  sso中数据不是删除 && sso数据不是无效
-            if (occupyFromSSO.getRuleStatus() && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(occupyFromSSO.getSource()))) {
+            if ((null == occupyFromSSO.getRuleStatus() || occupyFromSSO.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(occupyFromSSO.getSource()))) {
                 LocalDateTime now = LocalDateTime.now();
                 occupyFromSSO.setActive(0);
                 occupyFromSSO.setActiveTime(now);

@@ -540,7 +540,7 @@ public class DeptServiceImpl implements DeptService {
                                     }
                                     //标识为删除的数据
                                     if (delFlag) {
-                                        if (!ssoBean.getRuleStatus() || (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource()))) {
+                                        if ((null != ssoBean.getRuleStatus() && !ssoBean.getRuleStatus()) || (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource()))) {
                                             result.put(ssoBean, "obsolete");
                                             logger.info("部门对比后应删除{},但检测到对应权威源已无效或规则未启用,跳过该数据", ssoBean.getId());
                                         } else {
@@ -562,7 +562,7 @@ public class DeptServiceImpl implements DeptService {
                                         ssoBean.setUpdateTime(now);
                                         //失效
                                         if (invalidFlag) {
-                                            if (!ssoBean.getRuleStatus() || (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource()))) {
+                                            if ((null != ssoBean.getRuleStatus() && !ssoBean.getRuleStatus()) || (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource()))) {
                                                 result.put(ssoBean, "obsolete");
                                                 logger.info("部门对比后应置为失效{},但检测到对应权威源已无效或规则未启用,跳过该数据", ssoBean.getId());
                                             } else {
@@ -709,7 +709,7 @@ public class DeptServiceImpl implements DeptService {
                         ssoCollect.remove(ssoBean.getCode());
                         //只处理有效的置为无效, 本身就无效的忽略
                         if (ssoBean.getActive() == 1) {
-                            if (!ssoBean.getRuleStatus() || (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource()))) {
+                            if ((null != ssoBean.getRuleStatus() && !ssoBean.getRuleStatus()) || (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource()))) {
                                 result.put(ssoBean, "obsolete");
                                 logger.info("部门对比后应置为失效{},但检测到对应权威源已无效或规则未启用,跳过该数据", ssoBean.getId());
                             } else {

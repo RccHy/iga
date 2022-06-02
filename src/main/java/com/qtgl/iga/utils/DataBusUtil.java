@@ -276,6 +276,7 @@ public class DataBusUtil {
                             System.out.println("Found value: " + m.group(0));
                             // node.addResultAttributes(field.getSourceField() + ":" + m.group(0).substring(1));
                             nodeMap.put(field.getSourceField() + ":" + m.group(0).substring(1), m.group(0).substring(1));
+                            nodeMap.put(m.group(0).substring(1), m.group(0).substring(1));
 
                         }
                     } else {
@@ -434,18 +435,18 @@ public class DataBusUtil {
                                         //人员标识是否有有效数据
                                         if (!CollectionUtils.isEmpty(personCardMap) && personCardMap.containsKey(innerMap.get("personCardType") + ":" + innerMap.get("personCardNo"))) {
                                             Person code = personCardMap.get(innerMap.get("personCardType") + ":" + innerMap.get("personCardNo"));
-                                            if(!CollectionUtils.isEmpty(occupyDtoMap)&&occupyDtoMap.containsKey(code.getId()+":"+innerMap.get("postCode") + ":" + innerMap.get("deptCode"))){
+                                            if (!CollectionUtils.isEmpty(occupyDtoMap) && occupyDtoMap.containsKey(code.getId() + ":" + innerMap.get("postCode") + ":" + innerMap.get("deptCode"))) {
                                                 OccupyDto occupyDto = occupyDtoMap.get(code.getId() + ":" + innerMap.get("postCode") + ":" + innerMap.get("deptCode"));
                                                 bindings.put("$ENTITY", occupyDto);
-                                            }else {
+                                            } else {
                                                 bindings.put("$ENTITY", new OccupyDto());
                                             }
                                         } else if (!CollectionUtils.isEmpty(personAccountMap) && personAccountMap.containsKey(innerMap.get("accountNo"))) {
                                             Person code = personAccountMap.get(innerMap.get("accountNo"));
-                                            if(!CollectionUtils.isEmpty(occupyDtoAccountMap)&&occupyDtoAccountMap.containsKey(code.getId()+":"+innerMap.get("accountNo"))){
-                                                OccupyDto occupyDto = occupyDtoAccountMap.get(code.getId() +":"+innerMap.get("accountNo"));
+                                            if (!CollectionUtils.isEmpty(occupyDtoAccountMap) && occupyDtoAccountMap.containsKey(code.getId() + ":" + innerMap.get("accountNo"))) {
+                                                OccupyDto occupyDto = occupyDtoAccountMap.get(code.getId() + ":" + innerMap.get("accountNo"));
                                                 bindings.put("$ENTITY", occupyDto);
-                                            }else {
+                                            } else {
                                                 bindings.put("$ENTITY", new OccupyDto());
                                             }
                                         } else {

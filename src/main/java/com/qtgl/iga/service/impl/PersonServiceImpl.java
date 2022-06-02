@@ -707,7 +707,7 @@ public class PersonServiceImpl implements PersonService {
 
 
                 if (delFlag) {
-                    if (personFromSSO.getRuleStatus() && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
+                    if ((null == personFromSSO.getRuleStatus() || personFromSSO.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
                         personFromSSO.setDelMark(1);
                         personFromSSO.setUpdateTime(newPerson.getUpdateTime());
                         personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
@@ -739,7 +739,7 @@ public class PersonServiceImpl implements PersonService {
                     }
                     //失效
                     if (invalidFlag) {
-                        if (personFromSSO.getRuleStatus() && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
+                        if ((null == personFromSSO.getRuleStatus() || personFromSSO.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
                             personFromSSO.setActive(0);
                             personFromSSO.setActiveTime(newPerson.getUpdateTime());
                             personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
@@ -853,7 +853,7 @@ public class PersonServiceImpl implements PersonService {
                 && (null == personFromSSO.getActive() || personFromSSO.getActive() == 1)
                 && "PULL".equalsIgnoreCase(personFromSSO.getDataSource())) {
 
-            if (personFromSSO.getRuleStatus() && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
+            if ((null == personFromSSO.getRuleStatus() || personFromSSO.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
                 personFromSSO.setActive(0);
                 personFromSSO.setActiveTime(now);
                 personFromSSO.setUpdateTime(now);
@@ -1085,7 +1085,7 @@ public class PersonServiceImpl implements PersonService {
 
                 //if (licitFlag) {
                 if (delFlag) {
-                    if (personFromSSO.getRuleStatus() && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
+                    if ((null == personFromSSO.getRuleStatus() || personFromSSO.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
                         personFromSSO.setDelMark(1);
                         personFromSSO.setUpdateTime(newPerson.getUpdateTime());
                         personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
@@ -1117,7 +1117,7 @@ public class PersonServiceImpl implements PersonService {
                     }
                     //失效
                     if (invalidFlag) {
-                        if (personFromSSO.getRuleStatus() && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
+                        if ((null == personFromSSO.getRuleStatus() || personFromSSO.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
                             personFromSSO.setActive(0);
                             personFromSSO.setActiveTime(newPerson.getUpdateTime());
                             personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
@@ -1233,7 +1233,7 @@ public class PersonServiceImpl implements PersonService {
                 && 1 != personFromSSO.getDelMark()
                 && (null == personFromSSO.getActive() || personFromSSO.getActive() == 1)
                 && "PULL".equalsIgnoreCase(personFromSSO.getDataSource())) {
-            if (personFromSSO.getRuleStatus() && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
+            if ((null == personFromSSO.getRuleStatus() || personFromSSO.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
                 personFromSSO.setActive(0);
                 personFromSSO.setActiveTime(now);
                 personFromSSO.setUpdateTime(now);

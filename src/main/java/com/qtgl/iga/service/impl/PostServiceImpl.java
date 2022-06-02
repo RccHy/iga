@@ -554,7 +554,7 @@ public class PostServiceImpl implements PostService {
                                     }
                                     //标识为删除的数据
                                     if (delFlag) {
-                                        if (!ssoBean.getRuleStatus() || (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource()))) {
+                                        if ((null != ssoBean.getRuleStatus() && !ssoBean.getRuleStatus()) || (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource()))) {
                                             result.put(ssoBean, "obsolete");
                                             logger.info("岗位对比后应删除{},但检测到对应权威源已经无效或规则未启用,跳过该数据", ssoBean.getId());
                                         } else {
@@ -583,7 +583,7 @@ public class PostServiceImpl implements PostService {
                                         ssoBean.setUpdateTime(now);
                                         //失效
                                         if (invalidFlag) {
-                                            if (!ssoBean.getRuleStatus() || (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource()))) {
+                                            if ((null != ssoBean.getRuleStatus() && !ssoBean.getRuleStatus()) || (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource()))) {
                                                 result.put(ssoBean, "obsolete");
                                                 logger.info("岗位对比后应置为失效{},但检测到对应权威源已无效或规则未启用,跳过该数据", ssoBean.getId());
                                             } else {
@@ -721,7 +721,7 @@ public class PostServiceImpl implements PostService {
                             //如果为有效的再走失效并更新修改时间,
                             //本身就是无效的则不做处理
                             if (1 == ssoBean.getActive()) {
-                                if (!ssoBean.getRuleStatus() || (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource()))) {
+                                if ((null != ssoBean.getRuleStatus() && !ssoBean.getRuleStatus()) || (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource()))) {
                                     result.put(ssoBean, "obsolete");
                                     logger.info("岗位对比后应置为失效{},但检测到对应权威源已无效或规则未启用,跳过该数据", ssoBean.getId());
                                 } else {
