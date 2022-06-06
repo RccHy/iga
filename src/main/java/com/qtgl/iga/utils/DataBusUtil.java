@@ -259,9 +259,9 @@ public class DataBusUtil {
                                 groupList.add(enM.group(0).substring(1));
                             }
                             ignoreMap.put(field.getSourceField(), groupList);
-                            if("tags".equals(field.getSourceField())){
-                                log.info("{}: ignoreMap{}",upstreamType.getSynType(),ignoreMap);
-                            }
+                            //if ("tags".equals(field.getSourceField())) {
+                            //    log.info("{}: ignoreMap{}", upstreamType.getSynType(), ignoreMap);
+                            //}
                         }
                         // 表达式 最终需要进行运算
                     } else if (!field.getTargetField().contains("=") && field.getTargetField().contains("$ENTITY")) {
@@ -400,6 +400,12 @@ public class DataBusUtil {
                             throw new Exception("eval处理数据异常" + collect.get(map.get(entry.getKey())));
                         }
                     }
+                    //常量
+                    if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
+                        for (UpstreamTypeField field : upstreamTypeFields) {
+                            innerMap.put(field.getSourceField(), field.getTargetField());
+                        }
+                    }
                     //处理entity
                     for (Map.Entry<String, List<String>> entry : ignoreMap.entrySet()) {
                         try {
@@ -466,10 +472,10 @@ public class DataBusUtil {
                             ScriptEngine engine = sem.getEngineByName("js");
                             final Object eval = engine.eval(reg, bindings);
                             innerMap.put(entry.getKey(), eval);
-                            if("tags".equals(entry.getKey())&&"person".equals(upstreamType.getSynType())){
-                                log.info("{}: ignoreMap:{},bindings:{},reg:{}",upstreamType.getSynType(),ignoreMap,bindings,reg);
-                                log.info("innerMap:{}",innerMap);
-                            }
+                            //if("孙思思33".equals(innerMap.get("name"))&&"tags".equals(entry.getKey())&&"person".equals(upstreamType.getSynType())){
+                            //    log.info("{}: ignoreMap:{},bindings:{},reg:{}",upstreamType.getSynType(),ignoreMap,bindings.toString(),reg);
+                            //    log.info("innerMap:{}",innerMap);
+                            //}
 
                         } catch (ScriptException e) {
                             log.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
@@ -480,14 +486,9 @@ public class DataBusUtil {
                     if (null == innerMap.get("parentCode")) {
                         innerMap.put("parentCode", "");
                     }
-                    if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
-                        for (UpstreamTypeField field : upstreamTypeFields) {
-                            innerMap.put(field.getSourceField(), field.getTargetField());
-                        }
-                    }
-                    if("孙思思33".equals(innerMap.get("name"))){
-                        log.info("人员debug{}",innerMap);
-                    }
+                    //if("孙思思33".equals(innerMap.get("name"))){
+                    //    log.info("人员debug{}",innerMap);
+                    //}
                     resultJson.add(innerMap);
 
                 }
@@ -523,7 +524,7 @@ public class DataBusUtil {
         //请求获取资源
         String u = dataUrl + "/" + "?access_token=" + key + "&domain=" + domain.getDomainName();
 
-        return invokeForMapData(UrlUtil.getUrl(u), upstreamType, offset, first,domain.getDomainName());
+        return invokeForMapData(UrlUtil.getUrl(u), upstreamType, offset, first, domain.getDomainName());
     }
 
 
@@ -725,6 +726,13 @@ public class DataBusUtil {
                         throw new Exception("eval处理数据异常" + collect.get(map.get(entry.getKey())));
                     }
                 }
+                //常量
+                if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
+                    for (UpstreamTypeField field : upstreamTypeFields) {
+                        //jsonObject.put(field.getSourceField(), field.getTargetField());
+                        innerMap.put(field.getSourceField(), field.getTargetField());
+                    }
+                }
                 //处理entity
                 for (Map.Entry<String, List<String>> entry : ignoreMap.entrySet()) {
                     try {
@@ -802,12 +810,6 @@ public class DataBusUtil {
                     innerMap.put("parentCode", "");
                 }
                 LinkedHashMap<String, Object> stringObjectLinkedHashMap = new LinkedHashMap<>();
-                if (null != upstreamTypeFields && upstreamTypeFields.size() > 0) {
-                    for (UpstreamTypeField field : upstreamTypeFields) {
-                        //jsonObject.put(field.getSourceField(), field.getTargetField());
-                        innerMap.put(field.getSourceField(), field.getTargetField());
-                    }
-                }
                 stringObjectLinkedHashMap.put("node", innerMap);
                 rs.add(stringObjectLinkedHashMap);
             }
