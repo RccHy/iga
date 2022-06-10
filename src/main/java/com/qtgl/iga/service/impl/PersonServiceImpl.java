@@ -978,7 +978,8 @@ public class PersonServiceImpl implements PersonService {
                     }
                     // 对新增用户判断是否提供 冻结时间
                     if (null == val.getFreezeTime()) {
-                        val.setFreezeTime(val.getCreateTime());
+                        //如果上游不提供,则为当前时刻减一天(避免时区问题)
+                        val.setFreezeTime(val.getCreateTime().minusDays(1));
                     }
                     //根据主键判断新增还是修改
                     if (id.equals(val.getId())) {

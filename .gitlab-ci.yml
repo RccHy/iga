@@ -83,7 +83,6 @@ build:prod:
     - "mvn package  $MAVEN_CLI_OPTS -DJIB_TO_IMAGE=${JIB_TO_IMAGE}   -Djib.to.auth.username=${K8S_SECRET_JIB_TO_USER} -Djib.to.auth.password=${K8S_SECRET_JIB_TO_PASSWORD} -DJIB_FROM_IMAGE=${JIB_FROM_IMAGE} -Djib.from.auth.username=${K8S_SECRET_JIB_FROM_USER} -Djib.from.auth.password=${K8S_SECRET_JIB_FROM_PASSWORD} -DISO_8601=${ISO_8601}"
   only:
     - master
-    - sy_beta
   artifacts:
     paths:
       - target/*.war
