@@ -50,6 +50,7 @@ server:
       remote-ip-header: X-Forwarded-For
     protocol:
       protocol-header: X-Forwarded-Proto
+    use-relative-redirects: true
   forward-headers-strategy: framework
 
 file:
