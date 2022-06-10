@@ -1346,6 +1346,8 @@ public class PersonServiceImpl implements PersonService {
 
     @Override
     public PersonConnection preViewPersons(Map<String, Object> arguments, DomainInfo domain) throws Exception {
+        log.info("-------------------- preview Person start:{}",System.currentTimeMillis());
+
         //错误数据置空
         TaskConfig.errorData.put(domain.getId(), "");
         personErrorData = new ConcurrentHashMap<>();
@@ -1400,35 +1402,52 @@ public class PersonServiceImpl implements PersonService {
         //扩展字段id与code对应map
         Map<String, String> attrMap = new ConcurrentHashMap<>();
         Map<String, String> attrReverseMap = new ConcurrentHashMap<>();
-
+        log.info("----------------- upstream Person start:{}",System.currentTimeMillis());
         List<Person> personList = dataProcessing(domain, tenant, cardTypeMap, dynamicAttrs, valueUpdate, valueInsert, finalDynamicCodes, finalValueMap, personFromUpstream, personFromUpstreamByAccount, personRepeatByAccount, result, attrMap, attrReverseMap, arguments);
+        log.info("----------------- upstream Person end:{}",System.currentTimeMillis());
+
         PersonConnection personConnection = new PersonConnection();
         List<PersonEdge> upstreamDept = new ArrayList<>();
         if (!CollectionUtils.isEmpty(personList)) {
-            Boolean active = (Boolean) arguments.get("active");
-            //是否有效过滤
-            if (null != active) {
-                personList = personList.stream().filter(person -> active.equals((person.getActive()==1?true:false))).collect(Collectors.toList());
-            }
-            Integer offset = (Integer) arguments.get("offset");
-            Integer first = (Integer) arguments.get("first");
-            personConnection.setTotalCount(personList.size());
-            if (null != offset && null != first) {
-                personList = personList.stream().sorted(Comparator.comparing(Person::getUpdateTime).thenComparing(Person::getName)).skip(offset).limit(first).collect(Collectors.toList());
+            log.info("-----------------Db start:{}",System.currentTimeMillis());
 
-            }
-            for (Person person : personList) {
-                PersonEdge personEdge = new PersonEdge();
-                //如果上游数据不是最新的获取sso本身的扩展字段值
-                if (CollectionUtils.isEmpty(person.getAttrsValues()) && !CollectionUtils.isEmpty(finalValueMap.get(person.getId()))) {
-                    List<DynamicValue> dynValues = finalValueMap.get(person.getId());
-                    person.setAttrsValues(dynValues);
-                }
-                personEdge.setNode(person);
-                upstreamDept.add(personEdge);
-            }
-            personConnection.setEdges(upstreamDept);
+            Map<String, Person> preViewPersonMap = personList.stream().filter(person -> !StringUtils.isBlank(person.getId())).collect(Collectors.toMap(person -> (person.getId()), person -> person, (v1, v2) -> v2));
+
+            //存储到临时表(首先清除上次遗留数据)
+            personDao.removeData(domain);
+
+            personDao.saveToTemp(personList,domain);
+            //根据条件查询
+            List<Person> people = personDao.findPersonTemp(arguments,domain);
+            //Boolean active = (Boolean) arguments.get("active");
+            ////是否有效过滤
+            //if (null != active) {
+            //    personList = personList.stream().filter(person -> active.equals((person.getActive()==1?true:false))).collect(Collectors.toList());
+            //}
+            //Integer offset = (Integer) arguments.get("offset");
+            //Integer first = (Integer) arguments.get("first");
+            personConnection.setTotalCount(personList.size());
+            //if (null != offset && null != first) {
+            //    personList = personList.stream().sorted(Comparator.comparing(Person::getUpdateTime).thenComparing(Person::getName)).skip(offset).limit(first).collect(Collectors.toList());
+            //
+            //}
+            log.info("-----------------Db end:{}",System.currentTimeMillis());
+            if(!CollectionUtils.isEmpty(people)){
+               for (Person person : people) {
+                   PersonEdge personEdge = new PersonEdge();
+                   person = preViewPersonMap.get(person.getId());
+                   //如果上游数据不是最新的获取sso本身的扩展字段值
+                   if (CollectionUtils.isEmpty(person.getAttrsValues()) && !CollectionUtils.isEmpty(finalValueMap.get(person.getId()))) {
+                       List<DynamicValue> dynValues = finalValueMap.get(person.getId());
+                       person.setAttrsValues(dynValues);
+                   }
+                   personEdge.setNode(person);
+                   upstreamDept.add(personEdge);
+               }
+               personConnection.setEdges(upstreamDept);
+           }
         }
+        log.info("-------------------- preview Person end:{}",System.currentTimeMillis());
 
         return personConnection;
     }
