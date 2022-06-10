@@ -145,6 +145,9 @@ public class PostServiceImpl implements PostService {
                 if (StringUtils.isBlank(bean.getParentCode())) {
                     bean.setParentCode("");
                 }
+                //if("KaiFaZhe".equals(bean.getCode())){
+                //    logger.info("开发者:{}",bean);
+                //}
             }
         }
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
@@ -517,6 +520,9 @@ public class PostServiceImpl implements PostService {
                                             }
                                             //将修改表示改为true 标识数据需要修改
                                             updateFlag = true;
+                                            //if("开发者".equals(ssoBean.getName())){
+                                            //    logger.info("开发者区别字段:{} 新旧值:{}->{},实体:{}->{}",sourceField,oldValue,newValue,ssoBean,pullBean);
+                                            //}
                                             //如果上游给出删除标记 则使用上游的   不给则不处理
                                             if ("delMark".equalsIgnoreCase(sourceField) && null != ssoBean.getDelMark() && null != pullBean.getDelMark() && (ssoBean.getDelMark() == 1) && (pullBean.getDelMark() == 0)) {
                                                 //恢复标识
@@ -554,7 +560,7 @@ public class PostServiceImpl implements PostService {
                                     }
                                     //标识为删除的数据
                                     if (delFlag) {
-                                        if (!ssoBean.getRuleStatus() || (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource()))) {
+                                        if ((null != ssoBean.getRuleStatus() && !ssoBean.getRuleStatus()) || (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource()))) {
                                             result.put(ssoBean, "obsolete");
                                             logger.info("岗位对比后应删除{},但检测到对应权威源已经无效或规则未启用,跳过该数据", ssoBean.getId());
                                         } else {
@@ -583,7 +589,7 @@ public class PostServiceImpl implements PostService {
                                         ssoBean.setUpdateTime(now);
                                         //失效
                                         if (invalidFlag) {
-                                            if (!ssoBean.getRuleStatus() || (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource()))) {
+                                            if ((null != ssoBean.getRuleStatus() && !ssoBean.getRuleStatus()) || (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource()))) {
                                                 result.put(ssoBean, "obsolete");
                                                 logger.info("岗位对比后应置为失效{},但检测到对应权威源已无效或规则未启用,跳过该数据", ssoBean.getId());
                                             } else {
@@ -721,7 +727,7 @@ public class PostServiceImpl implements PostService {
                             //如果为有效的再走失效并更新修改时间,
                             //本身就是无效的则不做处理
                             if (1 == ssoBean.getActive()) {
-                                if (!ssoBean.getRuleStatus() || (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource()))) {
+                                if ((null != ssoBean.getRuleStatus() && !ssoBean.getRuleStatus()) || (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource()))) {
                                     result.put(ssoBean, "obsolete");
                                     logger.info("岗位对比后应置为失效{},但检测到对应权威源已无效或规则未启用,跳过该数据", ssoBean.getId());
                                 } else {

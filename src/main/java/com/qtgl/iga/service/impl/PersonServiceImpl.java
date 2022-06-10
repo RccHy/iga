@@ -225,6 +225,9 @@ public class PersonServiceImpl implements PersonService {
 
                     JSONObject personObj = JSON.parseObject(JSON.toJSONString(o));
                     Person personUpstream = personObj.toJavaObject(Person.class);
+                    //if("孙思思33".equals(personUpstream)){
+                    //    log.info("人员debug{}上游数据",personUpstream);
+                    //}
 
                     if (null != personUpstream.getActive() && personUpstream.getActive() != 0 && personUpstream.getActive() != 1) {
                         extracted(domain, personUpstream, "人员是否有效字段不合法");
@@ -732,7 +735,7 @@ public class PersonServiceImpl implements PersonService {
 
 
                 if (delFlag) {
-                    if (personFromSSO.getRuleStatus() && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
+                    if ((null == personFromSSO.getRuleStatus() || personFromSSO.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
                         personFromSSO.setDelMark(1);
                         personFromSSO.setUpdateTime(newPerson.getUpdateTime());
                         personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
@@ -766,7 +769,7 @@ public class PersonServiceImpl implements PersonService {
                     }
                     //失效
                     if (invalidFlag) {
-                        if (personFromSSO.getRuleStatus() && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
+                        if ((null == personFromSSO.getRuleStatus() || personFromSSO.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
                             personFromSSO.setActive(0);
                             personFromSSO.setActiveTime(newPerson.getUpdateTime());
                             personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
@@ -886,7 +889,7 @@ public class PersonServiceImpl implements PersonService {
                 && (null == personFromSSO.getActive() || personFromSSO.getActive() == 1)
                 && "PULL".equalsIgnoreCase(personFromSSO.getDataSource())) {
 
-            if (personFromSSO.getRuleStatus() && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
+            if ((null == personFromSSO.getRuleStatus() || personFromSSO.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
                 personFromSSO.setActive(0);
                 personFromSSO.setActiveTime(now);
                 personFromSSO.setUpdateTime(now);
@@ -1120,7 +1123,7 @@ public class PersonServiceImpl implements PersonService {
 
                 //if (licitFlag) {
                 if (delFlag) {
-                    if (personFromSSO.getRuleStatus() && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
+                    if ((null == personFromSSO.getRuleStatus() || personFromSSO.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
                         personFromSSO.setDelMark(1);
                         personFromSSO.setUpdateTime(newPerson.getUpdateTime());
                         personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
@@ -1154,7 +1157,7 @@ public class PersonServiceImpl implements PersonService {
                     }
                     //失效
                     if (invalidFlag) {
-                        if (personFromSSO.getRuleStatus() && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
+                        if ((null == personFromSSO.getRuleStatus() || personFromSSO.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
                             personFromSSO.setActive(0);
                             personFromSSO.setActiveTime(newPerson.getUpdateTime());
                             personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
@@ -1276,7 +1279,7 @@ public class PersonServiceImpl implements PersonService {
                 && 1 != personFromSSO.getDelMark()
                 && (null == personFromSSO.getActive() || personFromSSO.getActive() == 1)
                 && "PULL".equalsIgnoreCase(personFromSSO.getDataSource())) {
-            if (personFromSSO.getRuleStatus() && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
+            if ((null == personFromSSO.getRuleStatus() || personFromSSO.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
                 personFromSSO.setActive(0);
                 personFromSSO.setActiveTime(now);
                 personFromSSO.setUpdateTime(now);

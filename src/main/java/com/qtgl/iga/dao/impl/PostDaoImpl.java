@@ -39,7 +39,7 @@ public class PostDaoImpl implements PostDao {
         //
         String sql = "select id, user_type as code , name, parent_code as parentCode , " +
                 " update_time as createTime," +
-                "source,data_source as dataSource,user_type_index as deptIndex,del_mark as delMark,update_time as updateTime,post_type as type,active from user_type where tenant_id = ? and client_id is null or client_id = ''  ";
+                "source,data_source as dataSource,user_type_index as deptIndex,del_mark as delMark,update_time as updateTime,post_type as type,active,tags from user_type where tenant_id = ? and client_id is null or client_id = ''  ";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, id);
         return getUserTypes(mapList);
