@@ -1417,6 +1417,8 @@ public class PersonServiceImpl implements PersonService {
             personDao.removeData(domain);
 
             personDao.saveToTemp(personList,domain);
+
+            log.info("-----------------Db query start:{}",System.currentTimeMillis());
             //根据条件查询
             List<Person> people = personDao.findPersonTemp(arguments,domain);
             //Boolean active = (Boolean) arguments.get("active");
@@ -1427,6 +1429,8 @@ public class PersonServiceImpl implements PersonService {
             //Integer offset = (Integer) arguments.get("offset");
             //Integer first = (Integer) arguments.get("first");
             personConnection.setTotalCount(personList.size());
+            log.info("-----------------Db query end:{}",System.currentTimeMillis());
+
             //if (null != offset && null != first) {
             //    personList = personList.stream().sorted(Comparator.comparing(Person::getUpdateTime).thenComparing(Person::getName)).skip(offset).limit(first).collect(Collectors.toList());
             //
