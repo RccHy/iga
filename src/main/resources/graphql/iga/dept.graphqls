@@ -13,6 +13,12 @@ extend type Query {
     preViewPersons(type:String,filter:PersonFilter ,offset:Int,first:Int):PersonConnection
     #预览人员身份  offset:跳过几条  first:取几条
     preViewOccupies(type:String,filter:OccupyFilter,offset:Int,first:Int):OccupyConnection
+    #刷新  type表示类型(person)
+    reFreshPersons(type:String):PreViewResult
+    #刷新  type表示类型(occupy)
+    reFreshOccupies(type:String):PreViewResult
+    #通过任务标识获取任务进行状态
+    reFreshTaskStatus(taskId:String):PreViewResult
 }
 
 
@@ -145,7 +151,19 @@ input OccupyFilter{
     name:stringFilter
     username:stringFilter
     cardNo:stringFilter
-    email:stringFilter
+    positionCardNo:stringFilter
+    positionEndTime:timestampFilter
+    positionStartTime:timestampFilter
+    deptCode:stringFilter
+    postCode:stringFilter
+}
+
+#预览结果集###
+type PreViewResult{
+    #任务状态
+    status: String
+    #任务标识
+    taskId: String
 }
 
 

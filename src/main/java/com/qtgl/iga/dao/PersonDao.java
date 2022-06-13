@@ -21,5 +21,5 @@ public interface PersonDao {
 
     void removeData(DomainInfo domain);
 
-    Integer findPersonTempCount();
+    Integer findPersonTempCount(DomainInfo domain);
 }

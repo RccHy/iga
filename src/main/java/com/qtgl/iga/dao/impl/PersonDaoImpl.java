@@ -347,15 +347,16 @@ public class PersonDaoImpl implements PersonDao {
 
     @Override
     public void removeData(DomainInfo domain) {
-        String sql = " TRUNCATE `person_temp`";
-        jdbcIGA.execute(sql);
+        String sql = " delete from  `person_temp` where tenant_id =? ";
+        jdbcIGA.update(sql,domain.getId());
     }
 
     @Override
-    public Integer findPersonTempCount() {
-        String sql = " SELECT count(*) from person_temp  ";
-        jdbcIGA.queryForList(sql);
-        Integer integer = jdbcIGA.queryForObject(sql, Integer.class);
+    public Integer findPersonTempCount(DomainInfo domain) {
+        String sql = " SELECT count(*) from person_temp where tenant_id=?  ";
+        List<Object> param = new ArrayList<>();
+        param.add(domain.getId());
+        Integer integer = jdbcIGA.queryForObject(sql,param.toArray(), Integer.class);
         return integer;
     }
 

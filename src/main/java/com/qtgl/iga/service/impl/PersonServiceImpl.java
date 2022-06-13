@@ -6,7 +6,9 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.PersonConnection;
 import com.qtgl.iga.bean.PersonEdge;
+import com.qtgl.iga.bean.PreViewResult;
 import com.qtgl.iga.bo.*;
+import com.qtgl.iga.config.PreViewThreadPool;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.dao.impl.DynamicAttrDaoImpl;
 import com.qtgl.iga.dao.impl.DynamicValueDaoImpl;
@@ -33,6 +35,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -67,6 +70,11 @@ public class PersonServiceImpl implements PersonService {
     ConfigService configService;
 
     public static ConcurrentHashMap<String, List<JSONObject>> personErrorData = null;
+    //
+    public static ConcurrentHashMap<String, List<Person>> personPreViewData = null;
+
+    public static ConcurrentHashMap<String, PreViewResult> preViewTask = null;
+
     //类型
     private final String TYPE = "USER";
     //加密方式
@@ -1345,117 +1353,168 @@ public class PersonServiceImpl implements PersonService {
     }
 
     @Override
-    public PersonConnection preViewPersons(Map<String, Object> arguments, DomainInfo domain) throws Exception {
-        log.info("-------------------- preview Person start:{}",System.currentTimeMillis());
+    public PersonConnection preViewPersons(Map<String, Object> arguments, DomainInfo domain) {
+        if (!CollectionUtils.isEmpty(personPreViewData) && !CollectionUtils.isEmpty(personPreViewData.get(domain.getId()))) {
+            Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+            if (null == tenant) {
+                throw new CustomException(ResultCode.FAILED, "租户不存在");
+            }
 
-        //错误数据置空
-        TaskConfig.errorData.put(domain.getId(), "");
-        personErrorData = new ConcurrentHashMap<>();
-        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
-        if (null == tenant) {
-            throw new CustomException(ResultCode.FAILED, "租户不存在");
-        }
-        // 所有证件类型
-        List<CardType> cardTypes = cardTypeDao.findAllUser(tenant.getId());
-        Map<String, CardType> cardTypeMap = cardTypes.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
-        //获取密码加密方式
-        pwdConfig = configService.getPasswordConfigByTenantIdAndStatusAndPluginNameAndDelMarkIsFalse(tenant.getId(), "ENABLED", "CommonPlugin");
 
-        //获取扩展字段列表
-        List<String> dynamicCodes = new ArrayList<>();
+            List<DynamicValue> dynamicValues = new ArrayList<>();
 
-        List<DynamicValue> dynamicValues = new ArrayList<>();
+            List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
 
-        List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
-        log.info("获取到当前租户{}的映射字段集为{}", tenant.getId(), dynamicAttrs);
+            if (!CollectionUtils.isEmpty(dynamicAttrs)) {
 
-        //扩展字段修改容器
-        List<DynamicValue> valueUpdate = new ArrayList<>();
-        //扩展字段新增容器
-        ArrayList<DynamicValue> valueInsert = new ArrayList<>();
+                //获取扩展value
+                List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getId()).collect(Collectors.toList());
 
-        if (!CollectionUtils.isEmpty(dynamicAttrs)) {
-            dynamicCodes = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getCode()).collect(Collectors.toList());
+                dynamicValues = dynamicValueDao.findAllByAttrId(attrIds, tenant.getId());
+            }
 
-            //获取扩展value
-            List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getId()).collect(Collectors.toList());
+            //扩展字段值分组
+            Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
+            if (!CollectionUtils.isEmpty(dynamicValues)) {
+                valueMap = dynamicValues.stream().filter(dynamicValue -> !StringUtils.isBlank(dynamicValue.getEntityId())).collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
+            }
+            Map<String, List<DynamicValue>> finalValueMap = valueMap;
 
-            dynamicValues = dynamicValueDao.findAllByAttrId(attrIds, tenant.getId());
-        }
-
-        //扩展字段值分组
-        Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
-        if (!CollectionUtils.isEmpty(dynamicValues)) {
-            valueMap = dynamicValues.stream().filter(dynamicValue -> !StringUtils.isBlank(dynamicValue.getEntityId())).collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
-        }
-        List<String> finalDynamicCodes = dynamicCodes;
-        Map<String, List<DynamicValue>> finalValueMap = valueMap;
-
-        // 根据证件类型+证件号
-        Map<String, Person> personFromUpstream = new ConcurrentHashMap<>();
-        // 根据用户名
-        Map<String, Person> personFromUpstreamByAccount = new ConcurrentHashMap<>();
-        //合重容器
-        Map<String, Person> personRepeatByAccount = new ConcurrentHashMap<>();
-        // 存储最终需要操作的数据
-        Map<String, List<Person>> result = new HashMap<>();
-        //扩展字段id与code对应map
-        Map<String, String> attrMap = new ConcurrentHashMap<>();
-        Map<String, String> attrReverseMap = new ConcurrentHashMap<>();
-        log.info("----------------- upstream Person start:{}",System.currentTimeMillis());
-        List<Person> personList = dataProcessing(domain, tenant, cardTypeMap, dynamicAttrs, valueUpdate, valueInsert, finalDynamicCodes, finalValueMap, personFromUpstream, personFromUpstreamByAccount, personRepeatByAccount, result, attrMap, attrReverseMap, arguments);
-        log.info("----------------- upstream Person end:{}",System.currentTimeMillis());
-
-        PersonConnection personConnection = new PersonConnection();
-        List<PersonEdge> upstreamDept = new ArrayList<>();
-        if (!CollectionUtils.isEmpty(personList)) {
-            log.info("-----------------Db start:{}",System.currentTimeMillis());
+            List<Person> personList = personPreViewData.get(domain.getId());
+            PersonConnection personConnection = new PersonConnection();
+            List<PersonEdge> upstreamDept = new ArrayList<>();
 
             Map<String, Person> preViewPersonMap = personList.stream().filter(person -> !StringUtils.isBlank(person.getId())).collect(Collectors.toMap(person -> (person.getId()), person -> person, (v1, v2) -> v2));
-
-            //存储到临时表(首先清除上次遗留数据)
-            personDao.removeData(domain);
-            Integer  i  = personDao.findPersonTempCount();
-            log.info("---------------清除人员数据完毕:{}",i);
-
-            personDao.saveToTemp(personList,domain);
-
-            log.info("-----------------Db query start:{}",System.currentTimeMillis());
             //根据条件查询
-            List<Person> people = personDao.findPersonTemp(arguments,domain);
-            //Boolean active = (Boolean) arguments.get("active");
-            ////是否有效过滤
-            //if (null != active) {
-            //    personList = personList.stream().filter(person -> active.equals((person.getActive()==1?true:false))).collect(Collectors.toList());
-            //}
-            //Integer offset = (Integer) arguments.get("offset");
-            //Integer first = (Integer) arguments.get("first");
-            personConnection.setTotalCount(personList.size());
-            log.info("-----------------Db query end:{}",System.currentTimeMillis());
-
-            //if (null != offset && null != first) {
-            //    personList = personList.stream().sorted(Comparator.comparing(Person::getUpdateTime).thenComparing(Person::getName)).skip(offset).limit(first).collect(Collectors.toList());
-            //
-            //}
-            log.info("-----------------Db end:{}",System.currentTimeMillis());
-            if(!CollectionUtils.isEmpty(people)){
-               for (Person person : people) {
-                   PersonEdge personEdge = new PersonEdge();
-                   person = preViewPersonMap.get(person.getId());
-                   //如果上游数据不是最新的获取sso本身的扩展字段值
-                   if (CollectionUtils.isEmpty(person.getAttrsValues()) && !CollectionUtils.isEmpty(finalValueMap.get(person.getId()))) {
-                       List<DynamicValue> dynValues = finalValueMap.get(person.getId());
-                       person.setAttrsValues(dynValues);
-                   }
-                   personEdge.setNode(person);
-                   upstreamDept.add(personEdge);
-               }
-               personConnection.setEdges(upstreamDept);
-           }
+            List<Person> people = personDao.findPersonTemp(arguments, domain);
+            Integer personTempCount = personDao.findPersonTempCount(domain);
+            personConnection.setTotalCount(personTempCount);
+            if (!CollectionUtils.isEmpty(people)) {
+                for (Person person : people) {
+                    PersonEdge personEdge = new PersonEdge();
+                    person = preViewPersonMap.get(person.getId());
+                    //如果上游数据不是最新的获取sso本身的扩展字段值
+                    if (CollectionUtils.isEmpty(person.getAttrsValues()) && !CollectionUtils.isEmpty(finalValueMap.get(person.getId()))) {
+                        List<DynamicValue> dynValues = finalValueMap.get(person.getId());
+                        person.setAttrsValues(dynValues);
+                    }
+                    personEdge.setNode(person);
+                    upstreamDept.add(personEdge);
+                }
+                personConnection.setEdges(upstreamDept);
+            }
+            return personConnection;
+        } else {
+            return null;
         }
-        log.info("-------------------- preview Person end:{}",System.currentTimeMillis());
 
-        return personConnection;
+    }
+
+    @Override
+    public PreViewResult reFreshPersons(Map<String, Object> arguments, DomainInfo domain) {
+        //容器初始化
+        if (null == preViewTask) {
+            preViewTask = new ConcurrentHashMap<>();
+        }
+        PreViewResult viewResult = new PreViewResult();
+        viewResult.setTaskId(UUID.randomUUID().toString());
+        viewResult.setStatus("doing");
+        preViewTask.put(viewResult.getTaskId(), viewResult);
+
+        if (PreViewThreadPool.executorServiceMap.containsKey(domain.getDomainName())) {
+            ExecutorService executorService = PreViewThreadPool.executorServiceMap.get(domain.getDomainName());
+            executorService.execute(() -> {
+                //错误数据置空
+                TaskConfig.errorData.put(domain.getId(), "");
+                personErrorData = new ConcurrentHashMap<>();
+                Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+                if (null == tenant) {
+                    throw new CustomException(ResultCode.FAILED, "租户不存在");
+                }
+                // 所有证件类型
+                List<CardType> cardTypes = cardTypeDao.findAllUser(tenant.getId());
+                Map<String, CardType> cardTypeMap = cardTypes.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
+                //获取密码加密方式
+                pwdConfig = configService.getPasswordConfigByTenantIdAndStatusAndPluginNameAndDelMarkIsFalse(tenant.getId(), "ENABLED", "CommonPlugin");
+
+                //获取扩展字段列表
+                List<String> dynamicCodes = new ArrayList<>();
+
+                List<DynamicValue> dynamicValues = new ArrayList<>();
+
+                List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
+                log.info("获取到当前租户{}的映射字段集为{}", tenant.getId(), dynamicAttrs);
+
+                //扩展字段修改容器
+                List<DynamicValue> valueUpdate = new ArrayList<>();
+                //扩展字段新增容器
+                ArrayList<DynamicValue> valueInsert = new ArrayList<>();
+
+                if (!CollectionUtils.isEmpty(dynamicAttrs)) {
+                    dynamicCodes = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getCode()).collect(Collectors.toList());
+
+                    //获取扩展value
+                    List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getId()).collect(Collectors.toList());
+
+                    dynamicValues = dynamicValueDao.findAllByAttrId(attrIds, tenant.getId());
+                }
+
+                //扩展字段值分组
+                Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
+                if (!CollectionUtils.isEmpty(dynamicValues)) {
+                    valueMap = dynamicValues.stream().filter(dynamicValue -> !StringUtils.isBlank(dynamicValue.getEntityId())).collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
+                }
+                List<String> finalDynamicCodes = dynamicCodes;
+                Map<String, List<DynamicValue>> finalValueMap = valueMap;
+
+                // 根据证件类型+证件号
+                Map<String, Person> personFromUpstream = new ConcurrentHashMap<>();
+                // 根据用户名
+                Map<String, Person> personFromUpstreamByAccount = new ConcurrentHashMap<>();
+                //合重容器
+                Map<String, Person> personRepeatByAccount = new ConcurrentHashMap<>();
+                // 存储最终需要操作的数据
+                Map<String, List<Person>> result = new HashMap<>();
+                //扩展字段id与code对应map
+                Map<String, String> attrMap = new ConcurrentHashMap<>();
+                Map<String, String> attrReverseMap = new ConcurrentHashMap<>();
+                log.info("----------------- upstream Person start:{}", System.currentTimeMillis());
+                List<Person> personList = null;
+                try {
+                    personList = dataProcessing(domain, tenant, cardTypeMap, dynamicAttrs, valueUpdate, valueInsert, finalDynamicCodes, finalValueMap, personFromUpstream, personFromUpstreamByAccount, personRepeatByAccount, result, attrMap, attrReverseMap, arguments);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    throw new CustomException(ResultCode.FAILED, e.getMessage());
+                }
+                log.info("----------------- upstream Person end:{}", System.currentTimeMillis());
+                //存储到临时表(首先清除上次遗留数据)
+                personDao.removeData(domain);
+                Integer i = personDao.findPersonTempCount(domain);
+                log.info("---------------租户:{},清除人员数据完毕:{}", domain.getId(), i);
+                personDao.saveToTemp(personList, domain);
+                if (null == personPreViewData) {
+                    personPreViewData = new ConcurrentHashMap<>();
+                }
+                personPreViewData.put(domain.getId(), personList);
+                viewResult.setStatus("done");
+                preViewTask.put(viewResult.getTaskId(), viewResult);
+            });
+        } else {
+            PreViewThreadPool.builderExecutor(domain.getDomainName());
+            reFreshPersons(arguments, domain);
+        }
+
+
+        return viewResult;
+    }
+
+    @Override
+    public PreViewResult reFreshTaskStatus(Map<String, Object> arguments, DomainInfo domain) {
+        if(null!=preViewTask){
+            Object id = arguments.get("taskId");
+            return preViewTask.get(id);
+        }
+        return null;
     }
 
 
