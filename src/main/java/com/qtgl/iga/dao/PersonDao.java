@@ -20,4 +20,6 @@ public interface PersonDao {
     List<Person> findPersonTemp(Map<String, Object> arguments, DomainInfo domain);
 
     void removeData(DomainInfo domain);
+
+    Integer findPersonTempCount();
 }

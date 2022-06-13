@@ -1415,6 +1415,8 @@ public class PersonServiceImpl implements PersonService {
 
             //存储到临时表(首先清除上次遗留数据)
             personDao.removeData(domain);
+            Integer  i  = personDao.findPersonTempCount();
+            log.info("---------------清除人员数据完毕:{}",i);
 
             personDao.saveToTemp(personList,domain);
 

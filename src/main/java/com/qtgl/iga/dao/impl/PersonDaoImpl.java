@@ -351,6 +351,14 @@ public class PersonDaoImpl implements PersonDao {
         jdbcIGA.execute(sql);
     }
 
+    @Override
+    public Integer findPersonTempCount() {
+        String sql = " SELECT count(*) from person_temp  ";
+        jdbcIGA.queryForList(sql);
+        Integer integer = jdbcIGA.queryForObject(sql, Integer.class);
+        return integer;
+    }
+
     private void dealData(Map<String, Object> arguments, StringBuffer stb, List<Object> param) {
         Iterator<Map.Entry<String, Object>> it = arguments.entrySet().iterator();
         while (it.hasNext()) {
