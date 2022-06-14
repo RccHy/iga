@@ -4,7 +4,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.*;
 import com.qtgl.iga.bo.*;
-import com.qtgl.iga.config.PreViewThreadPool;
+import com.qtgl.iga.config.PreViewOccupyThreadPool;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.OccupyService;
 import com.qtgl.iga.task.TaskConfig;
@@ -750,6 +750,12 @@ public class OccupyServiceImpl implements OccupyService {
 
     @Override
     public OccupyConnection preViewOccupies(Map<String, Object> arguments, DomainInfo domain) throws Exception {
+        Integer i = occupyDao.findOccupyTempCount(domain);
+
+        //判断数据库是否有数据
+        if (i <= 0) {
+            this.executePreView(arguments, domain, null);
+        }
         //根据条件查询
         List<OccupyDto> occupyDtos = occupyDao.findOccupyTemp(arguments, domain);
 
@@ -789,53 +795,71 @@ public class OccupyServiceImpl implements OccupyService {
 
         viewResult.setTaskId(UUID.randomUUID().toString());
         viewResult.setStatus("doing");
-        PersonServiceImpl.preViewTask.put(viewResult.getTaskId(), viewResult);
+        if (PersonServiceImpl.preViewTask.size() <= 10) {
+            PersonServiceImpl.preViewTask.put(viewResult.getTaskId(), viewResult);
+        } else {
+            Optional<String> first = PersonServiceImpl.preViewTask.keySet().stream().findFirst();
+            String s = first.get();
+            if (null != PersonServiceImpl.preViewTask.get(s) && PersonServiceImpl.preViewTask.get(s).getStatus().equals("done")) {
+                PersonServiceImpl.preViewTask.remove(s);
+                PersonServiceImpl.preViewTask.put(viewResult.getTaskId(), viewResult);
+            } else {
+                throw new CustomException(ResultCode.FAILED, "当前任务池已满,无法创建新的刷新任务,请耐心等待");
+            }
 
-        if (PreViewThreadPool.executorServiceMap.containsKey(domain.getDomainName())) {
-            ExecutorService executorService = PreViewThreadPool.executorServiceMap.get(domain.getDomainName());
+        }
+
+        if (PreViewOccupyThreadPool.executorServiceMap.containsKey(domain.getDomainName())) {
+            ExecutorService executorService = PreViewOccupyThreadPool.executorServiceMap.get(domain.getDomainName());
             executorService.execute(() -> {
 
-                //错误数据容器初始化
-                occupyErrorData = new ConcurrentHashMap<>();
-
-                Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
-                if (null == tenant) {
-                    throw new CustomException(ResultCode.FAILED, "租户不存在");
-                }
-                // 所有证件类型
-                List<CardType> cardTypes = cardTypeDao.findAllUser(tenant.getId());
-                Map<String, CardType> userCardTypeMap = cardTypes.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
-
-
-                List<CardType> cardTypes2 = cardTypeDao.findAllFromIdentity(tenant.getId());
-                Map<String, CardType> identityCardTypeMap = cardTypes2.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
-                // 存储最终需要操作的数据
-                Map<String, List<OccupyDto>> result = new HashMap<>();
-                //重复需要删除的sso身份数据
-                ArrayList<OccupyDto> deleteFromSSO = new ArrayList<>();
-                //上游数据,用于异常的数据展示
-                Map<String, OccupyDto> occupyDtoFromUpstream = new HashMap<>();
-                List<OccupyDto> occupyDtos = null;
-                try {
-                    occupyDtos = dataProcessing(domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    throw new CustomException(ResultCode.FAILED, e.getMessage());
-                }
-                //存储到临时表(首先清除上次遗留数据)
-                occupyDao.removeData(domain);
-                Integer i = occupyDao.findOccupyTempCount(domain);
-                log.info("---------------租户:{},清除人员身份数据完毕:{}", domain.getId(), i);
-                occupyDao.saveToTemp(occupyDtos, domain);
-                viewResult.setStatus("done");
-                PersonServiceImpl.preViewTask.put(viewResult.getTaskId(), viewResult);
+                executePreView(arguments, domain, viewResult);
 
             });
         } else {
-            PreViewThreadPool.builderExecutor(domain.getDomainName());
+            PreViewOccupyThreadPool.builderExecutor(domain.getDomainName());
             reFreshOccupies(arguments, domain);
         }
 
         return viewResult;
+    }
+
+    private void executePreView(Map<String, Object> arguments, DomainInfo domain, PreViewResult viewResult) {
+        //错误数据容器初始化
+        occupyErrorData = new ConcurrentHashMap<>();
+
+        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        if (null == tenant) {
+            throw new CustomException(ResultCode.FAILED, "租户不存在");
+        }
+        // 所有证件类型
+        List<CardType> cardTypes = cardTypeDao.findAllUser(tenant.getId());
+        Map<String, CardType> userCardTypeMap = cardTypes.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
+
+
+        List<CardType> cardTypes2 = cardTypeDao.findAllFromIdentity(tenant.getId());
+        Map<String, CardType> identityCardTypeMap = cardTypes2.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
+        // 存储最终需要操作的数据
+        Map<String, List<OccupyDto>> result = new HashMap<>();
+        //重复需要删除的sso身份数据
+        ArrayList<OccupyDto> deleteFromSSO = new ArrayList<>();
+        //上游数据,用于异常的数据展示
+        Map<String, OccupyDto> occupyDtoFromUpstream = new HashMap<>();
+        List<OccupyDto> occupyDtos = null;
+        try {
+            occupyDtos = dataProcessing(domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new CustomException(ResultCode.FAILED, e.getMessage());
+        }
+        //存储到临时表(首先清除上次遗留数据)
+        occupyDao.removeData(domain);
+        Integer i = occupyDao.findOccupyTempCount(domain);
+        log.info("---------------租户:{},清除人员身份数据完毕:{}", domain.getId(), i);
+        occupyDao.saveToTemp(occupyDtos, domain);
+        if (null != viewResult) {
+            viewResult.setStatus("done");
+            PersonServiceImpl.preViewTask.put(viewResult.getTaskId(), viewResult);
+        }
     }
 }
