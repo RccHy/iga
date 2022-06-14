@@ -1356,75 +1356,74 @@ public class PersonServiceImpl implements PersonService {
     public PersonConnection preViewPersons(Map<String, Object> arguments, DomainInfo domain) {
         Integer i = personDao.findPersonTempCount(domain);
         //判断数据库是否有数据
-        if (i <= 0) {
-            this.executePreView(arguments, domain, null);
+        if (i <= 0 || CollectionUtils.isEmpty(personPreViewData) || (!CollectionUtils.isEmpty(personPreViewData) && CollectionUtils.isEmpty(personPreViewData.get(domain.getId())))) {
+            this.reFreshPersons(arguments, domain, null);
+            return null;
         }
-        if (!CollectionUtils.isEmpty(personPreViewData) && !CollectionUtils.isEmpty(personPreViewData.get(domain.getId()))) {
-            Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
-            if (null == tenant) {
-                throw new CustomException(ResultCode.FAILED, "租户不存在");
-            }
+        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        if (null == tenant) {
+            throw new CustomException(ResultCode.FAILED, "租户不存在");
+        }
 
 
-            List<DynamicValue> dynamicValues = new ArrayList<>();
+        List<DynamicValue> dynamicValues = new ArrayList<>();
 
-            List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
+        List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
 
-            if (!CollectionUtils.isEmpty(dynamicAttrs)) {
+        if (!CollectionUtils.isEmpty(dynamicAttrs)) {
 
-                //获取扩展value
-                List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getId()).collect(Collectors.toList());
+            //获取扩展value
+            List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getId()).collect(Collectors.toList());
 
-                dynamicValues = dynamicValueDao.findAllByAttrId(attrIds, tenant.getId());
-            }
+            dynamicValues = dynamicValueDao.findAllByAttrId(attrIds, tenant.getId());
+        }
 
-            //扩展字段值分组
-            Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
-            if (!CollectionUtils.isEmpty(dynamicValues)) {
-                valueMap = dynamicValues.stream().filter(dynamicValue -> !StringUtils.isBlank(dynamicValue.getEntityId())).collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
-            }
-            Map<String, List<DynamicValue>> finalValueMap = valueMap;
+        //扩展字段值分组
+        Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(dynamicValues)) {
+            valueMap = dynamicValues.stream().filter(dynamicValue -> !StringUtils.isBlank(dynamicValue.getEntityId())).collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
+        }
+        Map<String, List<DynamicValue>> finalValueMap = valueMap;
 
-            List<Person> personList = personPreViewData.get(domain.getId());
-            PersonConnection personConnection = new PersonConnection();
-            List<PersonEdge> upstreamDept = new ArrayList<>();
+        List<Person> personList = personPreViewData.get(domain.getId());
+        PersonConnection personConnection = new PersonConnection();
+        List<PersonEdge> upstreamDept = new ArrayList<>();
 
-            Map<String, Person> preViewPersonMap = personList.stream().filter(person -> !StringUtils.isBlank(person.getId())).collect(Collectors.toMap(person -> (person.getId()), person -> person, (v1, v2) -> v2));
-            //根据条件查询
-            List<Person> people = personDao.findPersonTemp(arguments, domain);
-            Integer personTempCount = personDao.findPersonTempCount(domain);
-            personConnection.setTotalCount(personTempCount);
-            if (!CollectionUtils.isEmpty(people)) {
-                for (Person person : people) {
-                    PersonEdge personEdge = new PersonEdge();
-                    person = preViewPersonMap.get(person.getId());
-                    //如果上游数据不是最新的获取sso本身的扩展字段值
-                    if (CollectionUtils.isEmpty(person.getAttrsValues()) && !CollectionUtils.isEmpty(finalValueMap.get(person.getId()))) {
-                        List<DynamicValue> dynValues = finalValueMap.get(person.getId());
-                        person.setAttrsValues(dynValues);
-                    }
-                    personEdge.setNode(person);
-                    upstreamDept.add(personEdge);
+        Map<String, Person> preViewPersonMap = personList.stream().filter(person -> !StringUtils.isBlank(person.getId())).collect(Collectors.toMap(person -> (person.getId()), person -> person, (v1, v2) -> v2));
+        //根据条件查询
+        List<Person> people = personDao.findPersonTemp(arguments, domain);
+        Integer personTempCount = personDao.findPersonTempCount(domain);
+        personConnection.setTotalCount(personTempCount);
+        if (!CollectionUtils.isEmpty(people)) {
+            for (Person person : people) {
+                PersonEdge personEdge = new PersonEdge();
+                person = preViewPersonMap.get(person.getId());
+                //如果上游数据不是最新的获取sso本身的扩展字段值
+                if (CollectionUtils.isEmpty(person.getAttrsValues()) && !CollectionUtils.isEmpty(finalValueMap.get(person.getId()))) {
+                    List<DynamicValue> dynValues = finalValueMap.get(person.getId());
+                    person.setAttrsValues(dynValues);
                 }
-                personConnection.setEdges(upstreamDept);
+                personEdge.setNode(person);
+                upstreamDept.add(personEdge);
             }
-            return personConnection;
-        } else {
-            personDao.removeData(domain);
-            return preViewPersons(arguments,domain);
+            personConnection.setEdges(upstreamDept);
         }
+        return personConnection;
+
 
     }
 
     @Override
-    public PreViewResult reFreshPersons(Map<String, Object> arguments, DomainInfo domain) {
+    public PreViewResult reFreshPersons(Map<String, Object> arguments, DomainInfo domain, PreViewResult viewResult) {
         //容器初始化
         if (null == preViewTask) {
             preViewTask = new ConcurrentHashMap<>();
         }
-        PreViewResult viewResult = new PreViewResult();
-        viewResult.setTaskId(UUID.randomUUID().toString());
-        viewResult.setStatus("doing");
+        if (null == viewResult) {
+            viewResult = new PreViewResult();
+            viewResult.setTaskId(UUID.randomUUID().toString());
+            viewResult.setStatus("doing");
+        }
         if (PersonServiceImpl.preViewTask.size() <= 10) {
             PersonServiceImpl.preViewTask.put(viewResult.getTaskId(), viewResult);
         } else {
@@ -1441,12 +1440,13 @@ public class PersonServiceImpl implements PersonService {
 
         if (PreViewPersonThreadPool.executorServiceMap.containsKey(domain.getDomainName())) {
             ExecutorService executorService = PreViewPersonThreadPool.executorServiceMap.get(domain.getDomainName());
+            PreViewResult finalViewResult = viewResult;
             executorService.execute(() -> {
-                executePreView(arguments, domain, viewResult);
+                executePreView(arguments, domain, finalViewResult);
             });
         } else {
             PreViewPersonThreadPool.builderExecutor(domain.getDomainName());
-            reFreshPersons(arguments, domain);
+            reFreshPersons(arguments, domain, viewResult);
         }
 
 
@@ -1529,6 +1529,7 @@ public class PersonServiceImpl implements PersonService {
         if (null != viewResult) {
             viewResult.setStatus("done");
             preViewTask.put(viewResult.getTaskId(), viewResult);
+            log.info("人员刷新完毕,任务id为:{}", viewResult.getTaskId());
         }
     }
 

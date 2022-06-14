@@ -754,7 +754,7 @@ public class OccupyServiceImpl implements OccupyService {
 
         //判断数据库是否有数据
         if (i <= 0) {
-            this.executePreView(arguments, domain, null);
+            this.reFreshOccupies(arguments, domain,null);
         }
         //根据条件查询
         List<OccupyDto> occupyDtos = occupyDao.findOccupyTemp(arguments, domain);
@@ -786,15 +786,18 @@ public class OccupyServiceImpl implements OccupyService {
     }
 
     @Override
-    public PreViewResult reFreshOccupies(Map<String, Object> arguments, DomainInfo domain) {
+    public PreViewResult reFreshOccupies(Map<String, Object> arguments, DomainInfo domain,PreViewResult viewResult) {
         //容器初始化
         if (null == PersonServiceImpl.preViewTask) {
             PersonServiceImpl.preViewTask = new ConcurrentHashMap<>();
         }
-        PreViewResult viewResult = new PreViewResult();
+        if(null==viewResult){
+            viewResult = new PreViewResult();
 
-        viewResult.setTaskId(UUID.randomUUID().toString());
-        viewResult.setStatus("doing");
+            viewResult.setTaskId(UUID.randomUUID().toString());
+            viewResult.setStatus("doing");
+        }
+
         if (PersonServiceImpl.preViewTask.size() <= 10) {
             PersonServiceImpl.preViewTask.put(viewResult.getTaskId(), viewResult);
         } else {
@@ -811,14 +814,15 @@ public class OccupyServiceImpl implements OccupyService {
 
         if (PreViewOccupyThreadPool.executorServiceMap.containsKey(domain.getDomainName())) {
             ExecutorService executorService = PreViewOccupyThreadPool.executorServiceMap.get(domain.getDomainName());
+            PreViewResult finalViewResult = viewResult;
             executorService.execute(() -> {
 
-                executePreView(arguments, domain, viewResult);
+                executePreView(arguments, domain, finalViewResult);
 
             });
         } else {
             PreViewOccupyThreadPool.builderExecutor(domain.getDomainName());
-            reFreshOccupies(arguments, domain);
+            reFreshOccupies(arguments, domain,viewResult);
         }
 
         return viewResult;
@@ -860,6 +864,7 @@ public class OccupyServiceImpl implements OccupyService {
         if (null != viewResult) {
             viewResult.setStatus("done");
             PersonServiceImpl.preViewTask.put(viewResult.getTaskId(), viewResult);
+            log.info("人员身份刷新完毕,任务id为:{}",viewResult.getTaskId());
         }
     }
 }

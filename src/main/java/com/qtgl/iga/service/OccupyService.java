@@ -18,5 +18,5 @@ public interface OccupyService {
     OccupyConnection preViewOccupies(Map<String, Object> arguments, DomainInfo domain) throws Exception;
 
 
-    PreViewResult reFreshOccupies(Map<String, Object> arguments, DomainInfo domain);
+    PreViewResult reFreshOccupies(Map<String, Object> arguments, DomainInfo domain,PreViewResult preViewResult);
 }

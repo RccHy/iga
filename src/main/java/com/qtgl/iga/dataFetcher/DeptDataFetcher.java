@@ -195,7 +195,7 @@ public class DeptDataFetcher {
 
 
             try {
-                PreViewResult result = personService.reFreshPersons(arguments, domain);
+                PreViewResult result = personService.reFreshPersons(arguments, domain,null);
                 return result;
             } catch (CustomException e) {
                 e.printStackTrace();
@@ -218,7 +218,7 @@ public class DeptDataFetcher {
 
 
             try {
-                PreViewResult result = occupyService.reFreshOccupies(arguments, domain);
+                PreViewResult result = occupyService.reFreshOccupies(arguments, domain,null);
                 return result;
             } catch (CustomException e) {
                 e.printStackTrace();

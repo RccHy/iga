@@ -18,7 +18,7 @@ public interface PersonService {
 
     PersonConnection preViewPersons(Map<String, Object> arguments, DomainInfo domain) throws Exception;
 
-    PreViewResult reFreshPersons(Map<String, Object> arguments, DomainInfo domain) throws Exception;
+    PreViewResult reFreshPersons(Map<String, Object> arguments, DomainInfo domain,PreViewResult preViewResult) throws Exception;
 
     PreViewResult reFreshTaskStatus(Map<String, Object> arguments, DomainInfo domain);
 }
