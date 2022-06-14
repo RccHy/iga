@@ -14,6 +14,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.util.CollectionUtils;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -80,18 +81,22 @@ public class TaskConfig {
     }
 
     public void executeTask(DomainInfo domain) {
-        List<DomainInfo> domainInfos =new ArrayList<>();
-        if(null!=domain){
-           domainInfos.add(domain);
-        }else {
+        List<DomainInfo> domainInfos = new ArrayList<>();
+        if (null != domain) {
+            domainInfos.add(domain);
+        } else {
             domainInfos = domainInfoService.findAll();
         }
         List<DsConfig> dsConfigs = dsConfigService.findAll();
-        Map<String, DsConfig> collect = dsConfigs.stream().collect(Collectors.toMap(DsConfig::getTenantId, v -> v));
+        Map<String, DsConfig> collect = null;
+        if (!CollectionUtils.isEmpty(dsConfigs)) {
+            collect = dsConfigs.stream().collect(Collectors.toMap(DsConfig::getTenantId, v -> v));
+        }
 
         for (DomainInfo domainInfo : domainInfos) {
             if (TaskThreadPool.executorServiceMap.containsKey(domainInfo.getDomainName())) {
                 ExecutorService executorService = TaskThreadPool.executorServiceMap.get(domainInfo.getDomainName());
+                Map<String, DsConfig> finalCollect = collect;
                 executorService.execute(() -> {
                     //获取最近三次同步状态,均为失败则不同步,其余情况正常同步
                     Boolean aBoolean = taskLogService.checkTaskStatus(domainInfo.getId());
@@ -104,13 +109,13 @@ public class TaskConfig {
                         errorData.remove(domainInfo.getId());
                         Tenant tenant = tenantDao.findByDomainName(domainInfo.getDomainName());
                         //判断sso是否有定时任务
-                        if (collect.containsKey(tenant.getId())) {
-                            DsConfig dsConfig = collect.get(tenant.getId());
+                        if (!CollectionUtils.isEmpty(dsConfigs) && finalCollect.containsKey(tenant.getId())) {
+                            DsConfig dsConfig = finalCollect.get(tenant.getId());
                             String syncWay = dsConfigService.getSyncWay(dsConfig);
                             if (StringUtils.isNotBlank(syncWay) && (syncWay.equals(SYNC_WAY_BRIDGE) || syncWay.equals(SYNC_WAY_ENTERPRISE) || syncWay.equals(SYNC_WAY_ENTERPRISE_GRAPHQL))) {
                                 log.info("{}sso正在进行同步,跳过本次同步任务", domainInfo.getId());
                                 TaskLog taskLog = new TaskLog();
-                                if(null!=domain){
+                                if (null != domain) {
                                     taskLog.setSynWay(1);
                                 }
                                 taskLog.setId(UUID.randomUUID().toString());
@@ -124,7 +129,7 @@ public class TaskConfig {
                         arguments.put("status", 1);
                         final List<NodeRules> nodeRules = nodeRulesService.findNodeRules(arguments, domainInfo.getId());
                         TaskLog taskLog = new TaskLog();
-                        if(null!=domain){
+                        if (null != domain) {
                             taskLog.setSynWay(1);
                         }
                         taskLog.setId(UUID.randomUUID().toString());
@@ -226,8 +231,8 @@ public class TaskConfig {
                                 taskLog.setReason(e.getErrorMsg());
                                 if (StringUtils.isNotBlank(TaskConfig.errorData.get(domainInfo.getId()))) {
                                     this.upload(domainInfo, taskLog);
-                                }else{
-                                    taskLogService.save(taskLog,domainInfo.getDomainId(),"update");
+                                } else {
+                                    taskLogService.save(taskLog, domainInfo.getDomainId(), "update");
                                 }
                                 e.printStackTrace();
                             } catch (Exception e) {
@@ -236,8 +241,8 @@ public class TaskConfig {
                                 taskLog.setReason(e.getMessage());
                                 if (StringUtils.isNotBlank(TaskConfig.errorData.get(domainInfo.getId()))) {
                                     this.upload(domainInfo, taskLog);
-                                }else{
-                                    taskLogService.save(taskLog,domainInfo.getDomainId(),"update");
+                                } else {
+                                    taskLogService.save(taskLog, domainInfo.getDomainId(), "update");
                                 }
                                 e.printStackTrace();
                             }

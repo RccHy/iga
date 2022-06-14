@@ -139,7 +139,7 @@ type DynamicValue{
 }
 
 input PersonFilter{
-    avtive:booleanFilter
+    active:booleanFilter
     name:stringFilter
     username:stringFilter
     cardNo:stringFilter
