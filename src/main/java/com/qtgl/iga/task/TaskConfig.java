@@ -14,6 +14,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.util.CollectionUtils;
 
 import java.text.SimpleDateFormat;
@@ -67,7 +68,7 @@ public class TaskConfig {
      * 根据租户区分线程池
      * 串行执行 部门、岗位、人员、三元组 同步
      */
-    //@Scheduled(cron = "${task.cron}")
+    @Scheduled(cron = "${task.cron}")
     public void task() {
         try {
             // k8环境多节点部署环境下 仅01节点会执行定时任务

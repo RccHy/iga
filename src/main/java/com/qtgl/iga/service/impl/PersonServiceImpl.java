@@ -1410,7 +1410,8 @@ public class PersonServiceImpl implements PersonService {
             }
             return personConnection;
         } else {
-            return null;
+            personDao.removeData(domain);
+            return preViewPersons(arguments,domain);
         }
 
     }

@@ -412,6 +412,26 @@ public class PersonDaoImpl implements PersonDao {
                             }
                         }
                     }
+                    if ("phone".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if ("like".equals(FilterCodeEnum.getDescByCode(soe.getKey()))) {
+                                stb.append("and cellphone ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if ("in".equals(FilterCodeEnum.getDescByCode(soe.getKey())) || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and cellphone ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and cellphone ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
                     if ("active".equals(str.getKey())) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
