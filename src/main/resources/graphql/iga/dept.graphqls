@@ -147,7 +147,7 @@ input PersonFilter{
 }
 
 input OccupyFilter{
-    avtive:booleanFilter
+    active:booleanFilter
     name:stringFilter
     username:stringFilter
     cardNo:stringFilter
