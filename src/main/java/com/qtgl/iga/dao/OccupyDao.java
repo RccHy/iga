@@ -18,5 +18,5 @@ public interface OccupyDao {
 
     List<OccupyDto> findOccupyTemp(Map<String, Object> arguments, DomainInfo domain);
 
-    Integer findOccupyTempCount(DomainInfo domain);
+    Integer findOccupyTempCount(Map<String, Object> arguments,DomainInfo domain);
 }

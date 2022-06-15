@@ -750,7 +750,7 @@ public class OccupyServiceImpl implements OccupyService {
 
     @Override
     public OccupyConnection preViewOccupies(Map<String, Object> arguments, DomainInfo domain) throws Exception {
-        Integer i = occupyDao.findOccupyTempCount(domain);
+        Integer i = occupyDao.findOccupyTempCount(null,domain);
 
         //判断数据库是否有数据
         if (i <= 0) {
@@ -769,7 +769,7 @@ public class OccupyServiceImpl implements OccupyService {
             //}
             //Integer offset = (Integer) arguments.get("offset");
             //Integer first = (Integer) arguments.get("first");
-            Integer occupyTempCount = occupyDao.findOccupyTempCount(domain);
+            Integer occupyTempCount = occupyDao.findOccupyTempCount(arguments,domain);
             occupyConnection.setTotalCount(occupyTempCount);
             //if (null != offset && null != first) {
             //    occupyDtos = occupyDtos.stream().sorted(Comparator.comparing(OccupyDto::getUpdateTime).thenComparing(OccupyDto::getCreateTime)).skip(offset).limit(first).collect(Collectors.toList());
@@ -858,7 +858,7 @@ public class OccupyServiceImpl implements OccupyService {
         }
         //存储到临时表(首先清除上次遗留数据)
         occupyDao.removeData(domain);
-        Integer i = occupyDao.findOccupyTempCount(domain);
+        Integer i = occupyDao.findOccupyTempCount(null,domain);
         log.info("---------------租户:{},清除人员身份数据完毕:{}", domain.getId(), i);
         occupyDao.saveToTemp(occupyDtos, domain);
         if (null != viewResult) {

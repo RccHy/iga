@@ -1354,7 +1354,7 @@ public class PersonServiceImpl implements PersonService {
 
     @Override
     public PersonConnection preViewPersons(Map<String, Object> arguments, DomainInfo domain) {
-        Integer i = personDao.findPersonTempCount(domain);
+        Integer i = personDao.findPersonTempCount(null,domain);
         //判断数据库是否有数据
         if (i <= 0 || CollectionUtils.isEmpty(personPreViewData) || (!CollectionUtils.isEmpty(personPreViewData) && CollectionUtils.isEmpty(personPreViewData.get(domain.getId())))) {
             this.reFreshPersons(arguments, domain, null);
@@ -1392,7 +1392,7 @@ public class PersonServiceImpl implements PersonService {
         Map<String, Person> preViewPersonMap = personList.stream().filter(person -> !StringUtils.isBlank(person.getId())).collect(Collectors.toMap(person -> (person.getId()), person -> person, (v1, v2) -> v2));
         //根据条件查询
         List<Person> people = personDao.findPersonTemp(arguments, domain);
-        Integer personTempCount = personDao.findPersonTempCount(domain);
+        Integer personTempCount = personDao.findPersonTempCount(arguments,domain);
         personConnection.setTotalCount(personTempCount);
         if (!CollectionUtils.isEmpty(people)) {
             for (Person person : people) {
@@ -1519,7 +1519,7 @@ public class PersonServiceImpl implements PersonService {
         log.info("----------------- upstream Person end:{}", System.currentTimeMillis());
         //存储到临时表(首先清除上次遗留数据)
         personDao.removeData(domain);
-        Integer i = personDao.findPersonTempCount(domain);
+        Integer i = personDao.findPersonTempCount(null,domain);
         log.info("---------------租户:{},清除人员数据完毕:{}", domain.getId(), i);
         personDao.saveToTemp(personList, domain);
         if (null == personPreViewData) {

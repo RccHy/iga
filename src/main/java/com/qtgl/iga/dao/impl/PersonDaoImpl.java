@@ -352,11 +352,16 @@ public class PersonDaoImpl implements PersonDao {
     }
 
     @Override
-    public Integer findPersonTempCount(DomainInfo domain) {
+    public Integer findPersonTempCount(Map<String, Object> arguments,DomainInfo domain) {
         String sql = " SELECT count(*) from person_temp where tenant_id=?  ";
+        //拼接sql
+        StringBuffer stb = new StringBuffer(sql);
         List<Object> param = new ArrayList<>();
         param.add(domain.getId());
-        Integer integer = jdbcIGA.queryForObject(sql,param.toArray(), Integer.class);
+        if(null!=arguments){
+            dealData(arguments, stb, param);
+        }
+        Integer integer = jdbcIGA.queryForObject(stb.toString(),param.toArray(), Integer.class);
         return integer;
     }
 
