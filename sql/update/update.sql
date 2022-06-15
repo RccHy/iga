@@ -79,6 +79,76 @@ SELECT	* FROM	`t_mgr_upstream_types` WHERE	syn_type = 'post' 	AND syn_way = 1;
 UPDATE t_mgr_upstream_types_field SET source_field = 'type' WHERE	source_field = 'depttype'
 	AND upstream_type_id = ( SELECT id FROM `t_mgr_upstream_types` WHERE syn_type = 'post' AND syn_way = 1 );
 
+--20220615
+DROP TABLE IF EXISTS `occupy_temp`;
+CREATE TABLE `occupy_temp`  (
+                                `id` varchar(36) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+                                `user_type` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `user_code` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `name` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `gender` varchar(10) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `country` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `birthday` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `card_type` varchar(10) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `card_no` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `del_mark` tinyint(1) NULL DEFAULT 0,
+                                `start_time` datetime NULL DEFAULT NULL,
+                                `end_time` datetime NULL DEFAULT NULL,
+                                `create_time` datetime NULL DEFAULT NULL,
+                                `update_time` datetime NULL DEFAULT NULL,
+                                `tenant_id` varchar(36) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `person_card_type` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `dept_code` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `person_card_no` varchar(200) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `post_code` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `post_name` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `source` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `data_source` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `active` tinyint(1) NULL DEFAULT 1,
+                                `active_time` datetime NULL DEFAULT NULL,
+                                `tags` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `description` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `user_index` int(11) NULL DEFAULT 0,
+                                `valid_start_time` datetime NULL DEFAULT NULL,
+                                `valid_end_time` datetime NULL DEFAULT NULL,
+                                `account_no` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `orphan` tinyint(1) NOT NULL DEFAULT 0,
+                                PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
+
+DROP TABLE IF EXISTS `person_temp`;
+CREATE TABLE `person_temp`  (
+                                `id` varchar(36) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+                                `name` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `open_id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `account_no` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `gender` varchar(10) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `birthday` varchar(10) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `description` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `del_mark` tinyint(1) NULL DEFAULT 0,
+                                `create_time` datetime NULL DEFAULT NULL,
+                                `update_time` datetime NULL DEFAULT NULL,
+                                `tenant_id` varchar(36) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `card_type` varchar(10) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `card_no` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `cellphone` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `email` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `data_source` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `sex` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `tags` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `active` tinyint(1) NULL DEFAULT 1,
+                                `active_time` datetime NULL DEFAULT NULL,
+                                `valid_start_time` datetime NULL DEFAULT NULL,
+                                `valid_end_time` datetime NULL DEFAULT NULL,
+                                `freeze_time` datetime NULL DEFAULT NULL,
+                                `state` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `source` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+
 
 
 

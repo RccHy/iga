@@ -116,6 +116,11 @@ public class TreeBean implements Serializable {
 
     private Map<String,String> dynamic;
 
+    /**
+     * 逻辑处理字段 规则是否启用
+     */
+    private Boolean ruleStatus;
+
 //    private String deptTreeTypeId;
 //    public DeptBean(Dept dept) {
 //        this.setCode(dept.getDeptCode());

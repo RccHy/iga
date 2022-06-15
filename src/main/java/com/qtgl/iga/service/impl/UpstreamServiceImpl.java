@@ -6,6 +6,7 @@ import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.NodeRulesDao;
 import com.qtgl.iga.dao.UpstreamDao;
 import com.qtgl.iga.dao.impl.UpstreamTypeDaoImpl;
+import com.qtgl.iga.service.NodeRulesService;
 import com.qtgl.iga.service.UpstreamService;
 import com.qtgl.iga.utils.RoleBingUtil;
 import com.qtgl.iga.utils.enumerate.ResultCode;
@@ -32,6 +33,8 @@ public class UpstreamServiceImpl implements UpstreamService {
     NodeRulesDao nodeRulesDao;
     @Resource
     RoleBingUtil roleBingUtil;
+    @Resource
+    NodeRulesService nodeRulesService;
 
     @Override
     public List<Upstream> findAll(Map<String, Object> arguments, String domain) {
@@ -53,7 +56,9 @@ public class UpstreamServiceImpl implements UpstreamService {
                 }
                 //历史版本,提示
                 if (null != oldNodeRules && oldNodeRules.size() > 0) {
-                    throw new CustomException(ResultCode.FAILED, "有历史版本的nodeRules规则");
+                    //删除历史版本
+                    nodeRulesService.deleteBatchRules(oldNodeRules, domain);
+                    //throw new CustomException(ResultCode.FAILED, "有历史版本的nodeRules规则");
                 }
 
             }

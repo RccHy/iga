@@ -4,6 +4,7 @@ package com.qtgl.iga.service.impl;
 import com.qtgl.iga.bo.Node;
 import com.qtgl.iga.bo.NodeRules;
 import com.qtgl.iga.bo.NodeRulesRange;
+import com.qtgl.iga.dao.NodeDao;
 import com.qtgl.iga.dao.NodeRulesDao;
 import com.qtgl.iga.dao.NodeRulesRangeDao;
 import com.qtgl.iga.service.NodeRulesService;
@@ -11,10 +12,11 @@ import com.qtgl.iga.service.NodeService;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
 import com.qtgl.iga.vo.NodeRulesVo;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
+import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,16 +24,17 @@ import java.util.Map;
 
 @Service
 @Transactional
-
 public class NodeRulesServiceImpl implements NodeRulesService {
 
 
-    @Autowired
+    @Resource
     NodeRulesDao nodeRulesDao;
-    @Autowired
+    @Resource
     NodeRulesRangeDao nodeRulesRangeDao;
-    @Autowired
+    @Resource
     NodeService nodeService;
+    @Resource
+    NodeDao nodeDao;
 
 
     @Override
@@ -66,10 +69,16 @@ public class NodeRulesServiceImpl implements NodeRulesService {
                 throw new CustomException(ResultCode.FAILED, "删除range失败");
             }
         }
-        //  查询rule  删除编辑中
-        NodeRules nodeRules = nodeRulesDao.findNodeRulesById((String) arguments.get("id"), 1);
+        //  查询rule  删除编辑中 或正式(person或occupy)
+        NodeRules nodeRules = nodeRulesDao.findNodeRulesById((String) arguments.get("id"), null);
         //删除rules
         Integer flag = nodeRulesDao.deleteNodeRulesById((String) arguments.get("id"));
+        //查询node
+        List<NodeRulesVo> nodeRulesByNodeId = nodeRulesDao.findNodeRulesByNodeId(nodeRules.getNodeId(), null);
+        //node下没有对应的nodeRules则将node删除
+        if (CollectionUtils.isEmpty(nodeRulesByNodeId)) {
+            nodeDao.deleteNodeById(nodeRules.getNodeId(), domain);
+        }
         if (flag > 0) {
             return new NodeRulesVo();
         } else {
@@ -144,5 +153,38 @@ public class NodeRulesServiceImpl implements NodeRulesService {
         }
 
         return nodeRulesVos;
+    }
+
+    @Override
+    public List<NodeRules> deleteBatchRules(List<NodeRules> nodeRules, String domain) throws Exception {
+        for (NodeRules nodeRule : nodeRules) {
+            deleteRules(nodeRule, domain);
+        }
+        return nodeRules;
+    }
+
+    public NodeRules deleteRules(NodeRules rules, String domain) {
+        //查询是否有range需要删除
+        List<NodeRulesRange> ranges = nodeRulesRangeDao.getByRulesId(rules.getId(), null);
+        //删除range
+        if (null != ranges && ranges.size() > 0) {
+            Integer i = nodeRulesRangeDao.deleteNodeRulesRangeByRuleId(rules.getId());
+            if (!(i > 0)) {
+                throw new CustomException(ResultCode.FAILED, "删除range失败");
+            }
+        }
+        //删除rules
+        Integer flag = nodeRulesDao.deleteNodeRulesById(rules.getId());
+        //查询node
+        List<NodeRulesVo> nodeRulesByNodeId = nodeRulesDao.findNodeRulesByNodeId(rules.getNodeId(), null);
+        //node下没有对应的nodeRules则将node删除
+        if (CollectionUtils.isEmpty(nodeRulesByNodeId)) {
+            nodeDao.deleteNodeById(rules.getNodeId(), domain);
+        }
+        if (flag > 0) {
+            return new NodeRulesVo();
+        } else {
+            throw new CustomException(ResultCode.FAILED, "删除rule失败");
+        }
     }
 }

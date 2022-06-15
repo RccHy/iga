@@ -3,6 +3,7 @@ package com.qtgl.iga.bo;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -99,6 +100,13 @@ public class Person {
      */
     private String password;
 
-    private Map<String,String> dynamic;
+    private Map<String, String> dynamic;
+    /**
+     * 逻辑处理字段 规则是否启用
+     */
+    private Boolean ruleStatus;
+
+    //扩展字段值
+    private List<DynamicValue> attrsValues;
 
 }

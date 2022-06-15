@@ -18,4 +18,8 @@ public class DynamicValue implements Serializable {
 
     private String tenantId;
 
+    private String key;
+
+    private String code;
+
 }

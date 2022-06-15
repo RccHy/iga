@@ -2,11 +2,9 @@ package com.qtgl.iga.service.impl;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.qtgl.iga.bean.OccupyConnection;
-import com.qtgl.iga.bean.OccupyDto;
-import com.qtgl.iga.bean.OccupyEdge;
-import com.qtgl.iga.bean.TreeBean;
+import com.qtgl.iga.bean.*;
 import com.qtgl.iga.bo.*;
+import com.qtgl.iga.config.PreViewOccupyThreadPool;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.OccupyService;
 import com.qtgl.iga.task.TaskConfig;
@@ -23,6 +21,7 @@ import org.springframework.util.CollectionUtils;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -96,11 +95,76 @@ public class OccupyServiceImpl implements OccupyService {
 
         List<CardType> cardTypes2 = cardTypeDao.findAllFromIdentity(tenant.getId());
         Map<String, CardType> identityCardTypeMap = cardTypes2.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
+        // 存储最终需要操作的数据
+        Map<String, List<OccupyDto>> result = new HashMap<>();
+        //重复需要删除的sso身份数据
+        ArrayList<OccupyDto> deleteFromSSO = new ArrayList<>();
+        //上游数据,用于异常的数据展示
+        Map<String, OccupyDto> occupyDtoFromUpstream = new HashMap<>();
 
         // 获取规则
         Map arguments = new ConcurrentHashMap();
         arguments.put("type", "occupy");
         arguments.put("status", 0);
+        dataProcessing(domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream);
+
+        List<OccupyDto> occupiesFromSSO = occupyDao.findAll(tenant.getId(), null, null);
+
+        // 验证监控规则
+        calculationService.monitorRules(domain, lastTaskLog, occupiesFromSSO.size(), result.get("delete"));
+        //数据库重复身份删除
+        if (!CollectionUtils.isEmpty(deleteFromSSO)) {
+            if (result.containsKey("delete")) {
+                result.get("delete").addAll(deleteFromSSO);
+            } else {
+                result.put("delete", new ArrayList<OccupyDto>() {{
+                    this.addAll(deleteFromSSO);
+                }});
+            }
+        }
+
+        try {
+            occupyDao.saveToSso(result, tenant.getId());
+        } catch (CustomException e) {
+            if (!CollectionUtils.isEmpty(occupyDtoFromUpstream)) {
+                TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(occupyDtoFromUpstream));
+            }
+            throw new CustomException(ResultCode.FAILED, e.getErrorMsg());
+        }
+
+        if (StringUtils.isNotBlank(TaskConfig.errorData.get(domain.getId()))) {
+            String data = TaskConfig.errorData.get(domain.getId());
+            JSONArray jsonArray = JSONObject.parseArray(data);
+
+            if (null != jsonArray) {
+                //
+                if (!CollectionUtils.isEmpty(occupyErrorData.get(domain.getId()))) {
+                    jsonArray.addAll(occupyErrorData.get(domain.getId()));
+                }
+            }
+            TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(jsonArray));
+
+        } else {
+            if (!CollectionUtils.isEmpty(occupyErrorData.get(domain.getId()))) {
+                TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(occupyErrorData.get(domain.getId())));
+            }
+        }
+
+
+        //插入人员身份日志表
+        ArrayList<OccupyDto> userLogs = new ArrayList<>();
+        if (result.get("insert") != null) {
+            userLogs.addAll(result.get("insert"));
+        }
+        if (result.get("update") != null) {
+            userLogs.addAll(result.get("update"));
+        }
+        // todo 无效后对甘特图的影响
+        userLogDao.saveUserLog(userLogs, tenant.getId());
+        return result;
+    }
+
+    private List<OccupyDto> dataProcessing(DomainInfo domain, Tenant tenant, Map<String, CardType> userCardTypeMap, Map<String, CardType> identityCardTypeMap, Map arguments, Map<String, List<OccupyDto>> result, ArrayList<OccupyDto> deleteFromSSO, Map<String, OccupyDto> occupyDtoFromUpstream) throws Exception {
         List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
         if (null == nodes || nodes.size() <= 0) {
             throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
@@ -134,7 +198,6 @@ public class OccupyServiceImpl implements OccupyService {
         log.info("数据库中人员身份数据获取完成:{}", occupiesFromSSO.size());
         //处理数据库重复身份数据
         ConcurrentHashMap<String, OccupyDto> concurrentHashMap = new ConcurrentHashMap<>();
-        ArrayList<OccupyDto> deleteFromSSO = new ArrayList<>();
         for (OccupyDto occupyDto : occupiesFromSSO) {
             String key = occupyDto.getPersonId() + ":" + occupyDto.getDeptCode() + ":" + occupyDto.getPostCode();
             //已有相同标识的身份
@@ -184,7 +247,6 @@ public class OccupyServiceImpl implements OccupyService {
         log.info("数据库中人员身份数据经过重复过滤后:{}", occupiesFromSSO.size());
 
         // 获取所有规则 字段，用于更新验证
-        Map<String, OccupyDto> occupyDtoFromUpstream = new HashMap<>();
         if (null == occupyRules || occupyRules.size() == 0) {
             throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
         }
@@ -196,7 +258,7 @@ public class OccupyServiceImpl implements OccupyService {
             }
             ArrayList<Upstream> upstreams = upstreamDao.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
             if (CollectionUtils.isEmpty(upstreams)) {
-                log.error("人员身份对应拉取节点规则'{}'无有效权威源数据", rules.getId());
+                log.error("人员身份对应拉取节点规则'{}'无权威源数据", rules.getId());
                 throw new CustomException(ResultCode.NO_UPSTREAM, null, null, "人员身份", rules.getId());
             }
             final LocalDateTime now = LocalDateTime.now();
@@ -332,6 +394,8 @@ public class OccupyServiceImpl implements OccupyService {
                 } else if (!postFromSSOMap.containsKey(occupyDto.getPostCode())) {
                     occupyDto.setOrphan(2); // 因 岗位数据导致孤儿
                 }
+                //规则是否启用标识
+                occupyDto.setRuleStatus(rules.getActive());
                 //以人员id岗位及部门code作为键进行身份去重
                 String key = personId + ":" + occupyDto.getPostCode() + ":" + occupyDto.getDeptCode();
                 if (occupyDtoFromUpstream.containsKey(key)) {
@@ -350,9 +414,13 @@ public class OccupyServiceImpl implements OccupyService {
 
         });
         log.info("所有人员身份数据获取完成:{}", occupyDtoFromUpstream.size());
+        List<OccupyDto> occupyDtos = new ArrayList<>();
         if (null != occupyDtoFromUpstream && occupyDtoFromUpstream.size() > 0) {
-//            TaskConfig.errorData.put(domain.getId(), "");
-            //final List<OccupyDto> occupyDtos = (List<OccupyDto>) occupyDtoFromUpstream.values();
+
+            if (!CollectionUtils.isEmpty(occupyDtosFromSSO)) {
+                occupyDtos.addAll(occupyDtosFromSSO);
+            }
+            Map<String, OccupyDto> preViewOccupyMap = occupyDtos.stream().filter(occupyDto -> !StringUtils.isBlank(occupyDto.getOccupyId())).collect(Collectors.toMap(occupyDto -> (occupyDto.getOccupyId()), occupyDto -> occupyDto, (v1, v2) -> v2));
 
             //获取该租户下的当前类型的无效权威源
             ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
@@ -362,160 +430,117 @@ public class OccupyServiceImpl implements OccupyService {
             }
             Map<String, OccupyDto> occupiesFromSSOMap = occupiesFromSSO.stream().
                     collect(Collectors.toMap(occupy -> (occupy.getPersonId() + ":" + occupy.getPostCode() + ":" + occupy.getDeptCode()), occupy -> occupy, (v1, v2) -> v2));
-            Map<String, List<OccupyDto>> result = new HashMap<>();
             Map<String, Upstream> finalUpstreamMap = upstreamMap;
             occupiesFromSSOMap.forEach((key, occupyFromSSO) -> {
-                calculate(occupyDtoFromUpstream, result, key, occupyFromSSO, finalUpstreamMap);
+                calculate(occupyDtoFromUpstream, result, key, occupyFromSSO, finalUpstreamMap, preViewOccupyMap);
             });
 
             occupyDtoFromUpstream.forEach((key, val) -> {
                 if (!occupiesFromSSOMap.containsKey(key) && (occupyDtoFromUpstream.get(key).getDelMark() != 1)) {
-                    val.setOccupyId(UUID.randomUUID().toString());
-                    val.setStartTime(null != val.getStartTime() ? val.getStartTime() : LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                    val.setEndTime(null != val.getEndTime() ? val.getEndTime() : LocalDateTime.of(2100, 1, 1, 0, 0, 0));
-                    val.setValidStartTime(val.getStartTime());
-                    val.setValidEndTime(val.getEndTime());
-                    // 如果新增的数据 active=0 失效 或者 del_mark=1 删除  或者 判断为孤儿
-                    //   都将 最终有效期设置为 失效
-                    if (val.getActive() == 0 || val.getDelMark() == 1 || val.getOrphan() != 0) {
-                        val.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                        val.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                    }
-                    if (result.containsKey("insert")) {
-                        result.get("insert").add(val);
+                    if (val.getRuleStatus()) {
+                        val.setOccupyId(UUID.randomUUID().toString());
+                        val.setStartTime(null != val.getStartTime() ? val.getStartTime() : LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                        val.setEndTime(null != val.getEndTime() ? val.getEndTime() : LocalDateTime.of(2100, 1, 1, 0, 0, 0));
+                        val.setValidStartTime(val.getStartTime());
+                        val.setValidEndTime(val.getEndTime());
+                        // 如果新增的数据 active=0 失效 或者 del_mark=1 删除  或者 判断为孤儿
+                        //   都将 最终有效期设置为 失效
+                        if (val.getActive() == 0 || val.getDelMark() == 1 || val.getOrphan() != 0) {
+                            val.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                            val.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                        }
+                        if (result.containsKey("insert")) {
+                            result.get("insert").add(val);
+                        } else {
+                            result.put("insert", new ArrayList<OccupyDto>() {{
+                                this.add(val);
+                            }});
+                        }
+                        log.debug("人员身份对比后新增{}", val);
                     } else {
-                        result.put("insert", new ArrayList<OccupyDto>() {{
-                            this.add(val);
-                        }});
+                        log.debug("人员身份{},对应规则未启用,本次跳过该数据", val);
                     }
-                    log.debug("人员身份对比后新增{}", val);
                 }
             });
-
-            // 验证监控规则
-            calculationService.monitorRules(domain, lastTaskLog, occupiesFromSSO.size(), result.get("delete"));
-            //数据库重复身份删除
-            if (!CollectionUtils.isEmpty(deleteFromSSO)) {
-                if (result.containsKey("delete")) {
-                    result.get("delete").addAll(deleteFromSSO);
-                } else {
-                    result.put("delete", new ArrayList<OccupyDto>() {{
-                        this.addAll(deleteFromSSO);
-                    }});
-                }
+            //处理人员身份预览数据
+            occupyDtos = new ArrayList<>(preViewOccupyMap.values());
+            if (!CollectionUtils.isEmpty(result.get("insert"))) {
+                occupyDtos.addAll(result.get("insert"));
             }
-
-            try {
-                occupyDao.saveToSso(result, tenant.getId());
-            } catch (CustomException e) {
-                if (!CollectionUtils.isEmpty(occupyDtoFromUpstream)) {
-                    TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(occupyDtoFromUpstream));
-                }
-                throw new CustomException(ResultCode.FAILED, e.getErrorMsg());
-            }
-
-            if (StringUtils.isNotBlank(TaskConfig.errorData.get(domain.getId()))) {
-                String data = TaskConfig.errorData.get(domain.getId());
-                JSONArray jsonArray = JSONObject.parseArray(data);
-
-                if (null != jsonArray) {
-                    //
-                    if (!CollectionUtils.isEmpty(occupyErrorData.get(domain.getId()))) {
-                        jsonArray.addAll(occupyErrorData.get(domain.getId()));
-                    }
-                }
-                TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(jsonArray));
-
-            } else {
-                if (!CollectionUtils.isEmpty(occupyErrorData.get(domain.getId()))) {
-                    TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(occupyErrorData.get(domain.getId())));
-                }
-            }
-
-
-            //插入人员身份日志表
-            ArrayList<OccupyDto> userLogs = new ArrayList<>();
-            if (result.get("insert") != null) {
-                userLogs.addAll(result.get("insert"));
-            }
-            if (result.get("update") != null) {
-                userLogs.addAll(result.get("update"));
-            }
-            // todo 无效后对甘特图的影响
-            userLogDao.saveUserLog(userLogs, tenant.getId());
-
-            return result;
+            return occupyDtos;
         } else {
             log.error("上游提供人员身份数据不符合规范,数据同步失败");
             throw new CustomException(ResultCode.FAILED, "上游提供人员身份数据不符合规范,数据同步失败");
         }
     }
 
-    private void calculate(Map<String, OccupyDto> occupyDtoFromUpstream, Map<String, List<OccupyDto>> result, String key, OccupyDto occupyFromSSO, Map<String, Upstream> upstreamMap) {
+    private void calculate(Map<String, OccupyDto> occupyDtoFromUpstream, Map<String, List<OccupyDto>> result, String key, OccupyDto occupyFromSSO, Map<String, Upstream> upstreamMap, Map<String, OccupyDto> preViewOccupyMap) {
         // 对比出需要修改的occupy
         if (occupyDtoFromUpstream.containsKey(key) &&
                 occupyDtoFromUpstream.get(key).getCreateTime().isAfter(occupyFromSSO.getUpdateTime())) {
-            //处理sso数据的active为null的情况
-            if (null == occupyFromSSO.getActive() || "".equals(occupyFromSSO.getActive())) {
-                occupyFromSSO.setActive(1);
-            }
-            //修改标识
-            boolean updateFlag = false;
-            //删除恢复标识
-//                boolean delRecoverFlag = false;
-            //del字段标识
-            boolean delFlag = false;
-            //失效标识
-            boolean invalidFlag = false;
-            //恢复失效标识
-            //   boolean invalidRecoverFlag = true;
-
             OccupyDto newOccupy = occupyDtoFromUpstream.get(key);
-            List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(newOccupy.getUpstreamType());
+            //当前数据来源规则为启用再进行处理
+            if (newOccupy.getRuleStatus()) {
+                //处理sso数据的active为null的情况
+                if (null == occupyFromSSO.getActive() || "".equals(occupyFromSSO.getActive())) {
+                    occupyFromSSO.setActive(1);
+                }
+                //修改标识
+                boolean updateFlag = false;
+                //删除恢复标识
+//                boolean delRecoverFlag = false;
+                //del字段标识
+                boolean delFlag = false;
+                //失效标识
+                boolean invalidFlag = false;
+                //恢复失效标识
+                //   boolean invalidRecoverFlag = true;
+                occupyFromSSO.setRuleStatus(newOccupy.getRuleStatus());
+                List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(newOccupy.getUpstreamType());
 
-            // 如果字段上游不提供，则不进行更新
-            // 字段值没有发生改变，不进行更新
-            if (null != fields && fields.size() > 0) {
-                for (UpstreamTypeField field : fields) {
-                    String sourceField = field.getSourceField();
-                    if ("personCardType".equals(sourceField) || "personCardNo".equals(sourceField)) {
-                        continue;
-                    }
-                    Object newValue = ClassCompareUtil.getGetMethod(newOccupy, sourceField);
-                    Object oldValue = ClassCompareUtil.getGetMethod(occupyFromSSO, sourceField);
-                    if (null == oldValue && null == newValue) {
-                        continue;
-                    }
-                    if (null != oldValue && oldValue.equals(newValue)) {
-                        // 新值 = 老值 跳过
-                        continue;
-                    }
+                // 如果字段上游不提供，则不进行更新
+                // 字段值没有发生改变，不进行更新
+                if (null != fields && fields.size() > 0) {
+                    for (UpstreamTypeField field : fields) {
+                        String sourceField = field.getSourceField();
+                        if ("personCardType".equals(sourceField) || "personCardNo".equals(sourceField)) {
+                            continue;
+                        }
+                        Object newValue = ClassCompareUtil.getGetMethod(newOccupy, sourceField);
+                        Object oldValue = ClassCompareUtil.getGetMethod(occupyFromSSO, sourceField);
+                        if (null == oldValue && null == newValue) {
+                            continue;
+                        }
+                        if (null != oldValue && oldValue.equals(newValue)) {
+                            // 新值 = 老值 跳过
+                            continue;
+                        }
                /* if (sourceField.equals("delMark") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
                     // 从删除中恢复  【计数算作新增】
                     delRecoverFlag = true;
                     log.info("人员身份信息{}从删除恢复 -> {}", occupyFromSSO.getOccupyId(), newOccupy.getSource());
                     continue;
                 }*/
-                    if (sourceField.equals("delMark") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
-                        // 上游真实推送了删除标记
-                        delFlag = true;
-                        log.info("人员身份信息{}删除 -> {}", occupyFromSSO.getOccupyId(), newOccupy.getSource());
-                        continue;
+                        if (sourceField.equals("delMark") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
+                            // 上游真实推送了删除标记
+                            delFlag = true;
+                            log.info("人员身份信息{}删除 -> {}", occupyFromSSO.getOccupyId(), newOccupy.getSource());
+                            continue;
+                        }
+
+                        updateFlag = true;
+                        if (sourceField.equals("active") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
+                            invalidFlag = true;
+                            // continue;
+
+                        }
+
+
+                        ClassCompareUtil.setValue(occupyFromSSO, occupyFromSSO.getClass(), sourceField, oldValue, newValue);
+                        log.info("人员身份信息更新{}:字段{}：{} -> {}", occupyFromSSO.getOccupyId(), sourceField, oldValue, newValue);
+
                     }
-
-                    updateFlag = true;
-                    if (sourceField.equals("active") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
-                        invalidFlag = true;
-                        // continue;
-
-                    }
-
-
-                    ClassCompareUtil.setValue(occupyFromSSO, occupyFromSSO.getClass(), sourceField, oldValue, newValue);
-                    log.info("人员身份信息更新{}:字段{}：{} -> {}", occupyFromSSO.getOccupyId(), sourceField, oldValue, newValue);
-
                 }
-            }
         /*//上游没有提供delMark字段手动恢复
         if (delRecoverFlag) {
             occupyFromSSO.setDelMark(0);
@@ -531,89 +556,102 @@ public class OccupyServiceImpl implements OccupyService {
         }
         //上游提供了删除字段 并且最新为删除
         }*/
-            if (delFlag) {
-                if (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(occupyFromSSO.getSource())) {
-                    occupyFromSSO.setDelMark(1);
-                    occupyFromSSO.setUpdateTime(newOccupy.getUpdateTime());
-                    occupyFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                    occupyFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                    if (result.containsKey("delete")) {
-                        result.get("delete").add(occupyFromSSO);
-                    } else {
-                        result.put("delete", new ArrayList<OccupyDto>() {{
-                            this.add(occupyFromSSO);
-                        }});
-                    }
-                    log.info("人员身份信息删除{}", occupyFromSSO.getOccupyId());
-                } else {
-                    log.info("人员身份信息删除{},但检测到对应权威源已无效,跳过该数据", occupyFromSSO.getOccupyId());
-                }
-            }
-            if (updateFlag && occupyFromSSO.getDelMark() != 1) {
-                occupyFromSSO.setUpdateTime(newOccupy.getUpdateTime());
-                // 区分出 更新数据  还是 无效数据（上游提供active字段 && 将active变为false）
-                if (invalidFlag) {
-                    if (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(occupyFromSSO.getSource())) {
-                        occupyFromSSO.setActive(0);
-                        occupyFromSSO.setActiveTime(newOccupy.getUpdateTime());
+                if (delFlag) {
+                    if ((null == occupyFromSSO.getRuleStatus() || occupyFromSSO.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(occupyFromSSO.getSource()))) {
+                        occupyFromSSO.setDelMark(1);
+                        occupyFromSSO.setUpdateTime(newOccupy.getUpdateTime());
                         occupyFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
                         occupyFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                        if (result.containsKey("invalid")) {
-                            result.get("invalid").add(occupyFromSSO);
+                        if (result.containsKey("delete")) {
+                            result.get("delete").add(occupyFromSSO);
                         } else {
-                            result.put("invalid", new ArrayList<OccupyDto>() {{
+                            result.put("delete", new ArrayList<OccupyDto>() {{
                                 this.add(occupyFromSSO);
                             }});
                         }
-                        log.info("人员身份信息失效{}", occupyFromSSO.getOccupyId());
+                        //处理人员预览数据
+                        preViewOccupyMap.remove(occupyFromSSO.getOccupyId());
+                        log.info("人员身份信息删除{}", occupyFromSSO.getOccupyId());
                     } else {
-                        log.info("人员身份信息失效{},但检测到对应权威源已无效,跳过该数据", occupyFromSSO.getOccupyId());
+                        log.info("人员身份信息删除{},但检测到对应权威源已无效或规则为启用,跳过该数据", occupyFromSSO.getOccupyId());
                     }
-                } else {
-                    //失效恢复标识为true且sso的状态为无效
+                }
+                if (updateFlag && occupyFromSSO.getDelMark() != 1) {
+                    occupyFromSSO.setUpdateTime(newOccupy.getUpdateTime());
+                    // 区分出 更新数据  还是 无效数据（上游提供active字段 && 将active变为false）
+                    if (invalidFlag) {
+                        if ((null == occupyFromSSO.getRuleStatus() || occupyFromSSO.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(occupyFromSSO.getSource()))) {
+                            occupyFromSSO.setActive(0);
+                            occupyFromSSO.setActiveTime(newOccupy.getUpdateTime());
+                            occupyFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                            occupyFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                            if (result.containsKey("invalid")) {
+                                result.get("invalid").add(occupyFromSSO);
+                            } else {
+                                result.put("invalid", new ArrayList<OccupyDto>() {{
+                                    this.add(occupyFromSSO);
+                                }});
+                            }
+                            //处理人员预览数据
+                            preViewOccupyMap.remove(occupyFromSSO.getOccupyId());
+                            log.info("人员身份信息失效{}", occupyFromSSO.getOccupyId());
+                        } else {
+                            log.info("人员身份信息失效{},但检测到对应权威源已无效或规则未启用,跳过该数据", occupyFromSSO.getOccupyId());
+                        }
+                    } else {
+                        //失效恢复标识为true且sso的状态为无效
 
-                    if (occupyFromSSO.getActive() != newOccupy.getActive()) {
+                        if (occupyFromSSO.getActive() != newOccupy.getActive()) {
+                            occupyFromSSO.setActive(newOccupy.getActive());
+                            occupyFromSSO.setActiveTime(newOccupy.getUpdateTime());
+                        }
+                        setValidTime(occupyFromSSO);
+                        if (result.containsKey("update")) {
+                            result.get("update").add(occupyFromSSO);
+                        } else {
+                            result.put("update", new ArrayList<OccupyDto>() {{
+                                this.add(occupyFromSSO);
+                            }});
+                        }
+                        //处理人员预览数据
+                        preViewOccupyMap.put(occupyFromSSO.getOccupyId(), occupyFromSSO);
+                    }
+
+
+                }
+                // 对比后，权威源提供的"映射字段"数据和sso中没有差异。 （active字段不提供）
+                if (!updateFlag && occupyFromSSO.getDelMark() != 1) {
+                    //
+                    if (!occupyFromSSO.getActive().equals(newOccupy.getActive())) {
                         occupyFromSSO.setActive(newOccupy.getActive());
                         occupyFromSSO.setActiveTime(newOccupy.getUpdateTime());
-                    }
-                    setValidTime(occupyFromSSO);
-                    if (result.containsKey("update")) {
-                        result.get("update").add(occupyFromSSO);
-                    } else {
-                        result.put("update", new ArrayList<OccupyDto>() {{
-                            this.add(occupyFromSSO);
-                        }});
-                    }
-                }
+                        occupyFromSSO.setUpdateTime(newOccupy.getUpdateTime());
+                        if (result.containsKey("update")) {
+                            result.get("update").add(occupyFromSSO);
+                        } else {
+                            result.put("update", new ArrayList<OccupyDto>() {{
+                                this.add(occupyFromSSO);
+                            }});
+                        }
+                        //处理人员预览数据
+                        preViewOccupyMap.put(occupyFromSSO.getOccupyId(), occupyFromSSO);
 
 
-            }
-            // 对比后，权威源提供的"映射字段"数据和sso中没有差异。 （active字段不提供）
-            if (!updateFlag && occupyFromSSO.getDelMark() != 1) {
-                //
-                if (!occupyFromSSO.getActive().equals(newOccupy.getActive())) {
-                    occupyFromSSO.setActive(newOccupy.getActive());
-                    occupyFromSSO.setActiveTime(newOccupy.getUpdateTime());
-                    occupyFromSSO.setUpdateTime(newOccupy.getUpdateTime());
-                    if (result.containsKey("update")) {
-                        result.get("update").add(occupyFromSSO);
-                    } else {
-                        result.put("update", new ArrayList<OccupyDto>() {{
-                            this.add(occupyFromSSO);
-                        }});
                     }
 
                 }
-
+                log.debug("人员身份对比后更新{}-{}", occupyFromSSO, occupyDtoFromUpstream.get(key));
+            } else {
+                log.debug("该身份对应{}", occupyFromSSO.getOccupyId());
             }
-            log.debug("人员身份对比后更新{}-{}", occupyFromSSO, occupyDtoFromUpstream.get(key));
+
             //如果权威源没有,sso有并且来源是pull则置为失效
         } else if (!occupyDtoFromUpstream.containsKey(key)
                 && 1 != occupyFromSSO.getDelMark()
                 && (null == occupyFromSSO.getActive() || occupyFromSSO.getActive() == 1)
                 && "PULL".equalsIgnoreCase(occupyFromSSO.getDataSource())) {
             // 如果sso 有，上游源没有 &&  sso中数据不是删除 && sso数据不是无效
-            if (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(occupyFromSSO.getSource())) {
+            if ((null == occupyFromSSO.getRuleStatus() || occupyFromSSO.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(occupyFromSSO.getSource()))) {
                 LocalDateTime now = LocalDateTime.now();
                 occupyFromSSO.setActive(0);
                 occupyFromSSO.setActiveTime(now);
@@ -627,9 +665,11 @@ public class OccupyServiceImpl implements OccupyService {
                         this.add(occupyFromSSO);
                     }});
                 }
+                //处理人员预览数据
+                preViewOccupyMap.remove(occupyFromSSO.getOccupyId());
                 log.debug("人员身份对比后上游丢失{}", occupyFromSSO.getOccupyId());
             } else {
-                log.info("人员身份对比后上游丢失{},但检测到对应权威源已无效,跳过该数据", occupyFromSSO.getOccupyId());
+                log.info("人员身份对比后上游丢失{},但检测到对应权威源已无效或规则未启用,跳过该数据", occupyFromSSO.getOccupyId());
             }
 
         }
@@ -705,6 +745,126 @@ public class OccupyServiceImpl implements OccupyService {
         } else {
             log.error("数据类型不合法,请检查");
             throw new CustomException(ResultCode.FAILED, "数据类型不合法,请检查");
+        }
+    }
+
+    @Override
+    public OccupyConnection preViewOccupies(Map<String, Object> arguments, DomainInfo domain) throws Exception {
+        Integer i = occupyDao.findOccupyTempCount(null,domain);
+
+        //判断数据库是否有数据
+        if (i <= 0) {
+            this.reFreshOccupies(arguments, domain,null);
+        }
+        //根据条件查询
+        List<OccupyDto> occupyDtos = occupyDao.findOccupyTemp(arguments, domain);
+
+        OccupyConnection occupyConnection = new OccupyConnection();
+        List<OccupyEdge> upstreamDept = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(occupyDtos)) {
+            //Boolean active = (Boolean) arguments.get("active");
+            ////是否有效过滤
+            //if (null != active) {
+            //    occupyDtos = occupyDtos.stream().filter(occupyDto -> active.equals((occupyDto.getActive() == 1 ? true : false))).collect(Collectors.toList());
+            //}
+            //Integer offset = (Integer) arguments.get("offset");
+            //Integer first = (Integer) arguments.get("first");
+            Integer occupyTempCount = occupyDao.findOccupyTempCount(arguments,domain);
+            occupyConnection.setTotalCount(occupyTempCount);
+            //if (null != offset && null != first) {
+            //    occupyDtos = occupyDtos.stream().sorted(Comparator.comparing(OccupyDto::getUpdateTime).thenComparing(OccupyDto::getCreateTime)).skip(offset).limit(first).collect(Collectors.toList());
+            //
+            //}
+            for (OccupyDto occupyDto : occupyDtos) {
+                OccupyEdge occupyEdge = new OccupyEdge();
+                occupyEdge.setNode(occupyDto);
+                upstreamDept.add(occupyEdge);
+            }
+            occupyConnection.setEdges(upstreamDept);
+        }
+        return occupyConnection;
+    }
+
+    @Override
+    public PreViewResult reFreshOccupies(Map<String, Object> arguments, DomainInfo domain,PreViewResult viewResult) {
+        //容器初始化
+        if (null == PersonServiceImpl.preViewTask) {
+            PersonServiceImpl.preViewTask = new ConcurrentHashMap<>();
+        }
+        if(null==viewResult){
+            viewResult = new PreViewResult();
+
+            viewResult.setTaskId(UUID.randomUUID().toString());
+            viewResult.setStatus("doing");
+        }
+
+        if (PersonServiceImpl.preViewTask.size() <= 10) {
+            PersonServiceImpl.preViewTask.put(viewResult.getTaskId(), viewResult);
+        } else {
+            Optional<String> first = PersonServiceImpl.preViewTask.keySet().stream().findFirst();
+            String s = first.get();
+            if (null != PersonServiceImpl.preViewTask.get(s) && PersonServiceImpl.preViewTask.get(s).getStatus().equals("done")) {
+                PersonServiceImpl.preViewTask.remove(s);
+                PersonServiceImpl.preViewTask.put(viewResult.getTaskId(), viewResult);
+            } else {
+                throw new CustomException(ResultCode.FAILED, "当前任务池已满,无法创建新的刷新任务,请耐心等待");
+            }
+
+        }
+
+        if (PreViewOccupyThreadPool.executorServiceMap.containsKey(domain.getDomainName())) {
+            ExecutorService executorService = PreViewOccupyThreadPool.executorServiceMap.get(domain.getDomainName());
+            PreViewResult finalViewResult = viewResult;
+            executorService.execute(() -> {
+
+                executePreView(arguments, domain, finalViewResult);
+
+            });
+        } else {
+            PreViewOccupyThreadPool.builderExecutor(domain.getDomainName());
+            reFreshOccupies(arguments, domain,viewResult);
+        }
+
+        return viewResult;
+    }
+
+    private void executePreView(Map<String, Object> arguments, DomainInfo domain, PreViewResult viewResult) {
+        //错误数据容器初始化
+        occupyErrorData = new ConcurrentHashMap<>();
+
+        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        if (null == tenant) {
+            throw new CustomException(ResultCode.FAILED, "租户不存在");
+        }
+        // 所有证件类型
+        List<CardType> cardTypes = cardTypeDao.findAllUser(tenant.getId());
+        Map<String, CardType> userCardTypeMap = cardTypes.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
+
+
+        List<CardType> cardTypes2 = cardTypeDao.findAllFromIdentity(tenant.getId());
+        Map<String, CardType> identityCardTypeMap = cardTypes2.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
+        // 存储最终需要操作的数据
+        Map<String, List<OccupyDto>> result = new HashMap<>();
+        //重复需要删除的sso身份数据
+        ArrayList<OccupyDto> deleteFromSSO = new ArrayList<>();
+        //上游数据,用于异常的数据展示
+        Map<String, OccupyDto> occupyDtoFromUpstream = new HashMap<>();
+        List<OccupyDto> occupyDtos = null;
+        try {
+            occupyDtos = dataProcessing(domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new CustomException(ResultCode.FAILED, e.getMessage());
+        }
+        //存储到临时表(首先清除上次遗留数据)
+        occupyDao.removeData(domain);
+        Integer i = occupyDao.findOccupyTempCount(null,domain);
+        log.info("---------------租户:{},清除人员身份数据完毕:{}", domain.getId(), i);
+        occupyDao.saveToTemp(occupyDtos, domain);
+        if (null != viewResult) {
+            viewResult.setStatus("done");
+            PersonServiceImpl.preViewTask.put(viewResult.getTaskId(), viewResult);
+            log.info("人员身份刷新完毕,任务id为:{}",viewResult.getTaskId());
         }
     }
 }

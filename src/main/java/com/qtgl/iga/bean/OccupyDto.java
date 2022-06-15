@@ -51,6 +51,10 @@ public class OccupyDto {
      * 上游岗位、部门导致身份失效
      */
     private  Integer orphan;
+    /**
+     * 逻辑处理字段 规则是否启用
+     */
+    private Boolean ruleStatus;
 
 
 
