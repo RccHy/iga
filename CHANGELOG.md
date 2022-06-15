@@ -1,3 +1,24 @@
+### 20220615
+
+**数据库**
+- 执行iga/update/update.sql下 20220615的sql
+
+**new：**
+- 人员,人员身份预览功能
+- 同步表达式 $ENTITY相关支持,具体配置规则参考 README
+  **bug fix**
+- 无
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20220615
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20220615
+
+
+
 ### 20220520
 
 **数据库**
