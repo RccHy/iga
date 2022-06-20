@@ -6,7 +6,6 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.PersonConnection;
 import com.qtgl.iga.bean.PersonEdge;
-import com.qtgl.iga.bean.PreViewResult;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.config.PreViewPersonThreadPool;
 import com.qtgl.iga.dao.*;
@@ -32,6 +31,7 @@ import org.springframework.util.DigestUtils;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -68,13 +68,12 @@ public class PersonServiceImpl implements PersonService {
     DynamicValueDaoImpl dynamicValueDao;
     @Autowired
     ConfigService configService;
+    @Autowired
+    PreViewTaskDao preViewTaskDao;
 
     public static ConcurrentHashMap<String, List<JSONObject>> personErrorData = null;
     //
     public static ConcurrentHashMap<String, List<Person>> personPreViewData = null;
-
-    public static ConcurrentHashMap<String, PreViewResult> preViewTask = null;
-
     //类型
     private final String TYPE = "USER";
     //加密方式
@@ -1354,7 +1353,7 @@ public class PersonServiceImpl implements PersonService {
 
     @Override
     public PersonConnection preViewPersons(Map<String, Object> arguments, DomainInfo domain) {
-        Integer i = personDao.findPersonTempCount(null,domain);
+        Integer i = personDao.findPersonTempCount(null, domain);
         //判断数据库是否有数据
         if (i <= 0 || CollectionUtils.isEmpty(personPreViewData) || (!CollectionUtils.isEmpty(personPreViewData) && CollectionUtils.isEmpty(personPreViewData.get(domain.getId())))) {
             this.reFreshPersons(arguments, domain, null);
@@ -1392,7 +1391,7 @@ public class PersonServiceImpl implements PersonService {
         Map<String, Person> preViewPersonMap = personList.stream().filter(person -> !StringUtils.isBlank(person.getId())).collect(Collectors.toMap(person -> (person.getId()), person -> person, (v1, v2) -> v2));
         //根据条件查询
         List<Person> people = personDao.findPersonTemp(arguments, domain);
-        Integer personTempCount = personDao.findPersonTempCount(arguments,domain);
+        Integer personTempCount = personDao.findPersonTempCount(arguments, domain);
         personConnection.setTotalCount(personTempCount);
         if (!CollectionUtils.isEmpty(people)) {
             for (Person person : people) {
@@ -1414,46 +1413,51 @@ public class PersonServiceImpl implements PersonService {
     }
 
     @Override
-    public PreViewResult reFreshPersons(Map<String, Object> arguments, DomainInfo domain, PreViewResult viewResult) {
-        //容器初始化
-        if (null == preViewTask) {
-            preViewTask = new ConcurrentHashMap<>();
+    public PreViewTask reFreshPersons(Map<String, Object> arguments, DomainInfo domain, PreViewTask viewTask) {
+        ////容器初始化
+        //if (null == preViewTask) {
+        //    preViewTask = new ConcurrentHashMap<>();
+        //}
+        if (null == viewTask) {
+            viewTask = new PreViewTask();
+            viewTask.setTaskId(UUID.randomUUID().toString());
+            viewTask.setStatus("doing");
+            viewTask.setDomain(domain.getId());
+            viewTask.setType("person");
         }
-        if (null == viewResult) {
-            viewResult = new PreViewResult();
-            viewResult.setTaskId(UUID.randomUUID().toString());
-            viewResult.setStatus("doing");
-        }
-        if (PersonServiceImpl.preViewTask.size() <= 10) {
-            PersonServiceImpl.preViewTask.put(viewResult.getTaskId(), viewResult);
+        //查询进行中的刷新人员任务数
+        Integer count = preViewTaskDao.findByTypeAndStatus("person", "doing",domain);
+        if (count <= 10) {
+            //PersonServiceImpl.preViewTask.put(viewResult.getTaskId(), viewResult);
+            viewTask = preViewTaskDao.saveTask(viewTask);
         } else {
-            Optional<String> first = PersonServiceImpl.preViewTask.keySet().stream().findFirst();
-            String s = first.get();
-            if (null != PersonServiceImpl.preViewTask.get(s) && PersonServiceImpl.preViewTask.get(s).getStatus().equals("done")) {
-                PersonServiceImpl.preViewTask.remove(s);
-                PersonServiceImpl.preViewTask.put(viewResult.getTaskId(), viewResult);
-            } else {
-                throw new CustomException(ResultCode.FAILED, "当前任务池已满,无法创建新的刷新任务,请耐心等待");
-            }
+            //Optional<String> first = PersonServiceImpl.preViewTask.keySet().stream().findFirst();
+            //String s = first.get();
+            //if (null != PersonServiceImpl.preViewTask.get(s) && PersonServiceImpl.preViewTask.get(s).getStatus().equals("done")) {
+            //    PersonServiceImpl.preViewTask.remove(s);
+            //    PersonServiceImpl.preViewTask.put(viewResult.getTaskId(), viewResult);
+            //} else {
+            throw new CustomException(ResultCode.FAILED, "当前任务数量已达上限,无法创建新的刷新任务,请耐心等待");
+            //}
 
         }
 
         if (PreViewPersonThreadPool.executorServiceMap.containsKey(domain.getDomainName())) {
             ExecutorService executorService = PreViewPersonThreadPool.executorServiceMap.get(domain.getDomainName());
-            PreViewResult finalViewResult = viewResult;
+            PreViewTask finalViewTask = viewTask;
             executorService.execute(() -> {
-                executePreView(arguments, domain, finalViewResult);
+                executePreView(arguments, domain, finalViewTask);
             });
         } else {
             PreViewPersonThreadPool.builderExecutor(domain.getDomainName());
-            reFreshPersons(arguments, domain, viewResult);
+            reFreshPersons(arguments, domain, viewTask);
         }
 
 
-        return viewResult;
+        return viewTask;
     }
 
-    private void executePreView(Map<String, Object> arguments, DomainInfo domain, PreViewResult viewResult) {
+    private void executePreView(Map<String, Object> arguments, DomainInfo domain, PreViewTask viewTask) {
         //错误数据置空
         TaskConfig.errorData.put(domain.getId(), "");
         personErrorData = new ConcurrentHashMap<>();
@@ -1519,27 +1523,25 @@ public class PersonServiceImpl implements PersonService {
         log.info("----------------- upstream Person end:{}", System.currentTimeMillis());
         //存储到临时表(首先清除上次遗留数据)
         personDao.removeData(domain);
-        Integer i = personDao.findPersonTempCount(null,domain);
+        Integer i = personDao.findPersonTempCount(null, domain);
         log.info("---------------租户:{},清除人员数据完毕:{}", domain.getId(), i);
         personDao.saveToTemp(personList, domain);
         if (null == personPreViewData) {
             personPreViewData = new ConcurrentHashMap<>();
         }
         personPreViewData.put(domain.getId(), personList);
-        if (null != viewResult) {
-            viewResult.setStatus("done");
-            preViewTask.put(viewResult.getTaskId(), viewResult);
-            log.info("人员刷新完毕,任务id为:{}", viewResult.getTaskId());
+        if (null != viewTask) {
+            viewTask.setStatus("done");
+            viewTask.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+            preViewTaskDao.saveTask(viewTask);
+            log.info("人员刷新完毕,任务id为:{}", viewTask.getTaskId());
         }
     }
 
     @Override
-    public PreViewResult reFreshTaskStatus(Map<String, Object> arguments, DomainInfo domain) {
-        if (null != preViewTask) {
-            Object id = arguments.get("taskId");
-            return preViewTask.get(id);
-        }
-        return null;
+    public PreViewTask reFreshTaskStatus(Map<String, Object> arguments, DomainInfo domain) {
+        Object id = arguments.get("taskId");
+        return preViewTaskDao.findByTaskId(id, domain);
     }
 
 

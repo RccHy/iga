@@ -1,9 +1,9 @@
 package com.qtgl.iga.service;
 
 import com.qtgl.iga.bean.PersonConnection;
-import com.qtgl.iga.bean.PreViewResult;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.Person;
+import com.qtgl.iga.bo.PreViewTask;
 import com.qtgl.iga.bo.TaskLog;
 
 import java.util.List;
@@ -18,7 +18,7 @@ public interface PersonService {
 
     PersonConnection preViewPersons(Map<String, Object> arguments, DomainInfo domain) throws Exception;
 
-    PreViewResult reFreshPersons(Map<String, Object> arguments, DomainInfo domain,PreViewResult preViewResult) throws Exception;
+    PreViewTask reFreshPersons(Map<String, Object> arguments, DomainInfo domain,PreViewTask preViewTask) throws Exception;
 
-    PreViewResult reFreshTaskStatus(Map<String, Object> arguments, DomainInfo domain);
+    PreViewTask reFreshTaskStatus(Map<String, Object> arguments, DomainInfo domain);
 }

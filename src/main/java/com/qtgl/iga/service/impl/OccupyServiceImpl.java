@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -53,6 +54,8 @@ public class OccupyServiceImpl implements OccupyService {
     PostDao postDao;
     @Autowired
     OccupyDao occupyDao;
+    @Autowired
+    PreViewTaskDao preViewTaskDao;
 
     @Autowired
     DataBusUtil dataBusUtil;
@@ -786,49 +789,52 @@ public class OccupyServiceImpl implements OccupyService {
     }
 
     @Override
-    public PreViewResult reFreshOccupies(Map<String, Object> arguments, DomainInfo domain,PreViewResult viewResult) {
-        //容器初始化
-        if (null == PersonServiceImpl.preViewTask) {
-            PersonServiceImpl.preViewTask = new ConcurrentHashMap<>();
+    public PreViewTask reFreshOccupies(Map<String, Object> arguments, DomainInfo domain,PreViewTask viewTask) {
+        ////容器初始化
+        //if (null == PersonServiceImpl.preViewTask) {
+        //    PersonServiceImpl.preViewTask = new ConcurrentHashMap<>();
+        //}
+        if(null==viewTask){
+            viewTask = new PreViewTask();
+            viewTask.setTaskId(UUID.randomUUID().toString());
+            viewTask.setStatus("doing");
+            viewTask.setDomain(domain.getId());
+            viewTask.setType("occupy");
         }
-        if(null==viewResult){
-            viewResult = new PreViewResult();
+        //查询进行中的刷新人员身份任务数
+        Integer count = preViewTaskDao.findByTypeAndStatus("occupy", "doing",domain);
 
-            viewResult.setTaskId(UUID.randomUUID().toString());
-            viewResult.setStatus("doing");
-        }
-
-        if (PersonServiceImpl.preViewTask.size() <= 10) {
-            PersonServiceImpl.preViewTask.put(viewResult.getTaskId(), viewResult);
+        if (count <= 10) {
+            viewTask = preViewTaskDao.saveTask(viewTask);
         } else {
-            Optional<String> first = PersonServiceImpl.preViewTask.keySet().stream().findFirst();
-            String s = first.get();
-            if (null != PersonServiceImpl.preViewTask.get(s) && PersonServiceImpl.preViewTask.get(s).getStatus().equals("done")) {
-                PersonServiceImpl.preViewTask.remove(s);
-                PersonServiceImpl.preViewTask.put(viewResult.getTaskId(), viewResult);
-            } else {
-                throw new CustomException(ResultCode.FAILED, "当前任务池已满,无法创建新的刷新任务,请耐心等待");
-            }
+            //Optional<String> first = PersonServiceImpl.preViewTask.keySet().stream().findFirst();
+            //String s = first.get();
+            //if (null != PersonServiceImpl.preViewTask.get(s) && PersonServiceImpl.preViewTask.get(s).getStatus().equals("done")) {
+            //    PersonServiceImpl.preViewTask.remove(s);
+            //    PersonServiceImpl.preViewTask.put(viewResult.getTaskId(), viewResult);
+            //} else {
+            throw new CustomException(ResultCode.FAILED, "当前任务数量已达上限,无法创建新的刷新任务,请耐心等待");
+            //}
 
         }
 
         if (PreViewOccupyThreadPool.executorServiceMap.containsKey(domain.getDomainName())) {
             ExecutorService executorService = PreViewOccupyThreadPool.executorServiceMap.get(domain.getDomainName());
-            PreViewResult finalViewResult = viewResult;
+            PreViewTask finalViewTask = viewTask;
             executorService.execute(() -> {
 
-                executePreView(arguments, domain, finalViewResult);
+                executePreView(arguments, domain, finalViewTask);
 
             });
         } else {
             PreViewOccupyThreadPool.builderExecutor(domain.getDomainName());
-            reFreshOccupies(arguments, domain,viewResult);
+            reFreshOccupies(arguments, domain,viewTask);
         }
 
-        return viewResult;
+        return viewTask;
     }
 
-    private void executePreView(Map<String, Object> arguments, DomainInfo domain, PreViewResult viewResult) {
+    private void executePreView(Map<String, Object> arguments, DomainInfo domain, PreViewTask viewTask) {
         //错误数据容器初始化
         occupyErrorData = new ConcurrentHashMap<>();
 
@@ -861,10 +867,11 @@ public class OccupyServiceImpl implements OccupyService {
         Integer i = occupyDao.findOccupyTempCount(null,domain);
         log.info("---------------租户:{},清除人员身份数据完毕:{}", domain.getId(), i);
         occupyDao.saveToTemp(occupyDtos, domain);
-        if (null != viewResult) {
-            viewResult.setStatus("done");
-            PersonServiceImpl.preViewTask.put(viewResult.getTaskId(), viewResult);
-            log.info("人员身份刷新完毕,任务id为:{}",viewResult.getTaskId());
+        if (null != viewTask) {
+            viewTask.setStatus("done");
+            viewTask.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+            preViewTaskDao.saveTask(viewTask);
+            log.info("人员身份刷新完毕,任务id为:{}",viewTask.getTaskId());
         }
     }
 }
