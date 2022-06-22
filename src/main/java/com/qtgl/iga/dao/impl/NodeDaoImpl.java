@@ -2,14 +2,23 @@ package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.Node;
+import com.qtgl.iga.bo.NodeRulesRange;
 import com.qtgl.iga.dao.NodeDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import com.qtgl.iga.utils.MyBeanUtils;
+import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.exception.CustomException;
+import com.qtgl.iga.vo.NodeRulesVo;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
 
@@ -20,7 +29,8 @@ public class NodeDaoImpl implements NodeDao {
     @Resource(name = "jdbcIGA")
     JdbcTemplate jdbcIGA;
 
-
+    @Resource(name = "iga-txTemplate")
+    TransactionTemplate txTemplate;
     @Override
     public NodeDto save(NodeDto node) {
 
@@ -338,6 +348,67 @@ public class NodeDaoImpl implements NodeDao {
         return nodes;
 
     }
+    @Override
+    public Integer updateNodeAndRules(ArrayList<Node> invalidNodes, ArrayList<NodeRulesVo> invalidNodeRules, ArrayList<NodeRulesRange> invalidNodeRulesRanges) {
+        return txTemplate.execute(transactionStatus -> {
+            try {
+                if (!CollectionUtils.isEmpty(invalidNodes)) {
+                    String nodeStr = "UPDATE `t_mgr_node` SET  `update_time` = ? ,  `status` = 3  WHERE `id` = ? and domain = ?";
+                    jdbcIGA.batchUpdate(nodeStr, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, new Timestamp(System.currentTimeMillis()));
+                            preparedStatement.setObject(2, invalidNodes.get(i).getId());
+                            preparedStatement.setObject(3, invalidNodes.get(i).getDomain());
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return invalidNodes.size();
+                        }
+                    });
+                }
+                if (!CollectionUtils.isEmpty(invalidNodeRules)) {
+                    String rulesStr = "UPDATE `t_mgr_node_rules` SET  `update_time` = ?,  `status` = 3 WHERE `id` = ? ";
+                    jdbcIGA.batchUpdate(rulesStr, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, new Timestamp(System.currentTimeMillis()));
+                            preparedStatement.setObject(2, invalidNodeRules.get(i).getId());
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return invalidNodeRules.size();
+                        }
+                    });
+                }
+                if (!CollectionUtils.isEmpty(invalidNodeRulesRanges)) {
+                    String rangeStr = "UPDATE `t_mgr_node_rules_range` SET  `update_time` = ? ,  `status` = 3  WHERE `id` = ? ";
+                    jdbcIGA.batchUpdate(rangeStr, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, new Timestamp(System.currentTimeMillis()));
+                            preparedStatement.setObject(2, invalidNodeRulesRanges.get(i).getId());
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return invalidNodeRulesRanges.size();
+                        }
+                    });
+                }
+
+                return 1;
+            } catch (Exception e) {
+                e.printStackTrace();
+                transactionStatus.setRollbackOnly();
+                throw new CustomException(ResultCode.FAILED, "标记失效规则异常！");
+            }
+        });
+
+    }
+
 
     private String handleSql(String sql, List<String> codes, List<Object> param) {
         StringBuffer stb = new StringBuffer(sql);

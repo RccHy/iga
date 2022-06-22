@@ -171,6 +171,9 @@ public class DeptServiceImpl implements DeptService {
 //        }
         //code重复性校验
         calculationService.groupByCode(beans, status, domain);
+        //todo 无效规则筛选标记
+        List<Node> nodes = nodeDao.findNodesByStatusAndType(status, TYPE, domain.getId(), null);
+        nodeService.updateNodeAndRules(nodes,beans);
         return beans;
 
     }
