@@ -353,7 +353,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
     public List<NodeRulesVo> findPullNodeRulesByNodeId(String id, Integer status) {
         String sql = "select id,node_id as nodeId,type as type,active as active," +
                 "create_time as createTime,service_key as serviceKey,upstream_types_id as upstreamTypesId,inherit_id as inheritId," +
-                "active_time as activeTime,update_time as updateTime , sort ,status from t_mgr_node_rules where node_id =? and type= 1";
+                "active_time as activeTime,update_time as updateTime , sort ,status from t_mgr_node_rules where node_id =? and type= 1 ";
         List<Object> param = new ArrayList<>();
         param.add(id);
         if (null != status) {
