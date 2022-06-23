@@ -461,7 +461,7 @@ public class NodeServiceImpl implements NodeService {
                 if(!StringUtils.isBlank(node.getNodeCode())){
                     if(!collect.containsKey(node.getNodeCode())){
                         invalidNodes.add(node);
-                        List<NodeRulesVo> nodeRulesVos = nodeRulesDao.findNodeRulesByNodeId(node.getId(), null);
+                        List<NodeRulesVo> nodeRulesVos = nodeRulesDao.findPullNodeRulesByNodeId(node.getId(), null);
                         if(!CollectionUtils.isEmpty(nodeRulesVos)){
                             invalidNodeRules.addAll(nodeRulesVos);
                             for (NodeRulesVo nodeRulesVo : nodeRulesVos) {

@@ -349,6 +349,35 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
         return null;
     }
 
+    @Override
+    public List<NodeRulesVo> findPullNodeRulesByNodeId(String id, Integer status) {
+        String sql = "select id,node_id as nodeId,type as type,active as active," +
+                "create_time as createTime,service_key as serviceKey,upstream_types_id as upstreamTypesId,inherit_id as inheritId," +
+                "active_time as activeTime,update_time as updateTime , sort ,status from t_mgr_node_rules where node_id =? and type= 1";
+        List<Object> param = new ArrayList<>();
+        param.add(id);
+        if (null != status) {
+            sql = sql + "and status =? ";
+            param.add(status);
+        }
+        sql = sql + "order by sort asc";
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, param.toArray());
+        ArrayList<NodeRulesVo> list = new ArrayList<>();
+        if (null != mapList && mapList.size() > 0) {
+            for (Map<String, Object> map : mapList) {
+                NodeRulesVo nodeRules = new NodeRulesVo();
+                try {
+                    MyBeanUtils.populate(nodeRules, map);
+                } catch (IllegalAccessException | InvocationTargetException e) {
+                    e.printStackTrace();
+                }
+                list.add(nodeRules);
+            }
+            return list;
+        }
+        return null;
+    }
+
 
     private void dealData(Map<String, Object> arguments, StringBuffer stb, List<Object> param) {
         Iterator<Map.Entry<String, Object>> it = arguments.entrySet().iterator();

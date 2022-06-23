@@ -53,6 +53,8 @@ public class PostServiceImpl implements PostService {
     DynamicValueDaoImpl dynamicValueDao;
     @Autowired
     UpstreamDao upstreamDao;
+    @Autowired
+    NodeDao nodeDao;
 
     @Value("${iga.hostname}")
     String hostname;
@@ -302,7 +304,8 @@ public class PostServiceImpl implements PostService {
 
         // 判断重复(code)
         calculationService.groupByCode(beans, status, domain);
-
+        List<Node> nodes = nodeDao.findNodesByStatusAndType(status, TYPE, domain.getId(), null);
+        nodeService.updateNodeAndRules(nodes,beans);
         return beans;
 
     }
