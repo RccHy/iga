@@ -60,6 +60,8 @@ type UpstreamType{
     hasRules:Boolean
     # nodeRules
     nodeRules:[NodeRules]
+    #时间戳查询字段
+    time:Timestamp
 
 }
 
@@ -135,6 +137,8 @@ input InputUpstreamType{
     isPage:Boolean
     #方式 拉取0/推送1
     synWay:Int
+    #时间戳查询字段
+    time:Timestamp
 
 }
 

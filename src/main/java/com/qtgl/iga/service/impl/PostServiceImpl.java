@@ -55,6 +55,8 @@ public class PostServiceImpl implements PostService {
     UpstreamDao upstreamDao;
     @Autowired
     NodeDao nodeDao;
+    @Autowired
+    IncrementalTaskDao incrementalTaskDao;
 
     @Value("${iga.hostname}")
     String hostname;
@@ -91,6 +93,20 @@ public class PostServiceImpl implements PostService {
         //}
         //获取完整的非PULL根数据以及加入逻辑根节点
         rootBeans.addAll(ssoBeans);
+        //通过tenantId查询ssoApis库中的数据
+        List<TreeBean> beans = postDao.findByTenantId(tenant.getId());
+
+        //将null赋为""
+        if (null != beans && beans.size() > 0) {
+            for (TreeBean bean : beans) {
+                if (StringUtils.isBlank(bean.getParentCode())) {
+                    bean.setParentCode("");
+                }
+            }
+        }
+        //map做增量处理值传递
+        Map<String, TreeBean> ssoBeansMap = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
+
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
         //ArrayList<TreeBean> treeBeans = new ArrayList<>();
@@ -108,6 +124,8 @@ public class PostServiceImpl implements PostService {
 
         List<DynamicValue> valueUpdate = new ArrayList<>();
 
+        //增量日志容器
+        List<IncrementalTask> incrementalTasks = new ArrayList<>();
         //扩展字段新增容器
         ArrayList<DynamicValue> valueInsert = new ArrayList<>();
 
@@ -129,38 +147,25 @@ public class PostServiceImpl implements PostService {
             valueMap = dynamicValues.stream().collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
         }
         mainTreeBeans.addAll(ssoBeans);
-
-        for (TreeBean rootBean : rootBeans) {
-
-            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes);
-
-        }
-        // 判断重复(code)
-        calculationService.groupByCode(mainTreeBeans, 0, domain);
-
-        //通过tenantId查询ssoApis库中的数据
-        List<TreeBean> beans = postDao.findByTenantId(tenant.getId());
-
-        //将null赋为""
-        if (null != beans && beans.size() > 0) {
-            for (TreeBean bean : beans) {
-                if (StringUtils.isBlank(bean.getParentCode())) {
-                    bean.setParentCode("");
-                }
-                //if("KaiFaZhe".equals(bean.getCode())){
-                //    logger.info("开发者:{}",bean);
-                //}
-            }
-        }
-        Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-
-        //同步到sso
         //获取该租户下的当前类型的无效权威源
         ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
         Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
         if (!CollectionUtils.isEmpty(upstreams)) {
             upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
         }
+        for (TreeBean rootBean : rootBeans) {
+
+            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, incrementalTasks, result);
+
+        }
+        // 判断重复(code)
+        calculationService.groupByCode(mainTreeBeans, 0, domain);
+
+        Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+
+        //同步到sso
+        beans = new ArrayList<>(ssoBeansMap.values());
+
         beans = dataProcessing(mainTreeMap, domain, "", beans, result, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap);
 //        if (null != beans) {
 //            beans.addAll(treeBeans);
@@ -178,7 +183,10 @@ public class PostServiceImpl implements PostService {
         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
         calculationService.monitorRules(domain, lastTaskLog, beans.size(), delete, "post");
         saveToSso(collect, tenant.getId(), attrMap, valueUpdate, valueInsert);
-
+        if (!CollectionUtils.isEmpty(incrementalTasks)) {
+            //添加增量日志
+            incrementalTaskDao.saveAll(incrementalTasks, domain);
+        }
         return result;
 
     }
@@ -226,6 +234,20 @@ public class PostServiceImpl implements PostService {
         //获取完整的非PULL根数据以及加入逻辑根节点
         rootBeans.addAll(ssoBeans);
 
+        //通过tenantId查询ssoApis库中的数据
+        List<TreeBean> beans = postDao.findByTenantId(tenant.getId());
+
+        //将null赋为""
+        if (null != beans && beans.size() > 0) {
+            for (TreeBean bean : beans) {
+                if (StringUtils.isBlank(bean.getParentCode())) {
+                    bean.setParentCode("");
+                }
+            }
+        }
+        //map做增量处理值传递
+        Map<String, TreeBean> ssoBeansMap = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
+
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
         //ArrayList<TreeBean> treeBeans = new ArrayList<>();
@@ -266,33 +288,35 @@ public class PostServiceImpl implements PostService {
         Map<String, TreeBean> rootBeansMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
 
         mainTreeBeans.addAll(ssoBeans);
-        for (TreeBean rootBean : rootBeans) {
-
-            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, dynamicCodes);
-
-        }
-
-        //通过tenantId查询ssoApis库中的数据
-        List<TreeBean> beans = postDao.findByTenantId(tenant.getId());
-        //将null赋为""
-        if (null != beans && beans.size() > 0) {
-            for (TreeBean bean : beans) {
-                if (StringUtils.isBlank(bean.getParentCode())) {
-                    bean.setParentCode("");
-                }
-            }
-        }
-        Map<String, TreeBean> collect = beans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-        collect.putAll(rootBeansMap);
-        beans = new ArrayList<>(collect.values());
-        //数据对比处理
-        Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
         //获取该租户下的当前类型的无效权威源
         ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
         Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
         if (!CollectionUtils.isEmpty(upstreams)) {
             upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
         }
+        for (TreeBean rootBean : rootBeans) {
+
+            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, null, result);
+
+        }
+
+        ////通过tenantId查询ssoApis库中的数据
+        //List<TreeBean> beans = postDao.findByTenantId(tenant.getId());
+        ////将null赋为""
+        //if (null != beans && beans.size() > 0) {
+        //    for (TreeBean bean : beans) {
+        //        if (StringUtils.isBlank(bean.getParentCode())) {
+        //            bean.setParentCode("");
+        //        }
+        //    }
+        //}
+        //Map<String, TreeBean> collect = beans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+        //collect.putAll(rootBeansMap);
+        ssoBeansMap.putAll(rootBeansMap);
+        beans = new ArrayList<>(ssoBeansMap.values());
+        //数据对比处理
+        Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+
         beans = dataProcessing(mainTreeMap, domain, "", beans, result, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap);
 
 //        if (null != beans) {
@@ -305,7 +329,7 @@ public class PostServiceImpl implements PostService {
         // 判断重复(code)
         calculationService.groupByCode(beans, status, domain);
         List<Node> nodes = nodeDao.findNodesByStatusAndType(status, TYPE, domain.getId(), null);
-        nodeService.updateNodeAndRules(nodes,beans);
+        nodeService.updateNodeAndRules(nodes, beans);
         return beans;
 
     }
@@ -696,6 +720,8 @@ public class PostServiceImpl implements PostService {
 
                 //没有相等的应该是新增(对比code没有对应的标识为新增)  并且当前数据的来源规则是启用的
                 if (flag && pullBean.getRuleStatus()) {
+                    pullBean.setDataSource("PULL");
+
                     //新增
                     ssoCollect.put(pullBean.getCode(), pullBean);
                     result.put(pullBean, "insert");
@@ -703,6 +729,8 @@ public class PostServiceImpl implements PostService {
             } else {
                 //数据库数据为空的话且数据来源规则是启用的,则默认新增
                 if (pullBean.getRuleStatus()) {
+                    pullBean.setDataSource("PULL");
+
                     ssoCollect.put(pullBean.getCode(), pullBean);
                     result.put(pullBean, "insert");
                 }

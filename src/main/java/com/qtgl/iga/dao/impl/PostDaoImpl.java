@@ -244,7 +244,7 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(5, 1);
                             preparedStatement.setObject(6, tenantId);
                             preparedStatement.setObject(7, insertList.get(i).getTags());
-                            preparedStatement.setObject(8, "PULL");
+                            preparedStatement.setObject(8, insertList.get(i).getDataSource());
                             preparedStatement.setObject(9, insertList.get(i).getDescription());
                             preparedStatement.setObject(10, insertList.get(i).getCreateTime());
                             preparedStatement.setObject(11, insertList.get(i).getDelMark());
@@ -274,7 +274,7 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(2, updateList.get(i).getParentCode());
                             preparedStatement.setObject(3, null == updateList.get(i).getDelMark() ? 0 : updateList.get(i).getDelMark());
                             preparedStatement.setObject(4, tenantId);
-                            preparedStatement.setObject(5, "PULL");
+                            preparedStatement.setObject(5, updateList.get(i).getDataSource());
                             preparedStatement.setObject(6, updateList.get(i).getDescription());
                             preparedStatement.setObject(7, updateList.get(i).getUpdateTime());
                             preparedStatement.setObject(8, updateList.get(i).getTags());
@@ -313,7 +313,7 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(2, treeBeans.get(i).getActive());
                             preparedStatement.setObject(3, LocalDateTime.now());
                             preparedStatement.setObject(4, treeBeans.get(i).getUpdateTime());
-                            preparedStatement.setObject(5, "PULL");
+                            preparedStatement.setObject(5, treeBeans.get(i).getDataSource());
                             preparedStatement.setObject(6, treeBeans.get(i).getCode());
                             preparedStatement.setObject(7, tenantId);
                             preparedStatement.setObject(8, treeBeans.get(i).getUpdateTime());

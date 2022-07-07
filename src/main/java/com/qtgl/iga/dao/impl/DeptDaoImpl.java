@@ -241,7 +241,7 @@ public class DeptDaoImpl implements DeptDao {
                             preparedStatement.setObject(6, insertList.get(i).getDelMark());
                             preparedStatement.setObject(7, tenantId);
                             preparedStatement.setObject(8, insertList.get(i).getSource());
-                            preparedStatement.setObject(9, "PULL");
+                            preparedStatement.setObject(9, insertList.get(i).getDataSource());
                             preparedStatement.setObject(10, insertList.get(i).getDescription());
                             preparedStatement.setObject(11, insertList.get(i).getCreateTime());
                             preparedStatement.setObject(12, insertList.get(i).getTags());
@@ -275,7 +275,7 @@ public class DeptDaoImpl implements DeptDao {
                             preparedStatement.setObject(4, null == updateList.get(i).getDelMark() ? 0 : updateList.get(i).getDelMark());
                             preparedStatement.setObject(5, tenantId);
                             preparedStatement.setObject(6, updateList.get(i).getSource());
-                            preparedStatement.setObject(7, "PULL");
+                            preparedStatement.setObject(7, updateList.get(i).getDataSource());
                             preparedStatement.setObject(8, updateList.get(i).getDescription());
                             preparedStatement.setObject(9, updateList.get(i).getUpdateTime());
                             preparedStatement.setObject(10, updateList.get(i).getTags());
@@ -315,7 +315,7 @@ public class DeptDaoImpl implements DeptDao {
                             preparedStatement.setObject(2, LocalDateTime.now());
                             preparedStatement.setObject(3, treeBeans.get(i).getDelMark());
                             preparedStatement.setObject(4, treeBeans.get(i).getUpdateTime());
-                            preparedStatement.setObject(5, "PULL");
+                            preparedStatement.setObject(5, treeBeans.get(i).getDataSource());
                             preparedStatement.setObject(6, treeBeans.get(i).getCode());
                             preparedStatement.setObject(7, tenantId);
                             preparedStatement.setObject(8, treeBeans.get(i).getUpdateTime());

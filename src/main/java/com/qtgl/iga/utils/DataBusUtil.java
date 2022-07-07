@@ -41,6 +41,7 @@ import javax.script.ScriptException;
 import javax.script.SimpleBindings;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.sql.Timestamp;
 import java.time.ZoneOffset;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -71,6 +72,8 @@ public class DataBusUtil {
     PersonDao personDao;
     @Autowired
     OccupyDao occupyDao;
+    @Autowired
+    IncrementalTaskDao incrementalTaskDao;
 
     @Value("${app.scope}")
     private String appScope;
@@ -214,6 +217,8 @@ public class DataBusUtil {
         log.info("source url " + dataUrl);
         //获取字段映射
         List<UpstreamTypeField> fields = upstreamTypeService.findFields(upstreamType.getId());
+        Map<String, String> collect = fields.stream().collect(Collectors.toMap(UpstreamTypeField::getSourceField, UpstreamTypeField::getTargetField));
+
         typeFields.put(upstreamType.getId(), fields);
         String[] type = upstreamType.getGraphqlUrl().split("/");
         GraphqlClient graphqlClient = GraphqlClient.buildGraphqlClient(dataUrl);
@@ -223,6 +228,18 @@ public class DataBusUtil {
         if (upstreamType.getIsPage()) {
             if ("query".equals(type[4])) {
                 GraphqlQuery query = new DefaultGraphqlQuery(upstreamType.getSynType() + ":" + methodName);
+                // 增量同步添加入参
+                if (null != upstreamType.getTime()) {
+                    Timestamp timestamp = this.processTime(upstreamType);
+                    if (null != timestamp && collect.containsKey("time")) {
+                        Map<String, Object> timeMap = new HashMap<>();
+                        timeMap.put("gte", timestamp);
+                        Map<String, Object> filterMap = new HashMap<>();
+                        String time = collect.get("time");
+                        filterMap.put(time.substring(1), timeMap);
+                        query.getRequestParameter().addObjectParameter("filter", filterMap);
+                    }
+                }
                 ResultAttributtes edges = new ResultAttributtes("edges");
                 ResultAttributtes node = new ResultAttributtes("node");
                 //不需要处理的映射字段(常量)
@@ -326,7 +343,7 @@ public class DataBusUtil {
                 }
 
                 JSONArray resultJson = new JSONArray();
-                Map<String, String> collect = fields.stream().collect(Collectors.toMap(UpstreamTypeField::getSourceField, UpstreamTypeField::getTargetField));
+                //Map<String, String> collect = fields.stream().collect(Collectors.toMap(UpstreamTypeField::getSourceField, UpstreamTypeField::getTargetField));
                 //获取sso数据
                 Tenant tenant = tenantDao.findByDomainName(domainName);
                 if (null == tenant) {
@@ -1033,5 +1050,24 @@ public class DataBusUtil {
         long exp = System.currentTimeMillis() + (oAuthClientResponse.getExpiresIn() * 1000 - (10 * 60 * 1000));
         tokenMap.put(domainInfo.getDomainName(), new Token(oAuthClientResponse.getAccessToken(), exp, System.currentTimeMillis()));
         return accessToken;
+    }
+
+    private Timestamp processTime(UpstreamType upstreamType) {
+        //获取最近一次增量数据同步的日志信息
+        List<IncrementalTask> incrementalTasks = incrementalTaskDao.findByDomainAndType(upstreamType.getDomain(), upstreamType.getSynType(), upstreamType.getId());
+        long maxTime;
+        long now = System.currentTimeMillis();
+        if (!CollectionUtils.isEmpty(incrementalTasks)) {
+            //取最近一次的同步结束时间作为时间起始点
+            maxTime = incrementalTasks.get(0).getTime().getTime();
+        } else {
+            //如果没有则默认走全量
+            return null;
+        }
+        maxTime = Math.min(now, maxTime);
+        //当返回来的数据的MAX.TIME超过48小时，下次同步时间不会去取超过48小时之外的数据
+        maxTime = Math.max(now - 2 * 24 * 60 * 60 * 1000, maxTime);
+
+        return new Timestamp(maxTime);
     }
 }

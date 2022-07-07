@@ -2,7 +2,10 @@ package com.qtgl.iga.service.impl;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.qtgl.iga.bean.*;
+import com.qtgl.iga.bean.OccupyConnection;
+import com.qtgl.iga.bean.OccupyDto;
+import com.qtgl.iga.bean.OccupyEdge;
+import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.config.PreViewOccupyThreadPool;
 import com.qtgl.iga.dao.*;
@@ -20,6 +23,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -56,6 +60,8 @@ public class OccupyServiceImpl implements OccupyService {
     OccupyDao occupyDao;
     @Autowired
     PreViewTaskDao preViewTaskDao;
+    @Autowired
+    IncrementalTaskDao incrementalTaskDao;
 
     @Autowired
     DataBusUtil dataBusUtil;
@@ -104,12 +110,14 @@ public class OccupyServiceImpl implements OccupyService {
         ArrayList<OccupyDto> deleteFromSSO = new ArrayList<>();
         //上游数据,用于异常的数据展示
         Map<String, OccupyDto> occupyDtoFromUpstream = new HashMap<>();
+        //增量日志容器
+        List<IncrementalTask> incrementalTasks = new ArrayList<>();
 
         // 获取规则
         Map arguments = new ConcurrentHashMap();
         arguments.put("type", "occupy");
         arguments.put("status", 0);
-        dataProcessing(domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream);
+        dataProcessing(domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream, incrementalTasks);
 
         List<OccupyDto> occupiesFromSSO = occupyDao.findAll(tenant.getId(), null, null);
 
@@ -128,6 +136,11 @@ public class OccupyServiceImpl implements OccupyService {
 
         try {
             occupyDao.saveToSso(result, tenant.getId());
+            if (!CollectionUtils.isEmpty(incrementalTasks)) {
+                //添加增量日志
+                incrementalTaskDao.saveAll(incrementalTasks, domain);
+            }
+
         } catch (CustomException e) {
             if (!CollectionUtils.isEmpty(occupyDtoFromUpstream)) {
                 TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(occupyDtoFromUpstream));
@@ -167,7 +180,7 @@ public class OccupyServiceImpl implements OccupyService {
         return result;
     }
 
-    private List<OccupyDto> dataProcessing(DomainInfo domain, Tenant tenant, Map<String, CardType> userCardTypeMap, Map<String, CardType> identityCardTypeMap, Map arguments, Map<String, List<OccupyDto>> result, ArrayList<OccupyDto> deleteFromSSO, Map<String, OccupyDto> occupyDtoFromUpstream) throws Exception {
+    private List<OccupyDto> dataProcessing(DomainInfo domain, Tenant tenant, Map<String, CardType> userCardTypeMap, Map<String, CardType> identityCardTypeMap, Map arguments, Map<String, List<OccupyDto>> result, ArrayList<OccupyDto> deleteFromSSO, Map<String, OccupyDto> occupyDtoFromUpstream, List<IncrementalTask> incrementalTasks) throws Exception {
         List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
         if (null == nodes || nodes.size() <= 0) {
             throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
@@ -276,6 +289,7 @@ public class OccupyServiceImpl implements OccupyService {
             }
             final List<OccupyDto> occupies = dataByBus.toJavaList(OccupyDto.class);
             // TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(occupies)));
+            ArrayList<OccupyDto> resultOccupies = new ArrayList<>();
             for (OccupyDto occupyDto : occupies) {
 
                 // 人员标识 证件类型、证件号码   OR    用户名 accountNo  OR  身份标识  必提供一个
@@ -405,14 +419,26 @@ public class OccupyServiceImpl implements OccupyService {
                     log.info("权威源人员身份数据合重:{}->{}", occupyDtoFromUpstream.get(key).toString(), occupyDto);
                     if (occupyDto.getActive() == 1) {
                         occupyDtoFromUpstream.put(key, occupyDto);
+                        resultOccupies.add(occupyDto);
                         extracted(domain, occupyDtoFromUpstream.get(key), "权威源人员身份数据合重");
                     } else {
                         extracted(domain, occupyDto, "忽略无效数据");
                     }
                 } else {
+                    resultOccupies.add(occupyDto);
                     occupyDtoFromUpstream.put(key, occupyDto);
                 }
 
+            }
+            //权威源类型为增量则添加对应的增量同步日志
+            if (null != upstreamType.getTime() && null != incrementalTasks && !CollectionUtils.isEmpty(resultOccupies)) {
+                List<OccupyDto> collect1 = resultOccupies.stream().sorted(Comparator.comparing(OccupyDto::getUpdateTime).reversed()).collect(Collectors.toList());
+                IncrementalTask incrementalTask = new IncrementalTask();
+                incrementalTask.setType("occupy");
+                long min = Math.min(collect1.get(0).getUpdateTime().toEpochSecond(ZoneOffset.of("+8")), System.currentTimeMillis());
+                incrementalTask.setTime(new Timestamp(min));
+                incrementalTask.setUpstreamTypeId(collect1.get(0).getUpstreamType());
+                incrementalTasks.add(incrementalTask);
             }
 
         });
@@ -753,11 +779,11 @@ public class OccupyServiceImpl implements OccupyService {
 
     @Override
     public OccupyConnection preViewOccupies(Map<String, Object> arguments, DomainInfo domain) throws Exception {
-        Integer i = occupyDao.findOccupyTempCount(null,domain);
+        Integer i = occupyDao.findOccupyTempCount(null, domain);
 
         //判断数据库是否有数据
         if (i <= 0) {
-            this.reFreshOccupies(arguments, domain,null);
+            this.reFreshOccupies(arguments, domain, null);
         }
         //根据条件查询
         List<OccupyDto> occupyDtos = occupyDao.findOccupyTemp(arguments, domain);
@@ -772,7 +798,7 @@ public class OccupyServiceImpl implements OccupyService {
             //}
             //Integer offset = (Integer) arguments.get("offset");
             //Integer first = (Integer) arguments.get("first");
-            Integer occupyTempCount = occupyDao.findOccupyTempCount(arguments,domain);
+            Integer occupyTempCount = occupyDao.findOccupyTempCount(arguments, domain);
             occupyConnection.setTotalCount(occupyTempCount);
             //if (null != offset && null != first) {
             //    occupyDtos = occupyDtos.stream().sorted(Comparator.comparing(OccupyDto::getUpdateTime).thenComparing(OccupyDto::getCreateTime)).skip(offset).limit(first).collect(Collectors.toList());
@@ -789,12 +815,12 @@ public class OccupyServiceImpl implements OccupyService {
     }
 
     @Override
-    public PreViewTask reFreshOccupies(Map<String, Object> arguments, DomainInfo domain,PreViewTask viewTask) {
+    public PreViewTask reFreshOccupies(Map<String, Object> arguments, DomainInfo domain, PreViewTask viewTask) {
         ////容器初始化
         //if (null == PersonServiceImpl.preViewTask) {
         //    PersonServiceImpl.preViewTask = new ConcurrentHashMap<>();
         //}
-        if(null==viewTask){
+        if (null == viewTask) {
             viewTask = new PreViewTask();
             viewTask.setTaskId(UUID.randomUUID().toString());
             viewTask.setStatus("doing");
@@ -802,7 +828,7 @@ public class OccupyServiceImpl implements OccupyService {
             viewTask.setType("occupy");
         }
         //查询进行中的刷新人员身份任务数
-        Integer count = preViewTaskDao.findByTypeAndStatus("occupy", "doing",domain);
+        Integer count = preViewTaskDao.findByTypeAndStatus("occupy", "doing", domain);
 
         if (count <= 10) {
             viewTask = preViewTaskDao.saveTask(viewTask);
@@ -828,7 +854,7 @@ public class OccupyServiceImpl implements OccupyService {
             });
         } else {
             PreViewOccupyThreadPool.builderExecutor(domain.getDomainName());
-            reFreshOccupies(arguments, domain,viewTask);
+            reFreshOccupies(arguments, domain, viewTask);
         }
 
         return viewTask;
@@ -857,21 +883,21 @@ public class OccupyServiceImpl implements OccupyService {
         Map<String, OccupyDto> occupyDtoFromUpstream = new HashMap<>();
         List<OccupyDto> occupyDtos = null;
         try {
-            occupyDtos = dataProcessing(domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream);
+            occupyDtos = dataProcessing(domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream, null);
         } catch (Exception e) {
             e.printStackTrace();
             throw new CustomException(ResultCode.FAILED, e.getMessage());
         }
         //存储到临时表(首先清除上次遗留数据)
         occupyDao.removeData(domain);
-        Integer i = occupyDao.findOccupyTempCount(null,domain);
+        Integer i = occupyDao.findOccupyTempCount(null, domain);
         log.info("---------------租户:{},清除人员身份数据完毕:{}", domain.getId(), i);
         occupyDao.saveToTemp(occupyDtos, domain);
         if (null != viewTask) {
             viewTask.setStatus("done");
             viewTask.setUpdateTime(new Timestamp(System.currentTimeMillis()));
             preViewTaskDao.saveTask(viewTask);
-            log.info("人员身份刷新完毕,任务id为:{}",viewTask.getTaskId());
+            log.info("人员身份刷新完毕,任务id为:{}", viewTask.getTaskId());
         }
     }
 }

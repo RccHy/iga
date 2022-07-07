@@ -197,7 +197,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
 
                 });
                 //添加权威源类型
-                String upstreamTypeSql = "insert into t_mgr_upstream_types  values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                String upstreamTypeSql = "insert into t_mgr_upstream_types  values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
                 if (null != upstreamTypes && upstreamTypes.size() > 0) {
                     jdbcIGA.batchUpdate(upstreamTypeSql, new BatchPreparedStatementSetter() {
                         @Override
@@ -218,7 +218,8 @@ public class UpstreamDaoImpl implements UpstreamDao {
                             preparedStatement.setObject(14, domainInfo.getId());
                             preparedStatement.setObject(15, upstreamTypes.get(i).getDeptTreeTypeId());
                             preparedStatement.setObject(16, 0);
-                            preparedStatement.setObject(17, upstreamTypes.get(i).getSynWay());
+                            preparedStatement.setObject(17, upstreamTypes.get(i).getTime());
+                            preparedStatement.setObject(18, upstreamTypes.get(i).getSynWay());
                         }
 
                         @Override

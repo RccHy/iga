@@ -103,5 +103,9 @@ public class UpstreamType implements Serializable {
      * 方式
      */
     private Integer synWay;
+    /**
+     * 时间戳查询字段
+     */
+    private Timestamp time;
 
 }

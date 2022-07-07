@@ -61,6 +61,8 @@ public class DeptServiceImpl implements DeptService {
     DynamicValueDaoImpl dynamicValueDao;
     @Autowired
     UpstreamDao upstreamDao;
+    @Autowired
+    IncrementalTaskDao incrementalTaskDao;
 
     @Value("${iga.hostname}")
     String hostname;
@@ -101,6 +103,8 @@ public class DeptServiceImpl implements DeptService {
                 }
             }
         }
+        //map做增量处理值传递
+        Map<String, TreeBean> ssoBeansMap = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
         ArrayList<TreeBean> insert = new ArrayList<>();
@@ -139,7 +143,12 @@ public class DeptServiceImpl implements DeptService {
         if (!CollectionUtils.isEmpty(dynamicValues)) {
             valueMap = dynamicValues.stream().collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
         }
-
+        //获取该租户下的当前类型的无效权威源
+        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
+        Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(upstreams)) {
+            upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
+        }
         for (DeptTreeType deptType : deptTreeTypes) {
 
             List<TreeBean> ssoApiBeans = deptDao.findBySourceAndTreeType("API", deptType.getCode(), tenant.getId());
@@ -147,22 +156,17 @@ public class DeptServiceImpl implements DeptService {
                 mainTreeBeans.addAll(ssoApiBeans);
                 rulesCalculationService.groupByCode(mainTreeBeans, status, domain);
                 for (TreeBean ssoApiBean : ssoApiBeans) {
-                    mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), ssoApiBean.getCode(), mainTreeBeans, status, TYPE, dynamicCodes);
+                    mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), ssoApiBean.getCode(), mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, null, result);
                 }
             }
 
             // id 改为code
-            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE, dynamicCodes);
+            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, null, result);
 
         }
         //同步到sso
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-        //获取该租户下的当前类型的无效权威源
-        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
-        Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
-        if (!CollectionUtils.isEmpty(upstreams)) {
-            upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
-        }
+        beans = new ArrayList<>(ssoBeansMap.values());
         beans = dataProcessing(mainTreeMap, domain, beans, result, insert, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap);
 
 //        //如果插入的数据不为空则加入返回集
@@ -173,7 +177,7 @@ public class DeptServiceImpl implements DeptService {
         calculationService.groupByCode(beans, status, domain);
         //todo 无效规则筛选标记
         List<Node> nodes = nodeDao.findNodesByStatusAndType(status, TYPE, domain.getId(), null);
-        nodeService.updateNodeAndRules(nodes,beans);
+        nodeService.updateNodeAndRules(nodes, beans);
         return beans;
 
     }
@@ -216,6 +220,8 @@ public class DeptServiceImpl implements DeptService {
                 }
             }
         }
+        //map做增量处理值传递
+        Map<String, TreeBean> ssoBeansMap = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
         ArrayList<TreeBean> treeBeans = new ArrayList<>();
@@ -232,6 +238,9 @@ public class DeptServiceImpl implements DeptService {
         List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
 
         List<DynamicValue> valueUpdate = new ArrayList<>();
+
+        //增量日志容器
+        List<IncrementalTask> incrementalTasks = new ArrayList<>();
 
         //扩展字段新增容器
         ArrayList<DynamicValue> valueInsert = new ArrayList<>();
@@ -254,6 +263,12 @@ public class DeptServiceImpl implements DeptService {
             valueMap = dynamicValues.stream().collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
         }
         logger.info("获取到当前租户{}的映射字段集为{}", tenant.getId(), dynamicAttrs);
+        //获取该租户下的当前类型的无效权威源
+        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
+        Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(upstreams)) {
+            upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
+        }
         for (DeptTreeType deptType : deptTreeTypes) {
 
             List<TreeBean> ssoApiBeans = deptDao.findBySourceAndTreeType("API", deptType.getCode(), tenant.getId());
@@ -262,21 +277,16 @@ public class DeptServiceImpl implements DeptService {
                 mainTreeBeans.addAll(ssoApiBeans);
                 rulesCalculationService.groupByCode(mainTreeBeans, 0, domain);
                 for (TreeBean ssoApiBean : ssoApiBeans) {
-                    mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), ssoApiBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes);
+                    mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), ssoApiBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, incrementalTasks, result);
                 }
             }
             //  id 改为code
-            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE, dynamicCodes);
+            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, incrementalTasks, result);
 
         }
         //同步到sso
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-        //获取该租户下的当前类型的无效权威源
-        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
-        Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
-        if (!CollectionUtils.isEmpty(upstreams)) {
-            upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
-        }
+        beans = new ArrayList<>(ssoBeansMap.values());
         beans = dataProcessing(mainTreeMap, domain, beans, result, treeBeans, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap);
 
         //code重复性校验
@@ -289,6 +299,11 @@ public class DeptServiceImpl implements DeptService {
 
         //保存到数据库
         saveToSso(collect, tenant.getId(), attrMap, valueUpdate, valueInsert);
+        if (!CollectionUtils.isEmpty(incrementalTasks)) {
+            //添加增量日志
+            incrementalTaskDao.saveAll(incrementalTasks, domain);
+        }
+
         return result;
     }
 
@@ -680,6 +695,7 @@ public class DeptServiceImpl implements DeptService {
                 if (flag && pullBean.getRuleStatus()) {
                     //新增
 //                    insert.add(pullBean);
+                    pullBean.setDataSource("PULL");
                     ssoCollect.put(pullBean.getCode(), pullBean);
                     result.put(pullBean, "insert");
                 }
@@ -687,6 +703,7 @@ public class DeptServiceImpl implements DeptService {
                 //数据库数据为空的话且数据来源规则是启用的,则默认新增
 //                insert.add(pullBean);
                 if (pullBean.getRuleStatus()) {
+                    pullBean.setDataSource("PULL");
                     ssoCollect.put(pullBean.getCode(), pullBean);
                     result.put(pullBean, "insert");
                 }
@@ -736,7 +753,7 @@ public class DeptServiceImpl implements DeptService {
 
     }
 
-    private Boolean dynamicProcessing(List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, String> attrMap, TreeBean ssoBean, Map<String, String> dynamic, List<DynamicValue> dyValuesFromSSO) {
+    public Boolean dynamicProcessing(List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, String> attrMap, TreeBean ssoBean, Map<String, String> dynamic, List<DynamicValue> dyValuesFromSSO) {
         Boolean valueFlag = false;
         if (!CollectionUtils.isEmpty(dyValuesFromSSO)) {
             Map<String, DynamicValue> collect = dyValuesFromSSO.stream().collect(Collectors.toMap(DynamicValue::getAttrId, dynamicValue -> dynamicValue));
