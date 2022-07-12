@@ -231,11 +231,11 @@ public class DataBusUtil {
                 // 增量同步添加入参
                 if (null != upstreamType.getTime()) {
                     Timestamp timestamp = this.processTime(upstreamType);
-                    if (null != timestamp && collect.containsKey("time")) {
+                    if (null != timestamp && collect.containsKey("updateTime")) {
                         Map<String, Object> timeMap = new HashMap<>();
                         timeMap.put("gte", timestamp);
                         Map<String, Object> filterMap = new HashMap<>();
-                        String time = collect.get("time");
+                        String time = collect.get("updateTime");
                         filterMap.put(time.substring(1), timeMap);
                         query.getRequestParameter().addObjectParameter("filter", filterMap);
                     }

@@ -620,7 +620,11 @@ public class NodeRulesCalculationServiceImpl {
                                 dept.put(TreeEnum.PARENT_CODE.getCode(), "");
                             }
                             if (null == dept.getString(TreeEnum.CREATE_TIME.getCode())) {
-                                dept.put(TreeEnum.CREATE_TIME.getCode(), timestamp);
+                                if (null == dept.getString(TreeEnum.UPDATE_TIME.getCode())) {
+                                    dept.put(TreeEnum.UPDATE_TIME.getCode(), timestamp);
+                                } else {
+                                    dept.put(TreeEnum.CREATE_TIME.getCode(), dept.getString(TreeEnum.UPDATE_TIME.getCode()));
+                                }
                             }
                             if (null == dept.getString(TreeEnum.UPDATE_TIME.getCode())) {
                                 dept.put(TreeEnum.UPDATE_TIME.getCode(), timestamp);
@@ -1354,7 +1358,7 @@ public class NodeRulesCalculationServiceImpl {
 
                                             //将值更新到sso对象
                                             ClassCompareUtil.setValue(ssoBean, ssoBean.getClass(), sourceField, oldValue, newValue);
-                                            logger.debug("增量数据 信息更新{}:字段{}: {} -> {} ", pullBean.getCode(), sourceField, oldValue, newValue);
+                                            logger.info("增量数据 信息更新{}:字段{}: {} -> {} ", pullBean.getCode(), sourceField, oldValue, newValue);
                                         }
                                     }
                                     //标识为恢复数据
@@ -1491,7 +1495,7 @@ public class NodeRulesCalculationServiceImpl {
                     }
 
                 } else {
-                    logger.debug("增量数据{},对应规则未启用,本次跳过该数据", pullBean);
+                    logger.info("增量数据{},对应规则未启用,本次跳过该数据", pullBean);
                 }
                 //没有相等的应该是新增(对比code没有对应的标识为新增)  并且当前数据的来源规则是启用的
                 if (flag && pullBean.getRuleStatus()) {

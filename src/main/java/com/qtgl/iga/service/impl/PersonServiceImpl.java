@@ -29,8 +29,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -1147,7 +1150,7 @@ public class PersonServiceImpl implements PersonService {
                     }*/
 
                         ClassCompareUtil.setValue(personFromSSO, personFromSSO.getClass(), sourceField, oldValue, newValue);
-                        log.debug("人员信息更新{}:字段{}：{} -> {}", personFromSSO.getId(), sourceField, oldValue, newValue);
+                        log.info("人员信息更新{}:字段{}：{} -> {}", personFromSSO.getId(), sourceField, oldValue, newValue);
 
                     }
                 }
@@ -1651,6 +1654,34 @@ public class PersonServiceImpl implements PersonService {
                     md.update(((String) newValue).getBytes());
                     byte[] digest = md.digest();
                     return "{SHA}" + Base64.encodeBase64String(digest);
+                case "SSHA":
+                    SecureRandom secureRandom = new SecureRandom();
+                    byte[] salt = new byte[8];
+                    secureRandom.nextBytes(salt);
+
+                    MessageDigest crypt = null;
+                    try {
+                        crypt = MessageDigest.getInstance("SHA-1");
+                    } catch (NoSuchAlgorithmException e) {
+                        e.printStackTrace();
+                    }
+                    crypt.reset();
+                    try {
+                        crypt.update(((String) newValue).getBytes("utf-8"));
+                    } catch (UnsupportedEncodingException e) {
+                        e.printStackTrace();
+                    }
+                    crypt.update(salt);
+                    byte[] hash = crypt.digest();
+
+                    byte[] hashPlusSalt = new byte[hash.length + salt.length];
+                    System.arraycopy(hash, 0, hashPlusSalt, 0, hash.length);
+                    System.arraycopy(salt, 0, hashPlusSalt, hash.length, salt.length);
+
+                    String ssha = new StringBuilder().append("{SSHA}")
+                            .append(new String(Base64.encodeBase64(hashPlusSalt), Charset.forName("utf-8")))
+                            .toString();
+                    return ssha;
                 case "MD5":
 
                 default:

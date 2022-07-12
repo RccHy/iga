@@ -398,6 +398,11 @@ public class OccupyServiceImpl implements OccupyService {
                 if (null == occupyDto.getActive()) {
                     occupyDto.setActive(1);
                 }
+                if (null != upstreamType.getTime()) {
+                    occupyDto.setDataSource("INC_PULL");
+                } else {
+                    occupyDto.setDataSource("PULL");
+                }
                 //赋予activeTime默认值
                 occupyDto.setActiveTime(LocalDateTime.now());
 
@@ -468,16 +473,17 @@ public class OccupyServiceImpl implements OccupyService {
                 if (!occupiesFromSSOMap.containsKey(key) && (occupyDtoFromUpstream.get(key).getDelMark() != 1)) {
                     if (val.getRuleStatus()) {
                         val.setOccupyId(UUID.randomUUID().toString());
-                        val.setStartTime(null != val.getStartTime() ? val.getStartTime() : LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                        val.setEndTime(null != val.getEndTime() ? val.getEndTime() : LocalDateTime.of(2100, 1, 1, 0, 0, 0));
-                        val.setValidStartTime(val.getStartTime());
-                        val.setValidEndTime(val.getEndTime());
-                        // 如果新增的数据 active=0 失效 或者 del_mark=1 删除  或者 判断为孤儿
-                        //   都将 最终有效期设置为 失效
-                        if (val.getActive() == 0 || val.getDelMark() == 1 || val.getOrphan() != 0) {
-                            val.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                            val.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                        }
+                        //val.setStartTime(val.getStartTime());
+                        //val.setEndTime(val.getEndTime());
+                        //val.setValidStartTime(null != val.getStartTime() ? val.getStartTime() : LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                        //val.setValidEndTime(null != val.getEndTime() ? val.getEndTime() : LocalDateTime.of(2100, 1, 1, 0, 0, 0));
+                        //// 如果新增的数据 active=0 失效 或者 del_mark=1 删除  或者 判断为孤儿
+                        ////   都将 最终有效期设置为 失效
+                        //if (val.getActive() == 0 || val.getDelMark() == 1 || val.getOrphan() != 0) {
+                        //    val.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                        //    val.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                        //}
+                        setValidTime(val);
                         if (result.containsKey("insert")) {
                             result.get("insert").add(val);
                         } else {
@@ -526,6 +532,10 @@ public class OccupyServiceImpl implements OccupyService {
                 //   boolean invalidRecoverFlag = true;
                 occupyFromSSO.setRuleStatus(newOccupy.getRuleStatus());
                 List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(newOccupy.getUpstreamType());
+                if (!newOccupy.getOrphan().equals(occupyFromSSO.getOrphan())) {
+                    updateFlag = true;
+                    occupyFromSSO.setOrphan(newOccupy.getOrphan());
+                }
 
                 // 如果字段上游不提供，则不进行更新
                 // 字段值没有发生改变，不进行更新
@@ -669,7 +679,7 @@ public class OccupyServiceImpl implements OccupyService {
                     }
 
                 }
-                log.debug("人员身份对比后更新{}-{}", occupyFromSSO, occupyDtoFromUpstream.get(key));
+                log.info("人员身份对比后更新{}-{}", occupyFromSSO, occupyDtoFromUpstream.get(key));
             } else {
                 log.debug("该身份对应{}", occupyFromSSO.getOccupyId());
             }

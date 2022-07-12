@@ -573,7 +573,7 @@ public class PostServiceImpl implements PostService {
 
                                             //将值更新到sso对象
                                             ClassCompareUtil.setValue(ssoBean, ssoBean.getClass(), sourceField, oldValue, newValue);
-                                            logger.debug("岗位信息更新{}:字段{}: {} -> {} ", pullBean.getCode(), sourceField, oldValue, newValue);
+                                            logger.info("岗位信息更新{}:字段{}: {} -> {} ", pullBean.getCode(), sourceField, oldValue, newValue);
                                         }
                                     }
 
@@ -715,7 +715,7 @@ public class PostServiceImpl implements PostService {
 
                     }
                 } else {
-                    logger.debug("岗位{},对应规则未启用,本次跳过该数据", pullBean);
+                    logger.info("岗位{},对应规则未启用,本次跳过该数据", pullBean);
                 }
 
                 //没有相等的应该是新增(对比code没有对应的标识为新增)  并且当前数据的来源规则是启用的
