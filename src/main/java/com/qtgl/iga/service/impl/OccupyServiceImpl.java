@@ -398,7 +398,7 @@ public class OccupyServiceImpl implements OccupyService {
                 if (null == occupyDto.getActive()) {
                     occupyDto.setActive(1);
                 }
-                if (null != upstreamType.getTime()) {
+                if (null != upstreamType.getIsIncremental()&&upstreamType.getIsIncremental()) {
                     occupyDto.setDataSource("INC_PULL");
                 } else {
                     occupyDto.setDataSource("PULL");
@@ -436,7 +436,7 @@ public class OccupyServiceImpl implements OccupyService {
 
             }
             //权威源类型为增量则添加对应的增量同步日志
-            if (null != upstreamType.getTime() && null != incrementalTasks && !CollectionUtils.isEmpty(resultOccupies)) {
+            if (null != upstreamType.getIsIncremental()&&upstreamType.getIsIncremental() && null != incrementalTasks && !CollectionUtils.isEmpty(resultOccupies)) {
                 List<OccupyDto> collect1 = resultOccupies.stream().sorted(Comparator.comparing(OccupyDto::getUpdateTime).reversed()).collect(Collectors.toList());
                 IncrementalTask incrementalTask = new IncrementalTask();
                 incrementalTask.setType("occupy");

@@ -293,7 +293,7 @@ public class PersonServiceImpl implements PersonService {
                     personUpstream.setSource(upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")");
                     personUpstream.setUpstreamType(upstreamType.getId());
                     personUpstream.setCreateTime(now);
-                    if (null != upstreamType.getTime()) {
+                    if (null != upstreamType.getIsIncremental()&&upstreamType.getIsIncremental()) {
                         personUpstream.setDataSource("INC_PULL");
                     } else {
                         personUpstream.setDataSource("PULL");
@@ -488,7 +488,7 @@ public class PersonServiceImpl implements PersonService {
 
                 }
                 //权威源类型为增量则添加对应的增量同步日志
-                if (null != upstreamType.getTime() && null != incrementalTasks && !CollectionUtils.isEmpty(personUpstreamList)) {
+                if (null != upstreamType.getIsIncremental()&&upstreamType.getIsIncremental() && null != incrementalTasks && !CollectionUtils.isEmpty(personUpstreamList)) {
                     List<Person> collect1 = personUpstreamList.stream().sorted(Comparator.comparing(Person::getUpdateTime).reversed()).collect(Collectors.toList());
                     IncrementalTask incrementalTask = new IncrementalTask();
                     incrementalTask.setType("person");
@@ -761,7 +761,7 @@ public class PersonServiceImpl implements PersonService {
                     }*/
 
                         ClassCompareUtil.setValue(personFromSSO, personFromSSO.getClass(), sourceField, oldValue, newValue);
-                        log.debug("人员信息更新{}:字段{}：{} -> {}", personFromSSO.getId(), sourceField, oldValue, newValue);
+                        log.info("人员信息更新{}:字段{}：{} -> {}", personFromSSO.getId(), sourceField, oldValue, newValue);
                     }
                 }
 

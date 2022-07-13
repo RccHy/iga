@@ -819,7 +819,7 @@ public class NodeRulesCalculationServiceImpl {
                         }
                         // }
                         //todo 判断当前权威源类型是否为增量处理
-                        if (null != upstreamType.getTime()) {
+                        if (null != upstreamType.getIsIncremental()&&upstreamType.getIsIncremental()) {
                             if (null != mergeDeptMap) {
                                 Collection<TreeBean> values = mergeDeptMap.values();
                                 //增量对比处理内存中sso的数据

@@ -229,7 +229,7 @@ public class DataBusUtil {
             if ("query".equals(type[4])) {
                 GraphqlQuery query = new DefaultGraphqlQuery(upstreamType.getSynType() + ":" + methodName);
                 // 增量同步添加入参
-                if (null != upstreamType.getTime()) {
+                if (null != upstreamType.getIsIncremental()&&upstreamType.getIsIncremental()) {
                     Timestamp timestamp = this.processTime(upstreamType);
                     if (null != timestamp && collect.containsKey("updateTime")) {
                         Map<String, Object> timeMap = new HashMap<>();
@@ -782,9 +782,7 @@ public class DataBusUtil {
                                     }
 
                                 } else if ("occupy".equals(upstreamType.getSynType())) {
-                                    //if("00148".equals(innerMap.get("accountNo"))){
-                                    //    System.out.println(1);
-                                    //}
+
                                     //人员标识是否有有效数据
                                     if (!CollectionUtils.isEmpty(personCardMap) && personCardMap.containsKey(innerMap.get("personCardType") + ":" + innerMap.get("personCardNo"))) {
                                         Person code = personCardMap.get(innerMap.get("personCardType") + ":" + innerMap.get("personCardNo"));

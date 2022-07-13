@@ -104,8 +104,8 @@ public class UpstreamType implements Serializable {
      */
     private Integer synWay;
     /**
-     * 时间戳查询字段
+     * 是否增量
      */
-    private Timestamp time;
+    private Boolean isIncremental;
 
 }

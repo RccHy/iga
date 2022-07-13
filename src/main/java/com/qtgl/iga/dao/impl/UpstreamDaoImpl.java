@@ -218,8 +218,8 @@ public class UpstreamDaoImpl implements UpstreamDao {
                             preparedStatement.setObject(14, domainInfo.getId());
                             preparedStatement.setObject(15, upstreamTypes.get(i).getDeptTreeTypeId());
                             preparedStatement.setObject(16, 0);
-                            preparedStatement.setObject(17, upstreamTypes.get(i).getTime());
-                            preparedStatement.setObject(18, upstreamTypes.get(i).getSynWay());
+                            preparedStatement.setObject(17, upstreamTypes.get(i).getSynWay());
+                            preparedStatement.setObject(18, upstreamTypes.get(i).getIsIncremental());
                         }
 
                         @Override
