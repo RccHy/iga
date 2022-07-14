@@ -2,6 +2,8 @@ package com.qtgl.iga.utils;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.qtgl.iga.bean.DataMapField;
+import com.qtgl.iga.bean.DataMapNode;
 import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
@@ -123,7 +125,16 @@ public class DataBusUtil {
         //请求获取资源
         String u = dataUrl + "/" + "?access_token=" + key + "&domain=" + serverName;
 
-        return invokeForData(UrlUtil.getUrl(u), upstreamType, serverName);
+        //调用获取资源url
+        String dataMapUrl = invokeUrl(dealUrl, new String[]{"", "", "catalog"});
+        //
+        Map<String, Map<String, String>> dataMap = null;
+        if (StringUtils.isNotBlank(dataMapUrl)) {
+            log.info("无法内省 catalog 服务地址");
+            dataMap = getDataMap(dataMapUrl + "?access_token=" + key + "&domain=" + serverName);
+        }
+
+        return invokeForData(UrlUtil.getUrl(u), upstreamType, serverName,dataMap);
     }
 
     public String getToken(String serverName) {
@@ -213,7 +224,7 @@ public class DataBusUtil {
 
     }
 
-    private JSONArray invokeForData(String dataUrl, UpstreamType upstreamType, String domainName) throws Exception {
+    private JSONArray invokeForData(String dataUrl, UpstreamType upstreamType, String domainName,Map<String, Map<String, String>> dataMapField) throws Exception {
         log.info("source url " + dataUrl);
         //获取字段映射
         List<UpstreamTypeField> fields = upstreamTypeService.findFields(upstreamType.getId());
@@ -229,7 +240,7 @@ public class DataBusUtil {
             if ("query".equals(type[4])) {
                 GraphqlQuery query = new DefaultGraphqlQuery(upstreamType.getSynType() + ":" + methodName);
                 // 增量同步添加入参
-                if (null != upstreamType.getIsIncremental()&&upstreamType.getIsIncremental()) {
+                if (null != upstreamType.getIsIncremental() && upstreamType.getIsIncremental()) {
                     Timestamp timestamp = this.processTime(upstreamType);
                     if (null != timestamp && collect.containsKey("updateTime")) {
                         Map<String, Object> timeMap = new HashMap<>();
@@ -407,10 +418,44 @@ public class DataBusUtil {
                             }
 
                             String reg = collect.get(entry.getKey()).substring(1);
-                            ScriptEngineManager sem = new ScriptEngineManager();
-                            ScriptEngine engine = sem.getEngineByName("js");
-                            final Object eval = engine.eval(reg, bindings);
-                            innerMap.put(entry.getKey(), eval);
+                            // 如果是map 表达式 =map(XX,DataMapCode)
+                            if (reg.startsWith("map(") && reg.endsWith(")")) {
+                                if (null == dataMapField || dataMapField.size() <= 0) {
+                                    throw new Exception("无法进行代码映射，请检查" + entry.getKey() + "字段映射关系。");
+                                }
+                                // Pattern pattern = Pattern.compile("(?<=\\=map\\()[^\\)]+");
+                                String v = reg.substring(4, reg.length() - 1);
+                                final String[] vSplit = v.split(",");
+                                if (vSplit.length != 2) {
+                                    throw new Exception("数据映射表达式异常");
+                                }
+                                String value = bindings.get(vSplit[0]).toString();
+                                // 代码表
+                                if (dataMapField.containsKey(vSplit[1])) {
+                                    if (dataMapField.get(vSplit[1]).containsKey(value)) {
+                                        innerMap.put(entry.getKey(), dataMapField.get(vSplit[1]).get(value));
+                                    } else if (dataMapField.get(vSplit[1]).containsKey("=other()")) {
+                                        String reg2 = dataMapField.get(vSplit[1]).get("=other()");
+                                        if (reg2.equals("=old()")) {
+                                            innerMap.put(entry.getKey(), value);
+                                        } else {
+                                            reg2 = reg2.substring(1);
+                                            ScriptEngineManager sem = new ScriptEngineManager();
+                                            ScriptEngine engine = sem.getEngineByName("js");
+                                            final Object eval = engine.eval(reg2, bindings);
+                                            innerMap.put(entry.getKey(), eval);
+                                        }
+                                    }
+
+                                }
+
+                            } else {
+                                ScriptEngineManager sem = new ScriptEngineManager();
+                                ScriptEngine engine = sem.getEngineByName("js");
+                                final Object eval = engine.eval(reg, bindings);
+                                // jsonObject.put(entry.getValue(), eval);
+                                innerMap.put(entry.getKey(), eval);
+                            }
 
                         } catch (ScriptException e) {
                             log.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
@@ -517,6 +562,56 @@ public class DataBusUtil {
         return null;
     }
 
+
+    public Map<String, Map<String, String>> getDataMap(String url) throws Exception {
+
+
+        Map<String, Map<String, String>> dataMapFieldMap = new HashMap<>();
+
+        //Query
+        JSONObject params = new JSONObject();
+        String graphql = "query dataMaps($first: Int, $offset: Int, $filter: dataMapFilter) {" +
+                "  dataMaps(first: $first, offset: $offset, filter: $filter) {" +
+                "    totalCount" +
+                "    edges {" +
+                "      node {" +
+                "        code" +
+                "        fields {" +
+                "          fromData" +
+                "          toData" +
+                "        }" +
+                "      }" +
+                "    }" +
+                "  }" +
+                "}";
+        JSONObject variables = new JSONObject();
+        variables.put("offset", 0);
+        variables.put("first", 10000);
+        params.put("query", graphql);
+        params.put("variables", variables);
+
+        url = UrlUtil.getUrl(url);
+
+
+        String s = sendPostRequest(url, params);
+        if (null == s || s.contains("errors")) {
+            log.error("获取代码映射数据失败");
+            throw new CustomException(ResultCode.GET_DATA_ERROR, null, null, s);
+        }
+        JSONObject dataMaps = JSONObject.parseObject(s);
+        if (null != dataMaps && dataMaps.containsKey("data") && dataMaps.getJSONObject("data").getJSONObject("dataMaps").getInteger("totalCount") >= 1) {
+            JSONArray jsonArray = dataMaps.getJSONObject("data").getJSONObject("dataMaps").getJSONArray("edges");
+            List<DataMapNode> dataMapNodes = jsonArray.toJavaList(DataMapNode.class);
+            for (DataMapNode dataMapNode : dataMapNodes) {
+                Map<String, String> fieldMap = dataMapNode.getNode().getFields().stream().collect(Collectors.toMap(DataMapField::getFromData, DataMapField::getToData));
+                dataMapFieldMap.put(dataMapNode.getNode().getCode(), fieldMap);
+            }
+            return dataMapFieldMap;
+        }
+        return null;
+
+    }
+
     public Map getDataByBus(UpstreamType upstreamType, Integer offset, Integer first, DomainInfo domain) throws Exception {
 
         //todo通过token内省获取域名
@@ -541,11 +636,19 @@ public class DataBusUtil {
         //请求获取资源
         String u = dataUrl + "/" + "?access_token=" + key + "&domain=" + domain.getDomainName();
 
-        return invokeForMapData(UrlUtil.getUrl(u), upstreamType, offset, first, domain.getDomainName());
+        //调用获取资源url
+        String dataMapUrl = invokeUrl(dealUrl, new String[]{"", "", "catalog"});
+        //
+        Map<String, Map<String, String>> dataMap = null;
+        if (StringUtils.isNotBlank(dataMapUrl)) {
+            log.info("无法内省 catalog 服务地址");
+            dataMap = getDataMap(dataMapUrl + "?access_token=" + key + "&domain=" + domain.getDomainName());
+        }
+        return invokeForMapData(UrlUtil.getUrl(u), upstreamType, offset, first, domain.getDomainName(), dataMap);
     }
 
 
-    private Map invokeForMapData(String dataUrl, UpstreamType upstreamType, Integer offset, Integer first, String domainName) throws Exception {
+    private Map invokeForMapData(String dataUrl, UpstreamType upstreamType, Integer offset, Integer first, String domainName, Map<String, Map<String, String>> dataMapField) throws Exception {
         log.info("source url " + dataUrl);
         //获取字段映射
         List<UpstreamTypeField> fields = upstreamTypeService.findFields(upstreamType.getId());
@@ -584,10 +687,13 @@ public class DataBusUtil {
                 Matcher enM = enR.matcher(field.getTargetField());
                 // 表达式 最终需要进行运算
                 if (field.getTargetField().contains("=")) {
+                    // 普通表达式
                     List<String> groupList = new ArrayList<>();
                     while (m.find()) {
-                        System.out.println("Found value: " + m.group(0));
-                        groupList.add(m.group(0).substring(1));
+                        log.info("Found value: " + m.group(0));
+                        if (!m.group(0).equals("$ENTITY")) {
+                            groupList.add(m.group(0).substring(1));
+                        }
                         if (!field.getTargetField().contains("$ENTITY")) {
                             nodeMap.put(m.group(0).substring(1), m.group(0).substring(1));
                         }
@@ -596,11 +702,12 @@ public class DataBusUtil {
                         map.put(field.getSourceField(), groupList);
                     } else {
                         while (enM.find()) {
-                            System.out.println("Ignore Found value: " + enM.group(0));
+                            log.info("Ignore Found value: " + enM.group(0));
                             groupList.add(enM.group(0).substring(1));
                         }
                         ignoreMap.put(field.getSourceField(), groupList);
                     }
+
                     // 表达式 最终需要进行运算
                 } else if (!field.getTargetField().contains("=") && field.getTargetField().contains("$ENTITY")) {
                     // 覆盖映射，查询后进行字段值覆盖
@@ -730,13 +837,45 @@ public class DataBusUtil {
                         for (int i = 0; i < entry.getValue().size(); i++) {
                             bindings.put("$" + entry.getValue().get(i), null == innerMap.get(entry.getValue().get(i)) ? "" : innerMap.get(entry.getValue().get(i)));
                         }
-
                         String reg = collect.get(entry.getKey()).substring(1);
-                        ScriptEngineManager sem = new ScriptEngineManager();
-                        ScriptEngine engine = sem.getEngineByName("js");
-                        final Object eval = engine.eval(reg, bindings);
-                        // jsonObject.put(entry.getValue(), eval);
-                        innerMap.put(entry.getKey(), eval);
+                        // 如果是map 表达式 =map(XX,DataMapCode)
+                        if (reg.startsWith("map(") && reg.endsWith(")")) {
+                            if (null == dataMapField || dataMapField.size() <= 0) {
+                                throw new Exception("无法进行代码映射，请检查" + entry.getKey() + "字段映射关系。");
+                            }
+                            // Pattern pattern = Pattern.compile("(?<=\\=map\\()[^\\)]+");
+                            String v = reg.substring(4, reg.length() - 1);
+                            final String[] vSplit = v.split(",");
+                            if (vSplit.length != 2) {
+                                throw new Exception("数据映射表达式异常");
+                            }
+                            String value = bindings.get(vSplit[0]).toString();
+                            // 代码表
+                            if (dataMapField.containsKey(vSplit[1])) {
+                                if (dataMapField.get(vSplit[1]).containsKey(value)) {
+                                    innerMap.put(entry.getKey(), dataMapField.get(vSplit[1]).get(value));
+                                } else if (dataMapField.get(vSplit[1]).containsKey("=other()")) {
+                                    String reg2 = dataMapField.get(vSplit[1]).get("=other()");
+                                    if (reg2.equals("=old()")) {
+                                        innerMap.put(entry.getKey(), value);
+                                    } else {
+                                        reg2 = reg2.substring(1);
+                                        ScriptEngineManager sem = new ScriptEngineManager();
+                                        ScriptEngine engine = sem.getEngineByName("js");
+                                        final Object eval = engine.eval(reg2, bindings);
+                                        innerMap.put(entry.getKey(), eval);
+                                    }
+                                }
+
+                            }
+
+                        } else {
+                            ScriptEngineManager sem = new ScriptEngineManager();
+                            ScriptEngine engine = sem.getEngineByName("js");
+                            final Object eval = engine.eval(reg, bindings);
+                            // jsonObject.put(entry.getValue(), eval);
+                            innerMap.put(entry.getKey(), eval);
+                        }
 
                     } catch (ScriptException e) {
                         log.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
@@ -853,12 +992,12 @@ public class DataBusUtil {
                     break;
                 }
                 String pub = "{" +
-                        "    type : \"%s\",\n" +
-                        "    source : \"%s\", \n" +
-                        "    subject : \"%s\", \n" +
-                        "    id : \"%s\",         \n" +
-                        "    time : \"%s\",  \n" +
-                        "    datacontenttype : \"application/json\",        \n" +
+                        "    type : \"%s\"," +
+                        "    source : \"%s\", " +
+                        "    subject : \"%s\", " +
+                        "    id : \"%s\",         " +
+                        "    time : \"%s\",  " +
+                        "    datacontenttype : \"application/json\",        " +
                         "    data : \"%s\", " +
                         "}";
                 if (v.equals("insert")) {
@@ -876,7 +1015,7 @@ public class DataBusUtil {
                             k.getCode(), k.getCode() + UUID.randomUUID(),
                             k.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(k).replace("\"", "\\\""));
                 }
-                graphql.append(RandomStringUtils.randomAlphabetic(20) + ":pub(message:" + pub + "){id}\n");
+                graphql.append(RandomStringUtils.randomAlphabetic(20) + ":pub(message:" + pub + "){id}");
             }
 
         } else if ("person".equals(type)) {
@@ -884,54 +1023,54 @@ public class DataBusUtil {
             if (null != insertPersonList && insertPersonList.size() > 0) {
                 for (Person person : insertPersonList) {
                     String pub = "{" +
-                            "    type : \"%s\",\n" +
-                            "    source : \"%s\", \n" +
-                            "    subject : \"%s\", \n" +
-                            "    id : \"%s\",         \n" +
-                            "    time : \"%s\",  \n" +
-                            "    datacontenttype : \"application/json\",        \n" +
+                            "    type : \"%s\"," +
+                            "    source : \"%s\", " +
+                            "    subject : \"%s\", " +
+                            "    id : \"%s\",         " +
+                            "    time : \"%s\",  " +
+                            "    datacontenttype : \"application/json\",        " +
                             "    data : \"%s\", " +
                             "}";
                     pub = String.format(pub, "person.created", domain.getClientId(),
                             person.getOpenId(), UUID.randomUUID(),
                             person.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(person).replace("\"", "\\\""));
-                    graphql.append(person.getOpenId() + ":pub(message:" + pub + "){id}\n");
+                    graphql.append(person.getOpenId() + ":pub(message:" + pub + "){id}");
                 }
             }
             List<Person> updatePersonList = personMap.get("update");
             if (null != updatePersonList && updatePersonList.size() > 0) {
                 for (Person person : updatePersonList) {
                     String pub = "{" +
-                            "    type : \"%s\",\n" +
-                            "    source : \"%s\", \n" +
-                            "    subject : \"%s\", \n" +
-                            "    id : \"%s\",         \n" +
-                            "    time : \"%s\",  \n" +
-                            "    datacontenttype : \"application/json\",        \n" +
+                            "    type : \"%s\"," +
+                            "    source : \"%s\", " +
+                            "    subject : \"%s\", " +
+                            "    id : \"%s\",         " +
+                            "    time : \"%s\",  " +
+                            "    datacontenttype : \"application/json\",        " +
                             "    data : \"%s\", " +
                             "}";
                     pub = String.format(pub, "person.updated", domain.getClientId(),
                             person.getOpenId(), UUID.randomUUID(),
                             person.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(person).replace("\"", "\\\""));
-                    graphql.append(person.getOpenId() + ":pub(message:" + pub + "){id}\n");
+                    graphql.append(person.getOpenId() + ":pub(message:" + pub + "){id}");
                 }
             }
             List<Person> deletePersonList = personMap.get("delete");
             if (null != deletePersonList && deletePersonList.size() > 0) {
                 for (Person person : deletePersonList) {
                     String pub = "{" +
-                            "    type : \"%s\",\n" +
-                            "    source : \"%s\", \n" +
-                            "    subject : \"%s\", \n" +
-                            "    id : \"%s\",         \n" +
-                            "    time : \"%s\",  \n" +
-                            "    datacontenttype : \"application/json\",        \n" +
+                            "    type : \"%s\"," +
+                            "    source : \"%s\", " +
+                            "    subject : \"%s\", " +
+                            "    id : \"%s\",         " +
+                            "    time : \"%s\",  " +
+                            "    datacontenttype : \"application/json\",        " +
                             "    data : \"%s\", " +
                             "}";
                     pub = String.format(pub, "person.deleted", domain.getClientId(),
                             person.getOpenId(), UUID.randomUUID(),
                             person.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(person).replace("\"", "\\\""));
-                    graphql.append(person.getOpenId() + ":pub(message:" + pub + "){id}\n");
+                    graphql.append(person.getOpenId() + ":pub(message:" + pub + "){id}");
                 }
             }
 
@@ -940,54 +1079,54 @@ public class DataBusUtil {
             if (null != insert && insert.size() > 0) {
                 for (OccupyDto occupy : insert) {
                     String pub = "{" +
-                            "    type : \"%s\",\n" +
-                            "    source : \"%s\", \n" +
-                            "    subject : \"%s\", \n" +
-                            "    id : \"%s\",         \n" +
-                            "    time : \"%s\",  \n" +
-                            "    datacontenttype : \"application/json\",        \n" +
+                            "    type : \"%s\"," +
+                            "    source : \"%s\", " +
+                            "    subject : \"%s\", " +
+                            "    id : \"%s\",         " +
+                            "    time : \"%s\",  " +
+                            "    datacontenttype : \"application/json\",        " +
                             "    data : \"%s\", " +
                             "}";
                     pub = String.format(pub, "user.position.created", domain.getClientId(),
                             occupy.getOccupyId(), UUID.randomUUID(),
                             occupy.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(occupy).replace("\"", "\\\""));
-                    graphql.append(RandomStringUtils.randomAlphabetic(20) + ":pub(message:" + pub + "){id}\n");
+                    graphql.append(RandomStringUtils.randomAlphabetic(20) + ":pub(message:" + pub + "){id}");
                 }
             }
             List<OccupyDto> update = occupyMap.get("update");
             if (null != update && update.size() > 0) {
                 for (OccupyDto occupy : update) {
                     String pub = "{" +
-                            "    type : \"%s\",\n" +
-                            "    source : \"%s\", \n" +
-                            "    subject : \"%s\", \n" +
-                            "    id : \"%s\",         \n" +
-                            "    time : \"%s\",  \n" +
-                            "    datacontenttype : \"application/json\",        \n" +
+                            "    type : \"%s\"," +
+                            "    source : \"%s\", " +
+                            "    subject : \"%s\", " +
+                            "    id : \"%s\",         " +
+                            "    time : \"%s\",  " +
+                            "    datacontenttype : \"application/json\",        " +
                             "    data : \"%s\", " +
                             "}";
                     pub = String.format(pub, "user.position.updated", domain.getClientId(),
                             occupy.getOccupyId(), UUID.randomUUID(),
                             occupy.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(occupy).replace("\"", "\\\""));
-                    graphql.append(RandomStringUtils.randomAlphabetic(20) + ":pub(message:" + pub + "){id}\n");
+                    graphql.append(RandomStringUtils.randomAlphabetic(20) + ":pub(message:" + pub + "){id}");
                 }
             }
             List<OccupyDto> delete = occupyMap.get("delete");
             if (null != delete && delete.size() > 0) {
                 for (OccupyDto occupy : delete) {
                     String pub = "{" +
-                            "    type : \"%s\",\n" +
-                            "    source : \"%s\", \n" +
-                            "    subject : \"%s\", \n" +
-                            "    id : \"%s\",         \n" +
-                            "    time : \"%s\",  \n" +
-                            "    datacontenttype : \"application/json\",        \n" +
+                            "    type : \"%s\"," +
+                            "    source : \"%s\", " +
+                            "    subject : \"%s\", " +
+                            "    id : \"%s\",         " +
+                            "    time : \"%s\",  " +
+                            "    datacontenttype : \"application/json\",        " +
                             "    data : \"%s\", " +
                             "}";
                     pub = String.format(pub, "user.position.deleted", domain.getClientId(),
                             occupy.getOccupyId(), UUID.randomUUID(),
                             occupy.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(occupy).replace("\"", "\\\""));
-                    graphql.append(RandomStringUtils.randomAlphabetic(20) + ":pub(message:" + pub + "){id}\n");
+                    graphql.append(RandomStringUtils.randomAlphabetic(20) + ":pub(message:" + pub + "){id}");
                 }
             }
 

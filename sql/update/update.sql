@@ -65,7 +65,6 @@ alter table t_mgr_dept_type add rule varchar(50) null comment '监控规则 暂�
 
 -- 20211203
 alter table t_mgr_dept_type add type_index int null comment '排序' after domain;
-alter table t_mgr_post_type add type_index int null comment '排序' after domain;
 
 --20220513
 ALTER TABLE `t_mgr_task_log`
