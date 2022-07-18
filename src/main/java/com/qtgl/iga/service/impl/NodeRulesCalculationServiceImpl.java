@@ -639,9 +639,6 @@ public class NodeRulesCalculationServiceImpl {
                             if (null == dept.getString(TreeEnum.RELATION_TYPE.getCode())) {
                                 dept.put(TreeEnum.RELATION_TYPE.getCode(), "");
                             }
-                            if (null != dept.getString(TreeEnum.INDEX.getCode())) {
-                                dept.put("deptIndex",dept.getString(TreeEnum.INDEX.getCode()));
-                            }
                             dept.put("upstreamTypeId", upstreamType.getId());
                             dept.put("treeType", deptTreeType);
                             dept.put("ruleId", nodeRule.getId());

@@ -39,7 +39,7 @@ public class PostDaoImpl implements PostDao {
         //
         String sql = "select id, user_type as code , name, parent_code as parentCode , " +
                 " update_time as createTime," +
-                "source,data_source as dataSource,user_type_index as deptIndex,del_mark as delMark,update_time as updateTime,post_type as type,active,tags from user_type where tenant_id = ? and client_id is null or client_id = ''  ";
+                "source,data_source as dataSource,user_type_index as deptIndex,del_mark as delMark,update_time as updateTime,post_type as type,active,tags,user_type_index as 'index' from user_type where tenant_id = ? and client_id is null or client_id = ''  ";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, id);
         return getUserTypes(mapList);
@@ -86,7 +86,7 @@ public class PostDaoImpl implements PostDao {
                 preparedStatement.setObject(7, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
                 preparedStatement.setObject(8, list.get(i).getTags());
                 preparedStatement.setObject(9, list.get(i).getSource());
-                preparedStatement.setObject(10, null == list.get(i).getDeptIndex() ? null : list.get(i).getDeptIndex());
+                preparedStatement.setObject(10, null == list.get(i).getIndex() ? null : list.get(i).getIndex());
                 preparedStatement.setObject(11, list.get(i).getCode());
 
             }
@@ -127,7 +127,7 @@ public class PostDaoImpl implements PostDao {
                 preparedStatement.setObject(13, LocalDateTime.now());
                 preparedStatement.setObject(14, LocalDateTime.now());
                 preparedStatement.setObject(15, list.get(i).getSource());
-                preparedStatement.setObject(16, list.get(i).getDeptIndex());
+                preparedStatement.setObject(16, list.get(i).getIndex());
             }
 
             @Override
@@ -170,7 +170,7 @@ public class PostDaoImpl implements PostDao {
     @Override
     public List<TreeBean> findRootData(String tenantId) {
         String sql = "select  user_type as code , name as name , parent_code as parentCode ,create_time as createTime, " +
-                " tags ,data_source as dataSource , description ,source,post_type as postType,user_type_index as deptIndex,del_mark as delMark ,active " +
+                " tags ,data_source as dataSource , description ,source,post_type as postType,user_type_index as deptIndex,del_mark as delMark ,active,user_type_index as 'index'  " +
                 " from user_type where tenant_id=? and del_mark=0  and data_source!=? and client_id is null or client_id = '' ";
 
         //String sql = "select  user_type as code , name as name , parent_code as parentCode ,create_time as createTime, " +
@@ -201,7 +201,7 @@ public class PostDaoImpl implements PostDao {
     @Override
     public List<TreeBean> findPostType(String id) {
         String sql = "select  user_type as code , name as name , parent_code as parentCode , " +
-                " tags ,data_source as dataSource , description ,source,post_type as postType,user_type_index as deptIndex,active  " +
+                " tags ,data_source as dataSource , description ,source,post_type as postType,user_type_index as deptIndex,active,user_type_index as 'index'  " +
                 " from user_type where tenant_id=? and del_mark=0";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, id);
@@ -252,7 +252,7 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(13, LocalDateTime.now());
                             preparedStatement.setObject(14, insertList.get(i).getUpdateTime());
                             preparedStatement.setObject(15, insertList.get(i).getSource());
-                            preparedStatement.setObject(16, insertList.get(i).getDeptIndex());
+                            preparedStatement.setObject(16, insertList.get(i).getIndex());
                             preparedStatement.setObject(17, insertList.get(i).getType());
                             preparedStatement.setObject(18, insertList.get(i).getFormal());
                         }
@@ -279,7 +279,7 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(7, updateList.get(i).getUpdateTime());
                             preparedStatement.setObject(8, updateList.get(i).getTags());
                             preparedStatement.setObject(9, updateList.get(i).getSource());
-                            preparedStatement.setObject(10, updateList.get(i).getDeptIndex());
+                            preparedStatement.setObject(10, updateList.get(i).getIndex());
                             preparedStatement.setObject(11, updateList.get(i).getType());
                             preparedStatement.setObject(12, updateList.get(i).getActive());
                             preparedStatement.setObject(13, updateList.get(i).getFormal());
