@@ -49,6 +49,8 @@ public class OccupyDaoImpl implements OccupyDao {
                 "       u.del_mark                  as delMark," +
                 "       u.start_time                  as startTime," +
                 "       u.end_time                  as endTime," +
+                "       u.valid_start_time                  as validStartTime," +
+                "       u.valid_end_time                  as validEndTime," +
                 "       u.user_index                  as `index`," +
                 "       u.source                                ," +
                 "       u.data_source               as dataSource," +

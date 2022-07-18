@@ -1,6 +1,7 @@
 package com.qtgl.iga.service.impl;
 
 
+import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
@@ -57,6 +58,8 @@ public class PostServiceImpl implements PostService {
     NodeDao nodeDao;
     @Autowired
     IncrementalTaskDao incrementalTaskDao;
+    @Autowired
+    UserLogDao userLogDao;
 
     @Value("${iga.hostname}")
     String hostname;
@@ -165,8 +168,9 @@ public class PostServiceImpl implements PostService {
 
         //同步到sso
         beans = new ArrayList<>(ssoBeansMap.values());
-
-        beans = dataProcessing(mainTreeMap, domain, "", beans, result, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap);
+        //监控身份
+        ArrayList<TreeBean> occupyMonitors = new ArrayList<>();
+        beans = dataProcessing(mainTreeMap, domain, "", beans, result, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, occupyMonitors);
 //        if (null != beans) {
 //            beans.addAll(treeBeans);
 //        }
@@ -186,6 +190,18 @@ public class PostServiceImpl implements PostService {
         if (!CollectionUtils.isEmpty(incrementalTasks)) {
             //添加增量日志
             incrementalTaskDao.saveAll(incrementalTasks, domain);
+        }
+        if (!CollectionUtils.isEmpty(occupyMonitors)) {
+            //处理因组织机构变化影响的历史身份有效期
+            ArrayList<OccupyDto> occupyDtos = occupyProcessing(occupyMonitors, tenant.getId());
+            if (!CollectionUtils.isEmpty(occupyDtos)) {
+                Map<String, List<OccupyDto>> octResult = new HashMap<>();
+                octResult.put("update", occupyDtos);
+                occupyDao.saveToSso(octResult, tenant.getId());
+                userLogDao.saveUserLog(occupyDtos, tenant.getId());
+                logger.info("因岗位变动 导致:{}条,身份有效期发生变化", occupyDtos.size());
+            }
+
         }
         return result;
 
@@ -317,7 +333,7 @@ public class PostServiceImpl implements PostService {
         //数据对比处理
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
 
-        beans = dataProcessing(mainTreeMap, domain, "", beans, result, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap);
+        beans = dataProcessing(mainTreeMap, domain, "", beans, result, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, null);
 
 //        if (null != beans) {
 //            beans.addAll(treeBeans);
@@ -463,7 +479,7 @@ public class PostServiceImpl implements PostService {
      * E: 删除恢复  之前被标记为删除后再通过推送了相同的数据   (上游必须del_mark字段)
      * E: 失效恢复  之前被标记为失效后再通过推送了相同的数据   提供active则修改对比时直接覆盖,不提供则手动恢复
      **/
-    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> ssoBeans, Map<TreeBean, String> result, LocalDateTime now, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamMap) {
+    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> ssoBeans, Map<TreeBean, String> result, LocalDateTime now, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamMap, ArrayList<TreeBean> occupyMonitors) {
         //将sso的数据转化为map方便对比
         Map<String, TreeBean> ssoCollect = new HashMap<>();
         if (null != ssoBeans && ssoBeans.size() > 0) {
@@ -573,6 +589,9 @@ public class PostServiceImpl implements PostService {
 
                                             //将值更新到sso对象
                                             ClassCompareUtil.setValue(ssoBean, ssoBean.getClass(), sourceField, oldValue, newValue);
+                                            if (activeFlag && null != occupyMonitors) {
+                                                occupyMonitors.add(ssoBean);
+                                            }
                                             logger.info("岗位信息更新{}:字段{}: {} -> {} ", pullBean.getCode(), sourceField, oldValue, newValue);
                                         }
                                     }
@@ -581,6 +600,9 @@ public class PostServiceImpl implements PostService {
                                     if (delRecoverFlag) {
                                         ssoBean.setDelMark(0);
                                         result.put(ssoBean, "recover");
+                                        if (null != occupyMonitors) {
+                                            occupyMonitors.add(ssoBean);
+                                        }
                                         //修改标记置为false
                                         updateFlag = false;
                                         logger.info("岗位信息{}从删除恢复", ssoBean.getCode());
@@ -593,7 +615,11 @@ public class PostServiceImpl implements PostService {
                                         } else {
                                             //将数据放入删除集合
                                             ssoBean.setDelMark(1);
+                                            ssoBean.setActive(0);
                                             ssoCollect.remove(ssoBean.getCode());
+                                            if (null != occupyMonitors) {
+                                                occupyMonitors.add(ssoBean);
+                                            }
                                             result.put(ssoBean, "delete");
                                             //修改标记置为false
                                             updateFlag = false;
@@ -621,6 +647,9 @@ public class PostServiceImpl implements PostService {
                                                 logger.info("岗位对比后应置为失效{},但检测到对应权威源已无效或规则未启用,跳过该数据", ssoBean.getId());
                                             } else {
                                                 result.put(ssoBean, "invalid");
+                                                if (null != occupyMonitors) {
+                                                    occupyMonitors.add(ssoBean);
+                                                }
                                                 logger.info("岗位对比后需要置为失效{}", ssoBean.getId());
                                             }
                                         } else {
@@ -647,6 +676,9 @@ public class PostServiceImpl implements PostService {
                                         ssoBean.setUpdateTime(now);
                                         ssoBean.setActive(pullBean.getActive());
                                         //将数据放入修改集合
+                                        if (null != occupyMonitors) {
+                                            occupyMonitors.add(ssoBean);
+                                        }
                                         ssoCollect.put(ssoBean.getCode(), ssoBean);
                                         logger.info("手动从失效中恢复{}", ssoBean);
                                         if (dyFlag) {
@@ -666,6 +698,9 @@ public class PostServiceImpl implements PostService {
                                     if (!delFlag && !delRecoverFlag && (!ssoBean.getDelMark().equals(pullBean.getDelMark()))) {
                                         ssoBean.setUpdateTime(now);
                                         ssoBean.setDelMark(pullBean.getDelMark());
+                                        if (null != occupyMonitors) {
+                                            occupyMonitors.add(ssoBean);
+                                        }
                                         //将数据放入修改集合
                                         ssoCollect.put(ssoBean.getCode(), ssoBean);
                                         logger.info("手动从删除中恢复{}", ssoBean);
@@ -722,6 +757,9 @@ public class PostServiceImpl implements PostService {
                 if (flag && pullBean.getRuleStatus()) {
                     pullBean.setDataSource("PULL");
 
+                    if (null != occupyMonitors) {
+                        occupyMonitors.add(pullBean);
+                    }
                     //新增
                     ssoCollect.put(pullBean.getCode(), pullBean);
                     result.put(pullBean, "insert");
@@ -730,7 +768,9 @@ public class PostServiceImpl implements PostService {
                 //数据库数据为空的话且数据来源规则是启用的,则默认新增
                 if (pullBean.getRuleStatus()) {
                     pullBean.setDataSource("PULL");
-
+                    if (null != occupyMonitors) {
+                        occupyMonitors.add(pullBean);
+                    }
                     ssoCollect.put(pullBean.getCode(), pullBean);
                     result.put(pullBean, "insert");
                 }
@@ -764,6 +804,10 @@ public class PostServiceImpl implements PostService {
                                 } else {
                                     ssoBean.setActive(0);
                                     ssoBean.setUpdateTime(now);
+                                    if (null != occupyMonitors) {
+                                        //身份监控部门失效数据
+                                        occupyMonitors.add(ssoBean);
+                                    }
                                     result.put(ssoBean, "invalid");
                                     logger.info("岗位对比后需要置为失效{}", ssoBean.getId());
                                 }
@@ -821,6 +865,58 @@ public class PostServiceImpl implements PostService {
             }
         }
         return valueFlag;
+    }
+
+    private ArrayList<OccupyDto> occupyProcessing(ArrayList<TreeBean> occupyMonitors, String tenantId) {
+        ArrayList<OccupyDto> resultOccupies = new ArrayList<>();
+        //包含失效,恢复,新增的岗位数据
+        List<OccupyDto> occupyDtos = occupyDao.findAll(tenantId, null, null);
+        Map<String, List<OccupyDto>> collect = occupyDtos.stream().collect(Collectors.groupingBy(OccupyDto::getDeptCode));
+        LocalDateTime now = LocalDateTime.now();
+        for (TreeBean treeBean : occupyMonitors) {
+            if (collect.containsKey(treeBean.getCode())) {
+                List<OccupyDto> dtoList = collect.get(treeBean.getCode());
+                if (!CollectionUtils.isEmpty(dtoList)) {
+                    for (OccupyDto dto : dtoList) {
+
+                        if (treeBean.getActive() == 1) {
+                            //新增或恢复的组织机构  将orphan为2(因岗位无效导致的无效身份) 的有效期重新计算
+                            if (2 == dto.getOrphan()) {
+                                dto.setUpdateTime(now);
+                                dto.setValidStartTime(now);
+                                dto.setValidEndTime(null != dto.getEndTime() ? dto.getEndTime() : OccupyServiceImpl.DEFAULT_END_TIME);
+                                dto.setOrphan(0);
+                                OccupyServiceImpl.checkValidTime(dto, now);
+                                resultOccupies.add(dto);
+                            } else if (3 == dto.getOrphan()) {
+                                //orphan为3(因组织机构和岗位无效导致的无效身份)的改为 orphan 1
+                                dto.setOrphan(1);
+                                dto.setUpdateTime(now);
+                                resultOccupies.add(dto);
+                            }
+
+                        } else {
+                            //岗位置为无效  将orphan为0的置为2 有效期重新计算
+                            if (0 == dto.getOrphan() || null == dto.getOrphan()) {
+                                dto.setUpdateTime(now);
+                                dto.setValidEndTime(now);
+                                dto.setOrphan(2);
+                                resultOccupies.add(dto);
+                            } else if (1 == dto.getOrphan()) {
+                                dto.setOrphan(3);
+                                dto.setUpdateTime(now);
+                                resultOccupies.add(dto);
+                            }
+
+                        }
+
+                    }
+                }
+            }
+        }
+        return resultOccupies;
+
+
     }
 
 

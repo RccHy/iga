@@ -34,7 +34,9 @@ public enum TreeEnum {
 
     ABBREVIATION("abbreviation", "简称"),
 
-    UPDATE_TIME("updateTime", "修改时间");
+    UPDATE_TIME("updateTime", "修改时间"),
+
+    INDEX("index", "排序");
 
 
     private String code;

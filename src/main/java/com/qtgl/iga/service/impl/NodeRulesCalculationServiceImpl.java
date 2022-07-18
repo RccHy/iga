@@ -622,6 +622,7 @@ public class NodeRulesCalculationServiceImpl {
                             if (null == dept.getString(TreeEnum.CREATE_TIME.getCode())) {
                                 if (null == dept.getString(TreeEnum.UPDATE_TIME.getCode())) {
                                     dept.put(TreeEnum.UPDATE_TIME.getCode(), timestamp);
+                                    dept.put(TreeEnum.CREATE_TIME.getCode(), timestamp);
                                 } else {
                                     dept.put(TreeEnum.CREATE_TIME.getCode(), dept.getString(TreeEnum.UPDATE_TIME.getCode()));
                                 }
@@ -637,6 +638,9 @@ public class NodeRulesCalculationServiceImpl {
                             }
                             if (null == dept.getString(TreeEnum.RELATION_TYPE.getCode())) {
                                 dept.put(TreeEnum.RELATION_TYPE.getCode(), "");
+                            }
+                            if (null != dept.getString(TreeEnum.INDEX.getCode())) {
+                                dept.put("deptIndex",dept.getString(TreeEnum.INDEX.getCode()));
                             }
                             dept.put("upstreamTypeId", upstreamType.getId());
                             dept.put("treeType", deptTreeType);
