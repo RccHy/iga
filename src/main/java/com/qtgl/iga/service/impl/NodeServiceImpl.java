@@ -452,6 +452,7 @@ public class NodeServiceImpl implements NodeService {
 
     @Override
     public void updateNodeAndRules(List<Node> nodes, List<TreeBean> beans) {
+        //运算完成的结果集中不包含node所指定的挂载节点,则该规则需置为无效
         ArrayList<Node> invalidNodes = new ArrayList<>();
         ArrayList<NodeRulesVo> invalidNodeRules = new ArrayList<>();
         ArrayList<NodeRulesRange> invalidNodeRulesRanges = new ArrayList<>();

@@ -875,11 +875,11 @@ public class DeptServiceImpl implements DeptService {
                 List<OccupyDto> dtoList = collect.get(treeBean.getCode());
                 if (!CollectionUtils.isEmpty(dtoList)) {
                     for (OccupyDto dto : dtoList) {
+                        dto.setUpdateTime(now);
 
                         if (treeBean.getActive() == 1) {
                             //新增或恢复的组织机构  将orphan为1(因部门无效导致的无效身份) 的有效期重新计算
                             if (1 == dto.getOrphan()) {
-                                dto.setUpdateTime(now);
                                 dto.setValidStartTime(now);
                                 dto.setValidEndTime(null != dto.getEndTime() ? dto.getEndTime() : OccupyServiceImpl.DEFAULT_END_TIME);
                                 dto.setOrphan(0);
@@ -888,20 +888,17 @@ public class DeptServiceImpl implements DeptService {
                             } else if (3 == dto.getOrphan()) {
                                 //orphan为3(因组织机构和岗位无效导致的无效身份)的改为 orphan 2
                                 dto.setOrphan(2);
-                                dto.setUpdateTime(now);
                                 resultOccupies.add(dto);
                             }
 
                         } else {
                             //组织机构置为无效  将orphan为0的置为1 有效期重新计算
                             if (0 == dto.getOrphan() || null == dto.getOrphan()) {
-                                dto.setUpdateTime(now);
                                 dto.setValidEndTime(now);
                                 dto.setOrphan(1);
                                 resultOccupies.add(dto);
                             } else if (2 == dto.getOrphan()) {
                                 dto.setOrphan(3);
-                                dto.setUpdateTime(now);
                                 resultOccupies.add(dto);
                             }
 

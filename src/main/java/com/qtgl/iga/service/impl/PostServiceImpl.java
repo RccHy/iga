@@ -471,7 +471,7 @@ public class PostServiceImpl implements PostService {
      * 1：根据规则拉取所有权威源岗位数据
      * 2：获取sso所有的岗位数据(包括已删除的)
      * <p>
-     * 3：根据上游部门和数据库中岗位进行对比
+     * 3：根据上游岗位和数据库中岗位进行对比
      * A：新增  上游提供、sso数据库中没有            对于active和del_mark字段 上游提供使用上游,不提供则默认有效未删除
      * B：修改  上游和sso对比后字段值有差异
      * C：删除  上游提供了del_mark             (上游必须del_mark字段)
@@ -805,7 +805,7 @@ public class PostServiceImpl implements PostService {
                                     ssoBean.setActive(0);
                                     ssoBean.setUpdateTime(now);
                                     if (null != occupyMonitors) {
-                                        //身份监控部门失效数据
+                                        //身份监控岗位失效数据
                                         occupyMonitors.add(ssoBean);
                                     }
                                     result.put(ssoBean, "invalid");
@@ -878,11 +878,11 @@ public class PostServiceImpl implements PostService {
                 List<OccupyDto> dtoList = collect.get(treeBean.getCode());
                 if (!CollectionUtils.isEmpty(dtoList)) {
                     for (OccupyDto dto : dtoList) {
-
+                        dto.setUpdateTime(now);
                         if (treeBean.getActive() == 1) {
-                            //新增或恢复的组织机构  将orphan为2(因岗位无效导致的无效身份) 的有效期重新计算
+                            //新增或恢复的岗位  将orphan为2(因岗位无效导致的无效身份) 的有效期重新计算
                             if (2 == dto.getOrphan()) {
-                                dto.setUpdateTime(now);
+
                                 dto.setValidStartTime(now);
                                 dto.setValidEndTime(null != dto.getEndTime() ? dto.getEndTime() : OccupyServiceImpl.DEFAULT_END_TIME);
                                 dto.setOrphan(0);
@@ -891,20 +891,17 @@ public class PostServiceImpl implements PostService {
                             } else if (3 == dto.getOrphan()) {
                                 //orphan为3(因组织机构和岗位无效导致的无效身份)的改为 orphan 1
                                 dto.setOrphan(1);
-                                dto.setUpdateTime(now);
                                 resultOccupies.add(dto);
                             }
 
                         } else {
                             //岗位置为无效  将orphan为0的置为2 有效期重新计算
                             if (0 == dto.getOrphan() || null == dto.getOrphan()) {
-                                dto.setUpdateTime(now);
                                 dto.setValidEndTime(now);
                                 dto.setOrphan(2);
                                 resultOccupies.add(dto);
                             } else if (1 == dto.getOrphan()) {
                                 dto.setOrphan(3);
-                                dto.setUpdateTime(now);
                                 resultOccupies.add(dto);
                             }
 
