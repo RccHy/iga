@@ -16,6 +16,7 @@ import com.qtgl.iga.service.PersonService;
 import com.qtgl.iga.task.TaskConfig;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
+import com.qtgl.iga.utils.TreeEnum;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
 import lombok.extern.slf4j.Slf4j;
@@ -243,6 +244,9 @@ public class PersonServiceImpl implements PersonService {
                 for (Object o : dataByBus) {
 
                     JSONObject personObj = JSON.parseObject(JSON.toJSONString(o));
+                    if (null != personObj.getTimestamp(TreeEnum.UPDATE_TIME.getCode())) {
+                        personObj.put(TreeEnum.UPDATE_TIME.getCode(), personObj.getTimestamp(TreeEnum.UPDATE_TIME.getCode()).toLocalDateTime());
+                    }
                     Person personUpstream = personObj.toJavaObject(Person.class);
 
 
