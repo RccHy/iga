@@ -510,9 +510,9 @@ public class PostServiceImpl implements PostService {
                     for (TreeBean ssoBean : ssoBeans) {
                         if (pullBean.getCode().equals(ssoBean.getCode())) {
 
-                            if (null != pullBean.getCreateTime()) {
+                            if (null != pullBean.getUpdateTime()) {
                                 //修改
-                                if (null == ssoBean.getCreateTime() || pullBean.getCreateTime().isAfter(ssoBean.getCreateTime())) {
+                                if (null == ssoBean.getUpdateTime() || pullBean.getUpdateTime().isAfter(ssoBean.getUpdateTime())) {
                                     //修改标识 1.source为非BUILTIN 则进行覆盖  2.source都为PULL则对比字段 有修改再标识为true
                                     boolean updateFlag = false;
                                     //删除恢复标识

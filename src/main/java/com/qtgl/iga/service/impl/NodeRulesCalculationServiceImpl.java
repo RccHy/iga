@@ -620,19 +620,15 @@ public class NodeRulesCalculationServiceImpl {
                                 dept.put(TreeEnum.PARENT_CODE.getCode(), "");
                             }
                             if (null == dept.getString(TreeEnum.CREATE_TIME.getCode())) {
-                                if (null == dept.getString(TreeEnum.UPDATE_TIME.getCode())) {
-                                    dept.put(TreeEnum.UPDATE_TIME.getCode(), timestamp);
-                                    dept.put(TreeEnum.CREATE_TIME.getCode(), timestamp);
-                                } else {
-                                    dept.put(TreeEnum.CREATE_TIME.getCode(), dept.getTimestamp(TreeEnum.UPDATE_TIME.getCode()).toLocalDateTime());
-                                    dept.put(TreeEnum.UPDATE_TIME.getCode(), dept.getTimestamp(TreeEnum.UPDATE_TIME.getCode()).toLocalDateTime());
-                                }
+                                dept.put(TreeEnum.CREATE_TIME.getCode(), timestamp);
                             } else {
                                 dept.put(TreeEnum.CREATE_TIME.getCode(), dept.getTimestamp(TreeEnum.CREATE_TIME.getCode()).toLocalDateTime());
                             }
-                            //if (null == dept.getString(TreeEnum.UPDATE_TIME.getCode())) {
-                            //    dept.put(TreeEnum.UPDATE_TIME.getCode(), timestamp);
-                            //}
+                            if (null == dept.getString(TreeEnum.UPDATE_TIME.getCode())) {
+                                dept.put(TreeEnum.UPDATE_TIME.getCode(), timestamp);
+                            } else {
+                                dept.put(TreeEnum.UPDATE_TIME.getCode(), dept.getTimestamp(TreeEnum.UPDATE_TIME.getCode()).toLocalDateTime());
+                            }
                             if (null == dept.getString(TreeEnum.EN_NAME.getCode())) {
                                 dept.put(TreeEnum.EN_NAME.getCode(), "");
                             }
@@ -827,7 +823,7 @@ public class NodeRulesCalculationServiceImpl {
                             if (null != mergeDeptMap) {
                                 Collection<TreeBean> values = mergeDeptMap.values();
                                 //增量对比处理内存中sso的数据
-                                ssoBeansMap = incrementalDataProcessing(values, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamHashMap, incrementalTasks, type, result);
+                                ssoBeansMap = incrementalDataProcessing(values, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamHashMap, incrementalTasks, type, result, upstreamType);
                             }
 
                             // 将本次 add 进的 节点 进行 规则运算
@@ -1245,7 +1241,7 @@ public class NodeRulesCalculationServiceImpl {
      * @param upstreamMap  判别权威源是否处于无效
      * @return
      */
-    private Map<String, TreeBean> incrementalDataProcessing(Collection<TreeBean> values, Map<String, TreeBean> ssoCollect, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamMap, List<IncrementalTask> incrementalTasks, String type, Map<TreeBean, String> result) {
+    private Map<String, TreeBean> incrementalDataProcessing(Collection<TreeBean> values, Map<String, TreeBean> ssoCollect, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamMap, List<IncrementalTask> incrementalTasks, String type, Map<TreeBean, String> result, UpstreamType upstreamType) {
 
         LocalDateTime now = LocalDateTime.now();
         //处理增量日志
@@ -1253,7 +1249,7 @@ public class NodeRulesCalculationServiceImpl {
         if (null != incrementalTasks) {
             IncrementalTask incrementalTask = new IncrementalTask();
             incrementalTask.setType(type);
-            logger.info("上游增量最大修改时间:{} -> {},当前时刻:{}", collect1.get(0).getUpdateTime(), collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
+            logger.info("类型:{},权威源类型:{},上游增量最大修改时间:{} -> {},当前时刻:{}", upstreamType.getSynType(), upstreamType.getId(), collect1.get(0).getUpdateTime(), collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
             long min = Math.min(collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
             incrementalTask.setTime(new Timestamp(min));
             incrementalTask.setUpstreamTypeId(collect1.get(0).getUpstreamTypeId());
@@ -1288,9 +1284,9 @@ public class NodeRulesCalculationServiceImpl {
                         if (pullBean.getCode().equals(ssoBean.getCode())) {
                             ssoBean.setIsRuled(pullBean.getIsRuled());
                             ssoBean.setColor(pullBean.getColor());
-                            if (null != pullBean.getCreateTime()) {
+                            if (null != pullBean.getUpdateTime()) {
                                 //修改
-                                if (null == ssoBean.getCreateTime() || pullBean.getCreateTime().isAfter(ssoBean.getCreateTime())) {
+                                if (null == ssoBean.getUpdateTime() || pullBean.getUpdateTime().isAfter(ssoBean.getUpdateTime())) {
 
 
                                     //修改标识 1.source为API 则进行覆盖  2.source都为PULL则对比字段 有修改再标识为true

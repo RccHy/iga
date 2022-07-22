@@ -496,6 +496,7 @@ public class PersonServiceImpl implements PersonService {
                     List<Person> collect1 = personUpstreamList.stream().sorted(Comparator.comparing(Person::getUpdateTime).reversed()).collect(Collectors.toList());
                     IncrementalTask incrementalTask = new IncrementalTask();
                     incrementalTask.setType("person");
+                    log.info("类型:{},权威源类型:{},上游增量最大修改时间:{} -> {},当前时刻:{}",upstreamType.getSynType(),upstreamType.getId(),collect1.get(0).getUpdateTime(), collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
                     long min = Math.min(collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
                     incrementalTask.setTime(new Timestamp(min));
                     incrementalTask.setUpstreamTypeId(collect1.get(0).getUpstreamType());
@@ -681,7 +682,7 @@ public class PersonServiceImpl implements PersonService {
     private void calculate(Map<String, Person> personFromUpstream, Map<String, Person> personRepeatByAccount, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO, Map<String, String> attrMap, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamMap, Map<String, Person> preViewPersonMap) {
         // 对比出需要修改的person
         if (personFromUpstream.containsKey(key) &&
-                personFromUpstream.get(key).getCreateTime().isAfter(personFromSSO.getUpdateTime())) {
+                personFromUpstream.get(key).getUpdateTime().isAfter(personFromSSO.getUpdateTime())) {
             Person newPerson = personFromUpstream.get(key);
             //当前数据来源规则为启用再进行处理
             if (newPerson.getRuleStatus()) {
@@ -1050,7 +1051,7 @@ public class PersonServiceImpl implements PersonService {
     private void calculate(Map<String, Person> personFromUpstream, Map<String, Person> personRepeatByAccount, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO, DomainInfo domainInfo, Map<String, String> attrMap, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamMap, Map<String, Person> preViewPersonMap) {
         // 对比出需要修改的person
         if (personFromUpstream.containsKey(key) &&
-                personFromUpstream.get(key).getCreateTime().isAfter(personFromSSO.getUpdateTime())) {
+                personFromUpstream.get(key).getUpdateTime().isAfter(personFromSSO.getUpdateTime())) {
             Person newPerson = personFromUpstream.get(key);
             //当前数据来源规则为启用再进行处理
             if (newPerson.getRuleStatus()) {

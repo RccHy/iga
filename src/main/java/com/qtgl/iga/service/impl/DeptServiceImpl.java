@@ -495,9 +495,9 @@ public class DeptServiceImpl implements DeptService {
                         if (pullBean.getCode().equals(ssoBean.getCode())) {
                             ssoBean.setIsRuled(pullBean.getIsRuled());
                             ssoBean.setColor(pullBean.getColor());
-                            if (null != pullBean.getCreateTime()) {
+                            if (null != pullBean.getUpdateTime()) {
                                 //修改
-                                if (null == ssoBean.getCreateTime() || pullBean.getCreateTime().isAfter(ssoBean.getCreateTime())) {
+                                if (null == ssoBean.getUpdateTime() || pullBean.getUpdateTime().isAfter(ssoBean.getUpdateTime())) {
 
                                     //修改标识 1.source为API 则进行覆盖  2.source都为PULL则对比字段 有修改再标识为true
                                     boolean updateFlag = false;

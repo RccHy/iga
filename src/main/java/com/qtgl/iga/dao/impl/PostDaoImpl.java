@@ -38,7 +38,7 @@ public class PostDaoImpl implements PostDao {
     public List<TreeBean> findByTenantId(String id) {
         //
         String sql = "select id, user_type as code , name, parent_code as parentCode , " +
-                " update_time as createTime," +
+                " create_time as createTime," +
                 "source,data_source as dataSource,user_type_index as deptIndex,del_mark as delMark,update_time as updateTime,post_type as type,active,tags,user_type_index as 'index' from user_type where tenant_id = ? and client_id is null or client_id = ''  ";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, id);
@@ -83,7 +83,7 @@ public class PostDaoImpl implements PostDao {
                 preparedStatement.setObject(4, tenantId);
                 preparedStatement.setObject(5, "PULL");
                 preparedStatement.setObject(6, list.get(i).getDescription());
-                preparedStatement.setObject(7, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
+                preparedStatement.setObject(7, list.get(i).getUpdateTime() == null ? LocalDateTime.now() : list.get(i).getUpdateTime());
                 preparedStatement.setObject(8, list.get(i).getTags());
                 preparedStatement.setObject(9, list.get(i).getSource());
                 preparedStatement.setObject(10, null == list.get(i).getIndex() ? null : list.get(i).getIndex());
@@ -373,7 +373,7 @@ public class PostDaoImpl implements PostDao {
     @Override
     public List<TreeBean> findActiveDataByTenantId(String tenantId) {
         String sql = "select  user_type as code , name, parent_code as parentCode , " +
-                " update_time as createTime," +
+                " create_time as createTime," +
                 "source,data_source as dataSource,user_type_index as deptIndex,del_mark as delMark,update_time as updateTime,post_type as type,active from user_type where tenant_id = ? and " +
                 " active = true and del_mark = false and client_id is null or client_id = '' ";
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId);

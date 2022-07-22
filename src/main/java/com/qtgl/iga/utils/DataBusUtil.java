@@ -357,7 +357,6 @@ public class DataBusUtil {
                 }
 
                 JSONArray resultJson = new JSONArray();
-                //Map<String, String> collect = fields.stream().collect(Collectors.toMap(UpstreamTypeField::getSourceField, UpstreamTypeField::getTargetField));
                 //获取sso数据
                 Tenant tenant = tenantDao.findByDomainName(domainName);
                 if (null == tenant) {
@@ -474,9 +473,7 @@ public class DataBusUtil {
                     //处理entity
                     for (Map.Entry<String, List<String>> entry : ignoreMap.entrySet()) {
                         try {
-                            //if("02000000".equals(innerMap.get("postCode"))&&"0111000".equals("deptCode")){
-                            //    System.out.println(1);
-                            //}
+
                             //处理前缀
                             SimpleBindings bindings = new SimpleBindings();
                             for (int i = 0; i < entry.getValue().size(); i++) {
@@ -503,9 +500,7 @@ public class DataBusUtil {
                                         }
 
                                     } else if ("occupy".equals(upstreamType.getSynType())) {
-                                        //if("00148".equals(innerMap.get("accountNo"))){
-                                        //    System.out.println(1);
-                                        //}
+
                                         //人员标识是否有有效数据
                                         if (!CollectionUtils.isEmpty(personCardMap) && personCardMap.containsKey(innerMap.get("personCardType") + ":" + innerMap.get("personCardNo"))) {
                                             Person code = personCardMap.get(innerMap.get("personCardType") + ":" + innerMap.get("personCardNo"));
@@ -537,10 +532,6 @@ public class DataBusUtil {
                             ScriptEngine engine = sem.getEngineByName("js");
                             final Object eval = engine.eval(reg, bindings);
                             innerMap.put(entry.getKey(), eval);
-                            //if("孙思思33".equals(innerMap.get("name"))&&"tags".equals(entry.getKey())&&"person".equals(upstreamType.getSynType())){
-                            //    log.info("{}: ignoreMap:{},bindings:{},reg:{}",upstreamType.getSynType(),ignoreMap,bindings.toString(),reg);
-                            //    log.info("innerMap:{}",innerMap);
-                            //}
 
                         } catch (ScriptException e) {
                             log.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
@@ -551,9 +542,6 @@ public class DataBusUtil {
                     if (null == innerMap.get("parentCode")) {
                         innerMap.put("parentCode", "");
                     }
-                    //if("孙思思33".equals(innerMap.get("name"))){
-                    //    log.info("人员debug{}",innerMap);
-                    //}
                     resultJson.add(innerMap);
 
                 }
@@ -756,13 +744,13 @@ public class DataBusUtil {
             for (Map.Entry<String, Object> entry : result.entrySet()) {
                 log.info("result  data --" + entry.getKey() + "------" + entry.getValue());
                 if ("errors".equals(entry.getKey())) {
-                    throw new CustomException(ResultCode.FAILED, "查询数据失败,请检查权威源配置");
+                    throw new CustomException(ResultCode.FAILED, "类型:" + upstreamType.getSynType() + "权威源类型:" + upstreamType.getId() + ",查询数据失败,请检查权威源配置");
                 }
             }
 
             if (null == result || null == result.get("data")) {
 
-                throw new CustomException(ResultCode.FAILED, "映射字段错误,数据获取失败");
+                throw new CustomException(ResultCode.FAILED, "类型:" + upstreamType.getSynType() + "权威源类型:" + upstreamType.getId() + ",映射字段错误,数据获取失败");
 
             }
 
@@ -897,9 +885,6 @@ public class DataBusUtil {
                 //处理entity
                 for (Map.Entry<String, List<String>> entry : ignoreMap.entrySet()) {
                     try {
-                        //if("02000000".equals(innerMap.get("postCode"))&&"0111000".equals("deptCode")){
-                        //    System.out.println(1);
-                        //}
                         //处理前缀
                         SimpleBindings bindings = new SimpleBindings();
                         for (int i = 0; i < entry.getValue().size(); i++) {
