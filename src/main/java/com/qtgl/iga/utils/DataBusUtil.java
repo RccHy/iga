@@ -134,7 +134,7 @@ public class DataBusUtil {
             dataMap = getDataMap(dataMapUrl + "?access_token=" + key + "&domain=" + serverName);
         }
 
-        return invokeForData(UrlUtil.getUrl(u), upstreamType, serverName,dataMap);
+        return invokeForData(UrlUtil.getUrl(u), upstreamType, serverName, dataMap);
     }
 
     public String getToken(String serverName) {
@@ -224,7 +224,7 @@ public class DataBusUtil {
 
     }
 
-    private JSONArray invokeForData(String dataUrl, UpstreamType upstreamType, String domainName,Map<String, Map<String, String>> dataMapField) throws Exception {
+    private JSONArray invokeForData(String dataUrl, UpstreamType upstreamType, String domainName, Map<String, Map<String, String>> dataMapField) throws Exception {
         log.info("source url " + dataUrl);
         //获取字段映射
         List<UpstreamTypeField> fields = upstreamTypeService.findFields(upstreamType.getId());
@@ -244,7 +244,7 @@ public class DataBusUtil {
                     Timestamp timestamp = this.processTime(upstreamType);
                     if (null != timestamp && collect.containsKey("updateTime")) {
                         Map<String, Object> timeMap = new HashMap<>();
-                        timeMap.put("gte", timestamp);
+                        timeMap.put("gt", timestamp);
                         Map<String, Object> filterMap = new HashMap<>();
                         String time = collect.get("updateTime");
                         filterMap.put(time.substring(1), timeMap);
@@ -319,6 +319,7 @@ public class DataBusUtil {
                 node.addResultAttributes(nodeString);
                 edges.addResultAttributes(node);
                 query.addResultAttributes(edges);
+                query.addResultAttributes("totalCount");
 
 
                 log.info("body " + query);
@@ -344,6 +345,8 @@ public class DataBusUtil {
                 Map dataMap = (Map) result.get("data");
                 Map deptMap = (Map) dataMap.get(upstreamType.getSynType());
                 JSONArray deptArray = (JSONArray) JSONArray.toJSON(deptMap.get("edges"));
+                Integer totalCount = (Integer) deptMap.get("totalCount");
+                log.info("类型:{},权威源类型:{},获取数据成功,总计:{}条", upstreamType.getSynType(), upstreamType.getId(), totalCount);
                 if (null != deptArray) {
                     for (Object deptOb : deptArray) {
                         JSONObject nodeJson = (JSONObject) deptOb;
@@ -766,6 +769,8 @@ public class DataBusUtil {
             Map dataMap = (Map) result.get("data");
             Map deptMap = (Map) dataMap.get(upstreamType.getSynType());
             JSONArray deptArray = (JSONArray) JSONArray.toJSON(deptMap.get("edges"));
+            Integer totalCount = (Integer) deptMap.get("totalCount");
+            log.info("类型:{},权威源类型:{},获取数据成功,总计:{}条", upstreamType.getSynType(), upstreamType.getId(), totalCount);
             if (null != deptArray) {
                 for (Object deptOb : deptArray) {
                     JSONObject nodeJson = (JSONObject) deptOb;
@@ -1193,7 +1198,7 @@ public class DataBusUtil {
         //获取最近一次增量数据同步的日志信息
         List<IncrementalTask> incrementalTasks = incrementalTaskDao.findByDomainAndType(upstreamType.getDomain(), upstreamType.getSynType(), upstreamType.getId());
         long maxTime;
-        long now = System.currentTimeMillis();
+        //long now = System.currentTimeMillis();
         if (!CollectionUtils.isEmpty(incrementalTasks)) {
             //取最近一次的同步结束时间作为时间起始点
             maxTime = incrementalTasks.get(0).getTime().getTime();
@@ -1201,9 +1206,9 @@ public class DataBusUtil {
             //如果没有则默认走全量
             return null;
         }
-        maxTime = Math.min(now, maxTime);
-        //当返回来的数据的MAX.TIME超过48小时，下次同步时间不会去取超过48小时之外的数据
-        maxTime = Math.max(now - 2 * 24 * 60 * 60 * 1000, maxTime);
+        //maxTime = Math.min(now, maxTime);
+        ////当返回来的数据的MAX.TIME超过48小时，下次同步时间不会去取超过48小时之外的数据
+        //maxTime = Math.max(now - 2 * 24 * 60 * 60 * 1000, maxTime);
 
         return new Timestamp(maxTime);
     }

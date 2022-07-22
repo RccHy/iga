@@ -1253,6 +1253,7 @@ public class NodeRulesCalculationServiceImpl {
         if (null != incrementalTasks) {
             IncrementalTask incrementalTask = new IncrementalTask();
             incrementalTask.setType(type);
+            logger.info("上游增量最大修改时间:{} -> {},当前时刻:{}", collect1.get(0).getUpdateTime(), collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
             long min = Math.min(collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
             incrementalTask.setTime(new Timestamp(min));
             incrementalTask.setUpstreamTypeId(collect1.get(0).getUpstreamTypeId());
