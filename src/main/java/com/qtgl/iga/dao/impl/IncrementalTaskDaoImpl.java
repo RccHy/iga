@@ -25,12 +25,12 @@ public class IncrementalTaskDaoImpl implements IncrementalTaskDao {
     JdbcTemplate jdbcIGA;
 
     @Override
-    public List<IncrementalTask> findByDomainAndType(String domainId, String synType,String upstreamId) {
+    public List<IncrementalTask> findByDomainAndType(String domainId, String synType, String upstreamId) {
 
-        String sql = "select id, type, time , end_time as endTime,upstream_type_id as upstreamTypeId," +
-                "domain  from incremental_task where domain =? and type=? and upstream_type_id =?  order by end_time desc limit 1";
+        String sql = "select id, type, time , create_time as createTime,upstream_type_id as upstreamTypeId," +
+                "domain  from incremental_task where domain =? and type=? and upstream_type_id =?  order by create_time desc limit 1";
 
-        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, domainId,synType,upstreamId);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, domainId, synType, upstreamId);
 
         ArrayList<IncrementalTask> incrementalTasks = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
@@ -48,7 +48,7 @@ public class IncrementalTaskDaoImpl implements IncrementalTaskDao {
 
     @Override
     public void saveAll(List<IncrementalTask> incrementalTasks, DomainInfo domainInfo) {
-        String str = "INSERT INTO `incremental_task`(`id`, `type`, `time`, `end_time`, `upstream_type_id`, `domain`) VALUES (?, ?, ?, ?, ?, ?) ";
+        String str = "INSERT INTO `incremental_task`(`id`, `type`, `time`, `create_time`, `upstream_type_id`, `domain`) VALUES (?, ?, ?, ?, ?, ?) ";
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
             @Override

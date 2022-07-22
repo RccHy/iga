@@ -297,7 +297,7 @@ public class PersonServiceImpl implements PersonService {
                     personUpstream.setSource(upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")");
                     personUpstream.setUpstreamType(upstreamType.getId());
                     personUpstream.setCreateTime(now);
-                    if (null != upstreamType.getIsIncremental()&&upstreamType.getIsIncremental()) {
+                    if (null != upstreamType.getIsIncremental() && upstreamType.getIsIncremental()) {
                         personUpstream.setDataSource("INC_PULL");
                     } else {
                         personUpstream.setDataSource("PULL");
@@ -492,11 +492,11 @@ public class PersonServiceImpl implements PersonService {
 
                 }
                 //权威源类型为增量则添加对应的增量同步日志
-                if (null != upstreamType.getIsIncremental()&&upstreamType.getIsIncremental() && null != incrementalTasks && !CollectionUtils.isEmpty(personUpstreamList)) {
+                if (null != upstreamType.getIsIncremental() && upstreamType.getIsIncremental() && null != incrementalTasks && !CollectionUtils.isEmpty(personUpstreamList)) {
                     List<Person> collect1 = personUpstreamList.stream().sorted(Comparator.comparing(Person::getUpdateTime).reversed()).collect(Collectors.toList());
                     IncrementalTask incrementalTask = new IncrementalTask();
                     incrementalTask.setType("person");
-                    long min = Math.min(collect1.get(0).getUpdateTime().toEpochSecond(ZoneOffset.of("+8")), System.currentTimeMillis());
+                    long min = Math.min(collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
                     incrementalTask.setTime(new Timestamp(min));
                     incrementalTask.setUpstreamTypeId(collect1.get(0).getUpstreamType());
                     incrementalTasks.add(incrementalTask);

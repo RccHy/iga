@@ -21,7 +21,7 @@ public class IncrementalTask {
     /**
      * 数据获取完成时间
      */
-    private Timestamp endTime;
+    private Timestamp createTime;
     /**
      * 权威源类型ID
      */

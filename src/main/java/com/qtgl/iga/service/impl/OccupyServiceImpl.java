@@ -455,7 +455,7 @@ public class OccupyServiceImpl implements OccupyService {
                     List<OccupyDto> collect1 = resultOccupies.stream().sorted(Comparator.comparing(OccupyDto::getUpdateTime).reversed()).collect(Collectors.toList());
                     IncrementalTask incrementalTask = new IncrementalTask();
                     incrementalTask.setType("occupy");
-                    long min = Math.min(collect1.get(0).getUpdateTime().toEpochSecond(ZoneOffset.of("+8")), System.currentTimeMillis());
+                    long min = Math.min(collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
                     incrementalTask.setTime(new Timestamp(min));
                     incrementalTask.setUpstreamTypeId(collect1.get(0).getUpstreamType());
                     incrementalTasks.add(incrementalTask);

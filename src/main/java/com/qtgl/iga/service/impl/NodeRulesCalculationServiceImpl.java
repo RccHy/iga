@@ -627,7 +627,7 @@ public class NodeRulesCalculationServiceImpl {
                                     dept.put(TreeEnum.CREATE_TIME.getCode(), dept.getTimestamp(TreeEnum.UPDATE_TIME.getCode()).toLocalDateTime());
                                     dept.put(TreeEnum.UPDATE_TIME.getCode(), dept.getTimestamp(TreeEnum.UPDATE_TIME.getCode()).toLocalDateTime());
                                 }
-                            }else {
+                            } else {
                                 dept.put(TreeEnum.CREATE_TIME.getCode(), dept.getTimestamp(TreeEnum.CREATE_TIME.getCode()).toLocalDateTime());
                             }
                             //if (null == dept.getString(TreeEnum.UPDATE_TIME.getCode())) {
@@ -823,7 +823,7 @@ public class NodeRulesCalculationServiceImpl {
                         }
                         // }
                         //todo 判断当前权威源类型是否为增量处理
-                        if (null != upstreamType.getIsIncremental()&&upstreamType.getIsIncremental()) {
+                        if (null != upstreamType.getIsIncremental() && upstreamType.getIsIncremental()) {
                             if (null != mergeDeptMap) {
                                 Collection<TreeBean> values = mergeDeptMap.values();
                                 //增量对比处理内存中sso的数据
@@ -1253,7 +1253,7 @@ public class NodeRulesCalculationServiceImpl {
         if (null != incrementalTasks) {
             IncrementalTask incrementalTask = new IncrementalTask();
             incrementalTask.setType(type);
-            long min = Math.min(collect1.get(0).getUpdateTime().toEpochSecond(ZoneOffset.of("+8")), System.currentTimeMillis());
+            long min = Math.min(collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
             incrementalTask.setTime(new Timestamp(min));
             incrementalTask.setUpstreamTypeId(collect1.get(0).getUpstreamTypeId());
             incrementalTasks.add(incrementalTask);
