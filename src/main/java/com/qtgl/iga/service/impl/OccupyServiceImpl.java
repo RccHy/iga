@@ -770,7 +770,9 @@ public class OccupyServiceImpl implements OccupyService {
     public static OccupyDto checkValidTime(OccupyDto occupyFromSSO, LocalDateTime now) {
         //  active=0 失效 或者 del_mark=1 删除  或者 判断为孤儿 或当前时刻不在最终有效期内 都将 最终有效期设置为 失效
         if (!(occupyFromSSO.getActive() == 1 && occupyFromSSO.getDelMark() == 0 && occupyFromSSO.getOrphan() == 0 && now.isAfter(occupyFromSSO.getValidStartTime()) && now.isBefore(occupyFromSSO.getValidEndTime()))) {
-            occupyFromSSO.setValidEndTime(DEFAULT_START_TIME);
+            if(now.isAfter(occupyFromSSO.getValidEndTime())){
+                occupyFromSSO.setValidEndTime(now);
+            }
         }
         return occupyFromSSO;
     }
