@@ -496,7 +496,7 @@ public class PersonServiceImpl implements PersonService {
                     List<Person> collect1 = personUpstreamList.stream().sorted(Comparator.comparing(Person::getUpdateTime).reversed()).collect(Collectors.toList());
                     IncrementalTask incrementalTask = new IncrementalTask();
                     incrementalTask.setType("person");
-                    log.info("类型:{},权威源类型:{},上游增量最大修改时间:{} -> {},当前时刻:{}",upstreamType.getSynType(),upstreamType.getId(),collect1.get(0).getUpdateTime(), collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
+                    log.info("类型:{},权威源类型:{},上游增量最大修改时间:{} -> {},当前时刻:{}", upstreamType.getSynType(), upstreamType.getId(), collect1.get(0).getUpdateTime(), collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
                     long min = Math.min(collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
                     incrementalTask.setTime(new Timestamp(min));
                     incrementalTask.setUpstreamTypeId(collect1.get(0).getUpstreamType());
@@ -750,6 +750,10 @@ public class PersonServiceImpl implements PersonService {
                             invalidFlag = true;
                             log.info("人员信息{}失效", personFromSSO.getId());
                             // continue;
+                        }
+                        if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
+                            log.info("人员信息{}从失效恢复", personFromSSO.getId());
+                            continue;
                         }
                         if (sourceField.equalsIgnoreCase("password") && null != newValue) {
                             //   if (StringUtils.isBlank((String) oldValue) && !StringUtils.isBlank((String) newValue)) {
@@ -1138,6 +1142,11 @@ public class PersonServiceImpl implements PersonService {
                             invalidFlag = true;
                             log.info("人员信息{}失效", personFromSSO.getId());
                             // continue;
+                        }
+                        if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
+
+                            log.info("人员信息{}从失效恢复", personFromSSO.getId());
+                            continue;
                         }
                         if (sourceField.equalsIgnoreCase("password") && null != newValue) {
                             //   if (StringUtils.isBlank((String) oldValue) && !StringUtils.isBlank((String) newValue)) {
