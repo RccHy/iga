@@ -1383,6 +1383,9 @@ public class PersonServiceImpl implements PersonService {
                 for (Object deptOb : deptArray) {
                     JSONObject nodeJson = (JSONObject) deptOb;
                     JSONObject node1 = nodeJson.getJSONObject("node");
+                    if (null != node1.getTimestamp(TreeEnum.UPDATE_TIME.getCode())) {
+                        node1.put(TreeEnum.UPDATE_TIME.getCode(), node1.getTimestamp(TreeEnum.UPDATE_TIME.getCode()).toLocalDateTime());
+                    }
                     Person person = node1.toJavaObject(Person.class);
                     PersonEdge personEdge = new PersonEdge();
                     personEdge.setNode(person);

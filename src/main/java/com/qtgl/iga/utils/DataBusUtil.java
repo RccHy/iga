@@ -307,7 +307,7 @@ public class DataBusUtil {
                             System.out.println("Found value: " + m.group(0));
                             // node.addResultAttributes(field.getSourceField() + ":" + m.group(0).substring(1));
                             nodeMap.put(field.getSourceField() + ":" + m.group(0).substring(1), m.group(0).substring(1));
-                            nodeMap.put(m.group(0).substring(1), m.group(0).substring(1));
+                            //nodeMap.put(m.group(0).substring(1), m.group(0).substring(1));
 
                         }
                     } else {
@@ -715,7 +715,7 @@ public class DataBusUtil {
                         System.out.println("Found value: " + m.group(0));
                         // node.addResultAttributes(field.getSourceField() + ":" + m.group(0).substring(1));
                         nodeMap.put(field.getSourceField() + ":" + m.group(0).substring(1), m.group(0).substring(1));
-                        nodeMap.put(m.group(0).substring(1), m.group(0).substring(1));
+                        //nodeMap.put(m.group(0).substring(1), m.group(0).substring(1));
 
                     }
                 } else {

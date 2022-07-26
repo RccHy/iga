@@ -304,6 +304,12 @@ public class OccupyServiceImpl implements OccupyService {
                     if (null != occupyObj.getTimestamp(TreeEnum.UPDATE_TIME.getCode())) {
                         occupyObj.put(TreeEnum.UPDATE_TIME.getCode(), occupyObj.getTimestamp(TreeEnum.UPDATE_TIME.getCode()).toLocalDateTime());
                     }
+                    if (null != occupyObj.getTimestamp(TreeEnum.START_TIME.getCode())) {
+                        occupyObj.put(TreeEnum.START_TIME.getCode(), occupyObj.getTimestamp(TreeEnum.START_TIME.getCode()).toLocalDateTime());
+                    }
+                    if (null != occupyObj.getTimestamp(TreeEnum.END_TIME.getCode())) {
+                        occupyObj.put(TreeEnum.END_TIME.getCode(), occupyObj.getTimestamp(TreeEnum.END_TIME.getCode()).toLocalDateTime());
+                    }
                     OccupyDto occupyDto = occupyObj.toJavaObject(OccupyDto.class);
 
                     // 人员标识 证件类型、证件号码   OR    用户名 accountNo  OR  身份标识  必提供一个
@@ -906,6 +912,15 @@ public class OccupyServiceImpl implements OccupyService {
                 for (Object deptOb : deptArray) {
                     JSONObject nodeJson = (JSONObject) deptOb;
                     JSONObject node1 = nodeJson.getJSONObject("node");
+                    if (null != node1.getTimestamp(TreeEnum.UPDATE_TIME.getCode())) {
+                        node1.put(TreeEnum.UPDATE_TIME.getCode(), node1.getTimestamp(TreeEnum.UPDATE_TIME.getCode()).toLocalDateTime());
+                    }
+                    if (null != node1.getTimestamp(TreeEnum.START_TIME.getCode())) {
+                        node1.put(TreeEnum.START_TIME.getCode(), node1.getTimestamp(TreeEnum.START_TIME.getCode()).toLocalDateTime());
+                    }
+                    if (null != node1.getTimestamp(TreeEnum.END_TIME.getCode())) {
+                        node1.put(TreeEnum.END_TIME.getCode(), node1.getTimestamp(TreeEnum.END_TIME.getCode()).toLocalDateTime());
+                    }
                     OccupyDto occupy = node1.toJavaObject(OccupyDto.class);
                     OccupyEdge occupyEdge = new OccupyEdge();
                     occupyEdge.setNode(occupy);
