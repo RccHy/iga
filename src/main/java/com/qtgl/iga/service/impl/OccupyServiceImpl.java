@@ -690,7 +690,9 @@ public class OccupyServiceImpl implements OccupyService {
                             //if(null==occupyFromSSO.getEndTime()){
                             //    occupyFromSSO.setEndTime(LocalDateTime.of(2100, 1, 1, 0, 0, 0));
                             //}
-                            occupyFromSSO.setValidStartTime(now);
+                            if (0 == occupyFromSSO.getOrphan()) {
+                                occupyFromSSO.setValidStartTime(now);
+                            }
                             occupyFromSSO.setValidEndTime(null == occupyFromSSO.getEndTime() ? DEFAULT_END_TIME : occupyFromSSO.getEndTime());
                             checkValidTime(occupyFromSSO, now);
                         }
@@ -780,70 +782,70 @@ public class OccupyServiceImpl implements OccupyService {
     }
 
     public static OccupyDto checkValidTime(OccupyDto occupyFromSSO, LocalDateTime now) {
-            //修改
-            //当前标识位为有效
-            if (occupyFromSSO.getActive() == 1 && occupyFromSSO.getDelMark() == 0 && occupyFromSSO.getOrphan() == 0) {
-                //todo 之前sso数据库赋默认值的历史数据无法判断是否提供
-                if (null == occupyFromSSO.getStartTime() && null == occupyFromSSO.getEndTime()) {
-                    //上游没有提供start_time及end_time  并且标识位有效,当前时刻不在最终有效期内
-                    if (now.isBefore(occupyFromSSO.getValidStartTime()) || now.isAfter(occupyFromSSO.getValidEndTime())) {
-                        if(!now.isAfter(occupyFromSSO.getValidStartTime())){
-                            //未来时间不处理开始时间
-                            if(!now.isBefore(occupyFromSSO.getValidEndTime())){
-                                //时间区间有问题,将结束时间赋值为2100
-                                occupyFromSSO.setValidEndTime(DEFAULT_END_TIME);
-                            }
-                        }else {
-                            if(!now.isBefore(occupyFromSSO.getValidEndTime())){
-                                //过去时间,将结束时间赋值为当前时刻
-                                occupyFromSSO.setValidEndTime(now);
-                            }
+        //修改
+        //当前标识位为有效
+        if (occupyFromSSO.getActive() == 1 && occupyFromSSO.getDelMark() == 0 && occupyFromSSO.getOrphan() == 0) {
+            //todo 之前sso数据库赋默认值的历史数据无法判断是否提供
+            if (null == occupyFromSSO.getStartTime() && null == occupyFromSSO.getEndTime()) {
+                //上游没有提供start_time及end_time  并且标识位有效,当前时刻不在最终有效期内
+                if (now.isBefore(occupyFromSSO.getValidStartTime()) || now.isAfter(occupyFromSSO.getValidEndTime())) {
+                    if (!now.isAfter(occupyFromSSO.getValidStartTime())) {
+                        //未来时间不处理开始时间
+                        if (!now.isBefore(occupyFromSSO.getValidEndTime())) {
+                            //时间区间有问题,将结束时间赋值为2100
+                            occupyFromSSO.setValidEndTime(DEFAULT_END_TIME);
                         }
                     } else {
-                        //标识位有效,当前时刻在最终有效期内不需处理
-                    }
-                } else {
-                    //上游提供start_time及end_time  标识位为有效,当前时刻不在最终有效期内
-                    if (now.isBefore(occupyFromSSO.getValidStartTime()) || now.isAfter(occupyFromSSO.getValidEndTime())) {
-                        if(!now.isAfter(occupyFromSSO.getValidStartTime())){
-                            //未来时间不处理开始时间
-                            if(!now.isBefore(occupyFromSSO.getValidEndTime())){
-                                //时间区间有问题,将结束时间赋值为2100
-                                occupyFromSSO.setValidEndTime(DEFAULT_END_TIME);
-                            }
-                        }else {
-                            if(!now.isBefore(occupyFromSSO.getValidEndTime())){
-                                //过去时间,将结束时间赋值为当前时刻
-                                occupyFromSSO.setValidEndTime(now);
-                            }
-                        }
-                    } else {
-                        //标识位有效,当前时刻在最终有效期内不需处理
-                    }
-                }
-            } else {
-                //当前标识位为无效(active=0 失效 或者 del_mark=1 删除  或者 判断为孤儿)
-
-                if (null == occupyFromSSO.getStartTime() && null == occupyFromSSO.getEndTime()) {
-                    //上游没有提供start_time及end_time  并且标识为无效,但当前时刻在最终有效期内
-                    if (!now.isBefore(occupyFromSSO.getValidStartTime()) && !now.isAfter(occupyFromSSO.getValidEndTime())) {
-                        //将最终有效期截止时间赋值为当前时刻
-                        occupyFromSSO.setValidEndTime(now);
-                    }
-                } else {
-                    //上游提供start_time及end_time  标识位为无效,当前时刻在最终有效期内
-                    if (!now.isBefore(occupyFromSSO.getValidStartTime()) && !now.isAfter(occupyFromSSO.getValidEndTime())) {
-                        //因标识为导致的身份无效,修改最终有效期结束时间为当前时刻
-                        occupyFromSSO.setValidEndTime(now);
-                    } else {
-                        //标识位为无效,当前时刻不在最终有效期内(校验数据时效性)
-                        if (occupyFromSSO.getValidEndTime().isBefore(now)) {
-                            //最终有效期时间早于当前时刻,不认上游给出的最终有效期结束时间,赋值为当前时刻
+                        if (!now.isBefore(occupyFromSSO.getValidEndTime())) {
+                            //过去时间,将结束时间赋值为当前时刻
                             occupyFromSSO.setValidEndTime(now);
                         }
                     }
+                } else {
+                    //标识位有效,当前时刻在最终有效期内不需处理
+                }
+            } else {
+                //上游提供start_time及end_time  标识位为有效,当前时刻不在最终有效期内
+                if (now.isBefore(occupyFromSSO.getValidStartTime()) || now.isAfter(occupyFromSSO.getValidEndTime())) {
+                    if (!now.isAfter(occupyFromSSO.getValidStartTime())) {
+                        //未来时间不处理开始时间
+                        if (!now.isBefore(occupyFromSSO.getValidEndTime())) {
+                            //时间区间有问题,将结束时间赋值为2100
+                            occupyFromSSO.setValidEndTime(DEFAULT_END_TIME);
+                        }
+                    } else {
+                        if (!now.isBefore(occupyFromSSO.getValidEndTime())) {
+                            //过去时间,将结束时间赋值为当前时刻
+                            occupyFromSSO.setValidEndTime(now);
+                        }
+                    }
+                } else {
+                    //标识位有效,当前时刻在最终有效期内不需处理
                 }
             }
+        } else {
+            //当前标识位为无效(active=0 失效 或者 del_mark=1 删除  或者 判断为孤儿)
+
+            if (null == occupyFromSSO.getStartTime() && null == occupyFromSSO.getEndTime()) {
+                //上游没有提供start_time及end_time  并且标识为无效,但当前时刻在最终有效期内
+                if (!now.isBefore(occupyFromSSO.getValidStartTime()) && !now.isAfter(occupyFromSSO.getValidEndTime())) {
+                    //将最终有效期截止时间赋值为当前时刻
+                    occupyFromSSO.setValidEndTime(now);
+                }
+            } else {
+                //上游提供start_time及end_time  标识位为无效,当前时刻在最终有效期内
+                if (!now.isBefore(occupyFromSSO.getValidStartTime()) && !now.isAfter(occupyFromSSO.getValidEndTime())) {
+                    //因标识为导致的身份无效,修改最终有效期结束时间为当前时刻
+                    occupyFromSSO.setValidEndTime(now);
+                } else {
+                    //标识位为无效,当前时刻不在最终有效期内(校验数据时效性)
+                    if (occupyFromSSO.getValidEndTime().isBefore(now)) {
+                        //最终有效期时间早于当前时刻,不认上游给出的最终有效期结束时间,赋值为当前时刻
+                        occupyFromSSO.setValidEndTime(now);
+                    }
+                }
+            }
+        }
 
 
         return occupyFromSSO;
