@@ -697,13 +697,32 @@ public class OccupyServiceImpl implements OccupyService {
                         //上游未提供active或  提供了active 将数据库数据由无效变为有效
                         //失效标识为false且sso的状态为无效
                         if (timeFlag) {
-                            if (!newOccupy.getStartTime().isEqual(occupyFromSSO.getStartTime()) || !newOccupy.getEndTime().isEqual(occupyFromSSO.getEndTime())) {
-                                occupyFromSSO.setStartTime(newOccupy.getStartTime());
-                                occupyFromSSO.setEndTime(newOccupy.getEndTime());
-                                occupyFromSSO.setValidStartTime(null == newOccupy.getStartTime() ? occupyFromSSO.getStartTime() : newOccupy.getStartTime());
-                                occupyFromSSO.setValidEndTime(null == newOccupy.getEndTime() ? occupyFromSSO.getEndTime() : newOccupy.getEndTime());
-
+                            //if(null!=newOccupy.getStartTime()&&null!=newOccupy.getEndTime()){
+                            //    if (!newOccupy.getStartTime().isEqual(occupyFromSSO.getStartTime()) || !newOccupy.getEndTime().isEqual(occupyFromSSO.getEndTime())) {
+                            //        occupyFromSSO.setStartTime(newOccupy.getStartTime());
+                            //        occupyFromSSO.setEndTime(newOccupy.getEndTime());
+                            //        occupyFromSSO.setValidStartTime(null == newOccupy.getStartTime() ? occupyFromSSO.getStartTime() : newOccupy.getStartTime());
+                            //        occupyFromSSO.setValidEndTime(null == newOccupy.getEndTime() ? occupyFromSSO.getEndTime() : newOccupy.getEndTime());
+                            //
+                            //    }
+                            //}
+                            if (null != newOccupy.getStartTime()) {
+                                if (!newOccupy.getStartTime().isEqual(occupyFromSSO.getStartTime())) {
+                                    occupyFromSSO.setStartTime(newOccupy.getStartTime());
+                                    occupyFromSSO.setValidStartTime(newOccupy.getStartTime());
+                                }
+                            } else {
+                                occupyFromSSO.setStartTime(null);
                             }
+                            if (null != newOccupy.getEndTime()) {
+                                if (!newOccupy.getEndTime().isEqual(occupyFromSSO.getEndTime())) {
+                                    occupyFromSSO.setEndTime(newOccupy.getEndTime());
+                                    occupyFromSSO.setValidEndTime(newOccupy.getEndTime());
+                                }
+                            } else {
+                                occupyFromSSO.setEndTime(null);
+                            }
+
                             if (!occupyFromSSO.getActive().equals(newOccupy.getActive())) {
                                 occupyFromSSO.setActive(newOccupy.getActive());
                                 occupyFromSSO.setActiveTime(newOccupy.getUpdateTime());
