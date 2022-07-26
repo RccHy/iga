@@ -591,7 +591,8 @@ public class NodeRulesCalculationServiceImpl {
                         //验证树的合法性
                         if (upstreamTree.size() <= 0) {
                             logger.info("节点'{}'数据源{}获取部门数据为空", code, upstreamType.getGraphqlUrl());
-                            return mainTree;
+                            //return mainTree;
+                            continue;
                         }
                         logger.info("节点'{}'数据获取完成", code);
 

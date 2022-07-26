@@ -555,6 +555,8 @@ public class OccupyServiceImpl implements OccupyService {
                 boolean delFlag = false;
                 //失效标识
                 boolean invalidFlag = false;
+                //标识位标识
+                boolean timeFlag = false;
                 //恢复失效标识
                 //   boolean invalidRecoverFlag = true;
                 occupyFromSSO.setRuleStatus(newOccupy.getRuleStatus());
@@ -602,9 +604,14 @@ public class OccupyServiceImpl implements OccupyService {
                         }
                         if (sourceField.equals("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
                             log.info("人员身份从失效恢复:{}", occupyFromSSO.getOccupyId());
+                            timeFlag=true;
                             continue;
                         }
-
+                        if (sourceField.equals("startTime") || sourceField.equals("endTime")) {
+                            log.info("人员身份开始时间,结束时间发生修改:{}", occupyFromSSO.getOccupyId());
+                            timeFlag=true;
+                            continue;
+                        }
 
                         ClassCompareUtil.setValue(occupyFromSSO, occupyFromSSO.getClass(), sourceField, oldValue, newValue);
                         log.info("人员身份信息更新{}:字段{}：{} -> {}", occupyFromSSO.getOccupyId(), sourceField, oldValue, newValue);
@@ -684,24 +691,35 @@ public class OccupyServiceImpl implements OccupyService {
                             log.info("人员身份信息失效{},但检测到对应权威源已无效或规则未启用,跳过该数据", occupyFromSSO.getOccupyId());
                         }
                     } else {
+                        log.info("----------------------人员身份对比完映射字段有区别,对标识字段进行对比");
                         //上游未提供active或  提供了active 将数据库数据由无效变为有效
                         //失效标识为false且sso的状态为无效
+                        if(timeFlag){
+                            if (!newOccupy.getStartTime().isEqual(occupyFromSSO.getStartTime()) || !newOccupy.getEndTime().isEqual(occupyFromSSO.getEndTime())) {
+                                occupyFromSSO.setStartTime(newOccupy.getStartTime());
+                                occupyFromSSO.setEndTime(newOccupy.getEndTime());
+                                occupyFromSSO.setValidStartTime(null == newOccupy.getStartTime() ? occupyFromSSO.getStartTime() : newOccupy.getStartTime());
+                                occupyFromSSO.setValidEndTime(null == newOccupy.getEndTime() ? occupyFromSSO.getEndTime() : newOccupy.getEndTime());
 
-                        if (occupyFromSSO.getActive() != newOccupy.getActive()) {
-                            occupyFromSSO.setActive(newOccupy.getActive());
-                            occupyFromSSO.setActiveTime(newOccupy.getUpdateTime());
-                            //失效恢复
-                            //occupyFromSSO.setStartTime(LocalDateTime.now());
-                            ////do 处理兼容为null的end_time
-                            //if(null==occupyFromSSO.getEndTime()){
-                            //    occupyFromSSO.setEndTime(LocalDateTime.of(2100, 1, 1, 0, 0, 0));
-                            //}
-                            if (0 == occupyFromSSO.getOrphan()) {
-                                occupyFromSSO.setValidStartTime(now);
                             }
-                            occupyFromSSO.setValidEndTime(null == occupyFromSSO.getEndTime() ? DEFAULT_END_TIME : occupyFromSSO.getEndTime());
+                            if (!occupyFromSSO.getActive().equals(newOccupy.getActive())) {
+                                occupyFromSSO.setActive(newOccupy.getActive());
+                                occupyFromSSO.setActiveTime(newOccupy.getUpdateTime());
+                                //失效恢复
+                                //occupyFromSSO.setStartTime(LocalDateTime.now());
+                                ////do 处理兼容为null的end_time
+                                //if(null==occupyFromSSO.getEndTime()){
+                                //    occupyFromSSO.setEndTime(LocalDateTime.of(2100, 1, 1, 0, 0, 0));
+                                //}
+                                if (0 == occupyFromSSO.getOrphan()) {
+                                    occupyFromSSO.setValidStartTime(now);
+                                }
+                                occupyFromSSO.setValidEndTime(null == occupyFromSSO.getEndTime() ? DEFAULT_END_TIME : occupyFromSSO.getEndTime());
+                            }
+
                             checkValidTime(occupyFromSSO, now);
                         }
+                        log.info("人员身份修改了一条数据,修改地:1");
                         if (result.containsKey("update")) {
                             result.get("update").add(occupyFromSSO);
                         } else {
@@ -718,7 +736,10 @@ public class OccupyServiceImpl implements OccupyService {
                 // 对比后，权威源提供的"映射字段"数据和sso中没有差异。 （active字段不提供） 不提供的默认active为true 即为置为从失效恢复的情况
                 if (!updateFlag && occupyFromSSO.getDelMark() != 1) {
                     //
+
                     if (!occupyFromSSO.getActive().equals(newOccupy.getActive())) {
+                        log.info("active  sso:{}-> upstream:{}",occupyFromSSO.getActive(),newOccupy.getActive());
+                        log.info("sso:{}-> upstream:{}",occupyFromSSO,newOccupy);
                         occupyFromSSO.setActive(newOccupy.getActive());
                         occupyFromSSO.setActiveTime(newOccupy.getUpdateTime());
                         occupyFromSSO.setUpdateTime(newOccupy.getUpdateTime());
@@ -731,6 +752,7 @@ public class OccupyServiceImpl implements OccupyService {
                         occupyFromSSO.setValidStartTime(now);
                         occupyFromSSO.setValidEndTime(null == occupyFromSSO.getEndTime() ? DEFAULT_END_TIME : occupyFromSSO.getEndTime());
                         checkValidTime(occupyFromSSO, now);
+                        log.info("人员身份修改了一条数据,修改地:2");
                         if (result.containsKey("update")) {
                             result.get("update").add(occupyFromSSO);
                         } else {
