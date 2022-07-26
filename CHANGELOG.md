@@ -1,6 +1,6 @@
 
 
-### xxxxx
+### 20220726
 
 **数据库**
 - 执行iga/update/update.sql下 20220725的sql
@@ -20,11 +20,11 @@
 
 **image：**
 
-- docker.qtgl.com.cn/product/iga:xxxxx
+- docker.qtgl.com.cn/product/iga:20220726
 
 **依赖其他项目：**
 
-- docker.qtgl.com.cn/product/console:xxxxx
+- docker.qtgl.com.cn/product/console:20220726
 
 
 ### 20220615
