@@ -60,6 +60,8 @@ type UpstreamType{
     hasRules:Boolean
     # nodeRules
     nodeRules:[NodeRules]
+    #是否增量
+    isIncremental:Boolean
 
 }
 
@@ -135,6 +137,8 @@ input InputUpstreamType{
     isPage:Boolean
     #方式 拉取0/推送1
     synWay:Int
+    #是否增量
+    isIncremental:Boolean
 
 }
 

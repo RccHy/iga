@@ -2,9 +2,9 @@ package com.qtgl.iga.dataFetcher;
 
 import com.qtgl.iga.bean.OccupyConnection;
 import com.qtgl.iga.bean.PersonConnection;
-import com.qtgl.iga.bean.PreViewResult;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.DomainInfo;
+import com.qtgl.iga.bo.PreViewTask;
 import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.service.OccupyService;
 import com.qtgl.iga.service.PersonService;
@@ -195,7 +195,7 @@ public class DeptDataFetcher {
 
 
             try {
-                PreViewResult result = personService.reFreshPersons(arguments, domain,null);
+                PreViewTask result = personService.reFreshPersons(arguments, domain,null);
                 return result;
             } catch (CustomException e) {
                 e.printStackTrace();
@@ -218,7 +218,7 @@ public class DeptDataFetcher {
 
 
             try {
-                PreViewResult result = occupyService.reFreshOccupies(arguments, domain,null);
+                PreViewTask result = occupyService.reFreshOccupies(arguments, domain,null);
                 return result;
             } catch (CustomException e) {
                 e.printStackTrace();
@@ -241,7 +241,7 @@ public class DeptDataFetcher {
 
 
             try {
-                PreViewResult result = personService.reFreshTaskStatus(arguments, domain);
+                PreViewTask result = personService.reFreshTaskStatus(arguments, domain);
                 return result;
             } catch (CustomException e) {
                 e.printStackTrace();

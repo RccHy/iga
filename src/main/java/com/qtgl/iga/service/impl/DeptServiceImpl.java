@@ -1,6 +1,7 @@
 package com.qtgl.iga.service.impl;
 
 
+import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
@@ -61,6 +62,10 @@ public class DeptServiceImpl implements DeptService {
     DynamicValueDaoImpl dynamicValueDao;
     @Autowired
     UpstreamDao upstreamDao;
+    @Autowired
+    IncrementalTaskDao incrementalTaskDao;
+    @Autowired
+    UserLogDao userLogDao;
 
     @Value("${iga.hostname}")
     String hostname;
@@ -101,6 +106,8 @@ public class DeptServiceImpl implements DeptService {
                 }
             }
         }
+        //map做增量处理值传递
+        Map<String, TreeBean> ssoBeansMap = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
         ArrayList<TreeBean> insert = new ArrayList<>();
@@ -139,7 +146,12 @@ public class DeptServiceImpl implements DeptService {
         if (!CollectionUtils.isEmpty(dynamicValues)) {
             valueMap = dynamicValues.stream().collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
         }
-
+        //获取该租户下的当前类型的无效权威源
+        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
+        Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(upstreams)) {
+            upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
+        }
         for (DeptTreeType deptType : deptTreeTypes) {
 
             List<TreeBean> ssoApiBeans = deptDao.findBySourceAndTreeType("API", deptType.getCode(), tenant.getId());
@@ -147,23 +159,18 @@ public class DeptServiceImpl implements DeptService {
                 mainTreeBeans.addAll(ssoApiBeans);
                 rulesCalculationService.groupByCode(mainTreeBeans, status, domain);
                 for (TreeBean ssoApiBean : ssoApiBeans) {
-                    mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), ssoApiBean.getCode(), mainTreeBeans, status, TYPE, dynamicCodes);
+                    mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), ssoApiBean.getCode(), mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, null, result);
                 }
             }
 
             // id 改为code
-            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE, dynamicCodes);
+            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, null, result);
 
         }
         //同步到sso
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-        //获取该租户下的当前类型的无效权威源
-        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
-        Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
-        if (!CollectionUtils.isEmpty(upstreams)) {
-            upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
-        }
-        beans = dataProcessing(mainTreeMap, domain, beans, result, insert, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap);
+        beans = new ArrayList<>(ssoBeansMap.values());
+        beans = dataProcessing(mainTreeMap, domain, beans, result, insert, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, null);
 
 //        //如果插入的数据不为空则加入返回集
 //        if (null != beans) {
@@ -171,6 +178,9 @@ public class DeptServiceImpl implements DeptService {
 //        }
         //code重复性校验
         calculationService.groupByCode(beans, status, domain);
+        //todo 无效规则筛选标记
+        List<Node> nodes = nodeDao.findNodesByStatusAndType(status, TYPE, domain.getId(), null);
+        nodeService.updateNodeAndRules(nodes, beans);
         return beans;
 
     }
@@ -213,6 +223,8 @@ public class DeptServiceImpl implements DeptService {
                 }
             }
         }
+        //map做增量处理值传递
+        Map<String, TreeBean> ssoBeansMap = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
         ArrayList<TreeBean> treeBeans = new ArrayList<>();
@@ -229,6 +241,9 @@ public class DeptServiceImpl implements DeptService {
         List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
 
         List<DynamicValue> valueUpdate = new ArrayList<>();
+
+        //增量日志容器
+        List<IncrementalTask> incrementalTasks = new ArrayList<>();
 
         //扩展字段新增容器
         ArrayList<DynamicValue> valueInsert = new ArrayList<>();
@@ -251,6 +266,12 @@ public class DeptServiceImpl implements DeptService {
             valueMap = dynamicValues.stream().collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
         }
         logger.info("获取到当前租户{}的映射字段集为{}", tenant.getId(), dynamicAttrs);
+        //获取该租户下的当前类型的无效权威源
+        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
+        Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(upstreams)) {
+            upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
+        }
         for (DeptTreeType deptType : deptTreeTypes) {
 
             List<TreeBean> ssoApiBeans = deptDao.findBySourceAndTreeType("API", deptType.getCode(), tenant.getId());
@@ -259,22 +280,19 @@ public class DeptServiceImpl implements DeptService {
                 mainTreeBeans.addAll(ssoApiBeans);
                 rulesCalculationService.groupByCode(mainTreeBeans, 0, domain);
                 for (TreeBean ssoApiBean : ssoApiBeans) {
-                    mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), ssoApiBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes);
+                    mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), ssoApiBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, incrementalTasks, result);
                 }
             }
             //  id 改为code
-            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE, dynamicCodes);
+            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, incrementalTasks, result);
 
         }
         //同步到sso
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-        //获取该租户下的当前类型的无效权威源
-        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
-        Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
-        if (!CollectionUtils.isEmpty(upstreams)) {
-            upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
-        }
-        beans = dataProcessing(mainTreeMap, domain, beans, result, treeBeans, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap);
+        beans = new ArrayList<>(ssoBeansMap.values());
+        //监控身份
+        ArrayList<TreeBean> occupyMonitors = new ArrayList<>();
+        beans = dataProcessing(mainTreeMap, domain, beans, result, treeBeans, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, occupyMonitors);
 
         //code重复性校验
         calculationService.groupByCode(beans, 0, domain);
@@ -286,15 +304,35 @@ public class DeptServiceImpl implements DeptService {
 
         //保存到数据库
         saveToSso(collect, tenant.getId(), attrMap, valueUpdate, valueInsert);
+        if (!CollectionUtils.isEmpty(incrementalTasks)) {
+            //添加增量日志
+            incrementalTaskDao.saveAll(incrementalTasks, domain);
+        }
+        if (!CollectionUtils.isEmpty(occupyMonitors)) {
+            //处理因组织机构变化影响的历史身份有效期
+            ArrayList<OccupyDto> occupyDtos = occupyProcessing(occupyMonitors, tenant.getId());
+            if (!CollectionUtils.isEmpty(occupyDtos)) {
+                Map<String, List<OccupyDto>> octResult = new HashMap<>();
+                octResult.put("update", occupyDtos);
+                occupyDao.saveToSso(octResult, tenant.getId());
+                userLogDao.saveUserLog(occupyDtos, tenant.getId());
+                logger.info("因组织机构变动 导致:{}条,身份有效期发生变化", occupyDtos.size());
+            }
+
+        }
+
         return result;
     }
 
 
     /**
-     * @param collect
-     * @param tenantId
-     * @Description: 插入sso数据库
-     * @return: void
+     * 插入sso数据库
+     *
+     * @param collect     数据处理结果集
+     * @param tenantId    当前租户
+     * @param attrMap     扩展字段
+     * @param valueUpdate 需要修改的扩展字段
+     * @param valueInsert 需要新增的扩展字段
      */
     public void saveToSso(Map<String, List<Map.Entry<TreeBean, String>>> collect, String tenantId, Map<String, String> attrMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert) {
         //声明存储插入,修改,删除数据的容器
@@ -394,7 +432,6 @@ public class DeptServiceImpl implements DeptService {
 
     }
 
-
     /**
      * 1：根据规则拉取所有权威源部门数据
      * 2：获取sso所有的部门数据(包括已删除的)
@@ -405,13 +442,26 @@ public class DeptServiceImpl implements DeptService {
      * C：删除  上游提供了del_mark             (上游必须del_mark字段)
      * D: 无效  上游曾经提供后，不再提供 OR 上游提供了active
      * E: 删除恢复  之前被标记为删除后再通过推送了相同的数据   (上游必须del_mark字段)
-     * E: 失效恢复  之前被标记为失效后再通过推送了相同的数据   提供active则修改对比时直接覆盖,不提供则手动恢复
+     * F: 失效恢复  之前被标记为失效后再通过推送了相同的数据   提供active则修改对比时直接覆盖,不提供则手动恢复
      * 补充 : 忽略时对比扩展字段进行更新
      * 如果已标识为修改则扩展字段不需对比直接覆盖
      * 新增正常添加 其余情况不单独处理扩展字段
-     **/
-    //String treeTypeId
-    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, List<TreeBean> ssoBeans, Map<TreeBean, String> result, ArrayList<TreeBean> insert, LocalDateTime now, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamMap) {
+     *
+     * @param mainTree       上游源规则治理的数据
+     * @param domainInfo     当前租户
+     * @param ssoBeans       sso的部门数据
+     * @param result         最终处理结果集
+     * @param insert
+     * @param now            当前时刻
+     * @param dynamicAttrs   扩展字段
+     * @param valueMap       扩展字段值
+     * @param valueUpdate    需要修改的扩展字段
+     * @param valueInsert    需要新增的扩展字段
+     * @param upstreamMap    该租户下的当前类型的无效权威源
+     * @param occupyMonitors 组织机构失效,删除,恢复,或新增 导致历史身份有效期变化存储容器
+     * @return
+     */
+    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, List<TreeBean> ssoBeans, Map<TreeBean, String> result, ArrayList<TreeBean> insert, LocalDateTime now, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamMap, ArrayList<TreeBean> occupyMonitors) {
         //将sso的数据转化为map方便对比
         Map<String, TreeBean> ssoCollect = new HashMap<>();
         if (null != ssoBeans && ssoBeans.size() > 0) {
@@ -445,12 +495,9 @@ public class DeptServiceImpl implements DeptService {
                         if (pullBean.getCode().equals(ssoBean.getCode())) {
                             ssoBean.setIsRuled(pullBean.getIsRuled());
                             ssoBean.setColor(pullBean.getColor());
-                            if (null != pullBean.getCreateTime()) {
+                            if (null != pullBean.getUpdateTime()) {
                                 //修改
-                                if (null == ssoBean.getCreateTime() || pullBean.getCreateTime().isAfter(ssoBean.getCreateTime())) {
-                                    //if ("党委办公室".equals(ssoBean.getName()) || "党委办公室".equals(pullBean.getName())) {
-                                    //    System.out.println(1);
-                                    //}
+                                if (null == ssoBean.getUpdateTime() || pullBean.getUpdateTime().isAfter(ssoBean.getUpdateTime())) {
 
                                     //修改标识 1.source为API 则进行覆盖  2.source都为PULL则对比字段 有修改再标识为true
                                     boolean updateFlag = false;
@@ -527,12 +574,18 @@ public class DeptServiceImpl implements DeptService {
 
                                             //将值更新到sso对象
                                             ClassCompareUtil.setValue(ssoBean, ssoBean.getClass(), sourceField, oldValue, newValue);
-                                            logger.debug("部门信息更新{}:字段{}: {} -> {} ", pullBean.getCode(), sourceField, oldValue, newValue);
+                                            if (activeFlag && null != occupyMonitors) {
+                                                occupyMonitors.add(ssoBean);
+                                            }
+                                            logger.info("部门信息更新{}:字段{}: {} -> {} ", pullBean.getCode(), sourceField, oldValue, newValue);
                                         }
                                     }
                                     //标识为恢复数据
                                     if (delRecoverFlag) {
                                         ssoBean.setDelMark(0);
+                                        if (null != occupyMonitors) {
+                                            occupyMonitors.add(ssoBean);
+                                        }
                                         result.put(ssoBean, "recover");
                                         //修改标记置为false
                                         updateFlag = false;
@@ -546,7 +599,11 @@ public class DeptServiceImpl implements DeptService {
                                         } else {
                                             //将数据放入删除集合
                                             ssoBean.setDelMark(1);
+                                            ssoBean.setActive(0);
                                             ssoCollect.remove(ssoBean.getCode());
+                                            if (null != occupyMonitors) {
+                                                occupyMonitors.add(ssoBean);
+                                            }
                                             result.put(ssoBean, "delete");
                                             //修改标记置为false
                                             updateFlag = false;
@@ -566,6 +623,9 @@ public class DeptServiceImpl implements DeptService {
                                                 result.put(ssoBean, "obsolete");
                                                 logger.info("部门对比后应置为失效{},但检测到对应权威源已无效或规则未启用,跳过该数据", ssoBean.getId());
                                             } else {
+                                                if (null != occupyMonitors) {
+                                                    occupyMonitors.add(ssoBean);
+                                                }
                                                 result.put(ssoBean, "invalid");
                                                 logger.info("部门对比后需要置为失效{}", ssoBean.getId());
                                             }
@@ -597,6 +657,9 @@ public class DeptServiceImpl implements DeptService {
                                         ssoBean.setUpdateTime(now);
                                         ssoBean.setActive(pullBean.getActive());
                                         //将数据放入修改集合
+                                        if (null != occupyMonitors) {
+                                            occupyMonitors.add(ssoBean);
+                                        }
                                         ssoCollect.put(ssoBean.getCode(), ssoBean);
                                         logger.info("手动从失效中恢复{}", ssoBean);
 
@@ -617,6 +680,9 @@ public class DeptServiceImpl implements DeptService {
                                         ssoBean.setUpdateTime(now);
                                         ssoBean.setDelMark(pullBean.getDelMark());
                                         //将数据放入修改集合
+                                        if (null != occupyMonitors) {
+                                            occupyMonitors.add(ssoBean);
+                                        }
                                         ssoCollect.put(ssoBean.getCode(), ssoBean);
 
                                         if (dyFlag) {
@@ -671,20 +737,29 @@ public class DeptServiceImpl implements DeptService {
                     }
 
                 } else {
-                    logger.debug("组织机构{},对应规则未启用,本次跳过该数据", pullBean);
+                    logger.info("组织机构{},对应规则未启用,本次跳过该数据", pullBean);
                 }
                 //没有相等的应该是新增(对比code没有对应的标识为新增)  并且当前数据的来源规则是启用的
                 if (flag && pullBean.getRuleStatus()) {
                     //新增
 //                    insert.add(pullBean);
+                    pullBean.setDataSource("PULL");
                     ssoCollect.put(pullBean.getCode(), pullBean);
+
+                    if (null != occupyMonitors) {
+                        occupyMonitors.add(pullBean);
+                    }
                     result.put(pullBean, "insert");
                 }
             } else {
                 //数据库数据为空的话且数据来源规则是启用的,则默认新增
 //                insert.add(pullBean);
                 if (pullBean.getRuleStatus()) {
+                    pullBean.setDataSource("PULL");
                     ssoCollect.put(pullBean.getCode(), pullBean);
+                    if (null != occupyMonitors) {
+                        occupyMonitors.add(pullBean);
+                    }
                     result.put(pullBean, "insert");
                 }
             }
@@ -715,6 +790,10 @@ public class DeptServiceImpl implements DeptService {
                             } else {
                                 ssoBean.setActive(0);
                                 ssoBean.setUpdateTime(now);
+                                if (null != occupyMonitors) {
+                                    //身份监控部门失效数据
+                                    occupyMonitors.add(ssoBean);
+                                }
                                 result.put(ssoBean, "invalid");
                                 logger.info("部门对比后需要置为失效{}", ssoBean.getId());
                             }
@@ -733,7 +812,18 @@ public class DeptServiceImpl implements DeptService {
 
     }
 
-    private Boolean dynamicProcessing(List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, String> attrMap, TreeBean ssoBean, Map<String, String> dynamic, List<DynamicValue> dyValuesFromSSO) {
+    /**
+     * 扩展字段对比处理
+     *
+     * @param valueUpdate     需要修改的扩展字段
+     * @param valueInsert     需要新增的扩展字段
+     * @param attrMap         扩展字段
+     * @param ssoBean         实体对象
+     * @param dynamic         扩展字段id与code对应map
+     * @param dyValuesFromSSO sso数据库的扩展字段值
+     * @return
+     */
+    public Boolean dynamicProcessing(List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, String> attrMap, TreeBean ssoBean, Map<String, String> dynamic, List<DynamicValue> dyValuesFromSSO) {
         Boolean valueFlag = false;
         if (!CollectionUtils.isEmpty(dyValuesFromSSO)) {
             Map<String, DynamicValue> collect = dyValuesFromSSO.stream().collect(Collectors.toMap(DynamicValue::getAttrId, dynamicValue -> dynamicValue));
@@ -772,6 +862,55 @@ public class DeptServiceImpl implements DeptService {
             }
         }
         return valueFlag;
+    }
+
+    private ArrayList<OccupyDto> occupyProcessing(ArrayList<TreeBean> occupyMonitors, String tenantId) {
+        ArrayList<OccupyDto> resultOccupies = new ArrayList<>();
+        //包含失效,恢复,新增的组织机构数据
+        List<OccupyDto> occupyDtos = occupyDao.findAll(tenantId, null, null);
+        Map<String, List<OccupyDto>> collect = occupyDtos.stream().collect(Collectors.groupingBy(OccupyDto::getDeptCode));
+        LocalDateTime now = LocalDateTime.now();
+        for (TreeBean treeBean : occupyMonitors) {
+            if (collect.containsKey(treeBean.getCode())) {
+                List<OccupyDto> dtoList = collect.get(treeBean.getCode());
+                if (!CollectionUtils.isEmpty(dtoList)) {
+                    for (OccupyDto dto : dtoList) {
+                        dto.setUpdateTime(now);
+
+                        if (treeBean.getActive() == 1) {
+                            //新增或恢复的组织机构  将orphan为1(因部门无效导致的无效身份) 的有效期重新计算
+                            if (1 == dto.getOrphan()) {
+                                dto.setValidStartTime(now);
+                                dto.setValidEndTime(null != dto.getEndTime() ? dto.getEndTime() : OccupyServiceImpl.DEFAULT_END_TIME);
+                                dto.setOrphan(0);
+                                OccupyServiceImpl.checkValidTime(dto, now);
+                                resultOccupies.add(dto);
+                            } else if (3 == dto.getOrphan()) {
+                                //orphan为3(因组织机构和岗位无效导致的无效身份)的改为 orphan 2
+                                dto.setOrphan(2);
+                                resultOccupies.add(dto);
+                            }
+
+                        } else {
+                            //组织机构置为无效  将orphan为0的置为1 有效期重新计算
+                            if (0 == dto.getOrphan() || null == dto.getOrphan()) {
+                                dto.setValidEndTime(now);
+                                dto.setOrphan(1);
+                                resultOccupies.add(dto);
+                            } else if (2 == dto.getOrphan()) {
+                                dto.setOrphan(3);
+                                resultOccupies.add(dto);
+                            }
+
+                        }
+
+                    }
+                }
+            }
+        }
+        return resultOccupies;
+
+
     }
 
 

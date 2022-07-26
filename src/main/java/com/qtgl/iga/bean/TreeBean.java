@@ -71,7 +71,7 @@ public class TreeBean implements Serializable {
     /**
      * 排序字段
      */
-    private Integer deptIndex;
+    private Integer index;
     /**
      * 组织机构代码
      */

@@ -49,6 +49,8 @@ public class OccupyDaoImpl implements OccupyDao {
                 "       u.del_mark                  as delMark," +
                 "       u.start_time                  as startTime," +
                 "       u.end_time                  as endTime," +
+                "       u.valid_start_time                  as validStartTime," +
+                "       u.valid_end_time                  as validEndTime," +
                 "       u.user_index                  as `index`," +
                 "       u.source                                ," +
                 "       u.data_source               as dataSource," +
@@ -104,7 +106,7 @@ public class OccupyDaoImpl implements OccupyDao {
                             preparedStatement.setObject(9, tenantId);
                             preparedStatement.setObject(10, list.get(i).getDeptCode());
                             preparedStatement.setObject(11, list.get(i).getSource());
-                            preparedStatement.setObject(12, "PULL");
+                            preparedStatement.setObject(12, list.get(i).getDataSource());
                             preparedStatement.setObject(13, list.get(i).getActive());
                             preparedStatement.setObject(14, LocalDateTime.now());
                             preparedStatement.setObject(15, list.get(i).getIndex());
@@ -167,7 +169,7 @@ public class OccupyDaoImpl implements OccupyDao {
                             preparedStatement.setObject(7, list.get(i).getUpdateTime());
                             preparedStatement.setObject(8, list.get(i).getDeptCode());
                             preparedStatement.setObject(9, list.get(i).getSource());
-                            preparedStatement.setObject(10, "PULL");
+                            preparedStatement.setObject(10, list.get(i).getDataSource());
                             preparedStatement.setObject(11, list.get(i).getIndex());
                             preparedStatement.setObject(12, list.get(i).getActive());
                             preparedStatement.setObject(13, list.get(i).getActiveTime());
@@ -195,7 +197,7 @@ public class OccupyDaoImpl implements OccupyDao {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
                             preparedStatement.setObject(1, list.get(i).getUpdateTime());
-                            preparedStatement.setObject(2, "PULL");
+                            preparedStatement.setObject(2, list.get(i).getDataSource());
                             preparedStatement.setObject(3, list.get(i).getOccupyId());
                             preparedStatement.setObject(4, list.get(i).getUpdateTime());
                         }
@@ -242,7 +244,7 @@ public class OccupyDaoImpl implements OccupyDao {
                 preparedStatement.setObject(9, domain.getId());
                 preparedStatement.setObject(10, occupyDtos.get(i).getDeptCode());
                 preparedStatement.setObject(11, occupyDtos.get(i).getSource());
-                preparedStatement.setObject(12, "PULL");
+                preparedStatement.setObject(12, occupyDtos.get(i).getDataSource());
                 preparedStatement.setObject(13, occupyDtos.get(i).getActive());
                 preparedStatement.setObject(14, LocalDateTime.now());
                 preparedStatement.setObject(15, occupyDtos.get(i).getIndex());
@@ -302,13 +304,13 @@ public class OccupyDaoImpl implements OccupyDao {
     }
 
     @Override
-    public Integer findOccupyTempCount(Map<String, Object> arguments,DomainInfo domain) {
+    public Integer findOccupyTempCount(Map<String, Object> arguments, DomainInfo domain) {
         String sql = " SELECT count(*) from occupy_temp where tenant_id=?  ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         List<Object> param = new ArrayList<>();
         param.add(domain.getId());
-        if(null!=arguments){
+        if (null != arguments) {
             dealData(arguments, stb, param);
         }
         Integer integer = jdbcIGA.queryForObject(stb.toString(), param.toArray(), Integer.class);
@@ -378,10 +380,10 @@ public class OccupyDaoImpl implements OccupyDao {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
                             if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "like")) {
-                                stb.append("and card_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                stb.append("and user_code ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                                 param.add("%" + soe.getValue() + "%");
                             } else if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
-                                stb.append("and card_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                stb.append("and user_code ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
                                 ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
                                 for (String s : value1) {
                                     stb.append(" ? ,");
@@ -389,7 +391,7 @@ public class OccupyDaoImpl implements OccupyDao {
                                 }
                                 stb.replace(stb.length() - 1, stb.length(), ")");
                             } else {
-                                stb.append("and card_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                stb.append("and user_code ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                                 param.add(soe.getValue());
                             }
                         }

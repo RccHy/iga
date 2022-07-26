@@ -113,7 +113,7 @@ public class PersonDaoImpl implements PersonDao {
                             preparedStatement.setObject(10, list.get(i).getCardNo());
                             preparedStatement.setObject(11, list.get(i).getCellphone());
                             preparedStatement.setObject(12, list.get(i).getEmail());
-                            preparedStatement.setObject(13, "PULL");
+                            preparedStatement.setObject(13, list.get(i).getDataSource());
                             preparedStatement.setObject(14, list.get(i).getTags());
                             preparedStatement.setObject(15, list.get(i).getActive());
                             preparedStatement.setObject(16, list.get(i).getActiveTime());
@@ -156,7 +156,7 @@ public class PersonDaoImpl implements PersonDao {
                             preparedStatement.setObject(9, list.get(i).getActive());
                             preparedStatement.setObject(10, list.get(i).getActiveTime());
                             preparedStatement.setObject(11, list.get(i).getSource());
-                            preparedStatement.setObject(12, "PULL");
+                            preparedStatement.setObject(12, list.get(i).getDataSource());
                             preparedStatement.setObject(13, list.get(i).getValidStartTime());
                             preparedStatement.setObject(14, list.get(i).getValidEndTime());
                             preparedStatement.setObject(15, list.get(i).getCardType());
@@ -181,7 +181,7 @@ public class PersonDaoImpl implements PersonDao {
                     int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, "PULL");
+                            preparedStatement.setObject(1, list.get(i).getDataSource());
                             preparedStatement.setObject(2, list.get(i).getId());
                         }
 
@@ -296,7 +296,7 @@ public class PersonDaoImpl implements PersonDao {
                 preparedStatement.setObject(10, personList.get(i).getCardNo());
                 preparedStatement.setObject(11, personList.get(i).getCellphone());
                 preparedStatement.setObject(12, personList.get(i).getEmail());
-                preparedStatement.setObject(13, "PULL");
+                preparedStatement.setObject(13, personList.get(i).getDataSource());
                 preparedStatement.setObject(14, personList.get(i).getTags());
                 preparedStatement.setObject(15, personList.get(i).getActive());
                 preparedStatement.setObject(16, personList.get(i).getActiveTime());
@@ -348,20 +348,20 @@ public class PersonDaoImpl implements PersonDao {
     @Override
     public void removeData(DomainInfo domain) {
         String sql = " delete from  `person_temp` where tenant_id =? ";
-        jdbcIGA.update(sql,domain.getId());
+        jdbcIGA.update(sql, domain.getId());
     }
 
     @Override
-    public Integer findPersonTempCount(Map<String, Object> arguments,DomainInfo domain) {
+    public Integer findPersonTempCount(Map<String, Object> arguments, DomainInfo domain) {
         String sql = " SELECT count(*) from person_temp where tenant_id=?  ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         List<Object> param = new ArrayList<>();
         param.add(domain.getId());
-        if(null!=arguments){
+        if (null != arguments) {
             dealData(arguments, stb, param);
         }
-        Integer integer = jdbcIGA.queryForObject(stb.toString(),param.toArray(), Integer.class);
+        Integer integer = jdbcIGA.queryForObject(stb.toString(), param.toArray(), Integer.class);
         return integer;
     }
 

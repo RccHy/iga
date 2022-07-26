@@ -103,5 +103,9 @@ public class UpstreamType implements Serializable {
      * 方式
      */
     private Integer synWay;
+    /**
+     * 是否增量
+     */
+    private Boolean isIncremental;
 
 }

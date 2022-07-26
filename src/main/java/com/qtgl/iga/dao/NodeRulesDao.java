@@ -34,4 +34,6 @@ public interface NodeRulesDao {
     Integer makeNodeRulesToHistory(String id, Integer status);
 
     List<NodeRules> findNodeRulesByServiceKey(String id, Integer status, Integer type);
+
+    List<NodeRulesVo> findPullNodeRulesByNodeId(String id, Integer status);
 }

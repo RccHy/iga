@@ -3,7 +3,10 @@ package com.qtgl.iga.dao;
 
 import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.Node;
+import com.qtgl.iga.bo.NodeRulesRange;
+import com.qtgl.iga.vo.NodeRulesVo;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -35,4 +38,5 @@ public interface NodeDao {
     Integer deleteNodeById(String id, String domain);
 
 
+    Integer updateNodeAndRules(ArrayList<Node> invalidNodes, ArrayList<NodeRulesVo> invalidNodeRules, ArrayList<NodeRulesRange> invalidNodeRulesRanges);
 }

@@ -65,7 +65,6 @@ alter table t_mgr_dept_type add rule varchar(50) null comment '监控规则 暂�
 
 -- 20211203
 alter table t_mgr_dept_type add type_index int null comment '排序' after domain;
-alter table t_mgr_post_type add type_index int null comment '排序' after domain;
 
 --20220513
 ALTER TABLE `t_mgr_task_log`
@@ -149,6 +148,37 @@ CREATE TABLE `person_temp`  (
 SET FOREIGN_KEY_CHECKS = 1;
 
 
+--20220725
+DROP TABLE IF EXISTS `t_mgr_pre_view_task`;
+CREATE TABLE `t_mgr_pre_view_task`  (
+                                        `id` varchar(36) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '主键id',
+                                        `task_id` varchar(36) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '任务标识',
+                                        `status` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '任务状态',
+                                        `create_time` timestamp NULL DEFAULT NULL COMMENT '创建时间',
+                                        `type` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '预览类型',
+                                        `domain` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '租户信息外建',
+                                        `update_time` timestamp NULL DEFAULT NULL COMMENT '修改时间',
+                                        PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+ALTER TABLE `t_mgr_upstream_types`
+    ADD COLUMN `is_incremental` bit(1) NULL DEFAULT NULL COMMENT '\r\n是否增量  0为不是增量' AFTER `syn_way`;
+
+DROP TABLE IF EXISTS `incremental_task`;
+CREATE TABLE `incremental_task`  (
+                                     `id` varchar(36) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '主键id',
+                                     `type` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '类型 组织机构、岗位、人、身份',
+                                     `time` timestamp NULL DEFAULT NULL COMMENT '下次同步查询时间戳。（max9:_then:10。 返回数据 最小时间小于max 则取max。最大时间大于then 则取10）',
+                                     `create_time` timestamp NULL DEFAULT NULL COMMENT '数据获取完成时间',
+                                     `upstream_type_id` varchar(32) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '权威源类型ID',
+                                     `domain` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '所属租户',
+                                     PRIMARY KEY (`id`) USING BTREE,
+                                     INDEX `type_index`(`type`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
+
+SET FOREIGN_KEY_CHECKS = 1;
 
 
 
