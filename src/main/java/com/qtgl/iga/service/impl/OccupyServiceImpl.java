@@ -561,9 +561,11 @@ public class OccupyServiceImpl implements OccupyService {
                 //   boolean invalidRecoverFlag = true;
                 occupyFromSSO.setRuleStatus(newOccupy.getRuleStatus());
                 List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(newOccupy.getUpstreamType());
+                log.info("----------------人员身份数据对比:sso:{}  ->>  上游:{}", occupyFromSSO, newOccupy);
                 if (!newOccupy.getOrphan().equals(occupyFromSSO.getOrphan())) {
                     updateFlag = true;
-                    occupyFromSSO.setOrphan(newOccupy.getOrphan());
+                    timeFlag = true;
+                    log.info("-------------------orphan:sso:{}->upstream:{}", occupyFromSSO.getOrphan(), newOccupy.getOrphan());
                 }
 
                 // 如果字段上游不提供，则不进行更新
@@ -604,12 +606,12 @@ public class OccupyServiceImpl implements OccupyService {
                         }
                         if (sourceField.equals("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
                             log.info("人员身份从失效恢复:{}", occupyFromSSO.getOccupyId());
-                            timeFlag=true;
+                            timeFlag = true;
                             continue;
                         }
                         if (sourceField.equals("startTime") || sourceField.equals("endTime")) {
                             log.info("人员身份开始时间,结束时间发生修改:{}", occupyFromSSO.getOccupyId());
-                            timeFlag=true;
+                            timeFlag = true;
                             continue;
                         }
 
@@ -694,7 +696,7 @@ public class OccupyServiceImpl implements OccupyService {
                         log.info("----------------------人员身份对比完映射字段有区别,对标识字段进行对比");
                         //上游未提供active或  提供了active 将数据库数据由无效变为有效
                         //失效标识为false且sso的状态为无效
-                        if(timeFlag){
+                        if (timeFlag) {
                             if (!newOccupy.getStartTime().isEqual(occupyFromSSO.getStartTime()) || !newOccupy.getEndTime().isEqual(occupyFromSSO.getEndTime())) {
                                 occupyFromSSO.setStartTime(newOccupy.getStartTime());
                                 occupyFromSSO.setEndTime(newOccupy.getEndTime());
@@ -711,6 +713,10 @@ public class OccupyServiceImpl implements OccupyService {
                                 //if(null==occupyFromSSO.getEndTime()){
                                 //    occupyFromSSO.setEndTime(LocalDateTime.of(2100, 1, 1, 0, 0, 0));
                                 //}
+                                occupyFromSSO.setValidEndTime(null == occupyFromSSO.getEndTime() ? DEFAULT_END_TIME : occupyFromSSO.getEndTime());
+                            }
+                            if (!occupyFromSSO.getOrphan().equals(newOccupy.getOrphan())) {
+                                occupyFromSSO.setOrphan(newOccupy.getOrphan());
                                 if (0 == occupyFromSSO.getOrphan()) {
                                     occupyFromSSO.setValidStartTime(now);
                                 }
@@ -738,8 +744,6 @@ public class OccupyServiceImpl implements OccupyService {
                     //
 
                     if (!occupyFromSSO.getActive().equals(newOccupy.getActive())) {
-                        log.info("active  sso:{}-> upstream:{}",occupyFromSSO.getActive(),newOccupy.getActive());
-                        log.info("sso:{}-> upstream:{}",occupyFromSSO,newOccupy);
                         occupyFromSSO.setActive(newOccupy.getActive());
                         occupyFromSSO.setActiveTime(newOccupy.getUpdateTime());
                         occupyFromSSO.setUpdateTime(newOccupy.getUpdateTime());
@@ -752,7 +756,6 @@ public class OccupyServiceImpl implements OccupyService {
                         occupyFromSSO.setValidStartTime(now);
                         occupyFromSSO.setValidEndTime(null == occupyFromSSO.getEndTime() ? DEFAULT_END_TIME : occupyFromSSO.getEndTime());
                         checkValidTime(occupyFromSSO, now);
-                        log.info("人员身份修改了一条数据,修改地:2");
                         if (result.containsKey("update")) {
                             result.get("update").add(occupyFromSSO);
                         } else {
