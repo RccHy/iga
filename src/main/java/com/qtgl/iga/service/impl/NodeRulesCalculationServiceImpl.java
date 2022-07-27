@@ -623,12 +623,12 @@ public class NodeRulesCalculationServiceImpl {
                             if (null == dept.getString(TreeEnum.CREATE_TIME.getCode())) {
                                 dept.put(TreeEnum.CREATE_TIME.getCode(), timestamp);
                             } else {
-                                dept.put(TreeEnum.CREATE_TIME.getCode(), dept.getTimestamp(TreeEnum.CREATE_TIME.getCode()).toLocalDateTime());
+                                dept.put(TreeEnum.CREATE_TIME.getCode(), dept.getTimestamp(TreeEnum.CREATE_TIME.getCode()));
                             }
                             if (null == dept.getString(TreeEnum.UPDATE_TIME.getCode())) {
                                 dept.put(TreeEnum.UPDATE_TIME.getCode(), timestamp);
                             } else {
-                                dept.put(TreeEnum.UPDATE_TIME.getCode(), dept.getTimestamp(TreeEnum.UPDATE_TIME.getCode()).toLocalDateTime());
+                                dept.put(TreeEnum.UPDATE_TIME.getCode(), dept.getTimestamp(TreeEnum.UPDATE_TIME.getCode()));
                             }
                             if (null == dept.getString(TreeEnum.EN_NAME.getCode())) {
                                 dept.put(TreeEnum.EN_NAME.getCode(), "");

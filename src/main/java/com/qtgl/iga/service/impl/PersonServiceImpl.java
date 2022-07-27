@@ -245,7 +245,7 @@ public class PersonServiceImpl implements PersonService {
 
                     JSONObject personObj = JSON.parseObject(JSON.toJSONString(o));
                     if (null != personObj.getTimestamp(TreeEnum.UPDATE_TIME.getCode())) {
-                        personObj.put(TreeEnum.UPDATE_TIME.getCode(), personObj.getTimestamp(TreeEnum.UPDATE_TIME.getCode()).toLocalDateTime());
+                        personObj.put(TreeEnum.UPDATE_TIME.getCode(), personObj.getTimestamp(TreeEnum.UPDATE_TIME.getCode()));
                     }
                     Person personUpstream = personObj.toJavaObject(Person.class);
 
@@ -1384,7 +1384,7 @@ public class PersonServiceImpl implements PersonService {
                     JSONObject nodeJson = (JSONObject) deptOb;
                     JSONObject node1 = nodeJson.getJSONObject("node");
                     if (null != node1.getTimestamp(TreeEnum.UPDATE_TIME.getCode())) {
-                        node1.put(TreeEnum.UPDATE_TIME.getCode(), node1.getTimestamp(TreeEnum.UPDATE_TIME.getCode()).toLocalDateTime());
+                        node1.put(TreeEnum.UPDATE_TIME.getCode(), node1.getTimestamp(TreeEnum.UPDATE_TIME.getCode()));
                     }
                     Person person = node1.toJavaObject(Person.class);
                     PersonEdge personEdge = new PersonEdge();
