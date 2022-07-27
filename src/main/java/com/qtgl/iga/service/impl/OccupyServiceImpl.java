@@ -302,13 +302,13 @@ public class OccupyServiceImpl implements OccupyService {
                 for (Object o : dataByBus) {
                     JSONObject occupyObj = JSON.parseObject(JSON.toJSONString(o));
                     if (null != occupyObj.getTimestamp(TreeEnum.UPDATE_TIME.getCode())) {
-                        occupyObj.put(TreeEnum.UPDATE_TIME.getCode(), occupyObj.getTimestamp(TreeEnum.UPDATE_TIME.getCode()).toLocalDateTime());
+                        occupyObj.put(TreeEnum.UPDATE_TIME.getCode(), occupyObj.getTimestamp(TreeEnum.UPDATE_TIME.getCode()));
                     }
                     if (null != occupyObj.getTimestamp(TreeEnum.START_TIME.getCode())) {
-                        occupyObj.put(TreeEnum.START_TIME.getCode(), occupyObj.getTimestamp(TreeEnum.START_TIME.getCode()).toLocalDateTime());
+                        occupyObj.put(TreeEnum.START_TIME.getCode(), occupyObj.getTimestamp(TreeEnum.START_TIME.getCode()));
                     }
                     if (null != occupyObj.getTimestamp(TreeEnum.END_TIME.getCode())) {
-                        occupyObj.put(TreeEnum.END_TIME.getCode(), occupyObj.getTimestamp(TreeEnum.END_TIME.getCode()).toLocalDateTime());
+                        occupyObj.put(TreeEnum.END_TIME.getCode(), occupyObj.getTimestamp(TreeEnum.END_TIME.getCode()));
                     }
                     OccupyDto occupyDto = occupyObj.toJavaObject(OccupyDto.class);
 
@@ -957,13 +957,13 @@ public class OccupyServiceImpl implements OccupyService {
                     JSONObject nodeJson = (JSONObject) deptOb;
                     JSONObject node1 = nodeJson.getJSONObject("node");
                     if (null != node1.getTimestamp(TreeEnum.UPDATE_TIME.getCode())) {
-                        node1.put(TreeEnum.UPDATE_TIME.getCode(), node1.getTimestamp(TreeEnum.UPDATE_TIME.getCode()).toLocalDateTime());
+                        node1.put(TreeEnum.UPDATE_TIME.getCode(), node1.getTimestamp(TreeEnum.UPDATE_TIME.getCode()));
                     }
                     if (null != node1.getTimestamp(TreeEnum.START_TIME.getCode())) {
-                        node1.put(TreeEnum.START_TIME.getCode(), node1.getTimestamp(TreeEnum.START_TIME.getCode()).toLocalDateTime());
+                        node1.put(TreeEnum.START_TIME.getCode(), node1.getTimestamp(TreeEnum.START_TIME.getCode()));
                     }
                     if (null != node1.getTimestamp(TreeEnum.END_TIME.getCode())) {
-                        node1.put(TreeEnum.END_TIME.getCode(), node1.getTimestamp(TreeEnum.END_TIME.getCode()).toLocalDateTime());
+                        node1.put(TreeEnum.END_TIME.getCode(), node1.getTimestamp(TreeEnum.END_TIME.getCode()));
                     }
                     OccupyDto occupy = node1.toJavaObject(OccupyDto.class);
                     OccupyEdge occupyEdge = new OccupyEdge();
