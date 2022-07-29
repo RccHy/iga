@@ -156,9 +156,15 @@ public class PostServiceImpl implements PostService {
         if (!CollectionUtils.isEmpty(upstreams)) {
             upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
         }
+        //获取岗位治理下所有的运行中规则
+        List<Node> nodes = nodeDao.getByTreeType(domain.getId(), null, 0, TYPE);
+        Map<String, List<Node>> nodesMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(nodes)) {
+            nodesMap = nodes.stream().collect(Collectors.groupingBy(Node::getNodeCode));
+        }
         for (TreeBean rootBean : rootBeans) {
 
-            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, incrementalTasks, result);
+            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, incrementalTasks, result, nodesMap);
 
         }
         // 判断重复(code)
@@ -310,9 +316,15 @@ public class PostServiceImpl implements PostService {
         if (!CollectionUtils.isEmpty(upstreams)) {
             upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
         }
+        //获取岗位治理下所有的编辑中规则
+        List<Node> nodes = nodeDao.getByTreeType(domain.getId(), null, status, TYPE);
+        Map<String, List<Node>> nodesMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(nodes)) {
+            nodesMap = nodes.stream().collect(Collectors.groupingBy(Node::getNodeCode));
+        }
         for (TreeBean rootBean : rootBeans) {
 
-            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, null, result);
+            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, null, result, nodesMap);
 
         }
 
@@ -344,8 +356,8 @@ public class PostServiceImpl implements PostService {
 
         // 判断重复(code)
         calculationService.groupByCode(beans, status, domain);
-        List<Node> nodes = nodeDao.findNodesByStatusAndType(status, TYPE, domain.getId(), null);
-        nodeService.updateNodeAndRules(nodes, beans);
+        List<Node> nodeList = nodeDao.findNodesByStatusAndType(status, TYPE, domain.getId(), null);
+        nodeService.updateNodeAndRules(nodeList, beans);
         return beans;
 
     }

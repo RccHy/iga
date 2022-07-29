@@ -505,23 +505,28 @@ public class NodeRulesCalculationServiceImpl {
     }
 
     /**
-     * @param domain       租户
-     * @param deptTreeType 组织机构树类型
-     * @param nodeCode     节点
+     * @param domain   租户
+     * @param treeType 组织机构树类型
+     * @param nodeCode 节点
      * @param mainTree
-     * @param status       状态(0:正式,1:编辑,2:历史)
-     * @param type         来源类型 person,post,dept,occupy
-     *                     //@param operator     操作:task定时任务,system:系统操作
+     * @param status   状态(0:正式,1:编辑,2:历史)
+     * @param type     来源类型 person,post,dept,occupy
+     *                 //@param operator     操作:task定时任务,system:系统操作
      * @Description: 规则运算
      * @return: java.util.Map<java.lang.String, com.qtgl.iga.bean.TreeBean>
      */
-    public List<TreeBean> nodeRules(DomainInfo domain, String deptTreeType, String nodeCode, List<TreeBean> mainTree, Integer status, String type, List<String> dynamicCodes, Map<String, TreeBean> ssoBeansMap, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamHashMap, List<IncrementalTask> incrementalTasks, Map<TreeBean, String> result) throws Exception {
+    public List<TreeBean> nodeRules(DomainInfo domain, DeptTreeType treeType, String nodeCode, List<TreeBean> mainTree, Integer status, String type, List<String> dynamicCodes, Map<String, TreeBean> ssoBeansMap, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamHashMap, List<IncrementalTask> incrementalTasks, Map<TreeBean, String> result, Map<String, List<Node>> nodesMap) throws Exception {
         //获取根节点的规则
-        List<Node> nodes = nodeDao.getByCode(domain.getId(), deptTreeType, nodeCode, status, type);
+        //List<Node> nodes = nodeDao.getByCode(domain.getId(), treeType, nodeCode, status, type);
         //获取组织机构信息
-        DeptTreeType treeType = deptTreeTypeDao.findByCode(deptTreeType, domain.getId());
-
-        if (null != nodes && nodes.size() > 0) {
+        //DeptTreeType treeType = deptTreeTypeDao.findByCode(deptTreeType, domain.getId());
+        List<Node> nodes;
+        if (!CollectionUtils.isEmpty(nodesMap) && nodesMap.containsKey(nodeCode)) {
+            nodes = nodesMap.get(nodeCode);
+        } else {
+            return mainTree;
+        }
+        if (!CollectionUtils.isEmpty(nodes)) {
             for (Node node : nodes) {
                 if (null == node) {
                     return mainTree;
@@ -640,7 +645,7 @@ public class NodeRulesCalculationServiceImpl {
                                 dept.put(TreeEnum.RELATION_TYPE.getCode(), "");
                             }
                             dept.put("upstreamTypeId", upstreamType.getId());
-                            dept.put("treeType", deptTreeType);
+                            dept.put("treeType", null == treeType ? "" : treeType.getCode());
                             dept.put("ruleId", nodeRule.getId());
                             dept.put("color", upstream.getColor());
                             dept.put("isRuled", false);
@@ -829,7 +834,7 @@ public class NodeRulesCalculationServiceImpl {
 
                             // 将本次 add 进的 节点 进行 规则运算
                             for (Map.Entry<String, TreeBean> entry : mergeDeptMap.entrySet()) {
-                                mainTree = nodeRules(domain, deptTreeType, entry.getValue().getCode(), mainTree, status, type, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamHashMap, incrementalTasks, result);
+                                mainTree = nodeRules(domain, treeType, entry.getValue().getCode(), mainTree, status, type, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamHashMap, incrementalTasks, result, nodesMap);
                             }
 
                             continue;
@@ -850,7 +855,7 @@ public class NodeRulesCalculationServiceImpl {
 
                         // 将本次 add 进的 节点 进行 规则运算
                         for (Map.Entry<String, TreeBean> entry : mergeDeptMap.entrySet()) {
-                            mainTree = nodeRules(domain, deptTreeType, entry.getValue().getCode(), mainTree, status, type, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamHashMap, incrementalTasks, result);
+                            mainTree = nodeRules(domain, treeType, entry.getValue().getCode(), mainTree, status, type, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamHashMap, incrementalTasks, result, nodesMap);
                         }
 
 

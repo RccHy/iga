@@ -154,17 +154,25 @@ public class DeptServiceImpl implements DeptService {
         }
         for (DeptTreeType deptType : deptTreeTypes) {
 
+            //获取当前组织机构树类型下所有的规则
+            List<Node> nodes = nodeDao.getByTreeType(domain.getId(), deptType.getCode(), status, TYPE);
+            Map<String, List<Node>> nodesMap = new ConcurrentHashMap<>();
+            if (!CollectionUtils.isEmpty(nodes)) {
+                nodesMap = nodes.stream().collect(Collectors.groupingBy(Node::getNodeCode));
+            }
+
             List<TreeBean> ssoApiBeans = deptDao.findBySourceAndTreeType("API", deptType.getCode(), tenant.getId());
             if (null != ssoApiBeans && ssoApiBeans.size() > 0) {
                 mainTreeBeans.addAll(ssoApiBeans);
+                //重复性校验
                 rulesCalculationService.groupByCode(mainTreeBeans, status, domain);
                 for (TreeBean ssoApiBean : ssoApiBeans) {
-                    mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), ssoApiBean.getCode(), mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, null, result);
+                    mainTreeBeans = calculationService.nodeRules(domain, deptType, ssoApiBean.getCode(), mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, null, result, nodesMap);
                 }
             }
 
             // id 改为code
-            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, null, result);
+            mainTreeBeans = calculationService.nodeRules(domain, deptType, "", mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, null, result, nodesMap);
 
         }
         //同步到sso
@@ -179,8 +187,8 @@ public class DeptServiceImpl implements DeptService {
         //code重复性校验
         calculationService.groupByCode(beans, status, domain);
         //todo 无效规则筛选标记
-        List<Node> nodes = nodeDao.findNodesByStatusAndType(status, TYPE, domain.getId(), null);
-        nodeService.updateNodeAndRules(nodes, beans);
+        List<Node> nodeList = nodeDao.findNodesByStatusAndType(status, TYPE, domain.getId(), null);
+        nodeService.updateNodeAndRules(nodeList, beans);
         return beans;
 
     }
@@ -274,17 +282,23 @@ public class DeptServiceImpl implements DeptService {
         }
         for (DeptTreeType deptType : deptTreeTypes) {
 
+            //获取当前组织机构树类型下所有的规则
+            List<Node> nodes = nodeDao.getByTreeType(domain.getId(), deptType.getCode(), 0, TYPE);
+            Map<String, List<Node>> nodesMap = new ConcurrentHashMap<>();
+            if (!CollectionUtils.isEmpty(nodes)) {
+                nodesMap = nodes.stream().collect(Collectors.groupingBy(Node::getNodeCode));
+            }
             List<TreeBean> ssoApiBeans = deptDao.findBySourceAndTreeType("API", deptType.getCode(), tenant.getId());
 
             if (null != ssoApiBeans && ssoApiBeans.size() > 0) {
                 mainTreeBeans.addAll(ssoApiBeans);
                 rulesCalculationService.groupByCode(mainTreeBeans, 0, domain);
                 for (TreeBean ssoApiBean : ssoApiBeans) {
-                    mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), ssoApiBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, incrementalTasks, result);
+                    mainTreeBeans = calculationService.nodeRules(domain, deptType, ssoApiBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, incrementalTasks, result, nodesMap);
                 }
             }
             //  id 改为code
-            mainTreeBeans = calculationService.nodeRules(domain, deptType.getCode(), "", mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, incrementalTasks, result);
+            mainTreeBeans = calculationService.nodeRules(domain, deptType, "", mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, incrementalTasks, result, nodesMap);
 
         }
         //同步到sso
@@ -600,6 +614,7 @@ public class DeptServiceImpl implements DeptService {
                                             //将数据放入删除集合
                                             ssoBean.setDelMark(1);
                                             ssoBean.setActive(0);
+                                            ssoBean.setActiveTime(now);
                                             ssoCollect.remove(ssoBean.getCode());
                                             if (null != occupyMonitors) {
                                                 occupyMonitors.add(ssoBean);
@@ -656,6 +671,7 @@ public class DeptServiceImpl implements DeptService {
                                     if (!activeFlag && (!ssoBean.getActive().equals(pullBean.getActive()))) {
                                         ssoBean.setUpdateTime(now);
                                         ssoBean.setActive(pullBean.getActive());
+                                        ssoBean.setActiveTime(now);
                                         //将数据放入修改集合
                                         if (null != occupyMonitors) {
                                             occupyMonitors.add(ssoBean);
@@ -790,6 +806,7 @@ public class DeptServiceImpl implements DeptService {
                             } else {
                                 ssoBean.setActive(0);
                                 ssoBean.setUpdateTime(now);
+                                ssoBean.setActiveTime(now);
                                 if (null != occupyMonitors) {
                                     //身份监控部门失效数据
                                     occupyMonitors.add(ssoBean);

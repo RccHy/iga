@@ -20,7 +20,7 @@ public interface NodeDao {
 
     List<Node> findNodes(Map<String, Object> arguments, String domain);
 
-    List<Node> findByTreeTypeId(String id, Integer status, String domain);
+    List<Node> findByTreeTypeCode(String code, Integer status, String domain);
 
     List<Node> findNodesPlus(Map<String, Object> arguments, String id);
 
@@ -39,4 +39,6 @@ public interface NodeDao {
 
 
     Integer updateNodeAndRules(ArrayList<Node> invalidNodes, ArrayList<NodeRulesVo> invalidNodeRules, ArrayList<NodeRulesRange> invalidNodeRulesRanges);
+
+    List<Node> getByTreeType(String domainId, String deptTreeTypeCode, Integer status, String type);
 }

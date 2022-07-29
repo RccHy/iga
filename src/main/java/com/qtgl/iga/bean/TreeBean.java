@@ -64,6 +64,11 @@ public class TreeBean implements Serializable {
      * 修改时间
      */
     private LocalDateTime updateTime;
+
+    /**
+     * 有效时间
+     */
+    private LocalDateTime activeTime;
     /**
      * 权威源类型
      */
