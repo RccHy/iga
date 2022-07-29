@@ -164,6 +164,7 @@ public class DataBusUtil {
         } catch (OAuthSystemException e) {
             log.error("token 获取 : ->" + e.getMessage());
             e.printStackTrace();
+            throw new CustomException(ResultCode.FAILED, "token 获取失败:" + e.getMessage());
         }
         OAuthClient oAuthClient = new OAuthClient(new SSLConnectionClient());
         OAuthJSONAccessTokenResponse oAuthClientResponse = null;
@@ -172,6 +173,7 @@ public class DataBusUtil {
         } catch (OAuthSystemException | OAuthProblemException e) {
             log.error("token 获取" + e.getMessage());
             e.printStackTrace();
+            throw new CustomException(ResultCode.FAILED, "token 获取失败:" + e.getMessage());
         }
         assert oAuthClientResponse != null;
         String accessToken = oAuthClientResponse.getAccessToken();
@@ -1163,6 +1165,7 @@ public class DataBusUtil {
         } catch (OAuthSystemException e) {
             log.error("token 获取 : ->" + e.getMessage());
             e.printStackTrace();
+            throw new CustomException(ResultCode.FAILED, "token 获取失败:" + e.getMessage());
         }
         OAuthClient oAuthClient = new OAuthClient(new SSLConnectionClient());
         OAuthJSONAccessTokenResponse oAuthClientResponse = null;
@@ -1171,6 +1174,7 @@ public class DataBusUtil {
         } catch (OAuthSystemException | OAuthProblemException e) {
             log.error("token 获取" + e.getMessage());
             e.printStackTrace();
+            throw new CustomException(ResultCode.FAILED, "token 获取失败:" + e.getMessage());
         }
         assert oAuthClientResponse != null;
         String accessToken = oAuthClientResponse.getAccessToken();

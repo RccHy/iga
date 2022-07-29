@@ -592,11 +592,12 @@ public class PostServiceImpl implements PostService {
                                             if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
                                                 invalidFlag = true;
                                             }
-//                                        if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
-//                                            invalidRecoverFlag = false;
-//                                        }
                                             if (sourceField.equalsIgnoreCase("active")) {
                                                 activeFlag = true;
+                                            }
+                                            if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
+                                                //从失效恢复,赋值有效时间
+                                                ssoBean.setActiveTime(now);
                                             }
 
                                             //将值更新到sso对象
@@ -628,6 +629,7 @@ public class PostServiceImpl implements PostService {
                                             //将数据放入删除集合
                                             ssoBean.setDelMark(1);
                                             ssoBean.setActive(0);
+                                            ssoBean.setActiveTime(now);
                                             ssoCollect.remove(ssoBean.getCode());
                                             if (null != occupyMonitors) {
                                                 occupyMonitors.add(ssoBean);
@@ -687,6 +689,7 @@ public class PostServiceImpl implements PostService {
                                     if (!activeFlag && (!ssoBean.getActive().equals(pullBean.getActive()))) {
                                         ssoBean.setUpdateTime(now);
                                         ssoBean.setActive(pullBean.getActive());
+                                        ssoBean.setActiveTime(now);
                                         //将数据放入修改集合
                                         if (null != occupyMonitors) {
                                             occupyMonitors.add(ssoBean);
@@ -816,6 +819,7 @@ public class PostServiceImpl implements PostService {
                                 } else {
                                     ssoBean.setActive(0);
                                     ssoBean.setUpdateTime(now);
+                                    ssoBean.setActiveTime(now);
                                     if (null != occupyMonitors) {
                                         //身份监控岗位失效数据
                                         occupyMonitors.add(ssoBean);

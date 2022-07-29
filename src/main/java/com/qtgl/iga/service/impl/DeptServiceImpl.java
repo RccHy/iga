@@ -579,12 +579,14 @@ public class DeptServiceImpl implements DeptService {
                                             if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
                                                 invalidFlag = true;
                                             }
-//                                        if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
-//                                            invalidRecoverFlag = false;
-//                                        }
                                             if (sourceField.equalsIgnoreCase("active")) {
                                                 activeFlag = true;
                                             }
+                                            if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
+                                                //从失效恢复,赋值有效时间
+                                                ssoBean.setActiveTime(now);
+                                            }
+
 
                                             //将值更新到sso对象
                                             ClassCompareUtil.setValue(ssoBean, ssoBean.getClass(), sourceField, oldValue, newValue);
