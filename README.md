@@ -104,7 +104,7 @@ vm构建命令，根据实际环境替换对应的值<br/>
 | 重命名计算脚本    | ="hr_"+$Code                                                                            | 字段映射 对值重新赋值                         |
 | 判断计算脚本     | =if($Code=='ABC'){ "1"+$Code }                                                          | 字段映射 对值重新赋值                         |
 | 数据库对象      | $ENTITY                                                                                 | 想取出数据库中手机号进行运算可通过   $ENTITY.cellphone  进行获取值                         |
-| 数据库已有值参与运算 | =if($ENTITY.cellphone==''&#124;&#124;if($ENTITY.cellphone== null){$SJ}else{$ENTITY.cellphone} | 数据库中 手机号为空的时候，认上游SJ字段的值。 否则保留数据源当前值                   |
+| 数据库已有值参与运算 | =if($ENTITY.cellphone==''&#124;&#124;$ENTITY.cellphone== null){$SJ}else{$ENTITY.cellphone} | 数据库中 手机号为空的时候，认上游SJ字段的值。 否则保留数据源当前值                   |
 
 
 # 异常说明(具体报错原因查看对应提示)

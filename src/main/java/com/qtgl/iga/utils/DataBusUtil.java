@@ -276,7 +276,10 @@ public class DataBusUtil {
                         List<String> groupList = new ArrayList<>();
                         while (m.find()) {
                             System.out.println("Found value: " + m.group(0));
-                            groupList.add(m.group(0).substring(1));
+                            if (!m.group(0).equals("$ENTITY")) {
+                                groupList.add(m.group(0).substring(1));
+                                nodeMap.put(m.group(0).substring(1), m.group(0).substring(1));
+                            }
                             if (!field.getTargetField().contains("$ENTITY")) {
                                 nodeMap.put(m.group(0).substring(1), m.group(0).substring(1));
                             }
@@ -686,6 +689,7 @@ public class DataBusUtil {
                         log.info("Found value: " + m.group(0));
                         if (!m.group(0).equals("$ENTITY")) {
                             groupList.add(m.group(0).substring(1));
+                            nodeMap.put(m.group(0).substring(1), m.group(0).substring(1));
                         }
                         if (!field.getTargetField().contains("$ENTITY")) {
                             nodeMap.put(m.group(0).substring(1), m.group(0).substring(1));
