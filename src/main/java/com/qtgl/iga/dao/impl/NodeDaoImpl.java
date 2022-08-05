@@ -31,6 +31,7 @@ public class NodeDaoImpl implements NodeDao {
 
     @Resource(name = "iga-txTemplate")
     TransactionTemplate txTemplate;
+
     @Override
     public NodeDto save(NodeDto node) {
 
@@ -147,14 +148,14 @@ public class NodeDaoImpl implements NodeDao {
     }
 
     @Override
-    public List<Node> findByTreeTypeId(String id, Integer status, String domain) {
+    public List<Node> findByTreeTypeCode(String code, Integer status, String domain) {
         ArrayList<Node> nodes = new ArrayList<>();
 
         String sql = "select id,manual," +
                 "node_code as nodeCode," +
                 "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status,type" +
                 " from t_mgr_node where dept_tree_type= ? and status=? and domain =? ";
-        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id, status, domain);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, code, status, domain);
 
         return getNodes(nodes, mapList);
     }
@@ -348,6 +349,7 @@ public class NodeDaoImpl implements NodeDao {
         return nodes;
 
     }
+
     @Override
     public Integer updateNodeAndRules(ArrayList<Node> invalidNodes, ArrayList<NodeRulesVo> invalidNodeRules, ArrayList<NodeRulesRange> invalidNodeRulesRanges) {
         return txTemplate.execute(transactionStatus -> {
@@ -407,6 +409,24 @@ public class NodeDaoImpl implements NodeDao {
             }
         });
 
+    }
+
+    @Override
+    public List<Node> getByTreeType(String domain, String deptTreeTypeCode, Integer status, String type) {
+        ArrayList<Node> nodes = new ArrayList<>();
+        List<Map<String, Object>> mapList;
+
+        String sql = "select id,manual," +
+                "node_code as nodeCode," +
+                "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status,type" +
+                " from t_mgr_node where type =?  and  dept_tree_type= ? and status=? and domain =? ";
+        if (null == deptTreeTypeCode) {
+            sql = sql.replace("dept_tree_type= ? ", " (dept_tree_type is null or dept_tree_type=\"\") ");
+            mapList = jdbcIGA.queryForList(sql, type, status, domain);
+        } else {
+            mapList = jdbcIGA.queryForList(sql, type, deptTreeTypeCode, status, domain);
+        }
+        return getNodes(nodes, mapList);
     }
 
 

@@ -304,9 +304,6 @@ CREATE TABLE `t_mgr_pre_view_task`  (
 
 SET FOREIGN_KEY_CHECKS = 1;
 
-ALTER TABLE `t_mgr_upstream_types`
-    ADD COLUMN `is_incremental` bit(1) NULL DEFAULT NULL COMMENT '\r\n是否增量  0为不是增量' AFTER `syn_way`;
-
 CREATE TABLE `incremental_task`  (
                                      `id` varchar(36) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '主键id',
                                      `type` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '类型 组织机构、岗位、人、身份',

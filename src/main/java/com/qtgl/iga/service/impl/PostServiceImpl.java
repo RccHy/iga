@@ -156,9 +156,15 @@ public class PostServiceImpl implements PostService {
         if (!CollectionUtils.isEmpty(upstreams)) {
             upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
         }
+        //获取岗位治理下所有的运行中规则
+        List<Node> nodes = nodeDao.getByTreeType(domain.getId(), null, 0, TYPE);
+        Map<String, List<Node>> nodesMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(nodes)) {
+            nodesMap = nodes.stream().collect(Collectors.groupingBy(Node::getNodeCode));
+        }
         for (TreeBean rootBean : rootBeans) {
 
-            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, incrementalTasks, result);
+            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, incrementalTasks, result, nodesMap);
 
         }
         // 判断重复(code)
@@ -310,9 +316,15 @@ public class PostServiceImpl implements PostService {
         if (!CollectionUtils.isEmpty(upstreams)) {
             upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
         }
+        //获取岗位治理下所有的编辑中规则
+        List<Node> nodes = nodeDao.getByTreeType(domain.getId(), null, status, TYPE);
+        Map<String, List<Node>> nodesMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(nodes)) {
+            nodesMap = nodes.stream().collect(Collectors.groupingBy(Node::getNodeCode));
+        }
         for (TreeBean rootBean : rootBeans) {
 
-            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, null, result);
+            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, null, result, nodesMap);
 
         }
 
@@ -344,8 +356,8 @@ public class PostServiceImpl implements PostService {
 
         // 判断重复(code)
         calculationService.groupByCode(beans, status, domain);
-        List<Node> nodes = nodeDao.findNodesByStatusAndType(status, TYPE, domain.getId(), null);
-        nodeService.updateNodeAndRules(nodes, beans);
+        List<Node> nodeList = nodeDao.findNodesByStatusAndType(status, TYPE, domain.getId(), null);
+        nodeService.updateNodeAndRules(nodeList, beans);
         return beans;
 
     }
@@ -580,11 +592,12 @@ public class PostServiceImpl implements PostService {
                                             if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
                                                 invalidFlag = true;
                                             }
-//                                        if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
-//                                            invalidRecoverFlag = false;
-//                                        }
                                             if (sourceField.equalsIgnoreCase("active")) {
                                                 activeFlag = true;
+                                            }
+                                            if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
+                                                //从失效恢复,赋值有效时间
+                                                ssoBean.setActiveTime(now);
                                             }
 
                                             //将值更新到sso对象
@@ -616,6 +629,7 @@ public class PostServiceImpl implements PostService {
                                             //将数据放入删除集合
                                             ssoBean.setDelMark(1);
                                             ssoBean.setActive(0);
+                                            ssoBean.setActiveTime(now);
                                             ssoCollect.remove(ssoBean.getCode());
                                             if (null != occupyMonitors) {
                                                 occupyMonitors.add(ssoBean);
@@ -675,6 +689,7 @@ public class PostServiceImpl implements PostService {
                                     if (!activeFlag && (!ssoBean.getActive().equals(pullBean.getActive()))) {
                                         ssoBean.setUpdateTime(now);
                                         ssoBean.setActive(pullBean.getActive());
+                                        ssoBean.setActiveTime(now);
                                         //将数据放入修改集合
                                         if (null != occupyMonitors) {
                                             occupyMonitors.add(ssoBean);
@@ -804,6 +819,7 @@ public class PostServiceImpl implements PostService {
                                 } else {
                                     ssoBean.setActive(0);
                                     ssoBean.setUpdateTime(now);
+                                    ssoBean.setActiveTime(now);
                                     if (null != occupyMonitors) {
                                         //身份监控岗位失效数据
                                         occupyMonitors.add(ssoBean);
