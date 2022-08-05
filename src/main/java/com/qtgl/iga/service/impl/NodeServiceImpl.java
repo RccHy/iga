@@ -21,6 +21,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.sql.Timestamp;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -410,19 +411,29 @@ public class NodeServiceImpl implements NodeService {
             List<NodeDto> nodes = findNodes(map, domain.getId());
             //复制数据
             if (null != nodes && nodes.size() > 0) {
+                ConcurrentHashMap<String, String> inheritMap = new ConcurrentHashMap<>();
                 for (NodeDto node : nodes) {
                     node.setId(null);
                     node.setStatus(1);
                     node.setCreateTime(System.currentTimeMillis());
                     if (null != node.getNodeRules()) {
                         for (NodeRulesVo nodeRule : node.getNodeRules()) {
-                            nodeRule.setId(null);
+                            String nodeRulesNewId = UUID.randomUUID().toString().replace("-", "");
+                            inheritMap.put(nodeRule.getId(),nodeRulesNewId);
+                            nodeRule.setId(nodeRulesNewId);
                             nodeRule.setStatus(1);
                             if (null != nodeRule.getNodeRulesRanges()) {
                                 for (NodeRulesRange nodeRulesRange : nodeRule.getNodeRulesRanges()) {
                                     nodeRulesRange.setId(null);
                                     nodeRulesRange.setStatus(1);
                                 }
+                            }
+                        }
+                        //继承规则inherit_id赋值
+                        for (NodeRulesVo nodeRule : node.getNodeRules()) {
+                            if(null!=nodeRule.getInheritId()){
+                                String newInheritId = inheritMap.get(nodeRule.getInheritId());
+                                nodeRule.setInheritId(newInheritId);
                             }
                         }
                     }
