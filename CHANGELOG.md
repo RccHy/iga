@@ -5,6 +5,7 @@
 
 **new：**
 - 无
+
 **bug fix**
 - 组织机构,岗位数据同步activeTime不更新 bug fix
 - 过时继承规则数据处理
