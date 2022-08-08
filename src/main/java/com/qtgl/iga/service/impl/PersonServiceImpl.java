@@ -869,6 +869,7 @@ public class PersonServiceImpl implements PersonService {
                         personFromSSO.setActive(newPerson.getActive());
                         personFromSSO.setActiveTime(newPerson.getUpdateTime());
                         personFromSSO.setUpdateTime(newPerson.getUpdateTime());
+                        setValidTime(personFromSSO);
                         if (dyFlag) {
                             //上游的扩展字段
                             Map<String, String> dynamic = newPerson.getDynamic();
@@ -1265,7 +1266,7 @@ public class PersonServiceImpl implements PersonService {
                         personFromSSO.setActive(newPerson.getActive());
                         personFromSSO.setActiveTime(newPerson.getUpdateTime());
                         personFromSSO.setUpdateTime(newPerson.getUpdateTime());
-
+                        setValidTime(personFromSSO);
                         if (dyFlag) {
                             //上游的扩展字段
                             Map<String, String> dynamic = newPerson.getDynamic();
