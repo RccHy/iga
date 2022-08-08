@@ -277,7 +277,7 @@ public class PersonServiceImpl implements PersonService {
                     }
                     if (!StringUtils.isBlank(personUpstream.getCardType()) && cardTypeMap.containsKey(personUpstream.getCardType())) {
                         String cardTypeReg = cardTypeMap.get(personUpstream.getCardType()).getCardTypeReg();
-                        if (null != cardTypeReg && !Pattern.matches(cardTypeReg, personUpstream.getCardNo())) {
+                        if (StringUtils.isNotBlank(cardTypeReg) && !Pattern.matches(cardTypeReg, personUpstream.getCardNo())) {
                             extracted(domain, personUpstream, "证件号码不符合规则");
                             log.error("证件号码不符合规则:{}", personUpstream.getCardNo());
                             continue;
