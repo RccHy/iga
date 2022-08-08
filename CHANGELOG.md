@@ -1,4 +1,22 @@
+### 20220808
 
+**数据库**
+- 执行iga/update/update.sql下 20220805的sql
+
+**new：**
+- 无
+**bug fix**
+- 组织机构,岗位数据同步activeTime不更新 bug fix
+- 过时继承规则数据处理
+- 人员同步证件类型校验异常bug fix
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20220808
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20220808
 
 ### 20220726
 
