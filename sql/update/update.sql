@@ -3,8 +3,7 @@
 DELETE FROM  t_mgr_node_rules_range WHERE   node_rules_id IN ( SELECT id FROM  t_mgr_node_rules WHERE inherit_id IS NOT NULL
   AND STATUS IN ( 0, 1 )         AND inherit_id NOT IN ( SELECT id FROM t_mgr_node_rules WHERE STATUS IN ( 1, 0 ) ) );
 --删除失效的继承规则
-DELETE FROM t_mgr_node_rules WHERE  inherit_id IS NOT NULL AND STATUS IN ( 0, 1 )  AND inherit_id NOT IN ( SELECT id FROM t_mgr_node_rules WHERE STATUS IN ( 1, 0 ) );
-
+DELETE FROM	t_mgr_node_rules WHERE inherit_id IS NOT NULL 	AND STATUS IN ( 0, 1 ) 	AND inherit_id NOT IN ( SELECT a.id FROM ( SELECT id FROM t_mgr_node_rules WHERE STATUS IN ( 1, 0 ) ) a );
 
 --20220725
 CREATE TABLE `t_mgr_pre_view_task`
