@@ -143,7 +143,7 @@ create table t_mgr_upstream_types
     domain            varchar(50)      null comment '租户外键',
     dept_tree_type_id varchar(50)      null comment '属组织机构类别树外键',
     is_page           bit              not null comment '是否分页,0为不支持',
-    syn_way           int(1)           null comment ' 拉取0/推送1',
+    syn_way           int(1)           null comment ' 拉取1/推送0',
     `is_incremental` bit NULL DEFAULT NULL COMMENT '\r\n是否增量  0为不是增量'
 )
     comment '上游源类型注册表' charset = utf8;

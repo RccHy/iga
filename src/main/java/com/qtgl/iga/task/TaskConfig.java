@@ -8,6 +8,7 @@ import com.qtgl.iga.dao.TenantDao;
 import com.qtgl.iga.service.*;
 import com.qtgl.iga.utils.DataBusUtil;
 import com.qtgl.iga.utils.FileUtil;
+import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -93,7 +94,9 @@ public class TaskConfig {
         if (!CollectionUtils.isEmpty(dsConfigs)) {
             collect = dsConfigs.stream().collect(Collectors.toMap(DsConfig::getTenantId, v -> v));
         }
-
+        if(CollectionUtils.isEmpty(domainInfos)){
+            throw  new CustomException(ResultCode.FAILED,"当前租户为空,请配置对应租户");
+        }
         for (DomainInfo domainInfo : domainInfos) {
             if (TaskThreadPool.executorServiceMap.containsKey(domainInfo.getDomainName())) {
                 ExecutorService executorService = TaskThreadPool.executorServiceMap.get(domainInfo.getDomainName());
