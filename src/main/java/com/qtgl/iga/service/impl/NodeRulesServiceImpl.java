@@ -75,7 +75,7 @@ public class NodeRulesServiceImpl implements NodeRulesService {
         Integer flag = nodeRulesDao.deleteNodeRulesById((String) arguments.get("id"));
         //查询node
         if (null != nodeRules) {
-            List<NodeRulesVo> nodeRulesByNodeId = nodeRulesDao.findNodeRulesByNodeId(nodeRules.getNodeId(), 1);
+            List<NodeRulesVo> nodeRulesByNodeId = nodeRulesDao.findNodeRulesByNodeId(nodeRules.getNodeId(), null);
             //node下没有对应的nodeRules则将node删除
             if (CollectionUtils.isEmpty(nodeRulesByNodeId)) {
                 nodeDao.deleteNodeById(nodeRules.getNodeId(), domain);
