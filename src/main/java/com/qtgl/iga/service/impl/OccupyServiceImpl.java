@@ -544,7 +544,7 @@ public class OccupyServiceImpl implements OccupyService {
      * 上游后续不提供end_time, end_time->null  valid_end->2100
      * 3.对比后修改, A: a:上游提供start_time,  valid_start_time使用start_time的值,若start_time为null,valid_start不变更
      * 上游提供end_time,  valid_end_time使用end_time的值,若end_time为null,valid_end不变更
-     * 上游提供active 0->1 即失效恢复,若end_time为null则valid_end_time->2100
+     * 上游提供active 0->1 即失效恢复,valid_start_time 为 当前时刻, 若end_time为null则valid_end_time->2100
      * 对比后orphan为0则修改valid_start_time为当前时刻,若end_time为null则valid_end_time->2100
      * b:上游后续不提供start_time, start_time->null  valid_start->1970
      * 上游后续不提供end_time, end_time->null  valid_end->2100
@@ -694,11 +694,17 @@ public class OccupyServiceImpl implements OccupyService {
                             if (!map.containsKey("startTime")) {
                                 occupyFromSSO.setStartTime(null);
                                 occupyFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                            }else {
+                                occupyFromSSO.setStartTime(newOccupy.getStartTime());
+                                occupyFromSSO.setValidStartTime(occupyFromSSO.getStartTime());
                             }
                             //上有没有提供endTime
                             if (!map.containsKey("endTime")) {
                                 occupyFromSSO.setEndTime(null);
-                                occupyFromSSO.setValidEndTime(LocalDateTime.of(2100, 1, 1, 0, 0, 0));
+                                occupyFromSSO.setValidEndTime(now);
+                            }else {
+                                occupyFromSSO.setEndTime(newOccupy.getEndTime());
+                                occupyFromSSO.setValidEndTime(occupyFromSSO.getEndTime());
                             }
                             checkValidTime(occupyFromSSO, now);
                             if (result.containsKey("invalid")) {
@@ -757,6 +763,7 @@ public class OccupyServiceImpl implements OccupyService {
                             if (!occupyFromSSO.getActive().equals(newOccupy.getActive())) {
                                 occupyFromSSO.setActive(newOccupy.getActive());
                                 occupyFromSSO.setActiveTime(newOccupy.getUpdateTime());
+                                occupyFromSSO.setValidStartTime(now);
                                 occupyFromSSO.setValidEndTime(null == occupyFromSSO.getEndTime() ? DEFAULT_END_TIME : occupyFromSSO.getEndTime());
                             }
                             if (!occupyFromSSO.getOrphan().equals(newOccupy.getOrphan())) {
