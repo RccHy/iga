@@ -1030,7 +1030,7 @@ public class DataBusUtil {
                     pub = String.format(pub, "person.created", domain.getClientId(),
                             person.getOpenId(), UUID.randomUUID(),
                             person.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(person).replace("\"", "\\\""));
-                    graphql.append(person.getOpenId() + ":pub(message:" + pub + "){id}");
+                    graphql.append(RandomStringUtils.randomAlphabetic(20) + ":pub(message:" + pub + "){id}");
                 }
             }
             List<Person> updatePersonList = personMap.get("update");
@@ -1048,7 +1048,7 @@ public class DataBusUtil {
                     pub = String.format(pub, "person.updated", domain.getClientId(),
                             person.getOpenId(), UUID.randomUUID(),
                             person.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(person).replace("\"", "\\\""));
-                    graphql.append(person.getOpenId() + ":pub(message:" + pub + "){id}");
+                    graphql.append(RandomStringUtils.randomAlphabetic(20) + ":pub(message:" + pub + "){id}");
                 }
             }
             List<Person> deletePersonList = personMap.get("delete");
@@ -1066,7 +1066,7 @@ public class DataBusUtil {
                     pub = String.format(pub, "person.deleted", domain.getClientId(),
                             person.getOpenId(), UUID.randomUUID(),
                             person.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(person).replace("\"", "\\\""));
-                    graphql.append(person.getOpenId() + ":pub(message:" + pub + "){id}");
+                    graphql.append(RandomStringUtils.randomAlphabetic(20)+ ":pub(message:" + pub + "){id}");
                 }
             }
 
