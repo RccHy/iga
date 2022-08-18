@@ -512,7 +512,7 @@ public class OccupyServiceImpl implements OccupyService {
                         //        val.setValidEndTime(now);
                         //    }
                         //}
-                        checkValidTime(val,now);
+                        checkValidTime(val, now);
                         if (result.containsKey("insert")) {
                             result.get("insert").add(val);
                         } else {
@@ -540,15 +540,28 @@ public class OccupyServiceImpl implements OccupyService {
 
     /**
      * 1.对比后删除  不关心start_time及end_time 仅修改删除标识及修改时间
-     * 2.对比后失效,上游后续不提供start_time, start_time->null  valid_start->1970
-     * 上游后续不提供end_time, end_time->null  valid_end->2100
-     * 3.对比后修改, A: a:上游提供start_time,  valid_start_time使用start_time的值,若start_time为null,valid_start不变更
-     * 上游提供end_time,  valid_end_time使用end_time的值,若end_time为null,valid_end不变更
-     * 上游提供active 0->1 即失效恢复,valid_start_time 为 当前时刻, 若end_time为null则valid_end_time->2100
-     * 对比后orphan为0则修改valid_start_time为当前时刻,若end_time为null则valid_end_time->2100
-     * b:上游后续不提供start_time, start_time->null  valid_start->1970
-     * 上游后续不提供end_time, end_time->null  valid_end->2100
+     * 2.对比后失效:
+     * start_time: 上游后续不提供start_time字段 , start_time->null  valid_start 不修改
+     * 提供字段但值为null ,start_time->null  valid_start 不修改
+     * 提供字段并且提供值,start_time->上游值  valid_start 上游值
+     * <p>
+     * end_time: 上游后续不提供end_time字段, end_time->null  valid_end->当前时刻
+     * 提供字段但值为null ,end_time->null  valid_end->当前时刻
+     * 提供字段并且提供值,end_time->上游值   valid_end->上游值
+     * <p>
+     * 3.对比后修改,
+     * A: start_time: 上游后续不提供start_time字段 , start_time->null  valid_start 不修改
+     * 提供字段但值为null ,start_time->null  valid_start 不修改
+     * 提供字段并且提供值,start_time->上游值  valid_start 上游值
+     *
+     * end_time: 上游后续不提供end_time字段, end_time->null  valid_end->2100
+     * 提供字段但值为null ,end_time->null  valid_end->不修改
+     * 提供字段并且提供值,end_time->上游值   valid_end->上游值
+     *
+     * active(此处仅为0->1即失效恢复的情况):valid_start 当前时刻,valid_end 上游不提供字段或null 为2100其余情况取上游值
+     *
      * B:映射字段对比无差异,未提供active ,且sso为无效时,valid_start_time->now,若end_time为null则valid_end_time->2100
+     *
      * 4.对比后上游丢失失效  仅修改valid_end_time 为当前时刻
      *
      * @param occupyDtoFromUpstream
@@ -693,18 +706,22 @@ public class OccupyServiceImpl implements OccupyService {
                             //上有没有提供startTime
                             if (!map.containsKey("startTime")) {
                                 occupyFromSSO.setStartTime(null);
-                                occupyFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                            }else {
+                                //occupyFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                            } else {
                                 occupyFromSSO.setStartTime(newOccupy.getStartTime());
-                                occupyFromSSO.setValidStartTime(occupyFromSSO.getStartTime());
+                                occupyFromSSO.setValidStartTime(null != occupyFromSSO.getStartTime() ? occupyFromSSO.getStartTime() : occupyFromSSO.getValidStartTime());
                             }
                             //上有没有提供endTime
                             if (!map.containsKey("endTime")) {
                                 occupyFromSSO.setEndTime(null);
                                 occupyFromSSO.setValidEndTime(now);
-                            }else {
+                            } else {
                                 occupyFromSSO.setEndTime(newOccupy.getEndTime());
-                                occupyFromSSO.setValidEndTime(occupyFromSSO.getEndTime());
+                                if (null != newOccupy.getEndTime()) {
+                                    occupyFromSSO.setValidEndTime(occupyFromSSO.getEndTime());
+                                } else {
+                                    occupyFromSSO.setValidEndTime(now);
+                                }
                             }
                             checkValidTime(occupyFromSSO, now);
                             if (result.containsKey("invalid")) {
@@ -737,7 +754,7 @@ public class OccupyServiceImpl implements OccupyService {
                             //上有没有提供startTime
                             if (!map.containsKey("startTime")) {
                                 occupyFromSSO.setStartTime(null);
-                                occupyFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                                //occupyFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
                             } else {
                                 if (null != newOccupy.getStartTime()) {
                                     occupyFromSSO.setStartTime(newOccupy.getStartTime());
@@ -853,13 +870,13 @@ public class OccupyServiceImpl implements OccupyService {
 
     /**
      * 1.标识位有效 A:当前时刻不在最终有效期内
-     *              a:当前时刻小于 valid_start_time 即未来时间, 若当前时刻晚于valid_end_time 即当前最终有效期区间为  valid_start_time>valid_end_time 则赋值valid_end_time 为2100,其余不做修改
-     *              b:当前时刻大于 valid_end_time  则赋值为2100
-     *            B:当前时刻在最终有效期内 则不做处理
+     * a:当前时刻小于 valid_start_time 即未来时间, 若当前时刻晚于valid_end_time 即当前最终有效期区间为  valid_start_time>valid_end_time 则赋值valid_end_time 为2100,其余不做修改
+     * b:当前时刻大于 valid_end_time  则赋值为2100
+     * B:当前时刻在最终有效期内 则不做处理
      * 2.标识为无效 A:当前时刻不在最终有效期内
-     *              a:当前时刻小于 valid_start_time 即未来时间,最终有效期开始时间早于当前时刻,不认上游给出的最终有效期开始时间,结束时间都赋值为当前时刻
-     *              b:当前时刻大于 valid_end_time  最终有效期结束时间早于当前时刻,不认上游给出的最终有效期结束时间,赋值为当前时刻
-     *            B:当前时刻在最终有效期内  最终有效期结束时间置为当前时刻
+     * a:当前时刻小于 valid_start_time 即未来时间,最终有效期开始时间早于当前时刻,不认上游给出的最终有效期开始时间,结束时间都赋值为当前时刻
+     * b:当前时刻大于 valid_end_time  最终有效期结束时间早于当前时刻,不认上游给出的最终有效期结束时间,赋值为当前时刻
+     * B:当前时刻在最终有效期内  最终有效期结束时间置为当前时刻
      *
      * @param occupyFromSSO
      * @param now
