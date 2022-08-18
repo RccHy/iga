@@ -2,14 +2,9 @@ package com.qtgl.iga.dataFetcher;
 
 
 import com.alibaba.druid.util.StringUtils;
-import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.utils.CertifiedConnector;
-import com.qtgl.iga.utils.exception.CustomException;
-import com.qtgl.iga.utils.exception.GraphqlExceptionUtils;
 import graphql.schema.DataFetcher;
-
-import lombok.extern.log4j.Log4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -19,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 
 @Component
-@Log4j
 public class CheckFetcher {
 
 
