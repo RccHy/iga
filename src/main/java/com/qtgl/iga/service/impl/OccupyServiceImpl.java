@@ -553,15 +553,15 @@ public class OccupyServiceImpl implements OccupyService {
      * A: start_time: 上游后续不提供start_time字段 , start_time->null  valid_start 不修改
      * 提供字段但值为null ,start_time->null  valid_start 不修改
      * 提供字段并且提供值,start_time->上游值  valid_start 上游值
-     *
+     * <p>
      * end_time: 上游后续不提供end_time字段, end_time->null  valid_end->2100
      * 提供字段但值为null ,end_time->null  valid_end->不修改
      * 提供字段并且提供值,end_time->上游值   valid_end->上游值
-     *
+     * <p>
      * active(此处仅为0->1即失效恢复的情况):valid_start 当前时刻,valid_end 上游不提供字段或null 为2100其余情况取上游值
-     *
+     * <p>
      * B:映射字段对比无差异,未提供active ,且sso为无效时,valid_start_time->now,若end_time为null则valid_end_time->2100
-     *
+     * <p>
      * 4.对比后上游丢失失效  仅修改valid_end_time 为当前时刻
      *
      * @param occupyDtoFromUpstream
@@ -706,10 +706,11 @@ public class OccupyServiceImpl implements OccupyService {
                             //上有没有提供startTime
                             if (!map.containsKey("startTime")) {
                                 occupyFromSSO.setStartTime(null);
-                                //occupyFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                                //赋默认值
+                                occupyFromSSO.setValidStartTime(DEFAULT_START_TIME);
                             } else {
                                 occupyFromSSO.setStartTime(newOccupy.getStartTime());
-                                occupyFromSSO.setValidStartTime(null != occupyFromSSO.getStartTime() ? occupyFromSSO.getStartTime() : occupyFromSSO.getValidStartTime());
+                                occupyFromSSO.setValidStartTime(null != occupyFromSSO.getStartTime() ? occupyFromSSO.getStartTime() : DEFAULT_START_TIME);
                             }
                             //上有没有提供endTime
                             if (!map.containsKey("endTime")) {
@@ -754,7 +755,8 @@ public class OccupyServiceImpl implements OccupyService {
                             //上有没有提供startTime
                             if (!map.containsKey("startTime")) {
                                 occupyFromSSO.setStartTime(null);
-                                //occupyFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                                //赋默认值
+                                occupyFromSSO.setValidStartTime(DEFAULT_START_TIME);
                             } else {
                                 if (null != newOccupy.getStartTime()) {
                                     occupyFromSSO.setStartTime(newOccupy.getStartTime());
@@ -762,18 +764,23 @@ public class OccupyServiceImpl implements OccupyService {
 
                                 } else {
                                     occupyFromSSO.setStartTime(null);
+                                    //赋默认值
+                                    occupyFromSSO.setValidStartTime(DEFAULT_START_TIME);
                                 }
                             }
                             //上有没有提供endTime
                             if (!map.containsKey("endTime")) {
                                 occupyFromSSO.setEndTime(null);
-                                occupyFromSSO.setValidEndTime(LocalDateTime.of(2100, 1, 1, 0, 0, 0));
+                                //赋默认值
+                                occupyFromSSO.setValidEndTime(DEFAULT_END_TIME);
                             } else {
                                 if (null != newOccupy.getEndTime()) {
                                     occupyFromSSO.setEndTime(newOccupy.getEndTime());
                                     occupyFromSSO.setValidEndTime(newOccupy.getEndTime());
                                 } else {
                                     occupyFromSSO.setEndTime(null);
+                                    //赋默认值
+                                    occupyFromSSO.setValidEndTime(DEFAULT_END_TIME);
                                 }
                             }
                             //此处只有0->1 即失效恢复的情况  或因orphan引起的身份变更
@@ -870,13 +877,13 @@ public class OccupyServiceImpl implements OccupyService {
 
     /**
      * 1.标识位有效 A:当前时刻不在最终有效期内
-     * a:当前时刻小于 valid_start_time 即未来时间, 若当前时刻晚于valid_end_time 即当前最终有效期区间为  valid_start_time>valid_end_time 则赋值valid_end_time 为2100,其余不做修改
+     * a:当前时刻小于 valid_start_time 即未来时间,不做修改
      * b:当前时刻大于 valid_end_time  则赋值为2100
      * B:当前时刻在最终有效期内 则不做处理
-     * 2.标识为无效 A:当前时刻不在最终有效期内
+     * 2.标识为无效 A:当前时刻在最终有效期内  最终有效期结束时间置为当前时刻
+     * B:当前时刻不在最终有效期内
      * a:当前时刻小于 valid_start_time 即未来时间,最终有效期开始时间早于当前时刻,不认上游给出的最终有效期开始时间,结束时间都赋值为当前时刻
      * b:当前时刻大于 valid_end_time  最终有效期结束时间早于当前时刻,不认上游给出的最终有效期结束时间,赋值为当前时刻
-     * B:当前时刻在最终有效期内  最终有效期结束时间置为当前时刻
      *
      * @param occupyFromSSO
      * @param now
@@ -911,8 +918,8 @@ public class OccupyServiceImpl implements OccupyService {
                     occupyFromSSO.setValidEndTime(now);
                 }
 
-                //最终有效期开始时间早于当前时刻,不认上游给出的最终有效期开始时间,赋值为当前时刻
-                if (occupyFromSSO.getValidEndTime().isBefore(now)) {
+                //最终有效期开始时间早于当前时刻,不认上游给出的最终有效期开始时间,赋值为当前时刻(即无效的未来时间)
+                if (occupyFromSSO.getValidStartTime().isBefore(now)) {
                     occupyFromSSO.setValidStartTime(now);
                     occupyFromSSO.setValidEndTime(now);
                 }
