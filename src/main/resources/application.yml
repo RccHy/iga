@@ -65,7 +65,7 @@ task:
 
 iga:
   hostname: ${HOSTNAME}
-
+  version: @commit.time@
 
 logging:
   file:
