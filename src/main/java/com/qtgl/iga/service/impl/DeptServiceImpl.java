@@ -902,7 +902,7 @@ public class DeptServiceImpl implements DeptService {
                                 dto.setValidStartTime(now);
                                 dto.setValidEndTime(null != dto.getEndTime() ? dto.getEndTime() : OccupyServiceImpl.DEFAULT_END_TIME);
                                 dto.setOrphan(0);
-                                OccupyServiceImpl.checkValidTime(dto, now);
+                                OccupyServiceImpl.checkValidTime(dto, now,true);
                                 resultOccupies.add(dto);
                             } else if (3 == dto.getOrphan()) {
                                 //orphan为3(因组织机构和岗位无效导致的无效身份)的改为 orphan 2
