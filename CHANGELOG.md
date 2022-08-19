@@ -1,3 +1,10 @@
+
+### 20220819
+
+
+**bug fix**
+- 优化初始化租户的逻辑，防止重复创建
+ 
 ### 20220808
 
 **数据库**
@@ -471,4 +478,4 @@ D：配置允许进行接口进行推送数据，并覆盖更新同一个上游�
 **依赖其他项目：**
 - docker.qtgl.com.cn/product/console:20210426
 
-[https://github.com/infoplus/canvas-docs/wiki/MQ]: https://github.com/infoplus/canvas-docs/wiki/MQ<br/>
+[https://github.co

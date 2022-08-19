@@ -34,7 +34,7 @@ public class DomainInfoServiceImpl implements DomainInfoService {
 
     @Override
     @Transactional
-    public void install(DomainInfo domainInfo) throws Exception {
+    public void install(DomainInfo domainInfo) {
 
         /* 初始化数据 */
 
@@ -53,14 +53,17 @@ public class DomainInfoServiceImpl implements DomainInfoService {
             e.printStackTrace();
             throw new CustomException(ResultCode.FAILED, "请勿重复初始化");
         }*/
-        // 组织机构类型
-        deptTreeTypeDao.initialization(domainInfo.getId());
-        // 组织机构关系类型
-        deptRelationTypeDao.initialization(domainInfo.getId());
-        // 岗位类型
-        postTypeDao.initialization(domainInfo.getId());
         // 插入租户信息
-        dao.save(domainInfo);
+        Integer save = dao.save(domainInfo);
+        if (save > 0) {
+            // 组织机构类型
+            deptTreeTypeDao.initialization(domainInfo.getId());
+            // 组织机构关系类型
+            deptRelationTypeDao.initialization(domainInfo.getId());
+            // 岗位类型
+            postTypeDao.initialization(domainInfo.getId());
+        }
+
 
     }
 

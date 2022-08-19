@@ -22,13 +22,15 @@ public class DomainInfoDaoImpl implements DomainInfoDao {
 
 
     @Override
-    public void save(DomainInfo domainInfo) {
-        jdbcIGA.update("INSERT INTO `t_mgr_domain_info`(`id`, `domain_id`," +
+    public Integer save(DomainInfo domainInfo) {
+
+       return jdbcIGA.update("INSERT INTO `t_mgr_domain_info`(`id`, `domain_id`," +
                         " `domain_name` ,`client_id` , `client_secret` , " +
                         "`status`, `create_time`,`create_user` ,`update_time` ) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?,?);",
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?,?) WHERE NOT EXISTS " +
+                       "        (SELECT 1 FROM `t_mgr_domain_info` WHERE `domain_name`=? and `status`=0);",
                 domainInfo.getId(), domainInfo.getDomainId(), domainInfo.getDomainName(), domainInfo.getClientId(), domainInfo.getClientSecret(), domainInfo.getStatus(), domainInfo.getCreateTime(), domainInfo.getCreateUser(), domainInfo.getUpdateTime()
-        );
+        , domainInfo.getDomainName());
     }
 
     @Override
