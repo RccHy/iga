@@ -183,10 +183,11 @@ public class NodeRulesServiceImpl implements NodeRulesService {
         if (CollectionUtils.isEmpty(nodeRulesByNodeId)) {
             nodeDao.deleteNodeById(rules.getNodeId(), domain);
         }
-        if (flag > 0) {
-            return new NodeRulesVo();
-        } else {
-            throw new CustomException(ResultCode.FAILED, "删除rule失败");
-        }
+        //if (flag > 0) {
+        //    return new NodeRulesVo();
+        //} else {
+        //    throw new CustomException(ResultCode.FAILED, "删除rule失败");
+        //}
+        return new NodeRulesVo();
     }
 }
