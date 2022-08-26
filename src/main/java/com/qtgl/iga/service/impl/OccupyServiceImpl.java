@@ -579,6 +579,7 @@ public class OccupyServiceImpl implements OccupyService {
             OccupyDto newOccupy = occupyDtoFromUpstream.get(key);
             //当前数据来源规则为启用再进行处理
             if (newOccupy.getRuleStatus()) {
+                occupyFromSSO.setDataSource(newOccupy.getDataSource());
                 //处理sso数据的active为null的情况
                 if (null == occupyFromSSO.getActive() || "".equals(occupyFromSSO.getActive())) {
                     occupyFromSSO.setActive(1);

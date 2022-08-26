@@ -642,14 +642,14 @@ public class PersonServiceImpl implements PersonService {
     //        //新增逻辑字段赋默认值
     //        val.setId(UUID.randomUUID().toString());
     //        val.setOpenId(RandomStringUtils.randomAlphabetic(20));
-    //        val.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-    //        val.setValidEndTime(LocalDateTime.of(2100, 1, 1, 0, 0, 0));
+    //        val.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
+    //        val.setValidEndTime(OccupyServiceImpl.DEFAULT_END_TIME);
     //
     //        // 如果新增的数据 active=0 失效 或者 del_mark=1 删除  或者 判断为孤儿
     //        //   都将 最终有效期设置为 失效
     //        if (val.getActive() == 0 || val.getDelMark() == 1) {
-    //            val.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-    //            val.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+    //            val.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
+    //            val.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
     //        }
     //        if (result.containsKey("insert")) {
     //            result.get("insert").add(val);
@@ -686,6 +686,7 @@ public class PersonServiceImpl implements PersonService {
             Person newPerson = personFromUpstream.get(key);
             //当前数据来源规则为启用再进行处理
             if (newPerson.getRuleStatus()) {
+                personFromSSO.setDataSource(newPerson.getDataSource());
                 //处理sso数据的active为null的情况
                 if (null == personFromSSO.getActive() || "".equals(personFromSSO.getActive())) {
                     personFromSSO.setActive(1);
@@ -779,8 +780,8 @@ public class PersonServiceImpl implements PersonService {
                     if ((null == personFromSSO.getRuleStatus() || personFromSSO.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
                         personFromSSO.setDelMark(1);
                         personFromSSO.setUpdateTime(newPerson.getUpdateTime());
-                        personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                        personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                        personFromSSO.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
+                        personFromSSO.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
                         if (result.containsKey("delete")) {
                             result.get("delete").add(personFromSSO);
                         } else {
@@ -813,8 +814,8 @@ public class PersonServiceImpl implements PersonService {
                         if ((null == personFromSSO.getRuleStatus() || personFromSSO.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
                             personFromSSO.setActive(0);
                             personFromSSO.setActiveTime(newPerson.getUpdateTime());
-                            personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                            personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                            personFromSSO.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
+                            personFromSSO.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
                             if (result.containsKey("invalid")) {
                                 result.get("invalid").add(personFromSSO);
                             } else {
@@ -834,8 +835,8 @@ public class PersonServiceImpl implements PersonService {
                             personFromSSO.setActiveTime(newPerson.getUpdateTime());
                         }
                         if (personFromSSO.getActive() == 0 || personFromSSO.getDelMark() == 1) {
-                            personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                            personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                            personFromSSO.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
+                            personFromSSO.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
                         }
                         setValidTime(personFromSSO);
 
@@ -936,8 +937,8 @@ public class PersonServiceImpl implements PersonService {
                 personFromSSO.setActive(0);
                 personFromSSO.setActiveTime(now);
                 personFromSSO.setUpdateTime(now);
-                personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                personFromSSO.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
+                personFromSSO.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
                 if (result.containsKey("invalid")) {
                     result.get("invalid").add(personFromSSO);
                 } else {
@@ -965,8 +966,8 @@ public class PersonServiceImpl implements PersonService {
                 String id = UUID.randomUUID().toString();
                 val.setId(id);
                 val.setOpenId(RandomStringUtils.randomAlphabetic(20));
-                val.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                val.setValidEndTime(LocalDateTime.of(2100, 1, 1, 0, 0, 0));
+                val.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
+                val.setValidEndTime(OccupyServiceImpl.DEFAULT_END_TIME);
                 //之前存在该用户名
                 if (StringUtils.isNotBlank(val.getAccountNo()) && personFromSSOMapByAccountAll.containsKey(val.getAccountNo())) {
                     Person person = personFromSSOMapByAccountAll.get(val.getAccountNo());
@@ -1001,8 +1002,8 @@ public class PersonServiceImpl implements PersonService {
                     // 如果新增的数据 active=0 失效 或者 del_mark=1 删除  或者 判断为孤儿
                     //   都将 最终有效期设置为 失效
                     if (val.getActive() == 0 || val.getDelMark() == 1) {
-                        val.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                        val.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                        val.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
+                        val.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
                     }
                     // 对新增的用户 判断是否提供 password字段
                     if (!StringUtils.isBlank(val.getPassword())) {
@@ -1060,6 +1061,7 @@ public class PersonServiceImpl implements PersonService {
             Person newPerson = personFromUpstream.get(key);
             //当前数据来源规则为启用再进行处理
             if (newPerson.getRuleStatus()) {
+                personFromSSO.setDataSource(newPerson.getDataSource());
                 //规则启用标识传递
                 personFromSSO.setRuleStatus(newPerson.getRuleStatus());
                 //处理sso数据的active为null的情况
@@ -1175,8 +1177,8 @@ public class PersonServiceImpl implements PersonService {
                     if ((null == personFromSSO.getRuleStatus() || personFromSSO.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
                         personFromSSO.setDelMark(1);
                         personFromSSO.setUpdateTime(newPerson.getUpdateTime());
-                        personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                        personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                        personFromSSO.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
+                        personFromSSO.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
                         if (result.containsKey("delete")) {
                             result.get("delete").add(personFromSSO);
                         } else {
@@ -1209,8 +1211,8 @@ public class PersonServiceImpl implements PersonService {
                         if ((null == personFromSSO.getRuleStatus() || personFromSSO.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
                             personFromSSO.setActive(0);
                             personFromSSO.setActiveTime(newPerson.getUpdateTime());
-                            personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                            personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                            personFromSSO.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
+                            personFromSSO.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
                             if (result.containsKey("invalid")) {
                                 result.get("invalid").add(personFromSSO);
                             } else {
@@ -1230,8 +1232,8 @@ public class PersonServiceImpl implements PersonService {
                             personFromSSO.setActiveTime(newPerson.getUpdateTime());
                         }
                         if (personFromSSO.getActive() == 0 || personFromSSO.getDelMark() == 1) {
-                            personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                            personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                            personFromSSO.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
+                            personFromSSO.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
                         }
                         setValidTime(personFromSSO);
 
@@ -1334,8 +1336,8 @@ public class PersonServiceImpl implements PersonService {
                 personFromSSO.setActive(0);
                 personFromSSO.setActiveTime(now);
                 personFromSSO.setUpdateTime(now);
-                personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-                personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+                personFromSSO.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
+                personFromSSO.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
                 if (result.containsKey("invalid")) {
                     result.get("invalid").add(personFromSSO);
                 } else {
@@ -1354,10 +1356,10 @@ public class PersonServiceImpl implements PersonService {
     }
 
     private void setValidTime(Person personFromSSO) {
-        personFromSSO.setValidEndTime(LocalDateTime.of(2100, 1, 1, 0, 0, 0));
+        personFromSSO.setValidEndTime(OccupyServiceImpl.DEFAULT_END_TIME);
         if (personFromSSO.getActive() == 0 || personFromSSO.getDelMark() == 1) {
-            personFromSSO.setValidStartTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
-            personFromSSO.setValidEndTime(LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+            personFromSSO.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
+            personFromSSO.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
         }
     }
 
