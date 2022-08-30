@@ -12,7 +12,9 @@ import com.qtgl.iga.dao.*;
 import com.qtgl.iga.dao.impl.DynamicAttrDaoImpl;
 import com.qtgl.iga.dao.impl.DynamicValueDaoImpl;
 import com.qtgl.iga.service.ConfigService;
+import com.qtgl.iga.service.IncrementalTaskService;
 import com.qtgl.iga.service.PersonService;
+import com.qtgl.iga.service.PreViewTaskService;
 import com.qtgl.iga.task.TaskConfig;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
@@ -74,9 +76,9 @@ public class PersonServiceImpl implements PersonService {
     @Autowired
     ConfigService configService;
     @Autowired
-    PreViewTaskDao preViewTaskDao;
+    PreViewTaskService preViewTaskService;
     @Autowired
-    IncrementalTaskDao incrementalTaskDao;
+    IncrementalTaskService incrementalTaskService;
 
     public static ConcurrentHashMap<String, List<JSONObject>> personErrorData = null;
     //
@@ -117,7 +119,7 @@ public class PersonServiceImpl implements PersonService {
      */
 
     @Override
-    public Map<String, List<Person>> buildPerson(DomainInfo domain, TaskLog taskLog) throws Exception {
+    public Map<String, List<Person>> buildPerson(DomainInfo domain, TaskLog taskLog, TaskLog currentTask) throws Exception {
         //错误数据置空
         TaskConfig.errorData.put(domain.getId(), "");
         personErrorData = new ConcurrentHashMap<>();
@@ -178,7 +180,7 @@ public class PersonServiceImpl implements PersonService {
         Map arguments = new ConcurrentHashMap();
         arguments.put("type", "person");
         arguments.put("status", 0);
-        dataProcessing(domain, tenant, cardTypeMap, dynamicAttrs, valueUpdate, valueInsert, finalDynamicCodes, finalValueMap, personFromUpstream, personFromUpstreamByAccount, personRepeatByAccount, result, attrMap, attrReverseMap, arguments, incrementalTasks);
+        dataProcessing(domain, tenant, cardTypeMap, dynamicAttrs, valueUpdate, valueInsert, finalDynamicCodes, finalValueMap, personFromUpstream, personFromUpstreamByAccount, personRepeatByAccount, result, attrMap, attrReverseMap, arguments, currentTask);
         // 验证监控规则
         List<Person> personFromSSOList = personDao.getAll(tenant.getId());
         calculationService.monitorRules(domain, taskLog, personFromSSOList.size(), result.get("delete"));
@@ -187,15 +189,15 @@ public class PersonServiceImpl implements PersonService {
             TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(personErrorData.get(domain.getId())));
         }
         personDao.saveToSso(result, tenant.getId(), valueUpdate, valueInsert);
-        if (!CollectionUtils.isEmpty(incrementalTasks)) {
-            //添加增量日志
-            incrementalTaskDao.saveAll(incrementalTasks, domain);
-        }
+        //if (!CollectionUtils.isEmpty(incrementalTasks)) {
+        //    //添加增量日志
+        //    incrementalTaskService.saveAll(incrementalTasks, domain);
+        //}
 
         return result;
     }
 
-    private List<Person> dataProcessing(DomainInfo domain, Tenant tenant, Map<String, CardType> cardTypeMap, List<DynamicAttr> dynamicAttrs, List<DynamicValue> valueUpdate, ArrayList<DynamicValue> valueInsert, List<String> finalDynamicCodes, Map<String, List<DynamicValue>> finalValueMap, Map<String, Person> personFromUpstream, Map<String, Person> personFromUpstreamByAccount, Map<String, Person> personRepeatByAccount, Map<String, List<Person>> result, Map<String, String> attrMap, Map<String, String> attrReverseMap, Map arguments, List<IncrementalTask> incrementalTasks) throws Exception {
+    private List<Person> dataProcessing(DomainInfo domain, Tenant tenant, Map<String, CardType> cardTypeMap, List<DynamicAttr> dynamicAttrs, List<DynamicValue> valueUpdate, ArrayList<DynamicValue> valueInsert, List<String> finalDynamicCodes, Map<String, List<DynamicValue>> finalValueMap, Map<String, Person> personFromUpstream, Map<String, Person> personFromUpstreamByAccount, Map<String, Person> personRepeatByAccount, Map<String, List<Person>> result, Map<String, String> attrMap, Map<String, String> attrReverseMap, Map arguments, TaskLog currentTask) throws Exception {
         List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
         if (null == nodes || nodes.size() <= 0) {
             throw new CustomException(ResultCode.FAILED, "无人员管理规则信息");
@@ -210,6 +212,8 @@ public class PersonServiceImpl implements PersonService {
             throw new CustomException(ResultCode.FAILED, "无人员规则信息");
         }
         List<Person> people = new ArrayList<>();
+        //存储增量日志相关数据
+        //ConcurrentHashMap<String, IncrementalTask> incrementalTaskMap = new ConcurrentHashMap<>();
         userRules.forEach(rules -> {
             // 通过规则获取数据
             UpstreamType upstreamType = upstreamTypeDao.findById(rules.getUpstreamTypesId());
@@ -492,15 +496,19 @@ public class PersonServiceImpl implements PersonService {
 
                 }
                 //权威源类型为增量则添加对应的增量同步日志
-                if (null != upstreamType.getIsIncremental() && upstreamType.getIsIncremental() && null != incrementalTasks && !CollectionUtils.isEmpty(personUpstreamList)) {
+                if (null != currentTask && null != upstreamType.getIsIncremental() && upstreamType.getIsIncremental() && !CollectionUtils.isEmpty(personUpstreamList)) {
                     List<Person> collect1 = personUpstreamList.stream().sorted(Comparator.comparing(Person::getUpdateTime).reversed()).collect(Collectors.toList());
                     IncrementalTask incrementalTask = new IncrementalTask();
+                    incrementalTask.setId(UUID.randomUUID().toString());
+                    incrementalTask.setMainTaskId(currentTask.getId());
                     incrementalTask.setType("person");
+                    incrementalTask.setMainTaskId(currentTask.getId());
                     log.info("类型:{},权威源类型:{},上游增量最大修改时间:{} -> {},当前时刻:{}", upstreamType.getSynType(), upstreamType.getId(), collect1.get(0).getUpdateTime(), collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
                     long min = Math.min(collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
                     incrementalTask.setTime(new Timestamp(min));
                     incrementalTask.setUpstreamTypeId(collect1.get(0).getUpstreamType());
-                    incrementalTasks.add(incrementalTask);
+                    incrementalTaskService.save(incrementalTask, domain);
+                    //incrementalTaskMap.put(incrementalTask.getUpstreamTypeId(), incrementalTask);
                 }
             }
         });
@@ -544,19 +552,21 @@ public class PersonServiceImpl implements PersonService {
             }
             Map<String, String> finalAttrMap = attrMap;
             Map<String, Upstream> finalUpstreamMap = upstreamMap;
+            //单个权威源类型本次同步变化数量容器
+            ConcurrentHashMap<String, ConcurrentHashMap<String, List<Person>>> upstreamCountMap = new ConcurrentHashMap<>();
             personFromSSOMap.forEach((key, personFromSSO) -> {
-                calculate(personFromUpstream, personRepeatByAccount, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdate, valueInsert, finalUpstreamMap, preViewPersonMap);
+                calculate(personFromUpstream, personRepeatByAccount, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdate, valueInsert, finalUpstreamMap, preViewPersonMap, upstreamCountMap);
             });
 
             personFromSSOMapByAccount.forEach((key, personFromSSO) -> {
-                calculate(personFromUpstreamByAccount, personRepeatByAccount, now, result, key, personFromSSO, finalAttrMap, finalValueMap, valueUpdate, valueInsert, finalUpstreamMap, preViewPersonMap);
+                calculate(personFromUpstreamByAccount, personRepeatByAccount, now, result, key, personFromSSO, finalAttrMap, finalValueMap, valueUpdate, valueInsert, finalUpstreamMap, preViewPersonMap, upstreamCountMap);
             });
 
             personFromUpstreamByAccount.forEach((key, val) -> {
-                calculateInsert(personFromSSOMapByAccount, personFromSSOMapByAccountAll, result, key, val, domain);
+                calculateInsert(personFromSSOMapByAccount, personFromSSOMapByAccountAll, result, key, val, domain, upstreamCountMap);
             });
             personFromUpstream.forEach((key, val) -> {
-                calculateInsert(personFromSSOMap, personFromSSOMapByAccountAll, result, key, val, domain);
+                calculateInsert(personFromSSOMap, personFromSSOMapByAccountAll, result, key, val, domain, upstreamCountMap);
             });
             // sso 批量新增
             try {
@@ -596,6 +606,30 @@ public class PersonServiceImpl implements PersonService {
             if (!CollectionUtils.isEmpty(result.get("insert"))) {
                 people.addAll(result.get("insert"));
             }
+            ////处理增量日志
+            //if(null!=currentTask){
+            //    if(!CollectionUtils.isEmpty(incrementalTaskMap)){
+            //        ArrayList<IncrementalTask> incrementalTasks = new ArrayList<>();
+            //        log.info("----------------开始处理增量同步日志");
+            //        for (String upstreamTypeId : incrementalTaskMap.keySet()) {
+            //            if(!CollectionUtils.isEmpty(upstreamCountMap)&&upstreamCountMap.containsKey(upstreamTypeId)){
+            //                ConcurrentHashMap<String, List<Person>> hashMap = upstreamCountMap.get(upstreamTypeId);
+            //                Integer recoverDept = hashMap.containsKey("recover") ? hashMap.get("recover").size() : 0;
+            //                Integer insertDept = (hashMap.containsKey("insert") ? hashMap.get("insert").size() : 0) + recoverDept;
+            //                Integer deleteDept = hashMap.containsKey("delete") ? hashMap.get("delete").size() : 0;
+            //                Integer updateDept = (hashMap.containsKey("update") ? hashMap.get("update").size() : 0);
+            //                Integer invalidDept = hashMap.containsKey("invalid") ? hashMap.get("invalid").size() : 0;
+            //                String operationNo = insertDept + "/" + deleteDept + "/" + updateDept + "/" + invalidDept;
+            //                IncrementalTask incrementalTask = incrementalTaskMap.get(upstreamTypeId);
+            //                incrementalTask.setOperationNo(operationNo);
+            //                incrementalTasks.add(incrementalTask);
+            //            }
+            //        }
+            //        incrementalTaskService.updateBatch(incrementalTasks);
+            //    }
+            //    log.info("----------------处理增量同步日志结束");
+            //
+            //}
         } else {
             log.error("上游提供人员数据不符合规范,数据同步失败");
             throw new CustomException(ResultCode.FAILED, "上游提供人员数据不符合规范,数据同步失败");
@@ -679,7 +713,7 @@ public class PersonServiceImpl implements PersonService {
     //    }
     //}
 
-    private void calculate(Map<String, Person> personFromUpstream, Map<String, Person> personRepeatByAccount, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO, Map<String, String> attrMap, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamMap, Map<String, Person> preViewPersonMap) {
+    private void calculate(Map<String, Person> personFromUpstream, Map<String, Person> personRepeatByAccount, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO, Map<String, String> attrMap, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamMap, Map<String, Person> preViewPersonMap, ConcurrentHashMap<String, ConcurrentHashMap<String, List<Person>>> upstreamCountMap) {
         // 对比出需要修改的person
         if (personFromUpstream.containsKey(key) &&
                 personFromUpstream.get(key).getUpdateTime().isAfter(personFromSSO.getUpdateTime())) {
@@ -687,6 +721,7 @@ public class PersonServiceImpl implements PersonService {
             //当前数据来源规则为启用再进行处理
             if (newPerson.getRuleStatus()) {
                 personFromSSO.setDataSource(newPerson.getDataSource());
+                personFromSSO.setUpstreamType(newPerson.getUpstreamType());
                 //处理sso数据的active为null的情况
                 if (null == personFromSSO.getActive() || "".equals(personFromSSO.getActive())) {
                     personFromSSO.setActive(1);
@@ -956,7 +991,7 @@ public class PersonServiceImpl implements PersonService {
         }
     }
 
-    private void calculateInsert(Map<String, Person> personFromSSOMap, Map<String, Person> personFromSSOMapByAccountAll, Map<String, List<Person>> result, String key, Person val, DomainInfo domainInfo) {
+    private void calculateInsert(Map<String, Person> personFromSSOMap, Map<String, Person> personFromSSOMapByAccountAll, Map<String, List<Person>> result, String key, Person val, DomainInfo domainInfo, ConcurrentHashMap<String, ConcurrentHashMap<String, List<Person>>> upstreamCountMap) {
         //sso没有并且未删除标记的数据才进行新增
         if (!personFromSSOMap.containsKey(key) && (val.getDelMark() == 0)) {
             if (val.getRuleStatus()) {
@@ -1054,7 +1089,7 @@ public class PersonServiceImpl implements PersonService {
         }
     }
 
-    private void calculate(Map<String, Person> personFromUpstream, Map<String, Person> personRepeatByAccount, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO, DomainInfo domainInfo, Map<String, String> attrMap, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamMap, Map<String, Person> preViewPersonMap) {
+    private void calculate(Map<String, Person> personFromUpstream, Map<String, Person> personRepeatByAccount, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO, DomainInfo domainInfo, Map<String, String> attrMap, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamMap, Map<String, Person> preViewPersonMap, ConcurrentHashMap<String, ConcurrentHashMap<String, List<Person>>> upstreamCountMap) {
         // 对比出需要修改的person
         if (personFromUpstream.containsKey(key) &&
                 personFromUpstream.get(key).getUpdateTime().isAfter(personFromSSO.getUpdateTime())) {
@@ -1062,6 +1097,7 @@ public class PersonServiceImpl implements PersonService {
             //当前数据来源规则为启用再进行处理
             if (newPerson.getRuleStatus()) {
                 personFromSSO.setDataSource(newPerson.getDataSource());
+                personFromSSO.setUpstreamType(newPerson.getUpstreamType());
                 //规则启用标识传递
                 personFromSSO.setRuleStatus(newPerson.getRuleStatus());
                 //处理sso数据的active为null的情况
@@ -1355,6 +1391,35 @@ public class PersonServiceImpl implements PersonService {
         }
     }
 
+    private void dealWithResult(Map<String, List<Person>> result, Person personFromSSO, ConcurrentHashMap<String, ConcurrentHashMap<String, List<Person>>> upstreamCountMap, String type) {
+        if (result.containsKey(type)) {
+            result.get(type).add(personFromSSO);
+        } else {
+            result.put(type, new ArrayList<Person>() {{
+                this.add(personFromSSO);
+            }});
+        }
+        //处理增量
+        if (upstreamCountMap.containsKey(personFromSSO.getUpstreamType())) {
+            ConcurrentHashMap<String, List<Person>> hashMap = upstreamCountMap.get(personFromSSO.getUpstreamType());
+            if (hashMap.containsKey(type)) {
+                hashMap.get(type).add(personFromSSO);
+            } else {
+                hashMap.put(type, new ArrayList<Person>() {{
+                    this.add(personFromSSO);
+                }});
+            }
+        } else {
+            ConcurrentHashMap<String, ConcurrentHashMap<String, List<Person>>> hashMap = new ConcurrentHashMap<>();
+            ConcurrentHashMap<String, List<Person>> map = new ConcurrentHashMap<>();
+            map.put(type, new ArrayList<Person>() {{
+                this.add(personFromSSO);
+            }});
+            hashMap.put(personFromSSO.getUpstreamType(), map);
+
+        }
+    }
+
     private void setValidTime(Person personFromSSO) {
         personFromSSO.setValidEndTime(OccupyServiceImpl.DEFAULT_END_TIME);
         if (personFromSSO.getActive() == 0 || personFromSSO.getDelMark() == 1) {
@@ -1482,10 +1547,10 @@ public class PersonServiceImpl implements PersonService {
             viewTask.setType("person");
         }
         //查询进行中的刷新人员任务数
-        Integer count = preViewTaskDao.findByTypeAndStatus("person", "doing", domain);
+        Integer count = preViewTaskService.findByTypeAndStatus("person", "doing", domain);
         if (count <= 10) {
             //PersonServiceImpl.preViewTask.put(viewResult.getTaskId(), viewResult);
-            viewTask = preViewTaskDao.saveTask(viewTask);
+            viewTask = preViewTaskService.saveTask(viewTask);
         } else {
             //Optional<String> first = PersonServiceImpl.preViewTask.keySet().stream().findFirst();
             //String s = first.get();
@@ -1589,7 +1654,7 @@ public class PersonServiceImpl implements PersonService {
         if (null != viewTask) {
             viewTask.setStatus("done");
             viewTask.setUpdateTime(new Timestamp(System.currentTimeMillis()));
-            preViewTaskDao.saveTask(viewTask);
+            preViewTaskService.saveTask(viewTask);
             log.info("人员刷新完毕,任务id为:{}", viewTask.getTaskId());
         }
     }
@@ -1597,7 +1662,7 @@ public class PersonServiceImpl implements PersonService {
     @Override
     public PreViewTask reFreshTaskStatus(Map<String, Object> arguments, DomainInfo domain) {
         Object id = arguments.get("taskId");
-        return preViewTaskDao.findByTaskId(id, domain);
+        return preViewTaskService.findByTaskId(id, domain);
     }
 
 

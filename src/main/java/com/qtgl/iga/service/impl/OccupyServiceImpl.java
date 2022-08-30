@@ -10,7 +10,9 @@ import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.config.PreViewOccupyThreadPool;
 import com.qtgl.iga.dao.*;
+import com.qtgl.iga.service.IncrementalTaskService;
 import com.qtgl.iga.service.OccupyService;
+import com.qtgl.iga.service.PreViewTaskService;
 import com.qtgl.iga.task.TaskConfig;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
@@ -61,9 +63,9 @@ public class OccupyServiceImpl implements OccupyService {
     @Autowired
     OccupyDao occupyDao;
     @Autowired
-    PreViewTaskDao preViewTaskDao;
+    PreViewTaskService preViewTaskService;
     @Autowired
-    IncrementalTaskDao incrementalTaskDao;
+    IncrementalTaskService incrementalTaskService;
 
     @Autowired
     DataBusUtil dataBusUtil;
@@ -96,7 +98,7 @@ public class OccupyServiceImpl implements OccupyService {
      * @return
      */
     @Override
-    public Map<String, List<OccupyDto>> buildOccupy(DomainInfo domain, TaskLog lastTaskLog) throws Exception {
+    public Map<String, List<OccupyDto>> buildOccupy(DomainInfo domain, TaskLog lastTaskLog, TaskLog currentTask) throws Exception {
         //错误数据容器初始化
         occupyErrorData = new ConcurrentHashMap<>();
 
@@ -124,7 +126,7 @@ public class OccupyServiceImpl implements OccupyService {
         Map arguments = new ConcurrentHashMap();
         arguments.put("type", "occupy");
         arguments.put("status", 0);
-        dataProcessing(domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream, incrementalTasks);
+        dataProcessing(domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream, incrementalTasks, currentTask);
 
         List<OccupyDto> occupiesFromSSO = occupyDao.findAll(tenant.getId(), null, null);
 
@@ -143,10 +145,10 @@ public class OccupyServiceImpl implements OccupyService {
 
         try {
             occupyDao.saveToSso(result, tenant.getId());
-            if (!CollectionUtils.isEmpty(incrementalTasks)) {
-                //添加增量日志
-                incrementalTaskDao.saveAll(incrementalTasks, domain);
-            }
+            //if (!CollectionUtils.isEmpty(incrementalTasks)) {
+            //    //添加增量日志
+            //    incrementalTaskService.saveAll(incrementalTasks, domain);
+            //}
 
         } catch (CustomException e) {
             if (!CollectionUtils.isEmpty(occupyDtoFromUpstream)) {
@@ -190,7 +192,7 @@ public class OccupyServiceImpl implements OccupyService {
         return result;
     }
 
-    private List<OccupyDto> dataProcessing(DomainInfo domain, Tenant tenant, Map<String, CardType> userCardTypeMap, Map<String, CardType> identityCardTypeMap, Map arguments, Map<String, List<OccupyDto>> result, ArrayList<OccupyDto> deleteFromSSO, Map<String, OccupyDto> occupyDtoFromUpstream, List<IncrementalTask> incrementalTasks) throws Exception {
+    private List<OccupyDto> dataProcessing(DomainInfo domain, Tenant tenant, Map<String, CardType> userCardTypeMap, Map<String, CardType> identityCardTypeMap, Map arguments, Map<String, List<OccupyDto>> result, ArrayList<OccupyDto> deleteFromSSO, Map<String, OccupyDto> occupyDtoFromUpstream, List<IncrementalTask> incrementalTasks, TaskLog currentTask) {
         List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
         if (null == nodes || nodes.size() <= 0) {
             throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
@@ -459,15 +461,18 @@ public class OccupyServiceImpl implements OccupyService {
 
                 }
                 //权威源类型为增量则添加对应的增量同步日志
-                if (null != upstreamType.getIsIncremental() && upstreamType.getIsIncremental() && null != incrementalTasks && !CollectionUtils.isEmpty(resultOccupies)) {
+                if (null != currentTask && null != upstreamType.getIsIncremental() && upstreamType.getIsIncremental() && !CollectionUtils.isEmpty(resultOccupies)) {
                     List<OccupyDto> collect1 = resultOccupies.stream().sorted(Comparator.comparing(OccupyDto::getUpdateTime).reversed()).collect(Collectors.toList());
                     IncrementalTask incrementalTask = new IncrementalTask();
+                    incrementalTask.setId(UUID.randomUUID().toString());
+                    incrementalTask.setMainTaskId(currentTask.getId());
                     incrementalTask.setType("occupy");
                     log.info("类型:{},权威源类型:{},上游增量最大修改时间:{} -> {},当前时刻:{}", upstreamType.getSynType(), upstreamType.getId(), collect1.get(0).getUpdateTime(), collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
                     long min = Math.min(collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
                     incrementalTask.setTime(new Timestamp(min));
                     incrementalTask.setUpstreamTypeId(collect1.get(0).getUpstreamType());
-                    incrementalTasks.add(incrementalTask);
+                    //incrementalTasks.add(incrementalTask);
+                    incrementalTaskService.save(incrementalTask, domain);
                 }
             }
 
@@ -512,7 +517,7 @@ public class OccupyServiceImpl implements OccupyService {
                         //        val.setValidEndTime(now);
                         //    }
                         //}
-                        checkValidTime(val, now,false);
+                        checkValidTime(val, now, false);
                         if (result.containsKey("insert")) {
                             result.get("insert").add(val);
                         } else {
@@ -725,7 +730,7 @@ public class OccupyServiceImpl implements OccupyService {
                                     occupyFromSSO.setValidEndTime(now);
                                 }
                             }
-                            checkValidTime(occupyFromSSO, now,true);
+                            checkValidTime(occupyFromSSO, now, true);
                             if (result.containsKey("invalid")) {
                                 result.get("invalid").add(occupyFromSSO);
                             } else {
@@ -782,7 +787,7 @@ public class OccupyServiceImpl implements OccupyService {
                                 occupyFromSSO.setActive(newOccupy.getActive());
                                 occupyFromSSO.setActiveTime(newOccupy.getUpdateTime());
                                 //上游提供的有效期开始时间为过去时间或不提供start_time 则赋值为当前时刻
-                                if(null==occupyFromSSO.getStartTime()||occupyFromSSO.getStartTime().isBefore(now)){
+                                if (null == occupyFromSSO.getStartTime() || occupyFromSSO.getStartTime().isBefore(now)) {
                                     occupyFromSSO.setValidStartTime(now);
                                 }
                                 occupyFromSSO.setValidEndTime(null == occupyFromSSO.getEndTime() ? DEFAULT_END_TIME : occupyFromSSO.getEndTime());
@@ -792,14 +797,14 @@ public class OccupyServiceImpl implements OccupyService {
                                 if (0 == occupyFromSSO.getOrphan()) {
                                     activeFlag = true;
                                     //上游提供的有效期开始时间为过去时间则赋值为当前时刻
-                                    if(occupyFromSSO.getStartTime().isBefore(now)){
+                                    if (occupyFromSSO.getStartTime().isBefore(now)) {
                                         occupyFromSSO.setValidStartTime(now);
                                     }
                                 }
                                 occupyFromSSO.setValidEndTime(null == occupyFromSSO.getEndTime() ? DEFAULT_END_TIME : occupyFromSSO.getEndTime());
                             }
 
-                            checkValidTime(occupyFromSSO, now,activeFlag);
+                            checkValidTime(occupyFromSSO, now, activeFlag);
                         }
                         //log.info("人员身份修改了一条数据,修改地:1");
                         if (result.containsKey("update")) {
@@ -825,7 +830,7 @@ public class OccupyServiceImpl implements OccupyService {
                         occupyFromSSO.setUpdateTime(newOccupy.getUpdateTime());
                         occupyFromSSO.setValidStartTime(now);
                         occupyFromSSO.setValidEndTime(null == occupyFromSSO.getEndTime() ? DEFAULT_END_TIME : occupyFromSSO.getEndTime());
-                        checkValidTime(occupyFromSSO, now,true);
+                        checkValidTime(occupyFromSSO, now, true);
                         if (result.containsKey("update")) {
                             result.get("update").add(occupyFromSSO);
                         } else {
@@ -888,10 +893,10 @@ public class OccupyServiceImpl implements OccupyService {
      *
      * @param occupyFromSSO
      * @param now
-     * @param activeFlag 判断有效标识是否发生变更
+     * @param activeFlag    判断有效标识是否发生变更
      * @return
      */
-    public static OccupyDto checkValidTime(OccupyDto occupyFromSSO, LocalDateTime now,Boolean activeFlag) {
+    public static OccupyDto checkValidTime(OccupyDto occupyFromSSO, LocalDateTime now, Boolean activeFlag) {
         //修改
         //当前标识位为有效
         if (occupyFromSSO.getActive() == 1 && occupyFromSSO.getDelMark() == 0 && occupyFromSSO.getOrphan() == 0) {
@@ -914,7 +919,7 @@ public class OccupyServiceImpl implements OccupyService {
             } else {
                 //标识位为无效,当前时刻不在最终有效期内(校验数据时效性)
 
-                if(activeFlag){
+                if (activeFlag) {
                     //最终有效期结束时间早于当前时刻,不认上游给出的最终有效期结束时间,赋值为当前时刻
                     if (occupyFromSSO.getValidEndTime().isBefore(now)) {
                         occupyFromSSO.setValidEndTime(now);
@@ -1067,10 +1072,10 @@ public class OccupyServiceImpl implements OccupyService {
             viewTask.setType("occupy");
         }
         //查询进行中的刷新人员身份任务数
-        Integer count = preViewTaskDao.findByTypeAndStatus("occupy", "doing", domain);
+        Integer count = preViewTaskService.findByTypeAndStatus("occupy", "doing", domain);
 
         if (count <= 10) {
-            viewTask = preViewTaskDao.saveTask(viewTask);
+            viewTask = preViewTaskService.saveTask(viewTask);
         } else {
             //Optional<String> first = PersonServiceImpl.preViewTask.keySet().stream().findFirst();
             //String s = first.get();
@@ -1122,7 +1127,7 @@ public class OccupyServiceImpl implements OccupyService {
         Map<String, OccupyDto> occupyDtoFromUpstream = new HashMap<>();
         List<OccupyDto> occupyDtos = null;
         try {
-            occupyDtos = dataProcessing(domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream, null);
+            occupyDtos = dataProcessing(domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream, null, null);
         } catch (Exception e) {
             e.printStackTrace();
             throw new CustomException(ResultCode.FAILED, e.getMessage());
@@ -1135,7 +1140,7 @@ public class OccupyServiceImpl implements OccupyService {
         if (null != viewTask) {
             viewTask.setStatus("done");
             viewTask.setUpdateTime(new Timestamp(System.currentTimeMillis()));
-            preViewTaskDao.saveTask(viewTask);
+            preViewTaskService.saveTask(viewTask);
             log.info("人员身份刷新完毕,任务id为:{}", viewTask.getTaskId());
         }
     }

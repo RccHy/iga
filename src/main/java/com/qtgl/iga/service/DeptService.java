@@ -16,5 +16,5 @@ public interface DeptService {
 
     List<TreeBean> findDeptByDomainName(String domainName, String treeType, Integer delMark);
 
-    Map<TreeBean, String> buildDeptUpdateResult(DomainInfo domain, TaskLog lastTaskLog) throws Exception;
+    Map<TreeBean, String> buildDeptUpdateResult(DomainInfo domain, TaskLog lastTaskLog, TaskLog currentTask) throws Exception;
 }

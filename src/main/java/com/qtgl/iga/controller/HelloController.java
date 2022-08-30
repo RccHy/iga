@@ -109,7 +109,7 @@ public class HelloController {
 
 */
                 //人员身份同步至sso
-                final Map<String, List<OccupyDto>> occupyResult = occupyService.buildOccupy(domainInfo, lastTaskLog);
+                final Map<String, List<OccupyDto>> occupyResult = occupyService.buildOccupy(domainInfo, lastTaskLog,null);
                 String occupyNo = (occupyResult.containsKey("insert") ? String.valueOf(occupyResult.get("insert").size()) : "0") + "/"
                         + (occupyResult.containsKey("delete") ? String.valueOf(occupyResult.get("delete").size()) : "0") + "/"
                         + (occupyResult.containsKey("update") ? String.valueOf(occupyResult.get("update").size()) : "0");

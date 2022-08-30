@@ -85,12 +85,21 @@ public class PreViewTaskDaoImpl implements PreViewTaskDao {
         Map<String, Object> stringObjectMap = jdbcIGA.queryForMap(stb.toString(), param.toArray());
         PreViewTask preViewTask = new PreViewTask();
         if (null != stringObjectMap && stringObjectMap.size() > 0) {
-                BeanMap beanMap = BeanMap.create(preViewTask);
-                beanMap.putAll(stringObjectMap);
+            BeanMap beanMap = BeanMap.create(preViewTask);
+            beanMap.putAll(stringObjectMap);
 
             return preViewTask;
         }
 
         return preViewTask;
+    }
+
+    @Override
+    public Integer makeTaskDone() {
+        //修改
+        String sql = "UPDATE `t_mgr_pre_view_task` SET  `status` = 'done' , `update_time` = ? WHERE status!='done' ";
+        return jdbcIGA.update(sql, preparedStatement -> {
+            preparedStatement.setObject(1, new Timestamp(System.currentTimeMillis()));
+        });
     }
 }

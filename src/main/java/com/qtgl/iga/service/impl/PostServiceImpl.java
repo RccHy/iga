@@ -69,7 +69,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
-    public Map<TreeBean, String> buildPostUpdateResult(DomainInfo domain, TaskLog lastTaskLog) throws Exception {
+    public Map<TreeBean, String> buildPostUpdateResult(DomainInfo domain, TaskLog lastTaskLog, TaskLog currentTask) throws Exception {
         //获取默认数据
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
@@ -128,7 +128,7 @@ public class PostServiceImpl implements PostService {
         List<DynamicValue> valueUpdate = new ArrayList<>();
 
         //增量日志容器
-        List<IncrementalTask> incrementalTasks = new ArrayList<>();
+        //List<IncrementalTask> incrementalTasks = new ArrayList<>();
         //扩展字段新增容器
         ArrayList<DynamicValue> valueInsert = new ArrayList<>();
 
@@ -164,7 +164,7 @@ public class PostServiceImpl implements PostService {
         }
         for (TreeBean rootBean : rootBeans) {
 
-            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, incrementalTasks, result, nodesMap);
+            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, result, nodesMap, currentTask);
 
         }
         // 判断重复(code)
@@ -193,10 +193,10 @@ public class PostServiceImpl implements PostService {
         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
         calculationService.monitorRules(domain, lastTaskLog, beans.size(), delete, "post");
         saveToSso(collect, tenant.getId(), attrMap, valueUpdate, valueInsert);
-        if (!CollectionUtils.isEmpty(incrementalTasks)) {
-            //添加增量日志
-            incrementalTaskDao.saveAll(incrementalTasks, domain);
-        }
+        //if (!CollectionUtils.isEmpty(incrementalTasks)) {
+        //    //添加增量日志
+        //    incrementalTaskDao.saveAll(incrementalTasks, domain);
+        //}
         if (!CollectionUtils.isEmpty(occupyMonitors)) {
             //处理因组织机构变化影响的历史身份有效期
             ArrayList<OccupyDto> occupyDtos = occupyProcessing(occupyMonitors, tenant.getId());
@@ -324,7 +324,7 @@ public class PostServiceImpl implements PostService {
         }
         for (TreeBean rootBean : rootBeans) {
 
-            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, null, result, nodesMap);
+            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, result, nodesMap, null);
 
         }
 
@@ -902,7 +902,7 @@ public class PostServiceImpl implements PostService {
                                 dto.setValidStartTime(now);
                                 dto.setValidEndTime(null != dto.getEndTime() ? dto.getEndTime() : OccupyServiceImpl.DEFAULT_END_TIME);
                                 dto.setOrphan(0);
-                                OccupyServiceImpl.checkValidTime(dto, now,true);
+                                OccupyServiceImpl.checkValidTime(dto, now, true);
                                 resultOccupies.add(dto);
                             } else if (3 == dto.getOrphan()) {
                                 //orphan为3(因组织机构和岗位无效导致的无效身份)的改为 orphan 1
