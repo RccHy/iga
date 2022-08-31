@@ -8,6 +8,7 @@ import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
+import com.qtgl.iga.service.IncrementalTaskService;
 import com.qtgl.iga.task.TaskConfig;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
@@ -63,6 +64,8 @@ public class NodeRulesCalculationServiceImpl {
     MonitorRulesDao monitorRulesDao;
     @Autowired
     DeptServiceImpl deptService;
+    @Autowired
+    IncrementalTaskService incrementalTaskService;
 
     public static Logger logger = LoggerFactory.getLogger(NodeRulesCalculationServiceImpl.class);
     //岗位重命名数据
@@ -511,11 +514,10 @@ public class NodeRulesCalculationServiceImpl {
      * @param mainTree
      * @param status   状态(0:正式,1:编辑,2:历史)
      * @param type     来源类型 person,post,dept,occupy
-     *                 //@param operator     操作:task定时任务,system:系统操作
      * @Description: 规则运算
      * @return: java.util.Map<java.lang.String, com.qtgl.iga.bean.TreeBean>
      */
-    public List<TreeBean> nodeRules(DomainInfo domain, DeptTreeType treeType, String nodeCode, List<TreeBean> mainTree, Integer status, String type, List<String> dynamicCodes, Map<String, TreeBean> ssoBeansMap, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamHashMap, List<IncrementalTask> incrementalTasks, Map<TreeBean, String> result, Map<String, List<Node>> nodesMap) throws Exception {
+    public List<TreeBean> nodeRules(DomainInfo domain, DeptTreeType treeType, String nodeCode, List<TreeBean> mainTree, Integer status, String type, List<String> dynamicCodes, Map<String, TreeBean> ssoBeansMap, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamHashMap,  Map<TreeBean, String> result, Map<String, List<Node>> nodesMap, TaskLog currentTask) throws Exception {
         //获取根节点的规则
         //List<Node> nodes = nodeDao.getByCode(domain.getId(), treeType, nodeCode, status, type);
         //获取组织机构信息
@@ -828,13 +830,28 @@ public class NodeRulesCalculationServiceImpl {
                         if (null != upstreamType.getIsIncremental() && upstreamType.getIsIncremental()) {
                             if (null != mergeDeptMap) {
                                 Collection<TreeBean> values = mergeDeptMap.values();
+                                IncrementalTask incrementalTask = null;
+                                if (null != currentTask) {
+                                    //处理增量日志
+                                    List<TreeBean> collect1 = values.stream().sorted(Comparator.comparing(TreeBean::getUpdateTime).reversed()).collect(Collectors.toList());
+                                    incrementalTask = new IncrementalTask();
+                                    incrementalTask.setId(UUID.randomUUID().toString());
+                                    incrementalTask.setMainTaskId(currentTask.getId());
+                                    incrementalTask.setType(type);
+                                    logger.info("类型:{},权威源类型:{},上游增量最大修改时间:{} -> {},当前时刻:{}", upstreamType.getSynType(), upstreamType.getId(), collect1.get(0).getUpdateTime(), collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
+                                    long min = Math.min(collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
+                                    incrementalTask.setTime(new Timestamp(min));
+                                    incrementalTask.setUpstreamTypeId(collect1.get(0).getUpstreamTypeId());
+                                    incrementalTaskService.save(incrementalTask, domain);
+
+                                }
                                 //增量对比处理内存中sso的数据
-                                ssoBeansMap = incrementalDataProcessing(values, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamHashMap, incrementalTasks, type, result, upstreamType);
+                                ssoBeansMap = incrementalDataProcessing(values, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamHashMap, incrementalTask, result);
                             }
 
                             // 将本次 add 进的 节点 进行 规则运算
                             for (Map.Entry<String, TreeBean> entry : mergeDeptMap.entrySet()) {
-                                mainTree = nodeRules(domain, treeType, entry.getValue().getCode(), mainTree, status, type, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamHashMap, incrementalTasks, result, nodesMap);
+                                mainTree = nodeRules(domain, treeType, entry.getValue().getCode(), mainTree, status, type, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamHashMap, result, nodesMap, currentTask);
                             }
 
                             continue;
@@ -855,7 +872,7 @@ public class NodeRulesCalculationServiceImpl {
 
                         // 将本次 add 进的 节点 进行 规则运算
                         for (Map.Entry<String, TreeBean> entry : mergeDeptMap.entrySet()) {
-                            mainTree = nodeRules(domain, treeType, entry.getValue().getCode(), mainTree, status, type, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamHashMap, incrementalTasks, result, nodesMap);
+                            mainTree = nodeRules(domain, treeType, entry.getValue().getCode(), mainTree, status, type, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamHashMap, result, nodesMap, currentTask);
                         }
 
 
@@ -1247,20 +1264,11 @@ public class NodeRulesCalculationServiceImpl {
      * @param upstreamMap  判别权威源是否处于无效
      * @return
      */
-    private Map<String, TreeBean> incrementalDataProcessing(Collection<TreeBean> values, Map<String, TreeBean> ssoCollect, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamMap, List<IncrementalTask> incrementalTasks, String type, Map<TreeBean, String> result, UpstreamType upstreamType) {
+    private Map<String, TreeBean> incrementalDataProcessing(Collection<TreeBean> values, Map<String, TreeBean> ssoCollect, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamMap, IncrementalTask incrementalTask, Map<TreeBean, String> result) {
 
         LocalDateTime now = LocalDateTime.now();
-        //处理增量日志
-        List<TreeBean> collect1 = values.stream().sorted(Comparator.comparing(TreeBean::getUpdateTime).reversed()).collect(Collectors.toList());
-        if (null != incrementalTasks) {
-            IncrementalTask incrementalTask = new IncrementalTask();
-            incrementalTask.setType(type);
-            logger.info("类型:{},权威源类型:{},上游增量最大修改时间:{} -> {},当前时刻:{}", upstreamType.getSynType(), upstreamType.getId(), collect1.get(0).getUpdateTime(), collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
-            long min = Math.min(collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
-            incrementalTask.setTime(new Timestamp(min));
-            incrementalTask.setUpstreamTypeId(collect1.get(0).getUpstreamTypeId());
-            incrementalTasks.add(incrementalTask);
-        }
+
+        //Map<TreeBean, String> resultTemp = new HashMap<>();
 
         ArrayList<TreeBean> ssoBeans = new ArrayList<>(ssoCollect.values());
         //拉取的数据
@@ -1373,6 +1381,7 @@ public class NodeRulesCalculationServiceImpl {
                                         ssoBean.setDelMark(0);
                                         ssoCollect.put(ssoBean.getCode(), ssoBean);
                                         result.put(ssoBean, "recover");
+                                        //resultTemp.put(ssoBean, "recover");
                                         //修改标记置为false
                                         updateFlag = false;
                                         logger.info("增量数据 信息{}从删除恢复", ssoBean.getCode());
@@ -1381,12 +1390,14 @@ public class NodeRulesCalculationServiceImpl {
                                     if (delFlag) {
                                         if ((null != ssoBean.getRuleStatus() && !ssoBean.getRuleStatus()) || (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource()))) {
                                             result.put(ssoBean, "obsolete");
+                                            //resultTemp.put(ssoBean, "obsolete");
                                             logger.info("增量数据 对比后应删除{},但检测到对应权威源已无效或规则未启用,跳过该数据", ssoBean.getId());
                                         } else {
                                             //将数据放入删除集合
                                             ssoBean.setDelMark(1);
                                             ssoCollect.remove(ssoBean.getCode());
                                             result.put(ssoBean, "delete");
+                                            //resultTemp.put(ssoBean, "delete");
                                             //修改标记置为false
                                             updateFlag = false;
                                             logger.info("增量数据 对比后需要删除{}", ssoBean.getId());
@@ -1403,11 +1414,13 @@ public class NodeRulesCalculationServiceImpl {
                                         if (invalidFlag) {
                                             if ((null != ssoBean.getRuleStatus() && !ssoBean.getRuleStatus()) || (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource()))) {
                                                 result.put(ssoBean, "obsolete");
+                                                //resultTemp.put(ssoBean, "obsolete");
                                                 logger.info("增量数据 对比后应置为失效{},但检测到对应权威源已无效或规则未启用,跳过该数据", ssoBean.getId());
                                             } else {
                                                 ssoBean.setActive(0);
                                                 ssoCollect.put(ssoBean.getCode(), ssoBean);
                                                 result.put(ssoBean, "invalid");
+                                                //resultTemp.put(ssoBean, "invalid");
                                                 logger.info("增量数据 对比后需要置为失效{}", ssoBean.getId());
                                             }
                                         } else {
@@ -1475,6 +1488,7 @@ public class NodeRulesCalculationServiceImpl {
                                     if (!dyFlag) {
                                         ssoCollect.put(ssoBean.getCode(), ssoBean);
                                         result.put(ssoBean, "update");
+                                        //resultTemp.put(ssoBean, "update");
                                     }
 
                                     //处理扩展字段对比     修改标识为false则认为主体字段没有差异
@@ -1489,6 +1503,7 @@ public class NodeRulesCalculationServiceImpl {
                                         Boolean valueFlag = deptService.dynamicProcessing(valueUpdate, valueInsert, attrMap, ssoBean, dynamic, dyValuesFromSSO);
                                         if (valueFlag) {
                                             result.put(ssoBean, "update");
+                                            //resultTemp.put(ssoBean, "update");
                                         }
 
 
@@ -1510,6 +1525,7 @@ public class NodeRulesCalculationServiceImpl {
                     pullBean.setDataSource("INC_PULL");
                     ssoCollect.put(pullBean.getCode(), pullBean);
                     result.put(pullBean, "insert");
+                    //resultTemp.put(pullBean, "insert");
                 }
             } else {
                 //数据库数据为空的话且数据来源规则是启用的,则默认新增
@@ -1517,10 +1533,22 @@ public class NodeRulesCalculationServiceImpl {
                     pullBean.setDataSource("INC_PULL");
                     ssoCollect.put(pullBean.getCode(), pullBean);
                     result.put(pullBean, "insert");
+                    //resultTemp.put(pullBean, "insert");
 
                 }
             }
         }
+        ////处理单次数据
+        //Map<String, List<Map.Entry<TreeBean, String>>> resultMap = resultTemp.entrySet().stream().collect(Collectors.groupingBy(Map.Entry::getValue));
+        ////处理数据
+        //Integer recoverDept = resultMap.containsKey("recover") ? resultMap.get("recover").size() : 0;
+        //Integer insertDept = (resultMap.containsKey("insert") ? resultMap.get("insert").size() : 0) + recoverDept;
+        //Integer deleteDept = resultMap.containsKey("delete") ? resultMap.get("delete").size() : 0;
+        //Integer updateDept = (resultMap.containsKey("update") ? resultMap.get("update").size() : 0);
+        //Integer invalidDept = resultMap.containsKey("invalid") ? resultMap.get("invalid").size() : 0;
+        //String operationNo = insertDept + "/" + deleteDept + "/" + updateDept + "/" + invalidDept;
+        //incrementalTask.setOperationNo(operationNo);
+        //incrementalTaskService.update(incrementalTask);
         return ssoCollect;
     }
 

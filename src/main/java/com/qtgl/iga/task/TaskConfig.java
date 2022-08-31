@@ -94,8 +94,8 @@ public class TaskConfig {
         if (!CollectionUtils.isEmpty(dsConfigs)) {
             collect = dsConfigs.stream().collect(Collectors.toMap(DsConfig::getTenantId, v -> v));
         }
-        if(CollectionUtils.isEmpty(domainInfos)){
-            throw  new CustomException(ResultCode.FAILED,"当前租户为空,请配置对应租户");
+        if (CollectionUtils.isEmpty(domainInfos)) {
+            throw new CustomException(ResultCode.FAILED, "当前租户为空,请配置对应租户");
         }
         for (DomainInfo domainInfo : domainInfos) {
             if (TaskThreadPool.executorServiceMap.containsKey(domainInfo.getDomainName())) {
@@ -143,7 +143,7 @@ public class TaskConfig {
                                 log.info("{}开始同步,task:{}", domainInfo.getDomainName(), taskLog.getId());
                                 taskLogService.save(taskLog, domainInfo.getId(), "save");
                                 //部门数据同步至sso
-                                Map<TreeBean, String> deptResult = deptService.buildDeptUpdateResult(domainInfo, lastTaskLog);
+                                Map<TreeBean, String> deptResult = deptService.buildDeptUpdateResult(domainInfo, lastTaskLog, taskLog);
                                 Map<String, List<Map.Entry<TreeBean, String>>> deptResultMap = deptResult.entrySet().stream().collect(Collectors.groupingBy(Map.Entry::getValue));
                                 //处理数据
                                 Integer recoverDept = deptResultMap.containsKey("recover") ? deptResultMap.get("recover").size() : 0;
@@ -166,7 +166,7 @@ public class TaskConfig {
 
 
                                 //=============岗位数据同步至sso=================
-                                final Map<TreeBean, String> postResult = postService.buildPostUpdateResult(domainInfo, lastTaskLog);
+                                final Map<TreeBean, String> postResult = postService.buildPostUpdateResult(domainInfo, lastTaskLog, taskLog);
                                 Map<String, List<Map.Entry<TreeBean, String>>> postResultMap = postResult.entrySet().stream().collect(Collectors.groupingBy(Map.Entry::getValue));
                                 Integer recoverPost = postResultMap.containsKey("recover") ? postResultMap.get("recover").size() : 0;
                                 Integer insertPost = (postResultMap.containsKey("insert") ? postResultMap.get("insert").size() : 0) + recoverPost;
@@ -186,7 +186,7 @@ public class TaskConfig {
 
 
                                 //=============人员数据同步至sso=============
-                                Map<String, List<Person>> personResult = personService.buildPerson(domainInfo, lastTaskLog);
+                                Map<String, List<Person>> personResult = personService.buildPerson(domainInfo, lastTaskLog, taskLog);
                                 Integer insertPerson = (personResult.containsKey("insert") ? personResult.get("insert").size() : 0);
                                 Integer deletePerson = personResult.containsKey("delete") ? personResult.get("delete").size() : 0;
                                 Integer updatePerson = (personResult.containsKey("update") ? personResult.get("update").size() : 0);
@@ -205,7 +205,7 @@ public class TaskConfig {
 
 
                                 //人员身份同步至sso
-                                final Map<String, List<OccupyDto>> occupyResult = occupyService.buildOccupy(domainInfo, lastTaskLog);
+                                final Map<String, List<OccupyDto>> occupyResult = occupyService.buildOccupy(domainInfo, lastTaskLog, taskLog);
                                 //Integer recoverOccupy = occupyResult.containsKey("recover") ? deptResultMap.get("recover").size() : 0;
                                 Integer insertOccupy = (occupyResult.containsKey("insert") ? occupyResult.get("insert").size() : 0);
                                 Integer deleteOccupy = occupyResult.containsKey("delete") ? occupyResult.get("delete").size() : 0;

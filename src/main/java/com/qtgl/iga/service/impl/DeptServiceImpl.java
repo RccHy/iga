@@ -167,12 +167,12 @@ public class DeptServiceImpl implements DeptService {
                 //重复性校验
                 rulesCalculationService.groupByCode(mainTreeBeans, status, domain);
                 for (TreeBean ssoApiBean : ssoApiBeans) {
-                    mainTreeBeans = calculationService.nodeRules(domain, deptType, ssoApiBean.getCode(), mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, null, result, nodesMap);
+                    mainTreeBeans = calculationService.nodeRules(domain, deptType, ssoApiBean.getCode(), mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, result, nodesMap, null);
                 }
             }
 
             // id 改为code
-            mainTreeBeans = calculationService.nodeRules(domain, deptType, "", mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, null, result, nodesMap);
+            mainTreeBeans = calculationService.nodeRules(domain, deptType, "", mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, result, nodesMap, null);
 
         }
         //同步到sso
@@ -216,7 +216,7 @@ public class DeptServiceImpl implements DeptService {
      * @return
      */
     @Override
-    public Map<TreeBean, String> buildDeptUpdateResult(DomainInfo domain, TaskLog lastTaskLog) throws Exception {
+    public Map<TreeBean, String> buildDeptUpdateResult(DomainInfo domain, TaskLog lastTaskLog, TaskLog currentTask) throws Exception {
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
             throw new CustomException(ResultCode.FAILED, "租户不存在");
@@ -251,7 +251,7 @@ public class DeptServiceImpl implements DeptService {
         List<DynamicValue> valueUpdate = new ArrayList<>();
 
         //增量日志容器
-        List<IncrementalTask> incrementalTasks = new ArrayList<>();
+        //List<IncrementalTask> incrementalTasks = new ArrayList<>();
 
         //扩展字段新增容器
         ArrayList<DynamicValue> valueInsert = new ArrayList<>();
@@ -294,11 +294,11 @@ public class DeptServiceImpl implements DeptService {
                 mainTreeBeans.addAll(ssoApiBeans);
                 rulesCalculationService.groupByCode(mainTreeBeans, 0, domain);
                 for (TreeBean ssoApiBean : ssoApiBeans) {
-                    mainTreeBeans = calculationService.nodeRules(domain, deptType, ssoApiBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, incrementalTasks, result, nodesMap);
+                    mainTreeBeans = calculationService.nodeRules(domain, deptType, ssoApiBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, result, nodesMap, currentTask);
                 }
             }
             //  id 改为code
-            mainTreeBeans = calculationService.nodeRules(domain, deptType, "", mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, incrementalTasks, result, nodesMap);
+            mainTreeBeans = calculationService.nodeRules(domain, deptType, "", mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, result, nodesMap, currentTask);
 
         }
         //同步到sso
@@ -318,10 +318,10 @@ public class DeptServiceImpl implements DeptService {
 
         //保存到数据库
         saveToSso(collect, tenant.getId(), attrMap, valueUpdate, valueInsert);
-        if (!CollectionUtils.isEmpty(incrementalTasks)) {
-            //添加增量日志
-            incrementalTaskDao.saveAll(incrementalTasks, domain);
-        }
+        //if (!CollectionUtils.isEmpty(incrementalTasks)) {
+        //    //添加增量日志
+        //    incrementalTaskDao.saveAll(incrementalTasks, domain);
+        //}
         if (!CollectionUtils.isEmpty(occupyMonitors)) {
             //处理因组织机构变化影响的历史身份有效期
             ArrayList<OccupyDto> occupyDtos = occupyProcessing(occupyMonitors, tenant.getId());
@@ -528,10 +528,10 @@ public class DeptServiceImpl implements DeptService {
                                     //是否处理扩展字段标识
                                     boolean dyFlag = true;
 
-                                    //使用sso的对象,将需要修改的值赋值
-                                    if ("API".equals(ssoBean.getDataSource())) {
-                                        updateFlag = true;
-                                    }
+                                    ////使用sso的对象,将需要修改的值赋值
+                                    //if ("API".equals(ssoBean.getDataSource())) {
+                                    //    updateFlag = true;
+                                    //}
                                     //处理sso数据的active为null的情况
                                     if (null == ssoBean.getActive() || "".equals(ssoBean.getActive())) {
                                         ssoBean.setActive(1);
@@ -902,7 +902,7 @@ public class DeptServiceImpl implements DeptService {
                                 dto.setValidStartTime(now);
                                 dto.setValidEndTime(null != dto.getEndTime() ? dto.getEndTime() : OccupyServiceImpl.DEFAULT_END_TIME);
                                 dto.setOrphan(0);
-                                OccupyServiceImpl.checkValidTime(dto, now,true);
+                                OccupyServiceImpl.checkValidTime(dto, now, true);
                                 resultOccupies.add(dto);
                             } else if (3 == dto.getOrphan()) {
                                 //orphan为3(因组织机构和岗位无效导致的无效身份)的改为 orphan 2

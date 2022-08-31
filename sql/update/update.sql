@@ -1,7 +1,13 @@
+
+--20220830
+ALTER TABLE `incremental_task`
+    ADD COLUMN `operation_no` varchar(50) NULL COMMENT '本次操作数量' AFTER `domain`,
+    ADD COLUMN `main_task_id` varchar(50) NULL COMMENT '主任务id' AFTER `operation_no`;
+
 -- 20220805
 --删除失效继承规则的range
-DELETE FROM  t_mgr_node_rules_range WHERE   node_rules_id IN ( SELECT id FROM  t_mgr_node_rules WHERE inherit_id IS NOT NULL
-  AND STATUS IN ( 0, 1 )         AND inherit_id NOT IN ( SELECT id FROM t_mgr_node_rules WHERE STATUS IN ( 1, 0 ) ) );
+DELETE FROM  t_mgr_node_rules_range WHERE node_rules_id IN ( SELECT id FROM  t_mgr_node_rules WHERE inherit_id IS NOT NULL
+  AND STATUS IN ( 0, 1 )  AND inherit_id NOT IN ( SELECT id FROM t_mgr_node_rules WHERE STATUS IN ( 1, 0 ) ) );
 --删除失效的继承规则
 DELETE FROM	t_mgr_node_rules WHERE inherit_id IS NOT NULL 	AND STATUS IN ( 0, 1 ) 	AND inherit_id NOT IN ( SELECT a.id FROM ( SELECT id FROM t_mgr_node_rules WHERE STATUS IN ( 1, 0 ) ) a );
 

@@ -30,4 +30,12 @@ public class IncrementalTask {
      * 所属租户
      */
     private String domain;
+    /**
+     * 本次操作数量
+     */
+    private String operationNo;
+    /**
+     * 主任务id
+     */
+    private String mainTaskId;
 }

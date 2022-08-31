@@ -12,13 +12,13 @@ import java.util.Map;
 public interface PersonService {
 
 
-    Map<String, List<Person>> buildPerson(DomainInfo domain, TaskLog lastTaskLog) throws Exception;
+    Map<String, List<Person>> buildPerson(DomainInfo domain, TaskLog lastTaskLog, TaskLog currentTask) throws Exception;
 
     PersonConnection findPersons(Map<String, Object> arguments, DomainInfo domain) throws Exception;
 
     PersonConnection preViewPersons(Map<String, Object> arguments, DomainInfo domain) throws Exception;
 
-    PreViewTask reFreshPersons(Map<String, Object> arguments, DomainInfo domain,PreViewTask preViewTask) throws Exception;
+    PreViewTask reFreshPersons(Map<String, Object> arguments, DomainInfo domain, PreViewTask preViewTask) throws Exception;
 
     PreViewTask reFreshTaskStatus(Map<String, Object> arguments, DomainInfo domain);
 }

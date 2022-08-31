@@ -9,6 +9,7 @@ import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.DomainInfoService;
+import com.qtgl.iga.service.IncrementalTaskService;
 import com.qtgl.iga.service.UpstreamTypeService;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
@@ -75,7 +76,7 @@ public class DataBusUtil {
     @Autowired
     OccupyDao occupyDao;
     @Autowired
-    IncrementalTaskDao incrementalTaskDao;
+    IncrementalTaskService incrementalTaskService;
 
     @Value("${app.scope}")
     private String appScope;
@@ -1189,7 +1190,7 @@ public class DataBusUtil {
 
     private Timestamp processTime(UpstreamType upstreamType) {
         //获取最近一次增量数据同步的日志信息
-        List<IncrementalTask> incrementalTasks = incrementalTaskDao.findByDomainAndType(upstreamType.getDomain(), upstreamType.getSynType(), upstreamType.getId());
+        List<IncrementalTask> incrementalTasks = incrementalTaskService.findByDomainAndType(upstreamType.getDomain(), upstreamType.getSynType(), upstreamType.getId());
         long maxTime;
         //long now = System.currentTimeMillis();
         if (!CollectionUtils.isEmpty(incrementalTasks)) {
