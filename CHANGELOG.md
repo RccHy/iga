@@ -1,3 +1,26 @@
+### 20220831
+
+**数据库**
+- 执行iga/update/update.sql下 20220830的sql
+
+**new：**
+- 无
+
+**bug fix**
+- 人员身份有效期相关逻辑处理修改
+- 身份治理权威源人员,人员身份修改数据后 DataSource未修改的 bug fix
+- 人员及人员身份预览任务相关 bug fix
+- 增量同步日志与主概览日志关联逻辑添加
+- 人员及人员身份删除规则 bug fix
+- pub 接口 bug fix
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20220831
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20220831
 
 ### 20220819
 
