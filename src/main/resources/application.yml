@@ -54,7 +54,7 @@ server:
   forward-headers-strategy: framework
 
 file:
-  url: ${FILE_URL}
+  url: ${FILE_URL:}
 
 
 task:
