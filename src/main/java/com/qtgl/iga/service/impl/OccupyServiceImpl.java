@@ -584,11 +584,7 @@ public class OccupyServiceImpl implements OccupyService {
             OccupyDto newOccupy = occupyDtoFromUpstream.get(key);
             //当前数据来源规则为启用再进行处理
             if (newOccupy.getRuleStatus()) {
-                occupyFromSSO.setDataSource(newOccupy.getDataSource());
-                //处理sso数据的active为null的情况
-                if (null == occupyFromSSO.getActive() || "".equals(occupyFromSSO.getActive())) {
-                    occupyFromSSO.setActive(1);
-                }
+
                 //修改标识
                 boolean updateFlag = false;
                 //删除恢复标识
@@ -601,6 +597,15 @@ public class OccupyServiceImpl implements OccupyService {
                 boolean timeFlag = false;
                 //恢复失效标识
                 //   boolean invalidRecoverFlag = true;
+                if (!"PULL".equals(occupyFromSSO.getDataSource())) {
+                    updateFlag = true;
+                }
+                occupyFromSSO.setSource(newOccupy.getSource());
+                occupyFromSSO.setDataSource(newOccupy.getDataSource());
+                //处理sso数据的active为null的情况
+                if (null == occupyFromSSO.getActive() || "".equals(occupyFromSSO.getActive())) {
+                    occupyFromSSO.setActive(1);
+                }
                 occupyFromSSO.setRuleStatus(newOccupy.getRuleStatus());
                 List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(newOccupy.getUpstreamType());
                 if (!occupyTypeFields.containsKey(newOccupy.getUpstreamType())) {

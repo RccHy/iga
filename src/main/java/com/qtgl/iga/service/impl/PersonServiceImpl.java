@@ -720,12 +720,7 @@ public class PersonServiceImpl implements PersonService {
             Person newPerson = personFromUpstream.get(key);
             //当前数据来源规则为启用再进行处理
             if (newPerson.getRuleStatus()) {
-                personFromSSO.setDataSource(newPerson.getDataSource());
-                personFromSSO.setUpstreamType(newPerson.getUpstreamType());
-                //处理sso数据的active为null的情况
-                if (null == personFromSSO.getActive() || "".equals(personFromSSO.getActive())) {
-                    personFromSSO.setActive(1);
-                }
+
                 //修改标识
                 boolean updateFlag = false;
                 //del字段标识
@@ -738,8 +733,19 @@ public class PersonServiceImpl implements PersonService {
                 // boolean invalidRecoverFlag = true;
                 //是否处理扩展字段标识
                 boolean dyFlag = true;
+
+                if (!"PULL".equals(personFromSSO.getDataSource())) {
+                    updateFlag = true;
+                }
+                personFromSSO.setSource(newPerson.getSource());
+                personFromSSO.setDataSource(newPerson.getDataSource());
+                personFromSSO.setUpstreamType(newPerson.getUpstreamType());
                 //传递规则是否启用标识
                 personFromSSO.setRuleStatus(newPerson.getRuleStatus());
+                //处理sso数据的active为null的情况
+                if (null == personFromSSO.getActive() || "".equals(personFromSSO.getActive())) {
+                    personFromSSO.setActive(1);
+                }
                 List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(newPerson.getUpstreamType());
                 // 如果字段上游不提供，则不进行更新
                 //    字段值没有发生改变，不进行更新
@@ -1096,14 +1102,7 @@ public class PersonServiceImpl implements PersonService {
             Person newPerson = personFromUpstream.get(key);
             //当前数据来源规则为启用再进行处理
             if (newPerson.getRuleStatus()) {
-                personFromSSO.setDataSource(newPerson.getDataSource());
-                personFromSSO.setUpstreamType(newPerson.getUpstreamType());
-                //规则启用标识传递
-                personFromSSO.setRuleStatus(newPerson.getRuleStatus());
-                //处理sso数据的active为null的情况
-                if (null == personFromSSO.getActive() || "".equals(personFromSSO.getActive())) {
-                    personFromSSO.setActive(1);
-                }
+
                 ////修改是否合法标识
                 //boolean licitFlag = true;
                 //修改标识
@@ -1119,6 +1118,19 @@ public class PersonServiceImpl implements PersonService {
                 //是否处理扩展字段标识
                 boolean dyFlag = true;
 
+                //使用sso的对象,将需要修改的值赋值
+                if (!"PULL".equals(personFromSSO.getDataSource())) {
+                    updateFlag = true;
+                }
+                personFromSSO.setDataSource(newPerson.getDataSource());
+                personFromSSO.setSource(newPerson.getSource());
+                personFromSSO.setUpstreamType(newPerson.getUpstreamType());
+                //规则启用标识传递
+                personFromSSO.setRuleStatus(newPerson.getRuleStatus());
+                //处理sso数据的active为null的情况
+                if (null == personFromSSO.getActive() || "".equals(personFromSSO.getActive())) {
+                    personFromSSO.setActive(1);
+                }
                 List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(newPerson.getUpstreamType());
                 // 如果字段上游不提供，则不进行更新
                 //    字段值没有发生改变，不进行更新

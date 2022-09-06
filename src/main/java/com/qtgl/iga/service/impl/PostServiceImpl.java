@@ -543,12 +543,13 @@ public class PostServiceImpl implements PostService {
                                     if (null == ssoBean.getActive() || "".equals(ssoBean.getActive())) {
                                         ssoBean.setActive(1);
                                     }
-                                    if (!"BUILTIN".equalsIgnoreCase(pullBean.getDataSource())) {
-                                        ssoBean.setDataSource("PULL");
-                                        ssoBean.setSource(pullBean.getSource());
-                                        ssoBean.setUpdateTime(now);
-                                        ssoBean.setFormal(pullBean.getFormal());
+                                    if (!"PULL".equalsIgnoreCase(ssoBean.getDataSource())) {
+                                        updateFlag = true;
                                     }
+                                    ssoBean.setDataSource("PULL");
+                                    ssoBean.setSource(pullBean.getSource());
+                                    ssoBean.setUpdateTime(now);
+                                    ssoBean.setFormal(pullBean.getFormal());
                                     ssoBean.setColor(pullBean.getColor());
                                     ssoBean.setIsRuled(pullBean.getIsRuled());
                                     ssoBean.setRuleStatus(pullBean.getRuleStatus());

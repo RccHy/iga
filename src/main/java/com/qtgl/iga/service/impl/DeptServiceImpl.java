@@ -528,10 +528,10 @@ public class DeptServiceImpl implements DeptService {
                                     //是否处理扩展字段标识
                                     boolean dyFlag = true;
 
-                                    ////使用sso的对象,将需要修改的值赋值
-                                    //if ("API".equals(ssoBean.getDataSource())) {
-                                    //    updateFlag = true;
-                                    //}
+                                    //使用sso的对象,将需要修改的值赋值
+                                    if (!"PULL".equals(ssoBean.getDataSource())) {
+                                        updateFlag = true;
+                                    }
                                     //处理sso数据的active为null的情况
                                     if (null == ssoBean.getActive() || "".equals(ssoBean.getActive())) {
                                         ssoBean.setActive(1);
