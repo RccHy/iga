@@ -1,4 +1,4 @@
-### 20220907
+### 20220908
 
 **数据库**
 - 无
@@ -15,7 +15,7 @@
 
 **依赖其他项目：**
 
-- docker.qtgl.com.cn/product/console:20220906
+- docker.qtgl.com.cn/product/console:20220908
 
 
 
