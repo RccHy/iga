@@ -802,7 +802,7 @@ public class OccupyServiceImpl implements OccupyService {
                                 if (0 == occupyFromSSO.getOrphan()) {
                                     activeFlag = true;
                                     //上游提供的有效期开始时间为过去时间则赋值为当前时刻
-                                    if (occupyFromSSO.getStartTime().isBefore(now)) {
+                                    if (null == occupyFromSSO.getStartTime() || occupyFromSSO.getStartTime().isBefore(now)) {
                                         occupyFromSSO.setValidStartTime(now);
                                     }
                                 }
