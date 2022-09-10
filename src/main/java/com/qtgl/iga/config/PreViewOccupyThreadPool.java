@@ -10,8 +10,6 @@ import java.util.concurrent.*;
 @Component
 public class PreViewOccupyThreadPool {
 
-
-
     public static ExecutorService preViewOccupyThreadPool = null;
 
 
