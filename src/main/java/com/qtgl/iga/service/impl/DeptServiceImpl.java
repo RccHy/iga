@@ -314,7 +314,8 @@ public class DeptServiceImpl implements DeptService {
         //  检测删除该部门 对 人员身份造成的影响。若影响范围过大，则停止操作。
         Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
-        calculationService.monitorRules(domain, lastTaskLog, beans.size(), delete, "dept");
+        List<Map.Entry<TreeBean, String>> invalid = collect.get("invalid");
+        calculationService.monitorRules(domain, lastTaskLog, beans.size(), delete,invalid, "dept");
 
         //保存到数据库
         saveToSso(collect, tenant.getId(), attrMap, valueUpdate, valueInsert);

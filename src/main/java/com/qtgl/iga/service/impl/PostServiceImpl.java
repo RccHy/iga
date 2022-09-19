@@ -191,7 +191,8 @@ public class PostServiceImpl implements PostService {
         Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
         // 验证监控规则
         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
-        calculationService.monitorRules(domain, lastTaskLog, beans.size(), delete, "post");
+        List<Map.Entry<TreeBean, String>> invalid = collect.get("invalid");
+        calculationService.monitorRules(domain, lastTaskLog, beans.size(), delete,invalid, "post");
         saveToSso(collect, tenant.getId(), attrMap, valueUpdate, valueInsert);
         //if (!CollectionUtils.isEmpty(incrementalTasks)) {
         //    //添加增量日志

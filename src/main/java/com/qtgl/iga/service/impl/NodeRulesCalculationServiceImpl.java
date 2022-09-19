@@ -328,8 +328,11 @@ public class NodeRulesCalculationServiceImpl {
      * @param delete      本次删除数据
      * @throws Exception
      */
-    public void monitorRules(DomainInfo domain, TaskLog lastTaskLog, Integer count, List<Map.Entry<TreeBean, String>> delete, String type) throws Exception {
-        if (null != delete && delete.size() > 0) {
+    public void monitorRules(DomainInfo domain, TaskLog lastTaskLog, Integer count, List<Map.Entry<TreeBean, String>> delete,List<Map.Entry<TreeBean, String>> invalid, String type) throws Exception {
+        List<Map.Entry<TreeBean, String>> all=new ArrayList<>();
+        all.addAll(delete);
+        all.addAll(invalid);
+        if (null != all && all.size() > 0) {
             // 获取 监控规则
             final List<MonitorRules> deptMonitorRules = monitorRulesDao.findAll(domain.getId(), type);
             if ("dept".equals(type)) {
@@ -340,7 +343,7 @@ public class NodeRulesCalculationServiceImpl {
             for (MonitorRules deptMonitorRule : deptMonitorRules) {
                 SimpleBindings bindings = new SimpleBindings();
                 bindings.put("$count", count);
-                bindings.put("$result", delete.size());
+                bindings.put("$result", all.size());
                 String reg = deptMonitorRule.getRules();
                 ScriptEngineManager sem = new ScriptEngineManager();
                 ScriptEngine engine = sem.getEngineByName("js");
@@ -352,7 +355,7 @@ public class NodeRulesCalculationServiceImpl {
                         JSONArray objects = JSONArray.parseArray(lastTaskLog.getData());
                         Map<String, JSONObject> map = TreeUtil.toMap(objects);
                         if (null != map) {
-                            for (Map.Entry<TreeBean, String> treeBean : delete) {
+                            for (Map.Entry<TreeBean, String> treeBean : all) {
                                 if (!map.containsKey(treeBean.getKey().getCode())) {
                                     flag = true;
                                     break;
@@ -362,10 +365,10 @@ public class NodeRulesCalculationServiceImpl {
                         }
                     }
                     if (flag) {
-                        logger.error("{}删除数量{},超出监控设定", type, delete.size());
-                        List<TreeBean> treeBeanList = delete.stream().map(Map.Entry::getKey).collect(Collectors.toList());
+                        logger.error("{}删除数量{},超出监控设定", type, all.size());
+                        List<TreeBean> treeBeanList = all.stream().map(Map.Entry::getKey).collect(Collectors.toList());
                         TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(treeBeanList)));
-                        throw new CustomException(ResultCode.MONITOR_ERROR, null, treeBeanList, type, delete.size() + "");
+                        throw new CustomException(ResultCode.MONITOR_ERROR, null, treeBeanList, type, all.size() + "");
                     }
                 }
             }
@@ -382,14 +385,17 @@ public class NodeRulesCalculationServiceImpl {
      * @param delete
      * @throws Exception
      */
-    public void monitorRules(DomainInfo domain, TaskLog lastTaskLog, Integer count, List delete) throws Exception {
-        if (null != delete && delete.size() > 0) {
+    public void monitorRules(DomainInfo domain, TaskLog lastTaskLog, Integer count, List delete,List invalid) throws Exception {
+        List all=new ArrayList<>();
+        all.addAll(delete);
+        all.addAll(invalid);
+        if (null != all && all.size() > 0) {
             // 获取 监控规则
             final List<MonitorRules> deptMonitorRules = monitorRulesDao.findAll(domain.getId(), "person");
             for (MonitorRules deptMonitorRule : deptMonitorRules) {
                 SimpleBindings bindings = new SimpleBindings();
                 bindings.put("$count", count);
-                bindings.put("$result", delete.size());
+                bindings.put("$result", all.size()+invalid.size());
                 String reg = deptMonitorRule.getRules();
                 ScriptEngineManager sem = new ScriptEngineManager();
                 ScriptEngine engine = sem.getEngineByName("js");
@@ -400,14 +406,14 @@ public class NodeRulesCalculationServiceImpl {
                     // 如果上次日志状态 是【忽略】，则判断数据是否相同原因相同，相同则进行忽略
                     if (null != lastTaskLog && null != lastTaskLog.getStatus() && lastTaskLog.getStatus().equals("ignore")) {
                         JSONArray objects = JSONArray.parseArray(lastTaskLog.getData());
-                        if (delete.get(0).getClass().getSimpleName().equals("Person")) {
+                        if (all.get(0).getClass().getSimpleName().equals("Person")) {
                             type = "人员";
                             List<JSONObject> personList = objects.toJavaList(JSONObject.class);
                             Map<String, JSONObject> map = personList.stream().collect(Collectors.toMap(
                                     (code -> code.getString("openId")),
                                     (value -> value)));
 
-                            for (Object t : delete) {
+                            for (Object t : all) {
                                 Person person = (Person) t;
                                 if (!map.containsKey(person.getOpenId())) {
                                     flag = true;
@@ -421,7 +427,7 @@ public class NodeRulesCalculationServiceImpl {
                                     (code -> code.getString("personId") + ":" + code.getString("postCode") + ":" + code.getString("deptCode")),
                                     (value -> value)));
 
-                            for (Object t : delete) {
+                            for (Object t : all) {
                                 OccupyDto occupyDto = (OccupyDto) t;
                                 if (!map.containsKey(occupyDto.getPersonId() + ":" + occupyDto.getPostCode() + ":" + occupyDto.getDeptCode())) {
                                     flag = true;
@@ -432,9 +438,9 @@ public class NodeRulesCalculationServiceImpl {
                         }
                     }
                     if (flag) {
-                        logger.error("{}删除数量{},超出监控设定", type, delete.size());
-                        TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(delete)));
-                        throw new CustomException(ResultCode.MONITOR_ERROR, null, delete, type, delete.size() + "");
+                        logger.error("{}删除数量{},超出监控设定", type, all.size());
+                        TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(all)));
+                        throw new CustomException(ResultCode.MONITOR_ERROR, null, all, type, all.size() + "");
 
                     }
                 }

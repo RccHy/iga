@@ -131,7 +131,7 @@ public class OccupyServiceImpl implements OccupyService {
         List<OccupyDto> occupiesFromSSO = occupyDao.findAll(tenant.getId(), null, null);
 
         // 验证监控规则
-        calculationService.monitorRules(domain, lastTaskLog, occupiesFromSSO.size(), result.get("delete"));
+        calculationService.monitorRules(domain, lastTaskLog, occupiesFromSSO.size(), result.get("delete"),result.get("invalid"));
         //数据库重复身份删除
         if (!CollectionUtils.isEmpty(deleteFromSSO)) {
             if (result.containsKey("delete")) {

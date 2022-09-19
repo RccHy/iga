@@ -183,7 +183,7 @@ public class PersonServiceImpl implements PersonService {
         dataProcessing(domain, tenant, cardTypeMap, dynamicAttrs, valueUpdate, valueInsert, finalDynamicCodes, finalValueMap, personFromUpstream, personFromUpstreamByAccount, personRepeatByAccount, result, attrMap, attrReverseMap, arguments, currentTask);
         // 验证监控规则
         List<Person> personFromSSOList = personDao.getAll(tenant.getId());
-        calculationService.monitorRules(domain, taskLog, personFromSSOList.size(), result.get("delete"));
+        calculationService.monitorRules(domain, taskLog, personFromSSOList.size(), result.get("delete"),result.get("invalid"));
 
         if (!CollectionUtils.isEmpty(personErrorData.get(domain.getId()))) {
             TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(personErrorData.get(domain.getId())));
