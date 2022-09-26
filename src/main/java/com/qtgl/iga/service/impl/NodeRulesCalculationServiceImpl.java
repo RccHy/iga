@@ -328,10 +328,15 @@ public class NodeRulesCalculationServiceImpl {
      * @param delete      本次删除数据
      * @throws Exception
      */
-    public void monitorRules(DomainInfo domain, TaskLog lastTaskLog, Integer count, List<Map.Entry<TreeBean, String>> delete,List<Map.Entry<TreeBean, String>> invalid, String type) throws Exception {
-        List<Map.Entry<TreeBean, String>> all=new ArrayList<>();
-        all.addAll(delete);
-        all.addAll(invalid);
+    public void monitorRules(DomainInfo domain, TaskLog lastTaskLog, Integer count, List<Map.Entry<TreeBean, String>> delete, List<Map.Entry<TreeBean, String>> invalid, String type) throws Exception {
+        List<Map.Entry<TreeBean, String>> all = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(delete)) {
+            all.addAll(delete);
+        }
+        if (!CollectionUtils.isEmpty(invalid)) {
+            all.addAll(invalid);
+        }
+
         if (null != all && all.size() > 0) {
             // 获取 监控规则
             final List<MonitorRules> deptMonitorRules = monitorRulesDao.findAll(domain.getId(), type);
@@ -351,7 +356,7 @@ public class NodeRulesCalculationServiceImpl {
                 if ((Boolean) eval) {
                     boolean flag = true;
                     // 如果上次日志状态 是【忽略】，则判断数据是否相同原因相同，相同则进行忽略
-                    if (null != lastTaskLog.getStatus() && lastTaskLog.getStatus().equals("ignore")) {
+                    if (null != lastTaskLog && null != lastTaskLog.getStatus() && lastTaskLog.getStatus().equals("ignore")) {
                         JSONArray objects = JSONArray.parseArray(lastTaskLog.getData());
                         Map<String, JSONObject> map = TreeUtil.toMap(objects);
                         if (null != map) {
@@ -385,17 +390,21 @@ public class NodeRulesCalculationServiceImpl {
      * @param delete
      * @throws Exception
      */
-    public void monitorRules(DomainInfo domain, TaskLog lastTaskLog, Integer count, List delete,List invalid) throws Exception {
-        List all=new ArrayList<>();
-        all.addAll(delete);
-        all.addAll(invalid);
+    public void monitorRules(DomainInfo domain, TaskLog lastTaskLog, Integer count, List delete, List invalid) throws Exception {
+        List all = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(delete)) {
+            all.addAll(delete);
+        }
+        if (!CollectionUtils.isEmpty(invalid)) {
+            all.addAll(invalid);
+        }
         if (null != all && all.size() > 0) {
             // 获取 监控规则
             final List<MonitorRules> deptMonitorRules = monitorRulesDao.findAll(domain.getId(), "person");
             for (MonitorRules deptMonitorRule : deptMonitorRules) {
                 SimpleBindings bindings = new SimpleBindings();
                 bindings.put("$count", count);
-                bindings.put("$result", all.size()+invalid.size());
+                bindings.put("$result", all.size() + invalid.size());
                 String reg = deptMonitorRule.getRules();
                 ScriptEngineManager sem = new ScriptEngineManager();
                 ScriptEngine engine = sem.getEngineByName("js");
@@ -523,7 +532,7 @@ public class NodeRulesCalculationServiceImpl {
      * @Description: 规则运算
      * @return: java.util.Map<java.lang.String, com.qtgl.iga.bean.TreeBean>
      */
-    public List<TreeBean> nodeRules(DomainInfo domain, DeptTreeType treeType, String nodeCode, List<TreeBean> mainTree, Integer status, String type, List<String> dynamicCodes, Map<String, TreeBean> ssoBeansMap, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamHashMap,  Map<TreeBean, String> result, Map<String, List<Node>> nodesMap, TaskLog currentTask) throws Exception {
+    public List<TreeBean> nodeRules(DomainInfo domain, DeptTreeType treeType, String nodeCode, List<TreeBean> mainTree, Integer status, String type, List<String> dynamicCodes, Map<String, TreeBean> ssoBeansMap, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamHashMap, Map<TreeBean, String> result, Map<String, List<Node>> nodesMap, TaskLog currentTask) throws Exception {
         //获取根节点的规则
         //List<Node> nodes = nodeDao.getByCode(domain.getId(), treeType, nodeCode, status, type);
         //获取组织机构信息
