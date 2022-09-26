@@ -983,7 +983,7 @@ public class DataBusUtil {
             }
 
             System.out.println("end:" + System.currentTimeMillis());
-            //deptMap.put("edges", rs);
+            deptMap.put("edges", rs);
 
 
         }
