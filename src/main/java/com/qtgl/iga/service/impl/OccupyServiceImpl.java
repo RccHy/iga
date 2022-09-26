@@ -21,6 +21,7 @@ import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -217,7 +218,7 @@ public class OccupyServiceImpl implements OccupyService {
                 filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo())).
                 collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));*/
         // key --> accountNo  value --> List<Person>
-        Map<String, List<Person>> personFromSSOMapByAccount = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo()))
+        Map<String, List<Person>> personFromSSOMapByAccount = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getAccountNo()))
                 .collect(Collectors.groupingBy(person -> (person.getAccountNo())));
        /* Map<String, Person> personFromSSOMapByAccount = personFromSSO.stream().
                 filter(person -> !StringUtils.isBlank(person.getAccountNo())).
@@ -225,11 +226,11 @@ public class OccupyServiceImpl implements OccupyService {
 
         Map<String, List<Person>> personFromSSOMapByCardNo = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo()))
                 .collect(Collectors.groupingBy(person -> (person.getCardNo())));
-        Map<String, List<Person>> personFromSSOMapByPhone = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo()))
+        Map<String, List<Person>> personFromSSOMapByPhone = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getCellphone()) )
                 .collect(Collectors.groupingBy(person -> (person.getCellphone())));
-        Map<String, List<Person>> personFromSSOMapByEmail = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo()))
+        Map<String, List<Person>> personFromSSOMapByEmail = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getEmail()))
                 .collect(Collectors.groupingBy(person -> (person.getEmail())));
-        Map<String, List<Person>> personFromSSOMapByOpenid = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo()))
+        Map<String, List<Person>> personFromSSOMapByOpenid = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getOpenId()) )
                 .collect(Collectors.groupingBy(person -> (person.getOpenId())));
 
 
@@ -532,12 +533,12 @@ public class OccupyServiceImpl implements OccupyService {
                             break;
                         case "OPENID":
                             if (StringUtils.isBlank(occupyDto.getOpenId())) {
-                                log.error("【通过电话匹配人员】电话不能为空{}", occupyDto);
+                                log.error("【通过OPENID匹配人员】电话不能为空{}", occupyDto);
                                 extracted(domain, occupyDto, "【通过电话匹配人员】电话不能为空");
                                 continue;
                             }
                             /*  去person Map 中 找人信息*/
-                            personKey = occupyDto.getAccountNo();
+                            personKey = occupyDto.getOpenId();
                             if (!personFromSSOMapByOpenid.containsKey(personKey)) {
                                 log.error("【通过OPENID匹配人员】人员身份无法找到对应对人员信息{}", personKey);
                                 extracted(domain, occupyDto, "【通过OPENID匹配人员】人员身份无法找到对应对人员信息");
@@ -639,7 +640,9 @@ public class OccupyServiceImpl implements OccupyService {
 
     private void createOccupyDto(DomainInfo domain, Map<String, OccupyDto> occupyDtoFromUpstream, Map<String, TreeBean> deptFromSSOMap,
                                  Map<String, TreeBean> postFromSSOMap, NodeRules rules, UpstreamType upstreamType, ArrayList<Upstream> upstreams, LocalDateTime now, List<OccupyDto> occupies,
-                                 ArrayList<OccupyDto> resultOccupies, OccupyDto occupyDto, Person person) {
+                                 ArrayList<OccupyDto> resultOccupies, OccupyDto oldOccupyDto, Person person) {
+        OccupyDto occupyDto=new OccupyDto();
+        BeanUtils.copyProperties(oldOccupyDto,occupyDto);
         occupyDto.setOpenId(person.getOpenId());
         occupyDto.setSource(upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")");
         occupyDto.setPersonId(person.getId());
