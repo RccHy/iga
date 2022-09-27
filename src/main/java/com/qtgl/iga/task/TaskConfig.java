@@ -1,6 +1,5 @@
 package com.qtgl.iga.task;
 
-import com.alibaba.fastjson.JSON;
 import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
@@ -234,7 +233,7 @@ public class TaskConfig {
                                 log.error("定时同步异常：" + e);
                                 taskLog.setStatus("failed");
                                 taskLog.setReason(e.getErrorMsg());
-                                taskLog.setData(JSON.toJSONString(JSON.toJSON(e.getData())));
+                                //taskLog.setData(JSON.toJSONString(JSON.toJSON(e.getData())));
                                 if (StringUtils.isNotBlank(TaskConfig.errorData.get(domainInfo.getId()))) {
                                     this.upload(domainInfo, taskLog);
                                 } else {
