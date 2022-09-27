@@ -158,6 +158,26 @@ public class OccupyServiceImpl implements OccupyService {
             throw new CustomException(ResultCode.FAILED, e.getErrorMsg());
         }
 
+        errorDataProcessing(domain);
+
+
+        //插入人员身份日志表
+        ArrayList<OccupyDto> userLogs = new ArrayList<>();
+        if (result.get("insert") != null) {
+            userLogs.addAll(result.get("insert"));
+        }
+        if (result.get("update") != null) {
+            userLogs.addAll(result.get("update"));
+        }
+        if (result.get("invalid") != null) {
+            userLogs.addAll(result.get("invalid"));
+        }
+        // todo 无效后对甘特图的影响
+        userLogDao.saveUserLog(userLogs, tenant.getId());
+        return result;
+    }
+
+    private void errorDataProcessing(DomainInfo domain) {
         if (StringUtils.isNotBlank(TaskConfig.errorData.get(domain.getId()))) {
             String data = TaskConfig.errorData.get(domain.getId());
             JSONArray jsonArray = JSONObject.parseArray(data);
@@ -175,22 +195,6 @@ public class OccupyServiceImpl implements OccupyService {
                 TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(occupyErrorData.get(domain.getId())));
             }
         }
-
-
-        //插入人员身份日志表
-        ArrayList<OccupyDto> userLogs = new ArrayList<>();
-        if (result.get("insert") != null) {
-            userLogs.addAll(result.get("insert"));
-        }
-        if (result.get("update") != null) {
-            userLogs.addAll(result.get("update"));
-        }
-        if (result.get("invalid") != null) {
-            userLogs.addAll(result.get("invalid"));
-        }
-        // todo 无效后对甘特图的影响
-        userLogDao.saveUserLog(userLogs, tenant.getId());
-        return result;
     }
 
     private List<OccupyDto> dataProcessing(DomainInfo domain, Tenant tenant, Map<String, CardType> userCardTypeMap, Map<String, CardType> identityCardTypeMap, Map arguments, Map<String, List<OccupyDto>> result, ArrayList<OccupyDto> deleteFromSSO, Map<String, OccupyDto> occupyDtoFromUpstream, List<IncrementalTask> incrementalTasks, TaskLog currentTask) {
@@ -298,15 +302,18 @@ public class OccupyServiceImpl implements OccupyService {
             String findPersonKey = upstreamType.getPersonCharacteristic();
             if (null == upstreamType) {
                 log.error("人员身份对应拉取节点规则'{}'无有效权威源类型数据", rules);
+                errorDataProcessing(domain);
                 throw new CustomException(ResultCode.NO_UPSTREAM_TYPE, null, null, "人员身份", rules.getId());
             }
             if (StringUtils.isBlank(upstreamType.getPersonCharacteristic())) {
                 log.error("人员身份对应拉取节点规则'{}'没有指定人员匹配模式", rules);
+                errorDataProcessing(domain);
                 throw new CustomException(ResultCode.NO_PERSON_CHARACTERISTIC, null, null, "人员身份", upstreamType.getId());
             }
             ArrayList<Upstream> upstreams = upstreamDao.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
             if (CollectionUtils.isEmpty(upstreams)) {
                 log.error("人员身份对应拉取节点规则'{}'无权威源数据", rules.getId());
+                errorDataProcessing(domain);
                 throw new CustomException(ResultCode.NO_UPSTREAM, null, null, "人员身份", rules.getId());
             }
             switch (findPersonKey) {
@@ -358,6 +365,7 @@ public class OccupyServiceImpl implements OccupyService {
                 throw e;
             } catch (Exception e) {
                 log.error("人员身份类型中 : " + upstreamType.getUpstreamId() + "表达式异常");
+                errorDataProcessing(domain);
                 throw new CustomException(ResultCode.OCCUPY_ERROR, null, null, upstreamType.getDescription(), e.getMessage());
             }
             List<OccupyDto> occupies = new ArrayList<>();
@@ -668,6 +676,7 @@ public class OccupyServiceImpl implements OccupyService {
             return occupyDtos;
         } else {
             log.error("上游提供人员身份数据不符合规范,数据同步失败");
+            errorDataProcessing(domain);
             throw new CustomException(ResultCode.FAILED, "上游提供人员身份数据不符合规范,数据同步失败");
         }
     }
