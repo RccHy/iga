@@ -428,6 +428,7 @@ public class PersonServiceImpl implements PersonService {
                     ConcurrentHashMap<String, ConcurrentHashMap<String, List<Person>>> upstreamCountMap = new ConcurrentHashMap<>();
 
                     if (ACCOUNT_NO.equals(personCharacteristic)) {
+                        //todo 性能待优化
                         // 用户名
                         Map<String, Person> personFromSSOMapByAccount = new ArrayList<>(preViewPersonMap.values()).stream().filter(person ->
                                 !StringUtils.isBlank(person.getAccountNo())).collect(Collectors.toMap(Person::getAccountNo, person -> person, (v1, v2) -> v2));
