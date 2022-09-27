@@ -211,27 +211,6 @@ public class OccupyServiceImpl implements OccupyService {
         if (null == occupyRules || occupyRules.size() == 0) {
             throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
         }
-        // key --> cardType:cardNo   value --> List<Person>
-        Map<String, List<Person>> personFromSSOMap = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo()))
-                .collect(Collectors.groupingBy(person -> (person.getCardType() + ":" + person.getCardNo())));
-       /* Map<String, Person> personFromSSOMap = personFromSSO.stream().
-                filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo())).
-                collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));*/
-        // key --> accountNo  value --> List<Person>
-        Map<String, List<Person>> personFromSSOMapByAccount = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getAccountNo()))
-                .collect(Collectors.groupingBy(person -> (person.getAccountNo())));
-       /* Map<String, Person> personFromSSOMapByAccount = personFromSSO.stream().
-                filter(person -> !StringUtils.isBlank(person.getAccountNo())).
-                collect(Collectors.toMap(person -> (person.getAccountNo()), person -> person, (v1, v2) -> v2));*/
-
-        Map<String, List<Person>> personFromSSOMapByCardNo = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo()))
-                .collect(Collectors.groupingBy(person -> (person.getCardNo())));
-        Map<String, List<Person>> personFromSSOMapByPhone = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getCellphone()) )
-                .collect(Collectors.groupingBy(person -> (person.getCellphone())));
-        Map<String, List<Person>> personFromSSOMapByEmail = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getEmail()))
-                .collect(Collectors.groupingBy(person -> (person.getEmail())));
-        Map<String, List<Person>> personFromSSOMapByOpenid = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getOpenId()) )
-                .collect(Collectors.groupingBy(person -> (person.getOpenId())));
 
 
         // 获取sso中所有的有效的 组织机构 、 岗位信息
@@ -300,9 +279,23 @@ public class OccupyServiceImpl implements OccupyService {
                 .collect(Collectors.toMap(occupyDto -> (occupyDto.getIdentityCardType() + ":" + occupyDto.getIdentityCardNo()), occupyDto -> occupyDto, (v1, v2) -> v2));
         log.info("数据库中人员身份数据经过重复过滤后:{}", occupiesFromSSOIdentityMap.size());
 
+
+        //获取租户下所有 "身份"权威源类型，根据类型的 人员匹配字段，定义的map，优化内存
+
+
+        // key --> cardType:cardNo   value --> List<Person>
+        Map<String, List<Person>> personFromSSOMap = null;
+        // key --> accountNo  value --> List<Person>
+        Map<String, List<Person>> personFromSSOMapByAccount = null;
+        Map<String, List<Person>> personFromSSOMapByCardNo = null;
+        Map<String, List<Person>> personFromSSOMapByPhone = null;
+        Map<String, List<Person>> personFromSSOMapByEmail = null;
+        Map<String, List<Person>> personFromSSOMapByOpenid = null;
+
         // 开始遍历规则
-        occupyRules.forEach(rules -> {
+        for (NodeRules rules : occupyRules) {
             UpstreamType upstreamType = upstreamTypeDao.findById(rules.getUpstreamTypesId());
+            String findPersonKey = upstreamType.getPersonCharacteristic();
             if (null == upstreamType) {
                 log.error("人员身份对应拉取节点规则'{}'无有效权威源类型数据", rules);
                 throw new CustomException(ResultCode.NO_UPSTREAM_TYPE, null, null, "人员身份", rules.getId());
@@ -316,6 +309,47 @@ public class OccupyServiceImpl implements OccupyService {
                 log.error("人员身份对应拉取节点规则'{}'无权威源数据", rules.getId());
                 throw new CustomException(ResultCode.NO_UPSTREAM, null, null, "人员身份", rules.getId());
             }
+            switch (findPersonKey) {
+                case "CARD_TYPE_NO":
+                    if (null == personFromSSOMap) {
+                        personFromSSOMap = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo()))
+                                .collect(Collectors.groupingBy(person -> (person.getCardType() + ":" + person.getCardNo())));
+                    }
+                    break;
+                case "CARD_NO":
+                    if (null == personFromSSOMapByCardNo) {
+                        personFromSSOMapByCardNo = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getCardNo()))
+                                .collect(Collectors.groupingBy(person -> (person.getCardNo())));
+                    }
+                    break;
+                case "ACCOUNT_NO":
+                    if (null == personFromSSOMapByAccount) {
+                        personFromSSOMapByAccount = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getAccountNo()))
+                                .collect(Collectors.groupingBy(person -> (person.getAccountNo())));
+                    }
+                    break;
+                case "EMAIL":
+                    if (null == personFromSSOMapByEmail) {
+                        personFromSSOMapByEmail = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getEmail()))
+                                .collect(Collectors.groupingBy(person -> (person.getEmail())));
+                    }
+
+                    break;
+                case "CELLPHONE":
+                    if (null == personFromSSOMapByPhone) {
+                        personFromSSOMapByPhone = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getCellphone()))
+                                .collect(Collectors.groupingBy(person -> (person.getCellphone())));
+                    }
+                    break;
+                case "OPENID":
+                    if (null == personFromSSOMapByOpenid) {
+                        personFromSSOMapByOpenid = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getOpenId()))
+                                .collect(Collectors.groupingBy(person -> (person.getOpenId())));
+                    }
+                    break;
+            }
+
+
             final LocalDateTime now = LocalDateTime.now();
             JSONArray dataByBus = null;
             try {
@@ -406,7 +440,7 @@ public class OccupyServiceImpl implements OccupyService {
                     //**************************************************************************************************************************
                     //**************************************************************************************************************************
                     // 20220922 新增【权威源指定 匹配人员字段信息：CARD_TYPE_NO:证件类型+证件号码 CARD_NO:仅证件号码 ACCOUNT_NO:用户名 EMAIL:邮箱 CELLPHONE:手机号 OPENID:openid】
-                    String findPersonKey = upstreamType.getPersonCharacteristic();
+
                     String personKey = "";
                     List<Person> persons = new ArrayList<>();
                     switch (findPersonKey) {
@@ -571,7 +605,7 @@ public class OccupyServiceImpl implements OccupyService {
                 }
             }
 
-        });
+        }
         log.info("所有人员身份数据获取完成:{}", occupyDtoFromUpstream.size());
         List<OccupyDto> occupyDtos = new ArrayList<>();
         if (null != occupyDtoFromUpstream && occupyDtoFromUpstream.size() > 0) {
@@ -641,8 +675,8 @@ public class OccupyServiceImpl implements OccupyService {
     private void createOccupyDto(DomainInfo domain, Map<String, OccupyDto> occupyDtoFromUpstream, Map<String, TreeBean> deptFromSSOMap,
                                  Map<String, TreeBean> postFromSSOMap, NodeRules rules, UpstreamType upstreamType, ArrayList<Upstream> upstreams, LocalDateTime now, List<OccupyDto> occupies,
                                  ArrayList<OccupyDto> resultOccupies, OccupyDto oldOccupyDto, Person person) {
-        OccupyDto occupyDto=new OccupyDto();
-        BeanUtils.copyProperties(oldOccupyDto,occupyDto);
+        OccupyDto occupyDto = new OccupyDto();
+        BeanUtils.copyProperties(oldOccupyDto, occupyDto);
         occupyDto.setOpenId(person.getOpenId());
         occupyDto.setSource(upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")");
         occupyDto.setPersonId(person.getId());
