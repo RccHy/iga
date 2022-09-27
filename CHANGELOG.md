@@ -1,3 +1,24 @@
+### 20220908
+
+**数据库**
+- 无
+
+**new：**
+- 身份治理覆盖source及DataSource逻辑调整(PULL的数据，如果通过控制台(或者其他方式)修改过发生了源头的改变，在下次同步时会被强制同步回PULL，无论该数据是否发生过变化)  @刘洋 @殷佳波
+
+**bug fix**
+- 人员身份同步 bug fix  @陈洋
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20220906
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20220908
+
+
+
 ### 20220831
 
 **数据库**

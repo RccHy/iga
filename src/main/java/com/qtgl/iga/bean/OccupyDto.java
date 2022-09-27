@@ -41,6 +41,11 @@ public class OccupyDto {
     private String openId;
     //用户名
     private String accountNo;
+    // 手机号
+    private String cellPhone;
+    //邮箱
+    private String email;
+
 
     /**
      * 身份最终有效时间

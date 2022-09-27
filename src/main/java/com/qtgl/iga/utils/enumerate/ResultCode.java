@@ -17,6 +17,7 @@ public enum ResultCode {
     NULL_EXCLUSION(1012, "节点%s规则的:%s 排除规则为空"),
     MONITOR_ERROR(1020, "%s删除数量%s,超出监控设定"),
     NO_UPSTREAM_TYPE(1030, "%s对应拉取节点(%s)无权威源类型数据"),
+    NO_PERSON_CHARACTERISTIC(1030, "%s对应拉取节点(%s)无人员特征模式"),
     NO_UPSTREAM(1031, "%s对应拉取节点(%s)无权威源数据"),
     //    CYCLE_ERROR(1040, "%s节点(%s(%s))中的数据%s(%s)与%s节点(%s(%s))中的数据%s(%s)循环依赖"),
     CYCLE_ERROR(1040, "节点<span style='color:#40c97c;font-weight: bold'>%s(%s)</span>与节点<span style='color:#40c97c;font-weight: bold'>%s(%s)</span> code循环依赖"),

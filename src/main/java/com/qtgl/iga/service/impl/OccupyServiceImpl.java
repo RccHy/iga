@@ -21,6 +21,7 @@ import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -131,7 +132,7 @@ public class OccupyServiceImpl implements OccupyService {
         List<OccupyDto> occupiesFromSSO = occupyDao.findAll(tenant.getId(), null, null);
 
         // 验证监控规则
-        calculationService.monitorRules(domain, lastTaskLog, occupiesFromSSO.size(), result.get("delete"));
+        calculationService.monitorRules(domain, lastTaskLog, occupiesFromSSO.size(), result.get("delete"), result.get("invalid"));
         //数据库重复身份删除
         if (!CollectionUtils.isEmpty(deleteFromSSO)) {
             if (result.containsKey("delete")) {
@@ -157,23 +158,7 @@ public class OccupyServiceImpl implements OccupyService {
             throw new CustomException(ResultCode.FAILED, e.getErrorMsg());
         }
 
-        if (StringUtils.isNotBlank(TaskConfig.errorData.get(domain.getId()))) {
-            String data = TaskConfig.errorData.get(domain.getId());
-            JSONArray jsonArray = JSONObject.parseArray(data);
-
-            if (null != jsonArray) {
-                //
-                if (!CollectionUtils.isEmpty(occupyErrorData.get(domain.getId()))) {
-                    jsonArray.addAll(occupyErrorData.get(domain.getId()));
-                }
-            }
-            TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(jsonArray));
-
-        } else {
-            if (!CollectionUtils.isEmpty(occupyErrorData.get(domain.getId()))) {
-                TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(occupyErrorData.get(domain.getId())));
-            }
-        }
+        errorDataProcessing(domain);
 
 
         //插入人员身份日志表
@@ -192,6 +177,26 @@ public class OccupyServiceImpl implements OccupyService {
         return result;
     }
 
+    private void errorDataProcessing(DomainInfo domain) {
+        if (StringUtils.isNotBlank(TaskConfig.errorData.get(domain.getId()))) {
+            String data = TaskConfig.errorData.get(domain.getId());
+            JSONArray jsonArray = JSONObject.parseArray(data);
+
+            if (null != jsonArray) {
+                //
+                if (!CollectionUtils.isEmpty(occupyErrorData.get(domain.getId()))) {
+                    jsonArray.addAll(occupyErrorData.get(domain.getId()));
+                }
+            }
+            TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(jsonArray));
+
+        } else {
+            if (!CollectionUtils.isEmpty(occupyErrorData.get(domain.getId()))) {
+                TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(occupyErrorData.get(domain.getId())));
+            }
+        }
+    }
+
     private List<OccupyDto> dataProcessing(DomainInfo domain, Tenant tenant, Map<String, CardType> userCardTypeMap, Map<String, CardType> identityCardTypeMap, Map arguments, Map<String, List<OccupyDto>> result, ArrayList<OccupyDto> deleteFromSSO, Map<String, OccupyDto> occupyDtoFromUpstream, List<IncrementalTask> incrementalTasks, TaskLog currentTask) {
         List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
         if (null == nodes || nodes.size() <= 0) {
@@ -204,25 +209,29 @@ public class OccupyServiceImpl implements OccupyService {
         // 获取sso中所有人员，用于验证 身份信息是否合法
         List<Person> personFromSSO = personDao.getAll(tenant.getId());
         if (personFromSSO.size() <= 0) {
-            throw new CustomException(ResultCode.FAILED, "没有未删除的可用人员");
+            throw new CustomException(ResultCode.FAILED, "数据库中无人员信息");
         }
-        Map<String, Person> personFromSSOMap = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
-        Map<String, Person> personFromSSOMapByAccount = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getAccountNo())).collect(Collectors.toMap(person -> (person.getAccountNo()), person -> person, (v1, v2) -> v2));
+        // 获取所有规则 字段，用于更新验证
+        if (null == occupyRules || occupyRules.size() == 0) {
+            throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
+        }
+
+
         // 获取sso中所有的有效的 组织机构 、 岗位信息
         List<TreeBean> deptFromSSO = deptDao.findActiveDataByTenantId(tenant.getId());
         if (null == deptFromSSO) {
-            throw new CustomException(ResultCode.FAILED, "没有未删除且有效部门");
+            throw new CustomException(ResultCode.FAILED, "数据库中没有未删除且有效部门");
         }
         final Map<String, TreeBean> deptFromSSOMap = deptFromSSO.stream().collect(Collectors.toMap(dept -> (dept.getCode()), dept -> dept, (v1, v2) -> v2));
         List<TreeBean> postFromSSO = postDao.findActiveDataByTenantId(tenant.getId());
         if (null == postFromSSO) {
-            throw new CustomException(ResultCode.FAILED, "没有未删除且有效岗位");
+            throw new CustomException(ResultCode.FAILED, "数据库中没有未删除且有效岗位");
         }
         final Map<String, TreeBean> postFromSSOMap = postFromSSO.stream().collect(Collectors.toMap(post -> (post.getCode()), post -> post, (v1, v2) -> v2));
 
 
         // 获取sso中人员身份信息
-        final List<OccupyDto> occupiesFromSSO = occupyDao.findAll(tenant.getId(), null, null);
+        List<OccupyDto> occupiesFromSSO = occupyDao.findAll(tenant.getId(), null, null);
         log.info("数据库中人员身份数据获取完成:{}", occupiesFromSSO.size());
         //处理数据库重复身份数据
         ConcurrentHashMap<String, OccupyDto> concurrentHashMap = new ConcurrentHashMap<>();
@@ -268,27 +277,86 @@ public class OccupyServiceImpl implements OccupyService {
                 concurrentHashMap.put(key, occupyDto);
             }
         }
-        ArrayList<OccupyDto> occupyDtosFromSSO = new ArrayList<>(concurrentHashMap.values());
-        final Map<String, OccupyDto> occupiesFromSSOIdentityMap = occupyDtosFromSSO.stream().filter(occupyDto ->
-                StringUtils.isNotBlank(occupyDto.getIdentityCardType()) && StringUtils.isNotBlank(occupyDto.getIdentityCardNo()))
+        occupiesFromSSO = new ArrayList<>(concurrentHashMap.values());
+        final Map<String, OccupyDto> occupiesFromSSOIdentityMap = occupiesFromSSO.stream().filter(occupyDto ->
+                        StringUtils.isNotBlank(occupyDto.getIdentityCardType()) && StringUtils.isNotBlank(occupyDto.getIdentityCardNo()))
                 .collect(Collectors.toMap(occupyDto -> (occupyDto.getIdentityCardType() + ":" + occupyDto.getIdentityCardNo()), occupyDto -> occupyDto, (v1, v2) -> v2));
-        log.info("数据库中人员身份数据经过重复过滤后:{}", occupiesFromSSO.size());
+        log.info("数据库中人员身份数据经过重复过滤后:{}", occupiesFromSSOIdentityMap.size());
 
-        // 获取所有规则 字段，用于更新验证
-        if (null == occupyRules || occupyRules.size() == 0) {
-            throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
-        }
-        occupyRules.forEach(rules -> {
+
+        //获取租户下所有 "身份"权威源类型，根据类型的 人员匹配字段，定义的map，优化内存
+
+
+        // key --> cardType:cardNo   value --> List<Person>
+        Map<String, List<Person>> personFromSSOMap = null;
+        // key --> accountNo  value --> List<Person>
+        Map<String, List<Person>> personFromSSOMapByAccount = null;
+        Map<String, List<Person>> personFromSSOMapByCardNo = null;
+        Map<String, List<Person>> personFromSSOMapByPhone = null;
+        Map<String, List<Person>> personFromSSOMapByEmail = null;
+        Map<String, List<Person>> personFromSSOMapByOpenid = null;
+
+        // 开始遍历规则
+        for (NodeRules rules : occupyRules) {
             UpstreamType upstreamType = upstreamTypeDao.findById(rules.getUpstreamTypesId());
+            String findPersonKey = upstreamType.getPersonCharacteristic();
             if (null == upstreamType) {
                 log.error("人员身份对应拉取节点规则'{}'无有效权威源类型数据", rules);
+                errorDataProcessing(domain);
                 throw new CustomException(ResultCode.NO_UPSTREAM_TYPE, null, null, "人员身份", rules.getId());
+            }
+            if (StringUtils.isBlank(upstreamType.getPersonCharacteristic())) {
+                log.error("人员身份对应拉取节点规则'{}'没有指定人员匹配模式", rules);
+                errorDataProcessing(domain);
+                throw new CustomException(ResultCode.NO_PERSON_CHARACTERISTIC, null, null, "人员身份", upstreamType.getId());
             }
             ArrayList<Upstream> upstreams = upstreamDao.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
             if (CollectionUtils.isEmpty(upstreams)) {
                 log.error("人员身份对应拉取节点规则'{}'无权威源数据", rules.getId());
+                errorDataProcessing(domain);
                 throw new CustomException(ResultCode.NO_UPSTREAM, null, null, "人员身份", rules.getId());
             }
+            switch (findPersonKey) {
+                case "CARD_TYPE_NO":
+                    if (null == personFromSSOMap) {
+                        personFromSSOMap = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo()))
+                                .collect(Collectors.groupingBy(person -> (person.getCardType() + ":" + person.getCardNo())));
+                    }
+                    break;
+                case "CARD_NO":
+                    if (null == personFromSSOMapByCardNo) {
+                        personFromSSOMapByCardNo = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getCardNo()))
+                                .collect(Collectors.groupingBy(person -> (person.getCardNo())));
+                    }
+                    break;
+                case "ACCOUNT_NO":
+                    if (null == personFromSSOMapByAccount) {
+                        personFromSSOMapByAccount = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getAccountNo()))
+                                .collect(Collectors.groupingBy(person -> (person.getAccountNo())));
+                    }
+                    break;
+                case "EMAIL":
+                    if (null == personFromSSOMapByEmail) {
+                        personFromSSOMapByEmail = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getEmail()))
+                                .collect(Collectors.groupingBy(person -> (person.getEmail())));
+                    }
+
+                    break;
+                case "CELLPHONE":
+                    if (null == personFromSSOMapByPhone) {
+                        personFromSSOMapByPhone = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getCellphone()))
+                                .collect(Collectors.groupingBy(person -> (person.getCellphone())));
+                    }
+                    break;
+                case "OPENID":
+                    if (null == personFromSSOMapByOpenid) {
+                        personFromSSOMapByOpenid = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getOpenId()))
+                                .collect(Collectors.groupingBy(person -> (person.getOpenId())));
+                    }
+                    break;
+            }
+
+
             final LocalDateTime now = LocalDateTime.now();
             JSONArray dataByBus = null;
             try {
@@ -297,6 +365,7 @@ public class OccupyServiceImpl implements OccupyService {
                 throw e;
             } catch (Exception e) {
                 log.error("人员身份类型中 : " + upstreamType.getUpstreamId() + "表达式异常");
+                errorDataProcessing(domain);
                 throw new CustomException(ResultCode.OCCUPY_ERROR, null, null, upstreamType.getDescription(), e.getMessage());
             }
             List<OccupyDto> occupies = new ArrayList<>();
@@ -315,47 +384,6 @@ public class OccupyServiceImpl implements OccupyService {
                         occupyObj.put(TreeEnum.END_TIME.getCode(), occupyObj.getTimestamp(TreeEnum.END_TIME.getCode()));
                     }
                     OccupyDto occupyDto = occupyObj.toJavaObject(OccupyDto.class);
-
-                    // 人员标识 证件类型、证件号码   OR    用户名 accountNo  OR  身份标识  必提供一个
-                    if (StringUtils.isBlank(occupyDto.getPersonCardNo()) || StringUtils.isBlank(occupyDto.getPersonCardType())) {
-                        if (StringUtils.isBlank(occupyDto.getAccountNo())) {
-                            if (StringUtils.isBlank(occupyDto.getIdentityCardNo()) || StringUtils.isBlank(occupyDto.getIdentityCardType())) {
-                                log.error("人员身份信息中人员标识为空{}", occupyDto);
-                                extracted(domain, occupyDto, "人员身份信息中人员标识为空");
-                                continue;
-                            } else {
-                                if (identityCardTypeMap.containsKey(occupyDto.getIdentityCardType())) {
-                                    String cardTypeReg = identityCardTypeMap.get(occupyDto.getIdentityCardType()).getCardTypeReg();
-                                    if (StringUtils.isNotBlank(cardTypeReg) && !Pattern.matches(cardTypeReg, occupyDto.getIdentityCardNo())) {
-                                        log.error("人员身份信息中身份证件号码不符合规则{}", occupyDto);
-                                        extracted(domain, occupyDto, "人员身份信息中身份证件号码不符合规则");
-                                        continue;
-                                    }
-                                } else {
-                                    log.error("人员身份信息中身份证件类型无效{}", occupyDto);
-                                    extracted(domain, occupyDto, "人员身份信息中身份证件类型无效");
-                                    continue;
-                                }
-                            }
-
-                        }
-
-                    } else {
-                        if (userCardTypeMap.containsKey(occupyDto.getPersonCardType())) {
-                            String cardTypeReg = userCardTypeMap.get(occupyDto.getPersonCardType()).getCardTypeReg();
-                            if (StringUtils.isNotBlank(cardTypeReg) && !Pattern.matches(cardTypeReg, occupyDto.getPersonCardNo())) {
-                                log.error("人员身份信息中人员证件号码不符合规则{}", occupyDto);
-                                extracted(domain, occupyDto, "人员身份信息中人员证件号码不符合规则");
-                                continue;
-                            }
-                        } else {
-                            log.error("人员身份信息中人员证件类型无效{}", occupyDto);
-                            extracted(domain, occupyDto, "人员身份信息中人员证件类型无效");
-                            continue;
-                        }
-                    }
-
-
                     if (StringUtils.isBlank(occupyDto.getPostCode())) {
                         log.error("人员身份信息岗位代码为空{}", occupyDto);
                         extracted(domain, occupyDto, "人员身份信息岗位代码为空");
@@ -376,87 +404,196 @@ public class OccupyServiceImpl implements OccupyService {
                         extracted(domain, occupyDto, "人员身份是否删除字段不合法");
                         continue;
                     }
-                    occupyDto.setSource(upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")");
-                    String personKey = occupyDto.getPersonCardType() + ":" + occupyDto.getPersonCardNo();
-                    String personKeyByAccount = occupyDto.getAccountNo();
-                    String personKeyByIdentity = occupyDto.getIdentityCardType() + ":" + occupyDto.getIdentityCardNo();
 
+                    //**************************************************************************************************************************
+                    //**************************************************************************************************************************
+                    // 20220922 删除【 old 人员标识 证件类型、证件号码   OR    用户名 accountNo  OR  身份标识  必提供一个】
+                      /*  if (StringUtils.isBlank(occupyDto.getPersonCardNo()) || StringUtils.isBlank(occupyDto.getPersonCardType())) {
+                            if (StringUtils.isBlank(occupyDto.getAccountNo())) {
+                                if (StringUtils.isBlank(occupyDto.getIdentityCardNo()) || StringUtils.isBlank(occupyDto.getIdentityCardType())) {
+                                    log.error("人员身份信息中人员标识为空{}", occupyDto);
+                                    extracted(domain, occupyDto, "人员身份信息中人员标识为空");
+                                    continue;
+                                } else {
+                                    if (identityCardTypeMap.containsKey(occupyDto.getIdentityCardType())) {
+                                        String cardTypeReg = identityCardTypeMap.get(occupyDto.getIdentityCardType()).getCardTypeReg();
+                                        if (StringUtils.isNotBlank(cardTypeReg) && !Pattern.matches(cardTypeReg, occupyDto.getIdentityCardNo())) {
+                                            log.error("人员身份信息中身份证件号码不符合规则{}", occupyDto);
+                                            extracted(domain, occupyDto, "人员身份信息中身份证件号码不符合规则");
+                                            continue;
+                                        }
+                                    } else {
+                                        log.error("人员身份信息中身份证件类型无效{}", occupyDto);
+                                        extracted(domain, occupyDto, "人员身份信息中身份证件类型无效");
+                                        continue;
+                                    }
+                                }
 
-                    String personId = "";
-                    //优先以证件类型+证件号码 查找身份对应人员是否存在
-                    if (!personFromSSOMap.containsKey(personKey)) {
-                        //其次以用户名 查找对应的人员是否存在
-                        if (!personFromSSOMapByAccount.containsKey(personKeyByAccount)) {
-                            if (!occupiesFromSSOIdentityMap.containsKey(personKeyByIdentity)) {
-                                log.error("人员身份无法找到对应对人员信息{}-{}", personKey, personKeyByAccount);
-                                extracted(domain, occupyDto, "人员身份无法找到对应对人员信息");
-                                continue;
-                            } else {
-                                // 通过 身份证件 找到了对应的身份信息，再根据身份关联信息 反推找到人员信息
-                                personId = occupiesFromSSOIdentityMap.get(personKeyByIdentity).getPersonId();
-                                occupyDto.setOpenId(occupiesFromSSOIdentityMap.get(personKeyByIdentity).getOpenId());
-                                log.info("人员身份通过身份证件获取到人员信息{}", personKeyByIdentity);
                             }
 
                         } else {
-                            personId = personFromSSOMapByAccount.get(personKeyByAccount).getId();
-                            occupyDto.setOpenId(personFromSSOMapByAccount.get(personKeyByAccount).getOpenId());
-                            log.info("人员身份通过用户名获取到人员信息{}", personKeyByAccount);
-                        }
+                            if (userCardTypeMap.containsKey(occupyDto.getPersonCardType())) {
+                                String cardTypeReg = userCardTypeMap.get(occupyDto.getPersonCardType()).getCardTypeReg();
+                                if (StringUtils.isNotBlank(cardTypeReg) && !Pattern.matches(cardTypeReg, occupyDto.getPersonCardNo())) {
+                                    log.error("人员身份信息中人员证件号码不符合规则{}", occupyDto);
+                                    extracted(domain, occupyDto, "人员身份信息中人员证件号码不符合规则");
+                                    continue;
+                                }
+                            } else {
+                                log.error("人员身份信息中人员证件类型无效{}", occupyDto);
+                                extracted(domain, occupyDto, "人员身份信息中人员证件类型无效");
+                                continue;
+                            }
+                        }*/
+                    //**************************************************************************************************************************
+                    //**************************************************************************************************************************
+                    // 20220922 新增【权威源指定 匹配人员字段信息：CARD_TYPE_NO:证件类型+证件号码 CARD_NO:仅证件号码 ACCOUNT_NO:用户名 EMAIL:邮箱 CELLPHONE:手机号 OPENID:openid】
 
-                    } else {
-                        personId = personFromSSOMap.get(personKey).getId();
-                        occupyDto.setOpenId(personFromSSOMap.get(personKey).getOpenId());
-                        log.info("人员身份通过人员证件获取到人员信息{}", personKey);
-                    }
-                    occupyDto.setPersonId(personId);
-                    occupyDto.setCreateTime(now);
-                    occupyDto.setUpstreamType(upstreamType.getId());
-                    //给上游不提供的数据赋予默认值
-                    if (null == occupyDto.getUpdateTime()) {
-                        occupyDto.setUpdateTime(now);
-                    }
-                    if (null == occupyDto.getDelMark()) {
-                        occupyDto.setDelMark(0);
-                    }
-                    if (null == occupyDto.getActive()) {
-                        occupyDto.setActive(1);
-                    }
-                    if (null != upstreamType.getIsIncremental() && upstreamType.getIsIncremental()) {
-                        occupyDto.setDataSource("INC_PULL");
-                    } else {
-                        occupyDto.setDataSource("PULL");
-                    }
-                    //赋予activeTime默认值
-                    occupyDto.setActiveTime(LocalDateTime.now());
-
-                    // 验证是否为 孤儿数据
-                    occupyDto.setOrphan(0);// 非孤儿
-                    if (!deptFromSSOMap.containsKey(occupyDto.getDeptCode())) {
-                        occupyDto.setOrphan(1); // 因部门数据导致孤儿
-                        if (!postFromSSOMap.containsKey(occupyDto.getPostCode())) {
-                            occupyDto.setOrphan(3); // 因岗位+部门数据导致孤儿
-                        }
-                    } else if (!postFromSSOMap.containsKey(occupyDto.getPostCode())) {
-                        occupyDto.setOrphan(2); // 因 岗位数据导致孤儿
-                    }
-                    //规则是否启用标识
-                    occupyDto.setRuleStatus(rules.getActive());
-                    occupies.add(occupyDto);
-                    //以人员id岗位及部门code作为键进行身份去重
-                    String key = personId + ":" + occupyDto.getPostCode() + ":" + occupyDto.getDeptCode();
-                    if (occupyDtoFromUpstream.containsKey(key)) {
-                        log.info("权威源人员身份数据合重:{}->{}", occupyDtoFromUpstream.get(key).toString(), occupyDto);
-                        if (occupyDto.getActive() == 1) {
-                            occupyDtoFromUpstream.put(key, occupyDto);
-                            resultOccupies.add(occupyDto);
-                            extracted(domain, occupyDtoFromUpstream.get(key), "权威源人员身份数据合重");
-                        } else {
-                            extracted(domain, occupyDto, "忽略无效数据");
-                        }
-                    } else {
-                        resultOccupies.add(occupyDto);
-                        occupyDtoFromUpstream.put(key, occupyDto);
+                    String personKey = "";
+                    List<Person> persons = new ArrayList<>();
+                    switch (findPersonKey) {
+                        case "CARD_TYPE_NO":
+                            if (StringUtils.isBlank(occupyDto.getPersonCardNo()) || StringUtils.isBlank(occupyDto.getPersonCardType())) {
+                                log.error("【通过证件类型+证件号码匹配人员】证件类型或号码不能为空{}", occupyDto);
+                                extracted(domain, occupyDto, "【通过证件类型+证件号码匹配人员】证件类型或号码不能为空");
+                                continue;
+                            }
+                            if (userCardTypeMap.containsKey(occupyDto.getPersonCardType())) {
+                                String cardTypeReg = userCardTypeMap.get(occupyDto.getPersonCardType()).getCardTypeReg();
+                                if (StringUtils.isNotBlank(cardTypeReg) && !Pattern.matches(cardTypeReg, occupyDto.getPersonCardNo())) {
+                                    log.error("【通过证件类型+证件号码匹配人员】人员身份信息中人员证件号码不符合规则{}", occupyDto);
+                                    extracted(domain, occupyDto, "【通过证件类型+证件号码匹配人员】人员身份信息中人员证件号码不符合规则");
+                                    continue;
+                                }
+                            } else {
+                                log.error("【通过证件类型+证件号码匹配人员】人员身份信息中人员证件类型无效{}", occupyDto);
+                                extracted(domain, occupyDto, "【通过证件类型+证件号码匹配人员】人员身份信息中人员证件类型无效");
+                                continue;
+                            }
+                            /*  去person Map 中 找人信息*/
+                            personKey = occupyDto.getPersonCardType() + ":" + occupyDto.getPersonCardNo();
+                            if (!personFromSSOMap.containsKey(personKey)) {
+                                log.error("【通过证件类型+证件号码匹配人员】人员身份无法找到对应对人员信息{}", personKey);
+                                extracted(domain, occupyDto, "【通过证件类型+证件号码匹配人员】人员身份无法找到对应对人员信息");
+                                continue;
+                            }
+                            persons = personFromSSOMap.get(personKey);
+                            if (persons.size() >= 0) {
+                                for (Person person : persons) {
+                                    createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
+                                    log.info("【通过证件类型+证件号码匹配人员】人员身份通过人员类型+证件获取到人员信息{}", personKey);
+                                }
+                            }
+                            break;
+                        case "CARD_NO":
+                            if (StringUtils.isBlank(occupyDto.getPersonCardNo())) {
+                                log.error("【通过证件号码匹配人员】号码不能为空{}", occupyDto);
+                                extracted(domain, occupyDto, "【通过证件号码匹配人员】号码不能为空");
+                                continue;
+                            }
+                            /*  去person Map 中 找人信息*/
+                            personKey = occupyDto.getPersonCardNo();
+                            if (!personFromSSOMapByCardNo.containsKey(personKey)) {
+                                log.error("【通过证件号码匹配人员】人员身份无法找到对应对人员信息{}", personKey);
+                                extracted(domain, occupyDto, "【通过证件号码匹配人员】人员身份无法找到对应对人员信息");
+                                continue;
+                            }
+                            persons = personFromSSOMapByCardNo.get(personKey);
+                            if (persons.size() >= 0) {
+                                for (Person person : persons) {
+                                    createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
+                                    log.info("【通过证件号码匹配人员】人员身份找找到人员信息{}", personKey);
+                                }
+                            }
+                            ;
+                            break;
+                        case "ACCOUNT_NO":
+                            if (StringUtils.isBlank(occupyDto.getAccountNo())) {
+                                log.error("【通过用户名码匹配人员】用户名不能为空{}", occupyDto);
+                                extracted(domain, occupyDto, "【通过用户名匹配人员】用户名不能为空");
+                                continue;
+                            }
+                            /*  去person Map 中 找人信息*/
+                            personKey = occupyDto.getAccountNo();
+                            if (!personFromSSOMapByAccount.containsKey(personKey)) {
+                                log.error("【通过用户名码匹配人员】人员身份无法找到对应对人员信息{}", personKey);
+                                extracted(domain, occupyDto, "【通过用户名码匹配人员】人员身份无法找到对应对人员信息");
+                                continue;
+                            }
+                            persons = personFromSSOMapByAccount.get(personKey);
+                            if (persons.size() >= 0) {
+                                for (Person person : persons) {
+                                    createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
+                                    log.info("【通过用户名码匹配人员】人员身份找找到人员信息{}", personKey);
+                                }
+                            }
+                            ;
+                            break;
+                        case "EMAIL":
+                            if (StringUtils.isBlank(occupyDto.getEmail())) {
+                                log.error("【通过邮箱匹配人员】邮箱不能为空{}", occupyDto);
+                                extracted(domain, occupyDto, "【通过邮箱匹配人员】邮箱不能为空");
+                                continue;
+                            }
+                            /*  去person Map 中 找人信息*/
+                            personKey = occupyDto.getAccountNo();
+                            if (!personFromSSOMapByEmail.containsKey(personKey)) {
+                                log.error("【通过邮箱匹配人员】人员身份无法找到对应对人员信息{}", personKey);
+                                extracted(domain, occupyDto, "【通过邮箱匹配人员】人员身份无法找到对应对人员信息");
+                                continue;
+                            }
+                            persons = personFromSSOMapByEmail.get(personKey);
+                            if (persons.size() >= 0) {
+                                for (Person person : persons) {
+                                    createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
+                                    log.info("【通过邮箱匹配人员】人员身份找找到人员信息{}", personKey);
+                                }
+                            }
+                            ;
+                            break;
+                        case "CELLPHONE":
+                            if (StringUtils.isBlank(occupyDto.getCellPhone())) {
+                                log.error("【通过电话匹配人员】电话不能为空{}", occupyDto);
+                                extracted(domain, occupyDto, "【通过电话匹配人员】电话不能为空");
+                                continue;
+                            }
+                            /*  去person Map 中 找人信息*/
+                            personKey = occupyDto.getAccountNo();
+                            if (!personFromSSOMapByPhone.containsKey(personKey)) {
+                                log.error("【通过电话匹配人员】人员身份无法找到对应对人员信息{}", personKey);
+                                extracted(domain, occupyDto, "【通过电话匹配人员】人员身份无法找到对应对人员信息");
+                                continue;
+                            }
+                            persons = personFromSSOMapByPhone.get(personKey);
+                            if (persons.size() >= 0) {
+                                for (Person person : persons) {
+                                    createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
+                                    log.info("【通过电话匹配人员】人员身份找找到人员信息{}", personKey);
+                                }
+                            }
+                            ;
+                            break;
+                        case "OPENID":
+                            if (StringUtils.isBlank(occupyDto.getOpenId())) {
+                                log.error("【通过OPENID匹配人员】电话不能为空{}", occupyDto);
+                                extracted(domain, occupyDto, "【通过电话匹配人员】电话不能为空");
+                                continue;
+                            }
+                            /*  去person Map 中 找人信息*/
+                            personKey = occupyDto.getOpenId();
+                            if (!personFromSSOMapByOpenid.containsKey(personKey)) {
+                                log.error("【通过OPENID匹配人员】人员身份无法找到对应对人员信息{}", personKey);
+                                extracted(domain, occupyDto, "【通过OPENID匹配人员】人员身份无法找到对应对人员信息");
+                                continue;
+                            }
+                            persons = personFromSSOMapByOpenid.get(personKey);
+                            if (persons.size() >= 0) {
+                                for (Person person : persons) {
+                                    createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
+                                    log.info("【通过OPENID匹配人员】人员身份找找到人员信息{}", personKey);
+                                }
+                            }
+                            break;
                     }
 
                 }
@@ -476,13 +613,13 @@ public class OccupyServiceImpl implements OccupyService {
                 }
             }
 
-        });
+        }
         log.info("所有人员身份数据获取完成:{}", occupyDtoFromUpstream.size());
         List<OccupyDto> occupyDtos = new ArrayList<>();
         if (null != occupyDtoFromUpstream && occupyDtoFromUpstream.size() > 0) {
 
-            if (!CollectionUtils.isEmpty(occupyDtosFromSSO)) {
-                occupyDtos.addAll(occupyDtosFromSSO);
+            if (!CollectionUtils.isEmpty(occupiesFromSSO)) {
+                occupyDtos.addAll(occupiesFromSSO);
             }
             Map<String, OccupyDto> preViewOccupyMap = occupyDtos.stream().filter(occupyDto -> !StringUtils.isBlank(occupyDto.getOccupyId())).collect(Collectors.toMap(occupyDto -> (occupyDto.getOccupyId()), occupyDto -> occupyDto, (v1, v2) -> v2));
 
@@ -539,7 +676,65 @@ public class OccupyServiceImpl implements OccupyService {
             return occupyDtos;
         } else {
             log.error("上游提供人员身份数据不符合规范,数据同步失败");
+            errorDataProcessing(domain);
             throw new CustomException(ResultCode.FAILED, "上游提供人员身份数据不符合规范,数据同步失败");
+        }
+    }
+
+    private void createOccupyDto(DomainInfo domain, Map<String, OccupyDto> occupyDtoFromUpstream, Map<String, TreeBean> deptFromSSOMap,
+                                 Map<String, TreeBean> postFromSSOMap, NodeRules rules, UpstreamType upstreamType, ArrayList<Upstream> upstreams, LocalDateTime now, List<OccupyDto> occupies,
+                                 ArrayList<OccupyDto> resultOccupies, OccupyDto oldOccupyDto, Person person) {
+        OccupyDto occupyDto = new OccupyDto();
+        BeanUtils.copyProperties(oldOccupyDto, occupyDto);
+        occupyDto.setOpenId(person.getOpenId());
+        occupyDto.setSource(upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")");
+        occupyDto.setPersonId(person.getId());
+        occupyDto.setCreateTime(now);
+        occupyDto.setUpstreamType(upstreamType.getId());
+        //给上游不提供的数据赋予默认值
+        if (null == occupyDto.getUpdateTime()) {
+            occupyDto.setUpdateTime(now);
+        }
+        if (null == occupyDto.getDelMark()) {
+            occupyDto.setDelMark(0);
+        }
+        if (null == occupyDto.getActive()) {
+            occupyDto.setActive(1);
+        }
+        if (null != upstreamType.getIsIncremental() && upstreamType.getIsIncremental()) {
+            occupyDto.setDataSource("INC_PULL");
+        } else {
+            occupyDto.setDataSource("PULL");
+        }
+        //赋予activeTime默认值
+        occupyDto.setActiveTime(LocalDateTime.now());
+        // 验证是否为 孤儿数据
+        occupyDto.setOrphan(0);// 非孤儿
+        if (!deptFromSSOMap.containsKey(occupyDto.getDeptCode())) {
+            occupyDto.setOrphan(1); // 因部门数据导致孤儿
+            if (!postFromSSOMap.containsKey(occupyDto.getPostCode())) {
+                occupyDto.setOrphan(3); // 因岗位+部门数据导致孤儿
+            }
+        } else if (!postFromSSOMap.containsKey(occupyDto.getPostCode())) {
+            occupyDto.setOrphan(2); // 因 岗位数据导致孤儿
+        }
+        //规则是否启用标识
+        occupyDto.setRuleStatus(rules.getActive());
+        occupies.add(occupyDto);
+        //以人员id岗位及部门code作为键进行身份去重
+        String key = person.getId() + ":" + occupyDto.getPostCode() + ":" + occupyDto.getDeptCode();
+        if (occupyDtoFromUpstream.containsKey(key)) {
+            log.info("权威源人员身份数据合重:{}->{}", occupyDtoFromUpstream.get(key).toString(), occupyDto);
+            if (occupyDto.getActive() == 1) {
+                occupyDtoFromUpstream.put(key, occupyDto);
+                resultOccupies.add(occupyDto);
+                extracted(domain, occupyDtoFromUpstream.get(key), "权威源人员身份数据合重");
+            } else {
+                extracted(domain, occupyDto, "忽略无效数据");
+            }
+        } else {
+            resultOccupies.add(occupyDto);
+            occupyDtoFromUpstream.put(key, occupyDto);
         }
     }
 
@@ -584,11 +779,7 @@ public class OccupyServiceImpl implements OccupyService {
             OccupyDto newOccupy = occupyDtoFromUpstream.get(key);
             //当前数据来源规则为启用再进行处理
             if (newOccupy.getRuleStatus()) {
-                occupyFromSSO.setDataSource(newOccupy.getDataSource());
-                //处理sso数据的active为null的情况
-                if (null == occupyFromSSO.getActive() || "".equals(occupyFromSSO.getActive())) {
-                    occupyFromSSO.setActive(1);
-                }
+
                 //修改标识
                 boolean updateFlag = false;
                 //删除恢复标识
@@ -601,6 +792,15 @@ public class OccupyServiceImpl implements OccupyService {
                 boolean timeFlag = false;
                 //恢复失效标识
                 //   boolean invalidRecoverFlag = true;
+                if (!"PULL".equals(occupyFromSSO.getDataSource())) {
+                    updateFlag = true;
+                }
+                occupyFromSSO.setSource(newOccupy.getSource());
+                occupyFromSSO.setDataSource(newOccupy.getDataSource());
+                //处理sso数据的active为null的情况
+                if (null == occupyFromSSO.getActive() || "".equals(occupyFromSSO.getActive())) {
+                    occupyFromSSO.setActive(1);
+                }
                 occupyFromSSO.setRuleStatus(newOccupy.getRuleStatus());
                 List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(newOccupy.getUpstreamType());
                 if (!occupyTypeFields.containsKey(newOccupy.getUpstreamType())) {
@@ -797,7 +997,7 @@ public class OccupyServiceImpl implements OccupyService {
                                 if (0 == occupyFromSSO.getOrphan()) {
                                     activeFlag = true;
                                     //上游提供的有效期开始时间为过去时间则赋值为当前时刻
-                                    if (occupyFromSSO.getStartTime().isBefore(now)) {
+                                    if (null == occupyFromSSO.getStartTime() || occupyFromSSO.getStartTime().isBefore(now)) {
                                         occupyFromSSO.setValidStartTime(now);
                                     }
                                 }
@@ -1143,5 +1343,35 @@ public class OccupyServiceImpl implements OccupyService {
             preViewTaskService.saveTask(viewTask);
             log.info("人员身份刷新完毕,任务id为:{}", viewTask.getTaskId());
         }
+    }
+
+
+    public void outdated(Map<Object, Object> personFromSSOMap, Object personKey, Object personKeyByAccount) {
+        //优先以证件类型+证件号码 查找身份对应人员是否存在
+        /*if (!personFromSSOMap.containsKey(personKey)) {
+            //其次以用户名 查找对应的人员是否存在
+            if (!personFromSSOMapByAccount.containsKey(personKeyByAccount)) {
+                if (!occupiesFromSSOIdentityMap.containsKey(personKeyByIdentity)) {
+                    log.error("人员身份无法找到对应对人员信息{}-{}", personKey, personKeyByAccount);
+                    extracted(domain, occupyDto, "人员身份无法找到对应对人员信息");
+                    continue;
+                } else {
+                    // 通过 身份证件 找到了对应的身份信息，再根据身份关联信息 反推找到人员信息
+                    personId = occupiesFromSSOIdentityMap.get(personKeyByIdentity).getPersonId();
+                    occupyDto.setOpenId(occupiesFromSSOIdentityMap.get(personKeyByIdentity).getOpenId());
+                    log.info("人员身份通过身份证件获取到人员信息{}", personKeyByIdentity);
+                }
+
+            } else {
+                personId = personFromSSOMapByAccount.get(personKeyByAccount).getId();
+                occupyDto.setOpenId(personFromSSOMapByAccount.get(personKeyByAccount).getOpenId());
+                log.info("人员身份通过用户名获取到人员信息{}", personKeyByAccount);
+            }
+
+        } else {
+            personId = personFromSSOMap.get(personKey).getId();
+            occupyDto.setOpenId(personFromSSOMap.get(personKey).getOpenId());
+            log.info("人员身份通过人员证件获取到人员信息{}", personKey);
+        }*/
     }
 }
