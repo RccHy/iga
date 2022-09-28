@@ -499,7 +499,7 @@ public class PersonDaoImpl implements PersonDao {
                 " inner join identity i on c.identity_id = i.id " +
                 " where c.active=1 and i.tenant_id=? ";
 
-        List<Map<String, Object>> maps = jdbcSSO.queryForList(sql, tenantId, tenantId);
+        List<Map<String, Object>> maps = jdbcSSO.queryForList(sql, tenantId);
         List<Person> personList = new ArrayList<>();
         for (Map<String, Object> map : maps) {
             Person person=new Person();
