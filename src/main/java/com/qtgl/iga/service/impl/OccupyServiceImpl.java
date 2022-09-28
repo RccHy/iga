@@ -211,6 +211,10 @@ public class OccupyServiceImpl implements OccupyService {
         if (personFromSSO.size() <= 0) {
             throw new CustomException(ResultCode.FAILED, "数据库中无人员信息");
         }
+        // 获取被合重过的人员信息
+        List<Person> mergePerson = personDao.mergeCharacteristicPerson(tenant.getId());
+        log.info("合重的人员size：" + mergePerson.size());
+
         // 获取所有规则 字段，用于更新验证
         if (null == occupyRules || occupyRules.size() == 0) {
             throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
@@ -296,6 +300,15 @@ public class OccupyServiceImpl implements OccupyService {
         Map<String, List<Person>> personFromSSOMapByEmail = null;
         Map<String, List<Person>> personFromSSOMapByOpenid = null;
 
+        // 合重人员Map
+        // key --> cardType:cardNo   value --> List<Person>
+        Map<String, List<Person>> mergePersonFromSSOMap = null;
+        // key --> accountNo  value --> List<Person>
+        Map<String, List<Person>> mergePersonFromSSOMapByAccount = null;
+        Map<String, List<Person>> mergePersonFromSSOMapByCardNo = null;
+        Map<String, List<Person>> mergePersonFromSSOMapByPhone = null;
+        Map<String, List<Person>> mergePersonFromSSOMapByEmail = null;
+
         // 开始遍历规则
         for (NodeRules rules : occupyRules) {
             UpstreamType upstreamType = upstreamTypeDao.findById(rules.getUpstreamTypesId());
@@ -322,10 +335,18 @@ public class OccupyServiceImpl implements OccupyService {
                         personFromSSOMap = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo()))
                                 .collect(Collectors.groupingBy(person -> (person.getCardType() + ":" + person.getCardNo())));
                     }
+                    if (null == mergePersonFromSSOMap) {
+                        mergePersonFromSSOMap = mergePerson.stream().filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo()))
+                                .collect(Collectors.groupingBy(person -> (person.getCardType() + ":" + person.getCardNo())));
+                    }
                     break;
                 case "CARD_NO":
                     if (null == personFromSSOMapByCardNo) {
                         personFromSSOMapByCardNo = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getCardNo()))
+                                .collect(Collectors.groupingBy(person -> (person.getCardNo())));
+                    }
+                    if (null == mergePersonFromSSOMapByCardNo) {
+                        mergePersonFromSSOMapByCardNo = mergePerson.stream().filter(person -> !StringUtils.isBlank(person.getCardNo()))
                                 .collect(Collectors.groupingBy(person -> (person.getCardNo())));
                     }
                     break;
@@ -334,17 +355,29 @@ public class OccupyServiceImpl implements OccupyService {
                         personFromSSOMapByAccount = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getAccountNo()))
                                 .collect(Collectors.groupingBy(person -> (person.getAccountNo())));
                     }
+                    if (null == mergePersonFromSSOMapByAccount) {
+                        mergePersonFromSSOMapByAccount = mergePerson.stream().filter(person -> !StringUtils.isBlank(person.getAccountNo()))
+                                .collect(Collectors.groupingBy(person -> (person.getAccountNo())));
+                    }
                     break;
                 case "EMAIL":
                     if (null == personFromSSOMapByEmail) {
                         personFromSSOMapByEmail = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getEmail()))
                                 .collect(Collectors.groupingBy(person -> (person.getEmail())));
                     }
+                    if (null == mergePersonFromSSOMapByEmail) {
+                        mergePersonFromSSOMapByEmail = mergePerson.stream().filter(person -> !StringUtils.isBlank(person.getEmail()))
+                                .collect(Collectors.groupingBy(person -> (person.getEmail())));
+                    }
 
                     break;
                 case "CELLPHONE":
-                    if (null == personFromSSOMapByPhone) {
-                        personFromSSOMapByPhone = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getCellphone()))
+                    if (null == personFromSSOMapByEmail) {
+                        personFromSSOMapByEmail = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getEmail()))
+                                .collect(Collectors.groupingBy(person -> (person.getEmail())));
+                    }
+                    if (null == mergePersonFromSSOMapByPhone) {
+                        mergePersonFromSSOMapByPhone = mergePerson.stream().filter(person -> !StringUtils.isBlank(person.getCellphone()))
                                 .collect(Collectors.groupingBy(person -> (person.getCellphone())));
                     }
                     break;
@@ -472,18 +505,28 @@ public class OccupyServiceImpl implements OccupyService {
                             }
                             /*  去person Map 中 找人信息*/
                             personKey = occupyDto.getPersonCardType() + ":" + occupyDto.getPersonCardNo();
-                            if (!personFromSSOMap.containsKey(personKey)) {
+                            if (!personFromSSOMap.containsKey(personKey) && !mergePersonFromSSOMap.containsKey(personKey)) {
                                 log.error("【通过证件类型+证件号码匹配人员】人员身份无法找到对应对人员信息{}", personKey);
                                 extracted(domain, occupyDto, "【通过证件类型+证件号码匹配人员】人员身份无法找到对应对人员信息");
                                 continue;
                             }
-                            persons = personFromSSOMap.get(personKey);
+
+                            if (personFromSSOMap.containsKey(personKey)) {
+                                persons = personFromSSOMap.get(personKey);
+                                if (mergePersonFromSSOMap.containsKey(personKey)) {
+                                    persons.addAll(mergePersonFromSSOMap.get(personKey));
+                                }
+                            } else {
+                                persons=mergePersonFromSSOMap.get(personKey);
+                            }
+
                             if (persons.size() >= 0) {
                                 for (Person person : persons) {
                                     createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
                                     log.info("【通过证件类型+证件号码匹配人员】人员身份通过人员类型+证件获取到人员信息{}", personKey);
                                 }
                             }
+
                             break;
                         case "CARD_NO":
                             if (StringUtils.isBlank(occupyDto.getPersonCardNo())) {
@@ -493,12 +536,20 @@ public class OccupyServiceImpl implements OccupyService {
                             }
                             /*  去person Map 中 找人信息*/
                             personKey = occupyDto.getPersonCardNo();
-                            if (!personFromSSOMapByCardNo.containsKey(personKey)) {
+                            if (!personFromSSOMapByCardNo.containsKey(personKey)&&!mergePersonFromSSOMapByCardNo.containsKey(personKey)) {
                                 log.error("【通过证件号码匹配人员】人员身份无法找到对应对人员信息{}", personKey);
                                 extracted(domain, occupyDto, "【通过证件号码匹配人员】人员身份无法找到对应对人员信息");
                                 continue;
                             }
-                            persons = personFromSSOMapByCardNo.get(personKey);
+
+                            if (personFromSSOMapByCardNo.containsKey(personKey)) {
+                                persons = personFromSSOMapByCardNo.get(personKey);
+                                if (mergePersonFromSSOMapByCardNo.containsKey(personKey)) {
+                                    persons.addAll(mergePersonFromSSOMapByCardNo.get(personKey));
+                                }
+                            } else {
+                                persons =mergePersonFromSSOMapByCardNo.get(personKey);
+                            }
                             if (persons.size() >= 0) {
                                 for (Person person : persons) {
                                     createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
@@ -515,12 +566,19 @@ public class OccupyServiceImpl implements OccupyService {
                             }
                             /*  去person Map 中 找人信息*/
                             personKey = occupyDto.getAccountNo();
-                            if (!personFromSSOMapByAccount.containsKey(personKey)) {
+                            if (!personFromSSOMapByAccount.containsKey(personKey)&&!mergePersonFromSSOMapByAccount.containsKey(personKey)) {
                                 log.error("【通过用户名码匹配人员】人员身份无法找到对应对人员信息{}", personKey);
                                 extracted(domain, occupyDto, "【通过用户名码匹配人员】人员身份无法找到对应对人员信息");
                                 continue;
                             }
-                            persons = personFromSSOMapByAccount.get(personKey);
+                            if (personFromSSOMapByAccount.containsKey(personKey)) {
+                                persons = personFromSSOMapByAccount.get(personKey);
+                                if (mergePersonFromSSOMapByAccount.containsKey(personKey)) {
+                                    persons.addAll(mergePersonFromSSOMapByAccount.get(personKey));
+                                }
+                            } else {
+                                persons =mergePersonFromSSOMapByAccount.get(personKey);
+                            }
                             if (persons.size() >= 0) {
                                 for (Person person : persons) {
                                     createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
@@ -537,12 +595,19 @@ public class OccupyServiceImpl implements OccupyService {
                             }
                             /*  去person Map 中 找人信息*/
                             personKey = occupyDto.getAccountNo();
-                            if (!personFromSSOMapByEmail.containsKey(personKey)) {
+                            if (!personFromSSOMapByEmail.containsKey(personKey)&&!mergePersonFromSSOMapByEmail.containsKey(personKey)) {
                                 log.error("【通过邮箱匹配人员】人员身份无法找到对应对人员信息{}", personKey);
                                 extracted(domain, occupyDto, "【通过邮箱匹配人员】人员身份无法找到对应对人员信息");
                                 continue;
                             }
-                            persons = personFromSSOMapByEmail.get(personKey);
+                            if (personFromSSOMapByEmail.containsKey(personKey)) {
+                                persons = personFromSSOMapByEmail.get(personKey);
+                                if (mergePersonFromSSOMapByEmail.containsKey(personKey)) {
+                                    persons.addAll(mergePersonFromSSOMapByEmail.get(personKey));
+                                }
+                            } else {
+                                persons =mergePersonFromSSOMapByEmail.get(personKey);
+                            }
                             if (persons.size() >= 0) {
                                 for (Person person : persons) {
                                     createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
@@ -559,12 +624,19 @@ public class OccupyServiceImpl implements OccupyService {
                             }
                             /*  去person Map 中 找人信息*/
                             personKey = occupyDto.getAccountNo();
-                            if (!personFromSSOMapByPhone.containsKey(personKey)) {
+                            if (!personFromSSOMapByPhone.containsKey(personKey)&&!mergePersonFromSSOMapByPhone.containsKey(personKey)) {
                                 log.error("【通过电话匹配人员】人员身份无法找到对应对人员信息{}", personKey);
                                 extracted(domain, occupyDto, "【通过电话匹配人员】人员身份无法找到对应对人员信息");
                                 continue;
                             }
-                            persons = personFromSSOMapByPhone.get(personKey);
+                            if (personFromSSOMapByPhone.containsKey(personKey)) {
+                                persons = personFromSSOMapByPhone.get(personKey);
+                                if (mergePersonFromSSOMapByPhone.containsKey(personKey)) {
+                                    persons.addAll(mergePersonFromSSOMapByPhone.get(personKey));
+                                }
+                            } else {
+                                persons =mergePersonFromSSOMapByPhone.get(personKey);
+                            }
                             if (persons.size() >= 0) {
                                 for (Person person : persons) {
                                     createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);

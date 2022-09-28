@@ -8,6 +8,7 @@ import com.qtgl.iga.utils.FilterCodeEnum;
 import com.qtgl.iga.utils.MyBeanUtils;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -489,6 +490,44 @@ public class PersonDaoImpl implements PersonDao {
 
             }
         }
+    }
+
+    @Override
+    public List<Person> mergeCharacteristicPerson(String tenantId) {
+        String sql = "select c.identity_id as id,i.open_id as openid,c.card_type,c.card_no " +
+                " from  certificate as c " +
+                " inner join identity i on c.identity_id = i.id " +
+                " where c.active=1 and i.tenant_id=? ";
+
+        List<Map<String, Object>> maps = jdbcSSO.queryForList(sql, tenantId, tenantId);
+        List<Person> personList = new ArrayList<>();
+        for (Map<String, Object> map : maps) {
+            Person person=new Person();
+            person.setId(map.get("id").toString());
+            person.setOpenId(map.get("openid").toString());
+            if (map.get("card_type").toString().equals("CELLPHONE")) {
+                person.setCellphone(map.get("card_no").toString());
+                continue;
+            }
+            if (map.get("card_type").toString().equals("EMAIL")) {
+                person.setEmail(map.get("card_no").toString());
+                continue;
+            }
+            if (map.get("card_type").toString().equals("USERNAME")) {
+                person.setAccountNo(map.get("card_no").toString());
+                continue;
+            }
+            if (map.get("card_type").toString().equals("CARD_NO")) {
+                person.setCardNo(map.get("card_no").toString());
+                continue;
+            }
+            if(StringUtils.isNotBlank(map.get("card_type").toString())&&StringUtils.isNotBlank(map.get("card_no").toString())){
+                person.setCardType(map.get("card_type").toString());
+                person.setCardNo(map.get("card_no").toString());
+            }
+
+        }
+        return personList;
     }
 
 }

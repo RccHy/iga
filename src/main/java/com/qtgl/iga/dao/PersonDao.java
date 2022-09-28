@@ -22,4 +22,6 @@ public interface PersonDao {
     void removeData(DomainInfo domain);
 
     Integer findPersonTempCount(Map<String, Object> arguments,DomainInfo domain);
+
+    List<Person> mergeCharacteristicPerson(String tenantId);
 }
