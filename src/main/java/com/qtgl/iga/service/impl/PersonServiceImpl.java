@@ -1218,6 +1218,8 @@ public class PersonServiceImpl implements PersonService {
                         //合重删除特殊处理
                         if (sourceField.equals("delMark") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
                             if (!CollectionUtils.isEmpty(distinctPersonMap) && distinctPersonMap.containsKey(personFromSSO.getId())) {
+                                //临时赋值
+                                personFromSSO.setDelMark(0);
                                 continue;
                             }
                         }
