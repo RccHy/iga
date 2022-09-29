@@ -1,5 +1,6 @@
 package com.qtgl.iga.dao.impl;
 
+import com.qtgl.iga.bo.Certificate;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.DynamicValue;
 import com.qtgl.iga.bo.Person;
@@ -87,7 +88,7 @@ public class PersonDaoImpl implements PersonDao {
 
 
     @Override
-    public Integer saveToSso(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert) {
+    public Integer saveToSso(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, ArrayList<Certificate> certificates) {
 
         return txTemplate.execute(transactionStatus -> {
             try {
@@ -264,6 +265,25 @@ public class PersonDaoImpl implements PersonDao {
                     });
                 }
 
+                if (!CollectionUtils.isEmpty(certificates)) {
+                    String certificateStr = "update certificate set card_type=? , card_no =? ,update_time=?  where id= ?";
+                    jdbcSSO.batchUpdate(certificateStr, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, certificates.get(i).getCardType());
+                            preparedStatement.setObject(2, certificates.get(i).getCardNo());
+                            preparedStatement.setObject(3, certificates.get(i).getUpdateTime());
+                            preparedStatement.setObject(4, certificates.get(i).getId());
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return certificates.size();
+                        }
+                    });
+                }
+
+
                 return 1;
             } catch (Exception e) {
                 e.printStackTrace();
@@ -365,6 +385,96 @@ public class PersonDaoImpl implements PersonDao {
         Integer integer = jdbcIGA.queryForObject(stb.toString(), param.toArray(), Integer.class);
         return integer;
     }
+
+    @Override
+    public List<Person> findDistinctPerson(String tenantId) {
+        String sql = " SELECT " +
+                "i.id, " +
+                " i.NAME as name, " +
+                " i.tags, " +
+                " i.open_id AS openId, " +
+                " i.account_no AS accountNo, " +
+                " i.card_type AS cardType, " +
+                " i.card_no AS cardNo, " +
+                " i.cellphone, " +
+                " i.email, " +
+                " i.source, " +
+                " i.data_source AS dataSource, " +
+                " i.active, " +
+                " i.active_time AS activeTime, " +
+                " i.create_time AS createTime, " +
+                " i.update_time AS updateTime, " +
+                " i.del_mark AS delMark," +
+                " i.valid_start_time AS validStartTime, " +
+                " i.valid_end_time AS validEndTime " +
+                " FROM " +
+                " identity i " +
+                " INNER JOIN `certificate` c ON c.from_identity_id = i.id  " +
+                " WHERE " +
+                " i.tenant_id = ?  " +
+                " AND i.del_mark = 1";
+        List<Map<String, Object>> maps = jdbcSSO.queryForList(sql, tenantId);
+
+        List<Person> personList = new ArrayList<>();
+
+        if (null != maps && maps.size() > 0) {
+            maps.forEach(map -> {
+                Person person = new Person();
+                try {
+                    MyBeanUtils.populate(person, map);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                personList.add(person);
+            });
+
+        }
+        return personList;
+    }
+
+    @Override
+    public List<Certificate> getAllCard(String tenantId) {
+        String sql = "SELECT " +
+                " c.id, " +
+                " c.card_type AS cardType, " +
+                " c.identity_id AS identityId,  " +
+                " c.card_no AS cardNo, " +
+                " c.source, " +
+                " c.data_source AS dataSource, " +
+                " c.active, " +
+                " c.active_time AS activeTime, " +
+                " c.create_time AS createTime, " +
+                " c.update_time AS updateTime, " +
+                " c.del_mark AS delMark," +
+                " c.from_identity_id AS fromIdentityId " +
+                " FROM " +
+                " certificate c " +
+                " LEFT JOIN identity i ON c.identity_id = i.id " +
+                " WHERE " +
+                " c.from_identity_id IS NOT NULL  " +
+                " AND i.tenant_id = ?  " +
+                " AND i.del_mark = 0  " +
+                " ORDER BY " +
+                " c.update_time";
+        List<Map<String, Object>> maps = jdbcSSO.queryForList(sql, tenantId);
+
+        List<Certificate> certificates = new ArrayList<>();
+
+        if (null != maps && maps.size() > 0) {
+            maps.forEach(map -> {
+                Certificate certificate = new Certificate();
+                try {
+                    MyBeanUtils.populate(certificate, map);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                certificates.add(certificate);
+            });
+
+        }
+        return certificates;
+    }
+
 
     private void dealData(Map<String, Object> arguments, StringBuffer stb, List<Object> param) {
         Iterator<Map.Entry<String, Object>> it = arguments.entrySet().iterator();
