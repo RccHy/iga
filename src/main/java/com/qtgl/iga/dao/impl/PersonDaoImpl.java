@@ -525,6 +525,7 @@ public class PersonDaoImpl implements PersonDao {
                 person.setCardType(map.get("card_type").toString());
                 person.setCardNo(map.get("card_no").toString());
             }
+            personList.add(person);
 
         }
         return personList;
