@@ -350,7 +350,7 @@ public class OccupyServiceImpl implements OccupyService {
                                 .collect(Collectors.groupingBy(person -> (person.getCardNo())));
                     }
                     break;
-                case "ACCOUNT_NO":
+                case "USERNAME":
                     if (null == personFromSSOMapByAccount) {
                         personFromSSOMapByAccount = personFromSSO.stream().filter(person -> !StringUtils.isBlank(person.getAccountNo()))
                                 .collect(Collectors.groupingBy(person -> (person.getAccountNo())));
@@ -558,7 +558,7 @@ public class OccupyServiceImpl implements OccupyService {
                             }
                             ;
                             break;
-                        case "ACCOUNT_NO":
+                        case "USERNAME":
                             if (StringUtils.isBlank(occupyDto.getAccountNo())) {
                                 log.error("【通过用户名码匹配人员】用户名不能为空{}", occupyDto);
                                 extracted(domain, occupyDto, "【通过用户名匹配人员】用户名不能为空");
