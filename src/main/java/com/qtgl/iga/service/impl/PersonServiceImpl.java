@@ -88,7 +88,7 @@ public class PersonServiceImpl implements PersonService {
     //加密方式
     private String pwdConfig = "";
     //用户名标识
-    private final String ACCOUNT_NO = "ACCOUNT_NO";
+    private final String ACCOUNT_NO = "USERNAME";
     //证件类型+证件号码
     private final String CARD_TYPE_NO = "CARD_TYPE_NO";
     //仅证件号码
