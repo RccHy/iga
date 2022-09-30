@@ -1,9 +1,9 @@
 
--- 202209XX
-alter table t_mgr_upstream_types add person_characteristic varchar(50) null comment '[人特征，人员类型合重方式以及身份匹配人方式] CARD_TYPE_NO:证件类型+证件号码 CARD_NO:仅证件号码 ACCOUNT_NO:用户名 EMAIL:邮箱 CELLPHONE:手机号 OPENID:openid(仅身份类型匹配人)';
-update  t_mgr_upstream_types set person_characteristic='ACCOUNT_NO' where syn_type='person' and id in (select upstream_type_id from t_mgr_upstream_types_field where source_field='accountNo');
+-- 20220930
+alter table t_mgr_upstream_types add person_characteristic varchar(50) null comment '[人特征，人员类型合重方式以及身份匹配人方式] CARD_TYPE_NO:证件类型+证件号码 CARD_NO:仅证件号码 USERNAME:用户名 EMAIL:邮箱 CELLPHONE:手机号 OPENID:openid(仅身份类型匹配人)';
+update  t_mgr_upstream_types set person_characteristic='USERNAME' where syn_type='person' and id in (select upstream_type_id from t_mgr_upstream_types_field where source_field='accountNo');
 update  t_mgr_upstream_types set person_characteristic='CARD_TYPE_NO' where syn_type='person' and id in (select upstream_type_id from t_mgr_upstream_types_field where source_field='cardNo');
-update  t_mgr_upstream_types set person_characteristic='ACCOUNT_NO' where syn_type='occupy' and id in (select upstream_type_id from t_mgr_upstream_types_field where source_field='accountNo');
+update  t_mgr_upstream_types set person_characteristic='USERNAME' where syn_type='occupy' and id in (select upstream_type_id from t_mgr_upstream_types_field where source_field='accountNo');
 update  t_mgr_upstream_types set person_characteristic='CARD_TYPE_NO' where syn_type='occupy' and id in (select upstream_type_id from t_mgr_upstream_types_field where source_field='personCardNo');
 
 

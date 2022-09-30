@@ -250,7 +250,7 @@ public class TaskConfig {
                                 //    taskLogService.save(taskLog, domainInfo.getDomainId(), "update");
                                 //}
                                 e.printStackTrace();
-                            }finally {
+                            } finally {
                                 if (StringUtils.isNotBlank(TaskConfig.errorData.get(domainInfo.getId()))) {
                                     this.upload(domainInfo, taskLog);
                                 } else {

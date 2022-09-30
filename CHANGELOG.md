@@ -1,3 +1,25 @@
+### 20220930
+
+**数据库**
+- 执行iga/update/update.sql下 20220930的sql
+
+**new：**
+- 监控数据由仅监控删除数据调整为监控删除与失效数据
+- 人员,人员身份同步支持指定模式数据同步
+
+**bug fix**
+- 无
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20220930
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20220930
+
+
+
 ### 20220908
 
 **数据库**
