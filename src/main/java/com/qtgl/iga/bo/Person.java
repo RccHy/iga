@@ -108,5 +108,14 @@ public class Person {
 
     //扩展字段值
     private List<DynamicValue> attrsValues;
+    /**
+     * 创建来源
+     */
+    private String createSource;
+    /**
+     * 创建来源(机读)
+     * push  PULL  BUILTIN
+     */
+    private String createDataSource;
 
 }

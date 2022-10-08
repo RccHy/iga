@@ -69,7 +69,7 @@ public class OccupyDaoImpl implements OccupyDao {
 
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId);
-      List<OccupyDto> occupies = new ArrayList<>();
+        List<OccupyDto> occupies = new ArrayList<>();
         mapList.forEach(map -> {
             OccupyDto occupy = new OccupyDto();
             try {
@@ -87,11 +87,11 @@ public class OccupyDaoImpl implements OccupyDao {
     public Integer saveToSso(Map<String, List<OccupyDto>> occupyMap, String tenantId) {
         return txTemplate.execute(transactionStatus -> {
             try {
-                 if (occupyMap.containsKey("insert")) {
+                if (occupyMap.containsKey("insert")) {
                     List<OccupyDto> list = occupyMap.get("insert");
                     String sql = "INSERT INTO user " +
-                            "               (id, user_type, card_type,user_code, del_mark, start_time, end_time, create_time, update_time, tenant_id, dept_code, source, data_source, active, active_time,user_index,post_code,account_no,valid_start_time,valid_end_time,orphan) " +
-                            "               VALUES (?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                            "               (id, user_type, card_type,user_code, del_mark, start_time, end_time, create_time, update_time, tenant_id, dept_code, source, data_source, active, active_time,user_index,post_code,account_no,valid_start_time,valid_end_time,orphan,create_data_source,create_source) " +
+                            "               VALUES (?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
                     int[] ints = jdbcSSO.batchUpdate(sql, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
@@ -115,6 +115,8 @@ public class OccupyDaoImpl implements OccupyDao {
                             preparedStatement.setObject(18, list.get(i).getValidStartTime());
                             preparedStatement.setObject(19, list.get(i).getValidEndTime());
                             preparedStatement.setObject(20, list.get(i).getOrphan());
+                            preparedStatement.setObject(21, list.get(i).getDataSource());
+                            preparedStatement.setObject(22, list.get(i).getSource());
                         }
 
                         @Override

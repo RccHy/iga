@@ -229,8 +229,8 @@ public class PostDaoImpl implements PostDao {
     @Override
     public Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, ArrayList<TreeBean> invalidList, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, String tenantId) {
         String insertStr = "insert into user_type (id,user_type, name, parent_code, can_login ,tenant_id ,tags," +
-                " data_source, description,create_time,del_mark,active,active_time,update_time,source,user_type_index,post_type,formal) values" +
-                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                " data_source, description,create_time,del_mark,active,active_time,update_time,source,user_type_index,post_type,formal,create_data_source,create_source) values" +
+                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         return txTemplate2.execute(transactionStatus -> {
             try {
                 if (null != insertList && insertList.size() > 0) {
@@ -256,6 +256,8 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(16, insertList.get(i).getIndex());
                             preparedStatement.setObject(17, insertList.get(i).getType());
                             preparedStatement.setObject(18, insertList.get(i).getFormal());
+                            preparedStatement.setObject(19, insertList.get(i).getDataSource());
+                            preparedStatement.setObject(20, insertList.get(i).getSource());
                         }
 
                         @Override

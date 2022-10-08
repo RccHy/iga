@@ -119,12 +119,21 @@ public class TreeBean implements Serializable {
      */
     private String relationType;
 
-    private Map<String,String> dynamic;
+    private Map<String, String> dynamic;
 
     /**
      * 逻辑处理字段 规则是否启用
      */
     private Boolean ruleStatus;
+    /**
+     * 创建来源
+     */
+    private String createSource;
+    /**
+     * 创建来源(机读)
+     * push  PULL  BUILTIN
+     */
+    private String createDataSource;
 
 //    private String deptTreeTypeId;
 //    public DeptBean(Dept dept) {

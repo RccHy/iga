@@ -225,8 +225,8 @@ public class DeptDaoImpl implements DeptDao {
     @Override
     public Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, ArrayList<TreeBean> invalidList, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, String tenantId) {
         String insertStr = "insert into dept (id,dept_code, dept_name,dept_en_name, parent_code, del_mark ,tenant_id ,source, data_source, description," +
-                "create_time,tags,active,active_time,tree_type,dept_index,abbreviation,update_time,type,relation_type,independent) values" +
-                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                "create_time,tags,active,active_time,tree_type,dept_index,abbreviation,update_time,type,relation_type,independent,create_data_source,create_source) values" +
+                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         return txTemplate.execute(transactionStatus -> {
 
             try {
@@ -255,6 +255,8 @@ public class DeptDaoImpl implements DeptDao {
                             preparedStatement.setObject(19, insertList.get(i).getType());
                             preparedStatement.setObject(20, insertList.get(i).getRelationType());
                             preparedStatement.setObject(21, null == insertList.get(i).getIndependent() ? 0 : insertList.get(i).getIndependent());
+                            preparedStatement.setObject(22, insertList.get(i).getDataSource());
+                            preparedStatement.setObject(23, insertList.get(i).getSource());
                         }
 
                         @Override
