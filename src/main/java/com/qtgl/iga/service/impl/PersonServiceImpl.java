@@ -292,7 +292,7 @@ public class PersonServiceImpl implements PersonService {
         }
         Map<String, Person> preViewPersonMap = people.stream().filter(person -> !StringUtils.isBlank(person.getId())).collect(Collectors.toMap(person -> (person.getId()), person -> person, (v1, v2) -> v2));
         //预置对比丢失的失效人员
-        Map<String, Person> invalidPersonMap = people.stream().filter(person -> !StringUtils.isBlank(person.getId())).collect(Collectors.toMap(person -> (person.getId()), person -> person, (v1, v2) -> v2));
+        Map<String, Person> invalidPersonMap = people.stream().filter(person -> !StringUtils.isBlank(person.getId()) && now.isBefore(person.getValidEndTime()) && now.isAfter(person.getValidStartTime())).collect(Collectors.toMap(person -> (person.getId()), person -> person, (v1, v2) -> v2));
 
         //扩展字段逻辑处理
         if (!CollectionUtils.isEmpty(dynamicAttrs)) {
@@ -607,38 +607,44 @@ public class PersonServiceImpl implements PersonService {
         if (!CollectionUtils.isEmpty(invalidPersonMap)) {
             ArrayList<Person> invalidPeople = new ArrayList<>(invalidPersonMap.values());
             for (Person invalidPerson : invalidPeople) {
-                if ((null == invalidPerson.getRuleStatus() || invalidPerson.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(invalidPerson.getSource()))) {
-                    invalidPerson.setActive(0);
-                    invalidPerson.setActiveTime(now);
-                    invalidPerson.setUpdateTime(now);
-                    invalidPerson.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
-                    invalidPerson.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
-                    if (!CollectionUtils.isEmpty(distinctPersonMap)) {
-                        if (distinctPersonMap.containsKey(invalidPerson.getId())) {
-                            invalidPerson.setDelMark(1);
-                            if (result.containsKey("merge")) {
-                                result.get("merge").add(invalidPerson);
-                            } else {
-                                result.put("merge", new ArrayList<Person>() {{
-                                    this.add(invalidPerson);
-                                }});
+
+                if (1 != invalidPerson.getDelMark()
+                        && (null == invalidPerson.getActive() || invalidPerson.getActive() == 1)
+                        && "PULL".equalsIgnoreCase(invalidPerson.getDataSource())) {
+                    if ((null == invalidPerson.getRuleStatus() || invalidPerson.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(invalidPerson.getSource()))) {
+                        invalidPerson.setActive(0);
+                        invalidPerson.setActiveTime(now);
+                        invalidPerson.setUpdateTime(now);
+                        invalidPerson.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
+                        invalidPerson.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
+                        if (!CollectionUtils.isEmpty(distinctPersonMap)) {
+                            if (distinctPersonMap.containsKey(invalidPerson.getId())) {
+                                invalidPerson.setDelMark(1);
+                                if (result.containsKey("merge")) {
+                                    result.get("merge").add(invalidPerson);
+                                } else {
+                                    result.put("merge", new ArrayList<Person>() {{
+                                        this.add(invalidPerson);
+                                    }});
+                                }
                             }
                         }
-                    }
-                    if (result.containsKey("invalid")) {
-                        result.get("invalid").add(invalidPerson);
-                    } else {
-                        result.put("invalid", new ArrayList<Person>() {{
-                            this.add(invalidPerson);
-                        }});
-                    }
-                    //处理人员预览数据
-                    preViewPersonMap.put(invalidPerson.getId(), invalidPerson);
+                        if (result.containsKey("invalid")) {
+                            result.get("invalid").add(invalidPerson);
+                        } else {
+                            result.put("invalid", new ArrayList<Person>() {{
+                                this.add(invalidPerson);
+                            }});
+                        }
+                        //处理人员预览数据
+                        preViewPersonMap.put(invalidPerson.getId(), invalidPerson);
 
-                    log.info("人员对比后上游丢失{}", invalidPerson);
-                } else {
-                    log.info("人员对比后应置为失效{},但检测到对应权威源已无效或规则未启用,跳过该数据", invalidPerson.getId());
+                        log.info("人员对比后上游丢失{}", invalidPerson);
+                    } else {
+                        log.info("人员对比后应置为失效{},但检测到对应权威源已无效或规则未启用,跳过该数据", invalidPerson.getId());
+                    }
                 }
+
 
             }
         }
