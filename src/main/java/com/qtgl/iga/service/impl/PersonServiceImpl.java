@@ -1404,8 +1404,8 @@ public class PersonServiceImpl implements PersonService {
                 //防止重复将数据放入
                 if (!dyFlag) {
                     log.info("人员对比后需要修改{}", personFromSSO);
-                    personFromSSO.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
-                    personFromSSO.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
+                    //personFromSSO.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
+                    //personFromSSO.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
                     if (!CollectionUtils.isEmpty(distinctPersonMap)) {
                         if (distinctPersonMap.containsKey(personFromSSO.getId())) {
                             personFromSSO.setDelMark(1);
