@@ -1117,7 +1117,7 @@ public class OccupyServiceImpl implements OccupyService {
                     }
 
                 }
-                log.info("人员身份对比后更新{}-{}", occupyFromSSO, occupyDtoFromUpstream.get(key));
+                //log.info("人员身份对比后更新{}-{}", occupyFromSSO, occupyDtoFromUpstream.get(key));
             } else {
                 log.debug("该身份对应{}", occupyFromSSO.getOccupyId());
             }

@@ -650,7 +650,7 @@ public class PersonServiceImpl implements PersonService {
         }
         //处理人员预览数据
         people = new ArrayList<>(preViewPersonMap.values());
-        people = people.stream().filter(person -> (null == person.getDelMark() || person.getDelMark().equals(0))).collect(Collectors.toList());
+        people = people.stream().filter(person -> ((null == person.getDelMark() || person.getDelMark().equals(0)) && person.getActive().equals(1))).collect(Collectors.toList());
         if (!CollectionUtils.isEmpty(result.get("insert"))) {
             people.addAll(result.get("insert"));
         }
@@ -945,7 +945,7 @@ public class PersonServiceImpl implements PersonService {
                             }});
                         }
                         //处理人员预览数据
-                        preViewPersonMap.remove(personFromSSO.getId());
+                        //preViewPersonMap.remove(personFromSSO.getId());
                         log.info("人员信息删除{}", personFromSSO.getId());
                     } else {
                         log.info("人员对比后应删除{},但检测到对应权威源已无效或规则未启用,跳过该数据", personFromSSO.getId());
@@ -979,7 +979,7 @@ public class PersonServiceImpl implements PersonService {
                                 }});
                             }
                             //处理人员预览数据
-                            preViewPersonMap.remove(personFromSSO.getId());
+                            //preViewPersonMap.remove(personFromSSO.getId());
                             log.info("人员置为失效{}", personFromSSO.getId());
                         } else {
                             log.info("人员对比后应置为失效{},但检测到对应权威源已无效或规则未启用,跳过该数据", personFromSSO.getId());
@@ -1102,7 +1102,7 @@ public class PersonServiceImpl implements PersonService {
                     }});
                 }
                 //处理人员预览数据
-                preViewPersonMap.remove(personFromSSO.getId());
+                //preViewPersonMap.remove(personFromSSO.getId());
 
                 log.info("人员对比后上游丢失{}", personFromSSO.getId());
             } else {
@@ -1336,7 +1336,7 @@ public class PersonServiceImpl implements PersonService {
                                 }});
                             }
                             //处理人员预览数据
-                            preViewPersonMap.remove(personFromSSO.getId());
+                            //preViewPersonMap.remove(personFromSSO.getId());
 
                             log.info("人员信息删除{}", personFromSSO.getId());
                         } else {
@@ -1384,7 +1384,7 @@ public class PersonServiceImpl implements PersonService {
                                 }
 
                                 //处理人员预览数据
-                                preViewPersonMap.remove(personFromSSO.getId());
+                                //preViewPersonMap.remove(personFromSSO.getId());
 
                                 log.info("人员对比后置为失效{}", personFromSSO.getId());
                             } else {
