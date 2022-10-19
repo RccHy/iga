@@ -294,6 +294,10 @@ public class PersonServiceImpl implements PersonService {
         //预置对比丢失的失效人员
         Map<String, Person> invalidPersonMap = people.stream().filter(person -> !StringUtils.isBlank(person.getId()) && now.isBefore(person.getValidEndTime()) && now.isAfter(person.getValidStartTime())).collect(Collectors.toMap(person -> (person.getId()), person -> person, (v1, v2) -> v2));
 
+        //预存  sso 已有操作数据的原始备份   key  id ->  person
+        Map<String, Person> backUpPersonMap = new ConcurrentHashMap<>();
+        //临时存储修改数据容器
+        Map<String, Map<String, Person>> tempResult = new HashMap<>();
         //扩展字段逻辑处理
         if (!CollectionUtils.isEmpty(dynamicAttrs)) {
             attrMap = dynamicAttrs.stream().collect(Collectors.toMap(DynamicAttr::getId, DynamicAttr::getCode));
@@ -504,7 +508,7 @@ public class PersonServiceImpl implements PersonService {
                         Map<String, Person> personFromSSOMapByAccount = new ArrayList<>(preViewPersonMap.values()).stream().filter(person ->
                                 !StringUtils.isBlank(person.getAccountNo())).collect(Collectors.toMap(Person::getAccountNo, person -> person, (v1, v2) -> v2));
                         personFromSSOMapByAccount.forEach((key, personFromSSO) -> {
-                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdate, valueInsert, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap);
+                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdate, valueInsert, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap);
                         });
                         personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
                             calculateInsert(personFromSSOMapByAccount, result, key, val, domain, upstreamCountMap);
@@ -516,7 +520,7 @@ public class PersonServiceImpl implements PersonService {
                                 .collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
 
                         personFromSSOMapByCardTypeAndNo.forEach((key, personFromSSO) -> {
-                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdate, valueInsert, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap);
+                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdate, valueInsert, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap);
                         });
                         personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
                             calculateInsert(personFromSSOMapByCardTypeAndNo, result, key, val, domain, upstreamCountMap);
@@ -528,7 +532,7 @@ public class PersonServiceImpl implements PersonService {
                                 .collect(Collectors.toMap(Person::getCardNo, person -> person, (v1, v2) -> v2));
 
                         personFromSSOMapByCardNo.forEach((key, personFromSSO) -> {
-                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdate, valueInsert, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap);
+                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdate, valueInsert, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap);
                         });
                         personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
                             calculateInsert(personFromSSOMapByCardNo, result, key, val, domain, upstreamCountMap);
@@ -541,7 +545,7 @@ public class PersonServiceImpl implements PersonService {
                                 .collect(Collectors.toMap(Person::getEmail, person -> person, (v1, v2) -> v2));
 
                         personFromSSOMapByEmail.forEach((key, personFromSSO) -> {
-                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdate, valueInsert, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap);
+                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdate, valueInsert, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap);
                         });
                         personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
                             calculateInsert(personFromSSOMapByEmail, result, key, val, domain, upstreamCountMap);
@@ -553,7 +557,7 @@ public class PersonServiceImpl implements PersonService {
                                 .collect(Collectors.toMap(Person::getCellphone, person -> person, (v1, v2) -> v2));
 
                         personFromSSOMapByCellphone.forEach((key, personFromSSO) -> {
-                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdate, valueInsert, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap);
+                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdate, valueInsert, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap);
                         });
                         personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
                             calculateInsert(personFromSSOMapByCellphone, result, key, val, domain, upstreamCountMap);
@@ -603,7 +607,7 @@ public class PersonServiceImpl implements PersonService {
             TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(preViewPersonMap.values()));
             throw new CustomException(ResultCode.FAILED, e.getErrorMsg());
         }
-        //处理失效的数据
+        //处理 丢失 失效的数据
         if (!CollectionUtils.isEmpty(invalidPersonMap)) {
             ArrayList<Person> invalidPeople = new ArrayList<>(invalidPersonMap.values());
             for (Person invalidPerson : invalidPeople) {
@@ -648,6 +652,28 @@ public class PersonServiceImpl implements PersonService {
 
             }
         }
+        // 处理result
+        if (!CollectionUtils.isEmpty(tempResult)) {
+            if (!CollectionUtils.isEmpty(tempResult.get("update"))) {
+                if (result.containsKey("update")) {
+                    result.get("update").addAll(new ArrayList<>(tempResult.get("update").values()));
+                } else {
+                    result.put("update", new ArrayList<>(tempResult.get("update").values()));
+                }
+
+            }
+
+            if (!CollectionUtils.isEmpty(tempResult.get("invalid"))) {
+                if (result.containsKey("invalid")) {
+                    result.get("invalid").addAll(new ArrayList<>(tempResult.get("invalid").values()));
+                } else {
+                    result.put("invalid", new ArrayList<>(tempResult.get("invalid").values()));
+                }
+
+            }
+
+        }
+
         //处理人员预览数据
         people = new ArrayList<>(preViewPersonMap.values());
         people = people.stream().filter(person -> ((null == person.getDelMark() || person.getDelMark().equals(0)) && person.getActive().equals(1))).collect(Collectors.toList());
@@ -1175,12 +1201,18 @@ public class PersonServiceImpl implements PersonService {
         }
     }
 
-    private void calculate(Map<String, Person> personFromUpstream, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO, DomainInfo domainInfo, Map<String, String> attrMap, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamMap, Map<String, Person> preViewPersonMap, ConcurrentHashMap<String, ConcurrentHashMap<String, List<Person>>> upstreamCountMap, String source, Map<String, Person> distinctPersonMap, Map<String, Person> invalidPersonMap) {
+    private void calculate(Map<String, Person> personFromUpstream, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO, DomainInfo domainInfo, Map<String, String> attrMap, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamMap, Map<String, Person> preViewPersonMap, ConcurrentHashMap<String, ConcurrentHashMap<String, List<Person>>> upstreamCountMap, String source, Map<String, Person> distinctPersonMap, Map<String, Person> invalidPersonMap, Map<String, Map<String, Person>> tempResult, Map<String, Person> backUpPersonMap) {
         // 对比出需要修改的person
         if (personFromUpstream.containsKey(key)) {
             //上游包含该数据则将该数据从失效map中移除
             invalidPersonMap.remove(personFromSSO.getId());
             if (personFromUpstream.get(key).getUpdateTime().isAfter(personFromSSO.getUpdateTime())) {
+                //保证多源提供同一数据时,每次同步仅有一条操作记录
+                if (backUpPersonMap.containsKey(personFromSSO.getId())) {
+                    personFromSSO = backUpPersonMap.get(personFromSSO.getId());
+                } else {
+                    backUpPersonMap.put(personFromSSO.getId(), personFromSSO);
+                }
                 Person newPerson = personFromUpstream.get(key);
                 //当前数据来源规则为启用再进行处理
                 if (newPerson.getRuleStatus()) {
@@ -1230,9 +1262,9 @@ public class PersonServiceImpl implements PersonService {
                                     if (result.containsKey("password")) {
                                         result.get("password").add(personFromSSO);
                                     } else {
-                                        result.put("password", new ArrayList<Person>() {{
-                                            this.add(personFromSSO);
-                                        }});
+                                        ArrayList<Person> people = new ArrayList<>();
+                                        people.add(personFromSSO);
+                                        result.put("password", people);
                                     }
                                 }
                                 continue;
@@ -1322,18 +1354,18 @@ public class PersonServiceImpl implements PersonService {
                                     if (result.containsKey("merge")) {
                                         result.get("merge").add(personFromSSO);
                                     } else {
-                                        result.put("merge", new ArrayList<Person>() {{
-                                            this.add(personFromSSO);
-                                        }});
+                                        ArrayList<Person> people = new ArrayList<>();
+                                        people.add(personFromSSO);
+                                        result.put("merge", people);
                                     }
                                 }
                             }
                             if (result.containsKey("delete")) {
                                 result.get("delete").add(personFromSSO);
                             } else {
-                                result.put("delete", new ArrayList<Person>() {{
-                                    this.add(personFromSSO);
-                                }});
+                                ArrayList<Person> people = new ArrayList<>();
+                                people.add(personFromSSO);
+                                result.put("delete", people);
                             }
                             //处理人员预览数据
                             //preViewPersonMap.remove(personFromSSO.getId());
@@ -1351,9 +1383,9 @@ public class PersonServiceImpl implements PersonService {
                             if (result.containsKey("password")) {
                                 result.get("password").add(personFromSSO);
                             } else {
-                                result.put("password", new ArrayList<Person>() {{
-                                    this.add(personFromSSO);
-                                }});
+                                ArrayList<Person> people = new ArrayList<>();
+                                people.add(personFromSSO);
+                                result.put("password", people);
                             }
                         }
                         //失效
@@ -1369,18 +1401,30 @@ public class PersonServiceImpl implements PersonService {
                                         if (result.containsKey("merge")) {
                                             result.get("merge").add(personFromSSO);
                                         } else {
-                                            result.put("merge", new ArrayList<Person>() {{
-                                                this.add(personFromSSO);
-                                            }});
+                                            ArrayList<Person> people = new ArrayList<>();
+                                            people.add(personFromSSO);
+                                            result.put("merge", people);
                                         }
                                     }
                                 }
-                                if (result.containsKey("invalid")) {
-                                    result.get("invalid").add(personFromSSO);
+                                //if (result.containsKey("invalid")) {
+                                //    result.get("invalid").add(personFromSSO);
+                                //} else {
+                                //    result.put("invalid", new ArrayList<Person>() {{
+                                //        this.add(personFromSSO);
+                                //    }});
+                                //}
+
+                                //如果之前源头对比有修改操作,则将其移除以保证单条数据同步时仅有一次有效操作
+                                if (tempResult.containsKey("update")) {
+                                    tempResult.get("update").remove(personFromSSO.getId());
+                                }
+                                if (tempResult.containsKey("invalid")) {
+                                    tempResult.get("invalid").put(personFromSSO.getId(), personFromSSO);
                                 } else {
-                                    result.put("invalid", new ArrayList<Person>() {{
-                                        this.add(personFromSSO);
-                                    }});
+                                    ConcurrentHashMap<String, Person> hashMap = new ConcurrentHashMap<>();
+                                    hashMap.put(personFromSSO.getId(), personFromSSO);
+                                    tempResult.put("invalid", hashMap);
                                 }
 
                                 //处理人员预览数据
@@ -1460,18 +1504,30 @@ public class PersonServiceImpl implements PersonService {
                                 if (result.containsKey("merge")) {
                                     result.get("merge").add(personFromSSO);
                                 } else {
-                                    result.put("merge", new ArrayList<Person>() {{
-                                        this.add(personFromSSO);
-                                    }});
+                                    ArrayList<Person> people = new ArrayList<>();
+                                    people.add(personFromSSO);
+                                    result.put("merge", people);
                                 }
                             }
                         }
-                        if (result.containsKey("update")) {
-                            result.get("update").add(personFromSSO);
+                        //if (result.containsKey("update")) {
+                        //    result.get("update").add(personFromSSO);
+                        //} else {
+                        //    ArrayList<Person> people = new ArrayList<>();
+                        //    people.add(personFromSSO);
+                        //    result.put("update", people);
+                        //}
+
+                        //如果之前源头对比有失效操作,则将其移除以保证单条数据同步时仅有一次有效操作
+                        if (tempResult.containsKey("invalid")) {
+                            tempResult.get("invalid").remove(personFromSSO.getId());
+                        }
+                        if (tempResult.containsKey("update")) {
+                            tempResult.get("update").put(personFromSSO.getId(), personFromSSO);
                         } else {
-                            result.put("update", new ArrayList<Person>() {{
-                                this.add(personFromSSO);
-                            }});
+                            ConcurrentHashMap<String, Person> hashMap = new ConcurrentHashMap<>();
+                            hashMap.put(personFromSSO.getId(), personFromSSO);
+                            tempResult.put("update", hashMap);
                         }
 
                         //处理人员预览数据
@@ -1496,18 +1552,22 @@ public class PersonServiceImpl implements PersonService {
                                     if (result.containsKey("merge")) {
                                         result.get("merge").add(personFromSSO);
                                     } else {
-                                        result.put("merge", new ArrayList<Person>() {{
-                                            this.add(personFromSSO);
-                                        }});
+                                        ArrayList<Person> people = new ArrayList<>();
+                                        people.add(personFromSSO);
+                                        result.put("merge", people);
                                     }
                                 }
                             }
-                            if (result.containsKey("update")) {
-                                result.get("update").add(personFromSSO);
+                            //如果之前源头对比有失效操作,则将其移除以保证单条数据同步时仅有一次有效操作
+                            if (tempResult.containsKey("invalid")) {
+                                tempResult.get("invalid").remove(personFromSSO.getId());
+                            }
+                            if (tempResult.containsKey("update")) {
+                                tempResult.get("update").put(personFromSSO.getId(), personFromSSO);
                             } else {
-                                result.put("update", new ArrayList<Person>() {{
-                                    this.add(personFromSSO);
-                                }});
+                                ConcurrentHashMap<String, Person> hashMap = new ConcurrentHashMap<>();
+                                hashMap.put(personFromSSO.getId(), personFromSSO);
+                                tempResult.put("update", hashMap);
                             }
                             //处理人员预览数据
                             preViewPersonMap.put(personFromSSO.getId(), personFromSSO);
