@@ -1206,7 +1206,7 @@ public class PersonServiceImpl implements PersonService {
         if (personFromUpstream.containsKey(key)) {
             //上游包含该数据则将该数据从失效map中移除
             invalidPersonMap.remove(personFromSSO.getId());
-            if (personFromUpstream.get(key).getUpdateTime().isAfter(personFromSSO.getUpdateTime())) {
+            if (!personFromUpstream.get(key).getUpdateTime().isBefore(personFromSSO.getUpdateTime())) {
                 //保证多源提供同一数据时,每次同步仅有一条操作记录
                 if (backUpPersonMap.containsKey(personFromSSO.getId())) {
                     personFromSSO = backUpPersonMap.get(personFromSSO.getId());
@@ -1220,7 +1220,8 @@ public class PersonServiceImpl implements PersonService {
                     }
 
                 } else {
-                    backUpPersonMap.put(personFromSSO.getId(), personFromSSO);
+                    Person clone = (Person) personFromSSO.clone();
+                    backUpPersonMap.put(personFromSSO.getId(), clone);
                 }
                 Person newPerson = personFromUpstream.get(key);
                 //当前数据来源规则为启用再进行处理
