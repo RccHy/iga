@@ -11,7 +11,7 @@ import java.util.Map;
  * @author 1
  */
 @Data
-public class Person implements Serializable,Cloneable{
+public class Person implements Serializable, Cloneable {
 
     /**
      * 主键
@@ -111,13 +111,14 @@ public class Person implements Serializable,Cloneable{
     private List<DynamicValue> attrsValues;
 
     @Override
-    public Object clone()  {
-        Person person = null;
-        try{
-            person = (Person) super.clone();
-        }catch(CloneNotSupportedException e) {
+    public Person clone() {
+        try {
+            final Person person = (Person) super.clone();
+            return person;
+
+        } catch (CloneNotSupportedException e) {
             e.printStackTrace();
         }
-        return person;
+        return new Person();
     }
 }
