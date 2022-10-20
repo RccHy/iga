@@ -1040,7 +1040,7 @@ public class PersonServiceImpl implements PersonService {
                             dyFlag = false;
                         }
                     }
-                    log.info("人员对比后需要修改{}", personFromSSO);
+                    log.info("人员对比后需要修改(标识字段有差异){}", personFromSSO);
 
                 }
 
@@ -1477,6 +1477,7 @@ public class PersonServiceImpl implements PersonService {
                     // 对比后，权威源提供的"映射字段"数据和sso中没有差异。（active字段不提供）
                     if (!updateFlag && personFromSSO.getDelMark() != 1) {
                         //
+                        log.info("-------------上音测试 {}  ->  {}  ", personFromSSO, newPerson);
                         if (!personFromSSO.getActive().equals(newPerson.getActive())) {
                             personFromSSO.setActive(newPerson.getActive());
                             personFromSSO.setActiveTime(newPerson.getUpdateTime());
@@ -1501,7 +1502,7 @@ public class PersonServiceImpl implements PersonService {
                     //}
                     //防止重复将数据放入
                     if (!dyFlag) {
-                        log.info("人员对比后需要修改{}", personFromSSO);
+                        log.info("人员对比后需要修改(标识字段无差异){}", personFromSSO);
                         //personFromSSO.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
                         //personFromSSO.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
                         if (!CollectionUtils.isEmpty(distinctPersonMap)) {
