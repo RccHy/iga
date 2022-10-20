@@ -1210,6 +1210,15 @@ public class PersonServiceImpl implements PersonService {
                 //保证多源提供同一数据时,每次同步仅有一条操作记录
                 if (backUpPersonMap.containsKey(personFromSSO.getId())) {
                     personFromSSO = backUpPersonMap.get(personFromSSO.getId());
+                    //同时清空之前的对应操作
+                    //如果之前源头对比有操作,则将其移除以保证单条数据同步时仅有一次有效操作
+                    if (tempResult.containsKey("invalid")) {
+                        tempResult.get("invalid").remove(personFromSSO.getId());
+                    }
+                    if (tempResult.containsKey("update")) {
+                        tempResult.get("update").remove(personFromSSO.getId());
+                    }
+
                 } else {
                     backUpPersonMap.put(personFromSSO.getId(), personFromSSO);
                 }
@@ -1415,10 +1424,6 @@ public class PersonServiceImpl implements PersonService {
                                 //    }});
                                 //}
 
-                                //如果之前源头对比有修改操作,则将其移除以保证单条数据同步时仅有一次有效操作
-                                if (tempResult.containsKey("update")) {
-                                    tempResult.get("update").remove(personFromSSO.getId());
-                                }
                                 if (tempResult.containsKey("invalid")) {
                                     tempResult.get("invalid").put(personFromSSO.getId(), personFromSSO);
                                 } else {
@@ -1517,11 +1522,6 @@ public class PersonServiceImpl implements PersonService {
                         //    people.add(personFromSSO);
                         //    result.put("update", people);
                         //}
-
-                        //如果之前源头对比有失效操作,则将其移除以保证单条数据同步时仅有一次有效操作
-                        if (tempResult.containsKey("invalid")) {
-                            tempResult.get("invalid").remove(personFromSSO.getId());
-                        }
                         if (tempResult.containsKey("update")) {
                             tempResult.get("update").put(personFromSSO.getId(), personFromSSO);
                         } else {
@@ -1558,10 +1558,7 @@ public class PersonServiceImpl implements PersonService {
                                     }
                                 }
                             }
-                            //如果之前源头对比有失效操作,则将其移除以保证单条数据同步时仅有一次有效操作
-                            if (tempResult.containsKey("invalid")) {
-                                tempResult.get("invalid").remove(personFromSSO.getId());
-                            }
+
                             if (tempResult.containsKey("update")) {
                                 tempResult.get("update").put(personFromSSO.getId(), personFromSSO);
                             } else {

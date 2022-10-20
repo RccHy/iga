@@ -65,6 +65,7 @@ public class OccupyDaoImpl implements OccupyDao {
                 " where i.tenant_id = ?" +
                 "  and u.dept_code is not null" +
                 "  and u.user_type is not null" +
+                "  and i.del_mark=0" +
                 "  and u.del_mark=0;";
 
 
