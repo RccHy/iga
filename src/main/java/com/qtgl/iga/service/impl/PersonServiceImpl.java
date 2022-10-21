@@ -1226,7 +1226,7 @@ public class PersonServiceImpl implements PersonService {
                     if ("陈冬莉".equals(personFromSSO.getName())) {
                         log.info("---------------  数据测试2 {}", personFromSSO);
                     }
-                    Person clone = (Person) personFromSSO.clone();
+                    Person clone = personFromSSO.copy(personFromSSO);
                     backUpPersonMap.put(personFromSSO.getId(), clone);
                 }
                 Person newPerson = personFromUpstream.get(key);
