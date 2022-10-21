@@ -1210,9 +1210,7 @@ public class PersonServiceImpl implements PersonService {
                 //保证多源提供同一数据时,每次同步仅有一条操作记录
                 if (backUpPersonMap.containsKey(personFromSSO.getId())) {
                     personFromSSO = (Person) backUpPersonMap.get(personFromSSO.getId()).clone();
-                    if ("陈冬莉".equals(personFromSSO.getName())) {
-                        log.info("---------------  数据测试1 {}", personFromSSO);
-                    }
+
                     //同时清空之前的对应操作
                     //如果之前源头对比有操作,则将其移除以保证单条数据同步时仅有一次有效操作
                     if (tempResult.containsKey("invalid")) {
@@ -1223,16 +1221,12 @@ public class PersonServiceImpl implements PersonService {
                     }
 
                 } else {
-                    if ("陈冬莉".equals(personFromSSO.getName())) {
-                        log.info("---------------  数据测试2 {}", personFromSSO);
-                    }
+
                     Person clone = (Person) personFromSSO.clone();
                     backUpPersonMap.put(personFromSSO.getId(), clone);
                 }
                 Person newPerson = personFromUpstream.get(key);
-                if ("陈冬莉".equals(personFromSSO.getName())) {
-                    log.info("---------------  测试数据 上游  陈冬莉 {}", newPerson);
-                }
+
                 //当前数据来源规则为启用再进行处理
                 if (newPerson.getRuleStatus()) {
                     ////修改是否合法标识
@@ -1582,9 +1576,7 @@ public class PersonServiceImpl implements PersonService {
                         }
 
                     }
-                    if ("陈冬莉".equals(personFromSSO.getName())) {
-                        log.info("---------------  数据测试3 {}", personFromSSO);
-                    }
+
                 } else {
                     log.debug("人员{},对应规则未启用,本次跳过该数据", newPerson);
                 }
