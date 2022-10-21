@@ -11,7 +11,7 @@ import java.util.Map;
  * @author 1
  */
 @Data
-public class Person implements Serializable {
+public class Person implements Serializable,Cloneable {
 
     /**
      * 主键
@@ -111,33 +111,14 @@ public class Person implements Serializable {
     private List<DynamicValue> attrsValues;
 
 
-    public Person copy(Person personFromSSO) {
-        Person person = new Person();
-        person.setId(personFromSSO.getId());
-        person.setName(personFromSSO.getName());
-        person.setAccountNo(personFromSSO.getAccountNo());
-        person.setCardType(personFromSSO.getCardType());
-        person.setCardNo(personFromSSO.getCardNo());
-        person.setTags(personFromSSO.getTags());
-        person.setTenantId(personFromSSO.getTenantId());
-        person.setCellphone(personFromSSO.getCellphone());
-        person.setEmail(personFromSSO.getEmail());
-        person.setSource(personFromSSO.getSource());
-        person.setDataSource(personFromSSO.getDataSource());
-        person.setActive(personFromSSO.getActive());
-        person.setActiveTime(personFromSSO.getActiveTime());
-        person.setCreateTime(personFromSSO.getCreateTime());
-        person.setUpdateTime(personFromSSO.getUpdateTime());
-        person.setDelMark(personFromSSO.getDelMark());
-        person.setUpstreamType(personFromSSO.getUpstreamType());
-        person.setOpenId(personFromSSO.getOpenId());
-        person.setValidStartTime(personFromSSO.getValidStartTime());
-        person.setValidEndTime(personFromSSO.getValidEndTime());
-        person.setFreezeTime(personFromSSO.getFreezeTime());
-        person.setPassword(personFromSSO.getPassword());
-        person.setDynamic(personFromSSO.getDynamic());
-        person.setRuleStatus(personFromSSO.getRuleStatus());
-        person.setAttrsValues(personFromSSO.getAttrsValues());
+    @Override
+    public Object clone()  {
+        Person person = null;
+        try{
+            person = (Person) super.clone();
+        }catch(CloneNotSupportedException e) {
+            e.printStackTrace();
+        }
         return person;
     }
 }

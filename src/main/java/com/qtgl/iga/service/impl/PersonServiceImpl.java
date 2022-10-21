@@ -1209,7 +1209,7 @@ public class PersonServiceImpl implements PersonService {
             if (!personFromUpstream.get(key).getUpdateTime().isBefore(personFromSSO.getUpdateTime())) {
                 //保证多源提供同一数据时,每次同步仅有一条操作记录
                 if (backUpPersonMap.containsKey(personFromSSO.getId())) {
-                    personFromSSO = backUpPersonMap.get(personFromSSO.getId());
+                    personFromSSO = (Person) backUpPersonMap.get(personFromSSO.getId()).clone();
                     if ("陈冬莉".equals(personFromSSO.getName())) {
                         log.info("---------------  数据测试1 {}", personFromSSO);
                     }
@@ -1226,7 +1226,7 @@ public class PersonServiceImpl implements PersonService {
                     if ("陈冬莉".equals(personFromSSO.getName())) {
                         log.info("---------------  数据测试2 {}", personFromSSO);
                     }
-                    Person clone = personFromSSO.copy(personFromSSO);
+                    Person clone = (Person) personFromSSO.clone();
                     backUpPersonMap.put(personFromSSO.getId(), clone);
                 }
                 Person newPerson = personFromUpstream.get(key);
