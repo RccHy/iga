@@ -454,7 +454,7 @@ public class NodeRulesCalculationServiceImpl {
                     if (flag) {
                         logger.error("{}删除数量{},超出监控设定", type.equals("person") ? "人员" : "人员身份", all.size());
                         TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(all)));
-                        throw new CustomException(ResultCode.MONITOR_ERROR, null, all, type, all.size() + "");
+                        throw new CustomException(ResultCode.MONITOR_ERROR, null, all,  type.equals("person") ? "人员" : "人员身份", all.size() + "");
 
                     }
                 }
