@@ -1206,9 +1206,6 @@ public class PersonServiceImpl implements PersonService {
         if (personFromUpstream.containsKey(key)) {
             //上游包含该数据则将该数据从失效map中移除
             invalidPersonMap.remove(personFromSSO.getId());
-            if ("名称2".equals(personFromSSO.getName())) {
-                System.out.println(1);
-            }
             if (!personFromUpstream.get(key).getUpdateTime().isBefore(personFromSSO.getUpdateTime())) {
                 //保证多源提供同一数据时,每次同步仅有一条操作记录
                 if (backUpPersonMap.containsKey(personFromSSO.getId())) {
