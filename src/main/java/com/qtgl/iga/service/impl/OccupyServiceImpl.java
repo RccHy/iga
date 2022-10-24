@@ -933,7 +933,7 @@ public class OccupyServiceImpl implements OccupyService {
                         }
 
                         ClassCompareUtil.setValue(occupyFromSSO, occupyFromSSO.getClass(), sourceField, oldValue, newValue);
-                        log.info("人员身份信息更新{}:字段{}：{} -> {}", occupyFromSSO.getOccupyId(), sourceField, oldValue, newValue);
+                        log.info("人员身份信息更新{}:字段{}：{} --> {}", occupyFromSSO.getOccupyId(), sourceField, oldValue, newValue);
 
                     }
                 }
@@ -967,7 +967,7 @@ public class OccupyServiceImpl implements OccupyService {
                             }});
                         }
                         //处理人员预览数据
-                        preViewOccupyMap.remove(occupyFromSSO.getOccupyId());
+                        //preViewOccupyMap.remove(occupyFromSSO.getOccupyId());
                         log.info("人员身份信息删除{}", occupyFromSSO.getOccupyId());
                     } else {
                         log.info("人员身份信息删除{},但检测到对应权威源已无效或规则为启用,跳过该数据", occupyFromSSO.getOccupyId());
@@ -1011,7 +1011,7 @@ public class OccupyServiceImpl implements OccupyService {
                                 }});
                             }
                             //处理人员预览数据
-                            preViewOccupyMap.remove(occupyFromSSO.getOccupyId());
+                            //preViewOccupyMap.remove(occupyFromSSO.getOccupyId());
                             log.info("人员身份信息失效{}", occupyFromSSO.getOccupyId());
                         } else {
                             log.info("人员身份信息失效{},但检测到对应权威源已无效或规则未启用,跳过该数据", occupyFromSSO.getOccupyId());
@@ -1086,6 +1086,7 @@ public class OccupyServiceImpl implements OccupyService {
                                 this.add(occupyFromSSO);
                             }});
                         }
+                        log.info("人员身份对比后更新{} --> {}", occupyFromSSO, occupyDtoFromUpstream.get(key));
                         //处理人员预览数据
                         preViewOccupyMap.put(occupyFromSSO.getOccupyId(), occupyFromSSO);
                     }
@@ -1112,12 +1113,12 @@ public class OccupyServiceImpl implements OccupyService {
                         }
                         //处理人员预览数据
                         preViewOccupyMap.put(occupyFromSSO.getOccupyId(), occupyFromSSO);
-
+                        log.info("人员身份对比后更新{} --> {}", occupyFromSSO, occupyDtoFromUpstream.get(key));
 
                     }
 
                 }
-                log.info("人员身份对比后更新{}-{}", occupyFromSSO, occupyDtoFromUpstream.get(key));
+                //log.info("人员身份对比后更新{}-{}", occupyFromSSO, occupyDtoFromUpstream.get(key));
             } else {
                 log.debug("该身份对应{}", occupyFromSSO.getOccupyId());
             }
@@ -1144,8 +1145,8 @@ public class OccupyServiceImpl implements OccupyService {
                     }});
                 }
                 //处理人员预览数据
-                preViewOccupyMap.remove(occupyFromSSO.getOccupyId());
-                log.debug("人员身份对比后上游丢失{}", occupyFromSSO.getOccupyId());
+                //preViewOccupyMap.remove(occupyFromSSO.getOccupyId());
+                log.info("人员身份对比后上游丢失{}", occupyFromSSO.getOccupyId());
             } else {
                 log.info("人员身份对比后上游丢失{},但检测到对应权威源已无效或规则未启用,跳过该数据", occupyFromSSO.getOccupyId());
             }
