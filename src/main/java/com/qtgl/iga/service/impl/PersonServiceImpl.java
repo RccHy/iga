@@ -263,7 +263,7 @@ public class PersonServiceImpl implements PersonService {
         if (!CollectionUtils.isEmpty(valueUpdateMap)) {
             valueUpdate = new ArrayList<>(valueUpdateMap.values());
         }
-
+        log.info("------------------数据处理2  :{} ",result.get("update"));
         personDao.saveToSso(result, tenant.getId(), valueUpdate, valueInsert, certificates);
 
 
@@ -1218,6 +1218,7 @@ public class PersonServiceImpl implements PersonService {
             //上游包含该数据则将该数据从失效map中移除
             invalidPersonMap.remove(personFromSSO.getId());
             if (!personFromUpstream.get(key).getUpdateTime().isBefore(personFromSSO.getUpdateTime())) {
+
                 //保证多源提供同一数据时,每次同步仅有一条操作记录
                 if (backUpPersonMap.containsKey(personFromSSO.getId())) {
                     personFromSSO = backUpPersonMap.get(personFromSSO.getId());
@@ -1237,7 +1238,9 @@ public class PersonServiceImpl implements PersonService {
                     backUpPersonMap.put(personFromSSO.getId(), personFromSSO);
                 }
                 Person newPerson = personFromUpstream.get(key);
-
+                if ("4c946733-fbb2-483f-81df-70bc4d6d5c7a".equals(personFromSSO.getId())){
+                    log.info("---------------数据测试1:{}   -> 上游 {}",personFromSSO,newPerson );
+                }
                 newPerson.setId(personFromSSO.getId());
                 //当前数据来源规则为启用再进行处理
                 if (newPerson.getRuleStatus()) {
@@ -1495,6 +1498,9 @@ public class PersonServiceImpl implements PersonService {
                                 }
                                 dynamicProcessing(valueUpdateMap, valueInsertMap, attrMap, newPerson, dynamic, dyValuesFromSSO);
                                 dyFlag = false;
+                                if("4c946733-fbb2-483f-81df-70bc4d6d5c7a".equals(newPerson.getId())){
+                                    log.info("----------数据测试 3  {}  ->  {}",dynamic,dyValuesFromSSO);
+                                }
                             }
                         }
 
