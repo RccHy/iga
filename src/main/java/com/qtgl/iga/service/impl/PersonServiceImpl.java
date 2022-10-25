@@ -263,7 +263,6 @@ public class PersonServiceImpl implements PersonService {
         if (!CollectionUtils.isEmpty(valueUpdateMap)) {
             valueUpdate = new ArrayList<>(valueUpdateMap.values());
         }
-        log.info("------------------数据处理2  :{} ",result.get("update"));
         personDao.saveToSso(result, tenant.getId(), valueUpdate, valueInsert, certificates);
 
 
@@ -1238,9 +1237,7 @@ public class PersonServiceImpl implements PersonService {
                     backUpPersonMap.put(personFromSSO.getId(), personFromSSO);
                 }
                 Person newPerson = personFromUpstream.get(key);
-                if ("4c946733-fbb2-483f-81df-70bc4d6d5c7a".equals(personFromSSO.getId())){
-                    log.info("---------------数据测试1:{}   -> 上游 {}",personFromSSO,newPerson );
-                }
+
                 newPerson.setId(personFromSSO.getId());
                 //当前数据来源规则为启用再进行处理
                 if (newPerson.getRuleStatus()) {
@@ -1260,7 +1257,7 @@ public class PersonServiceImpl implements PersonService {
                     boolean dyFlag = true;
 
                     //使用sso的对象,将需要修改的值赋值
-                    if (!"PULL".equals(personFromSSO.getDataSource())) {
+                    if (!"PULL".equals(personFromSSO.getDataSource())&&!"INC_PULL".equals(personFromSSO.getDataSource())) {
                         updateFlag = true;
                     }
                     //personFromSSO.setDataSource(newPerson.getDataSource());
@@ -1498,9 +1495,6 @@ public class PersonServiceImpl implements PersonService {
                                 }
                                 dynamicProcessing(valueUpdateMap, valueInsertMap, attrMap, newPerson, dynamic, dyValuesFromSSO);
                                 dyFlag = false;
-                                if("4c946733-fbb2-483f-81df-70bc4d6d5c7a".equals(newPerson.getId())){
-                                    log.info("----------数据测试 3  {}  ->  {}",dynamic,dyValuesFromSSO);
-                                }
                             }
                         }
 
