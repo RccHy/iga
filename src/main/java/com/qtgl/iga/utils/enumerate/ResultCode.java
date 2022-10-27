@@ -32,6 +32,7 @@ public enum ResultCode {
     ADD_UPSTREAM_ERROR(1082, "添加权威源失败:%s"),
     UPDATE_UPSTREAM_ERROR(1083, "修改权威源%s失败"),
     REPEAT_UPSTREAM_ERROR(1084, "appCode 或 appName 不能重复,添加失败%s---%s"),
+    INVOKE_URL_ERROR(1085, "请求资源地址失败,请检查权威源类型"),
     INVALID_PARAMETER(500, "无效的参数"),
     FAILED(1100, "操作失败");
     private long code;

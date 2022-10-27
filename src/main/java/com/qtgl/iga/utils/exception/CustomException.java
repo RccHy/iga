@@ -57,5 +57,12 @@ public class CustomException extends RuntimeException {
         this.code = resultCode.getCode();
     }
 
+    public CustomException(ResultCode resultCode, String message, Object data) {
+        super(resultCode.getMessage());
+        this.errorMsg = message;
+        this.code = resultCode.getCode();
+        this.data = data;
+    }
+
 
 }

@@ -345,7 +345,11 @@ public class PersonServiceImpl implements PersonService {
                 dataByBus = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
             } catch (CustomException e) {
                 e.printStackTrace();
-                throw e;
+                if (new Long("1085").equals(e.getCode())) {
+                    throw new CustomException(ResultCode.INVOKE_URL_ERROR, "请求资源地址失败,请检查权威源:" + upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")" + "下的权威源类型:" + upstreamType.getDescription());
+                } else {
+                    throw e;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 log.error("人员治理中类型 : " + upstreamType.getUpstreamId() + "表达式异常");
@@ -586,7 +590,6 @@ public class PersonServiceImpl implements PersonService {
         try {
             List<Person> insert = result.get("insert");
             if (null != insert && insert.size() > 0) {
-                ArrayList<DynamicValue> valueInsert = new ArrayList<>();
                 for (Person key : insert) {
                     ArrayList<DynamicValue> dynamicValues = new ArrayList<>();
                     String id = UUID.randomUUID().toString();
@@ -600,7 +603,6 @@ public class PersonServiceImpl implements PersonService {
                             dynamicValue.setEntityId(id);
                             dynamicValue.setTenantId(tenant.getId());
                             dynamicValue.setAttrId(finalAttrReverseMap.get(str.getKey()));
-                            valueInsert.add(dynamicValue);
                             valueInsertMap.put(dynamicValue.getAttrId() + "-" + dynamicValue.getEntityId(), dynamicValue);
                             //扩展字段预览展示
                             dynamicValue.setKey(dynamicValue.getAttrId());
@@ -1257,7 +1259,7 @@ public class PersonServiceImpl implements PersonService {
                     boolean dyFlag = true;
 
                     //使用sso的对象,将需要修改的值赋值
-                    if (!"PULL".equals(personFromSSO.getDataSource())&&!"INC_PULL".equals(personFromSSO.getDataSource())) {
+                    if (!"PULL".equals(personFromSSO.getDataSource()) && !"INC_PULL".equals(personFromSSO.getDataSource())) {
                         updateFlag = true;
                     }
                     //personFromSSO.setDataSource(newPerson.getDataSource());
@@ -1529,8 +1531,7 @@ public class PersonServiceImpl implements PersonService {
                     //防止重复将数据放入
                     if (!dyFlag) {
                         log.info("人员对比后需要修改(标识字段无差异)  sso:{} -> 上游{}", personFromSSO, newPerson);
-                        //personFromSSO.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
-                        //personFromSSO.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
+                        setValidTime(newPerson);
                         if (!CollectionUtils.isEmpty(distinctPersonMap)) {
                             if (distinctPersonMap.containsKey(newPerson.getId())) {
                                 personFromSSO.setDelMark(1);

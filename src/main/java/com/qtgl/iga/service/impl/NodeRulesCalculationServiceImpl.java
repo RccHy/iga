@@ -608,7 +608,11 @@ public class NodeRulesCalculationServiceImpl {
                             upstreamTree = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
                         } catch (CustomException e) {
                             e.setData(mainTree);
-                            throw e;
+                            if (new Long("1085").equals(e.getCode())) {
+                                throw new CustomException(ResultCode.INVOKE_URL_ERROR, "请求资源地址失败,请检查权威源:" + upstream.getAppName() + "(" + upstream.getAppCode() + ")" + "下的权威源类型:" + upstreamType.getDescription(), mainTree);
+                            } else {
+                                throw e;
+                            }
                         } catch (Exception e) {
 
                             logger.error("{} 节点 {} 中的类型 {} 表达式异常", (null == treeType ? "" : treeType.getName()), ("".equals(nodeCode) ? "根节点" : nodeCode), upstreamType.getDescription());
