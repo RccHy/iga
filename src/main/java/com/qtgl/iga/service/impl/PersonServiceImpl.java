@@ -1254,7 +1254,7 @@ public class PersonServiceImpl implements PersonService {
                     boolean dyFlag = true;
 
                     //使用sso的对象,将需要修改的值赋值
-                    if (!"PULL".equals(personFromSSO.getDataSource())&&!"INC_PULL".equals(personFromSSO.getDataSource())) {
+                    if (!"PULL".equals(personFromSSO.getDataSource()) && !"INC_PULL".equals(personFromSSO.getDataSource())) {
                         updateFlag = true;
                     }
                     //personFromSSO.setDataSource(newPerson.getDataSource());
@@ -1526,8 +1526,7 @@ public class PersonServiceImpl implements PersonService {
                     //防止重复将数据放入
                     if (!dyFlag) {
                         log.info("人员对比后需要修改(标识字段无差异)  sso:{} -> 上游{}", personFromSSO, newPerson);
-                        //personFromSSO.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
-                        //personFromSSO.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
+                        setValidTime(newPerson);
                         if (!CollectionUtils.isEmpty(distinctPersonMap)) {
                             if (distinctPersonMap.containsKey(newPerson.getId())) {
                                 personFromSSO.setDelMark(1);

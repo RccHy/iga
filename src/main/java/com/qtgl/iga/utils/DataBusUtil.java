@@ -202,7 +202,7 @@ public class DataBusUtil {
         params.put("variables", variables);
 
         url = UrlUtil.getUrl(url);
-
+        log.info("----------invokeUrl :{} ,params:{}",url,params);
         String s = sendPostRequest(url, params);
         if (null == s || s.contains("errors")) {
             throw new CustomException(ResultCode.GET_DATA_ERROR, null, null, s);
