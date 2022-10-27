@@ -345,7 +345,11 @@ public class PersonServiceImpl implements PersonService {
                 dataByBus = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
             } catch (CustomException e) {
                 e.printStackTrace();
-                throw e;
+                if (new Long("1085").equals(e.getCode())) {
+                    throw new CustomException(ResultCode.INVOKE_URL_ERROR, "请求资源地址失败,请检查权威源:" + upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")" + "下的权威源类型:" + upstreamType.getDescription());
+                } else {
+                    throw e;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 log.error("人员治理中类型 : " + upstreamType.getUpstreamId() + "表达式异常");

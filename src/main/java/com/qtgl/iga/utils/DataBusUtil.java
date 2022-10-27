@@ -202,7 +202,7 @@ public class DataBusUtil {
         params.put("variables", variables);
 
         url = UrlUtil.getUrl(url);
-        log.info("----------invokeUrl :{} ,params:{}",url,params);
+        log.info("----------invokeUrl :{} ,params:{}", url, params);
         String s = sendPostRequest(url, params);
         if (null == s || s.contains("errors")) {
             throw new CustomException(ResultCode.GET_DATA_ERROR, null, null, s);
@@ -214,12 +214,12 @@ public class DataBusUtil {
         JSONArray services = data.getJSONArray("services");
 
         if (services.size() <= 0) {
-            throw new CustomException(ResultCode.FAILED, "请求资源"+split[2]+"地址失败,请检查权威源类型");
+            throw new CustomException(ResultCode.FAILED, "请求资源" + split[2] + "地址失败,请检查权威源类型");
         }
         JSONObject endpoints = services.getJSONObject(0);
         JSONArray endPoint = endpoints.getJSONArray("endpoints");
         if (endpoints.size() <= 0) {
-            throw new CustomException(ResultCode.FAILED, "请求资源地址"+split[2]+"失败,请检查权威源类型");
+            throw new CustomException(ResultCode.INVOKE_URL_ERROR, "请求资源地址" + split[2] + "失败,请检查权威源类型");
         }
         JSONObject jo = endPoint.getJSONObject(0);
 
