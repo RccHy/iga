@@ -1,3 +1,23 @@
+### 20221026
+
+**数据库**
+- 执行iga/update/update.sql下 20221026的sql
+
+**new：**
+- 无
+
+**bug fix**
+- 数据治理人员同步 bug fix
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20221025
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20220930
+
+
 ### 20220930
 
 **数据库**
