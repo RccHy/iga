@@ -76,7 +76,7 @@ deploy:prod:
 build:prod:
   stage: build
   before_script:
-    - export COMMIT_TIME=$(date +%Y%m%d)
+    - export COMMIT_TIME=20221027
     - export ISO_8601=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
     - export JIB_FROM_IMAGE=docker.qtgl.com.cn/openjdk:8-jre-alpine
     - export JIB_TO_IMAGE=docker.qtgl.com.cn/product/iga:${COMMIT_TIME}
