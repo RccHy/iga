@@ -136,7 +136,7 @@ public class PersonDaoImpl implements PersonDao {
                 }
                 if (personMap.containsKey("update") || personMap.containsKey("invalid")) {
                     String str = "UPDATE identity set  `name`= ?, account_no=?,  del_mark=?, update_time=?, tenant_id=?,  cellphone=?, email=?,  tags=?,  `active`=?, active_time=? ,`source`= ?,data_source=?,valid_start_time=?,valid_end_time=? ," +
-                            " card_type =? ,card_no=? where id=? and update_time< ? ";
+                            " card_type =? ,card_no=? where id=? and update_time<= ? ";
                     List<Person> list = new ArrayList<>();
                     List<Person> update = personMap.get("update");
                     List<Person> invalid = personMap.get("invalid");
