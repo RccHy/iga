@@ -1940,7 +1940,16 @@ public class PersonServiceImpl implements PersonService {
         return preViewTaskService.findByTaskId(id, domain);
     }
 
-
+    /**
+     *
+     * @param valueUpdateMap  扩展字段修改map
+     * @param valueInsertMap  扩展字段新增map
+     * @param attrMap   扩展字段  id 与code  对应map
+     * @param ssoBean   sso对象
+     * @param dynamic   上游扩展字段
+     * @param dyValuesFromSSO  sso扩展字段值
+     * @return
+     */
     private Boolean dynamicProcessing(Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, String> attrMap, Person ssoBean, Map<String, String> dynamic, List<DynamicValue> dyValuesFromSSO) {
         Boolean valueFlag = false;
         //扩展字段处理结果集

@@ -415,6 +415,7 @@ public class PersonDaoImpl implements PersonDao {
                 " INNER JOIN `certificate` c ON c.from_identity_id = i.id  " +
                 " WHERE " +
                 " i.tenant_id = ?  " +
+                " AND c.del_mark = 0  " +
                 " AND i.del_mark = 1";
         List<Map<String, Object>> maps = jdbcSSO.queryForList(sql, tenantId);
 
