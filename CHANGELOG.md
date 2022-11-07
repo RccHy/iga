@@ -1,3 +1,25 @@
+
+### 20221107
+
+**数据库**
+- 无
+
+**new：**
+- 无
+
+**bug fix**
+- 数据治理 人员同步扩展字段处理 bug fix
+- 人员及身份同步 兼容手工合重  bug fix
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20221107
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20220930
+
+
 ### 20221026
 
 **数据库**
