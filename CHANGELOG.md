@@ -17,7 +17,7 @@
 
 **依赖其他项目：**
 
-- docker.qtgl.com.cn/product/console:20220930
+- docker.qtgl.com.cn/product/console:20221102
 
 
 ### 20221026
