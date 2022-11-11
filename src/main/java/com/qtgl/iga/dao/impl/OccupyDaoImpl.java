@@ -2,6 +2,7 @@ package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bo.DomainInfo;
+import com.qtgl.iga.bo.DynamicValue;
 import com.qtgl.iga.dao.OccupyDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import com.qtgl.iga.utils.MyBeanUtils;
@@ -12,6 +13,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.lang.reflect.InvocationTargetException;
@@ -85,7 +87,7 @@ public class OccupyDaoImpl implements OccupyDao {
 
 
     @Override
-    public Integer saveToSso(Map<String, List<OccupyDto>> occupyMap, String tenantId) {
+    public Integer saveToSso(Map<String, List<OccupyDto>> occupyMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert) {
         return txTemplate.execute(transactionStatus -> {
             try {
                 if (occupyMap.containsKey("insert")) {
@@ -208,6 +210,40 @@ public class OccupyDaoImpl implements OccupyDao {
                         @Override
                         public int getBatchSize() {
                             return list.size();
+                        }
+                    });
+                }
+                if (!CollectionUtils.isEmpty(valueInsert)) {
+                    String valueStr = "INSERT INTO dynamic_value (`id`, `attr_id`, `entity_id`, `value`, `tenant_id`) VALUES (?, ?, ?, ?, ?)";
+                    jdbcSSO.batchUpdate(valueStr, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, valueInsert.get(i).getId());
+                            preparedStatement.setObject(2, valueInsert.get(i).getAttrId());
+                            preparedStatement.setObject(3, valueInsert.get(i).getEntityId());
+                            preparedStatement.setObject(4, valueInsert.get(i).getValue());
+                            preparedStatement.setObject(5, tenantId);
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return valueInsert.size();
+                        }
+                    });
+                }
+
+                if (!CollectionUtils.isEmpty(valueUpdate)) {
+                    String valueStr = "update dynamic_value set `value`=? where id= ?";
+                    jdbcSSO.batchUpdate(valueStr, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, valueUpdate.get(i).getValue());
+                            preparedStatement.setObject(2, valueUpdate.get(i).getId());
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return valueUpdate.size();
                         }
                     });
                 }

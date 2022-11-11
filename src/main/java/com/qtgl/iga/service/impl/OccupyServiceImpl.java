@@ -10,6 +10,8 @@ import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.config.PreViewOccupyThreadPool;
 import com.qtgl.iga.dao.*;
+import com.qtgl.iga.dao.impl.DynamicAttrDaoImpl;
+import com.qtgl.iga.dao.impl.DynamicValueDaoImpl;
 import com.qtgl.iga.service.IncrementalTaskService;
 import com.qtgl.iga.service.OccupyService;
 import com.qtgl.iga.service.PreViewTaskService;
@@ -79,7 +81,12 @@ public class OccupyServiceImpl implements OccupyService {
     public static LocalDateTime DEFAULT_END_TIME = LocalDateTime.of(2100, 1, 1, 0, 0, 0);
 
     public static ConcurrentHashMap<String, Map<String, String>> occupyTypeFields = new ConcurrentHashMap<>();
-
+    //类型
+    private final String TYPE = "IDENTITY";
+    @Autowired
+    DynamicAttrDaoImpl dynamicAttrDao;
+    @Autowired
+    DynamicValueDaoImpl dynamicValueDao;
 
     /**
      * 1：根据规则获取所有的 人员身份数据
@@ -122,12 +129,46 @@ public class OccupyServiceImpl implements OccupyService {
         Map<String, OccupyDto> occupyDtoFromUpstream = new HashMap<>();
         //增量日志容器
         List<IncrementalTask> incrementalTasks = new ArrayList<>();
+        //获取扩展字段列表
+        List<String> dynamicCodes = new ArrayList<>();
+
+        List<DynamicValue> dynamicValues = new ArrayList<>();
+
+        List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
+        log.info("获取到当前租户{}的映射字段集为{}", tenant.getId(), dynamicAttrs);
+
+        //扩展字段修改容器
+        Map<String, DynamicValue> valueUpdateMap = new ConcurrentHashMap<>();
+        List<DynamicValue> valueUpdate = new ArrayList<>();
+        //扩展字段新增容器
+        Map<String, DynamicValue> valueInsertMap = new ConcurrentHashMap<>();
+        ArrayList<DynamicValue> valueInsert = new ArrayList<>();
+
+        if (!CollectionUtils.isEmpty(dynamicAttrs)) {
+            dynamicCodes = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getCode()).collect(Collectors.toList());
+            //获取扩展value
+            List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getId()).collect(Collectors.toList());
+
+            dynamicValues = dynamicValueDao.findAllByAttrId(attrIds, tenant.getId());
+        }
+
+        //扩展字段值分组
+        Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(dynamicValues)) {
+            valueMap = dynamicValues.stream().filter(dynamicValue -> !StringUtils.isBlank(dynamicValue.getEntityId())).collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
+        }
+        List<String> finalDynamicCodes = dynamicCodes;
+        Map<String, List<DynamicValue>> finalValueMap = valueMap;
+
+        //扩展字段id与code对应map
+        Map<String, String> attrMap = new ConcurrentHashMap<>();
+        Map<String, String> attrReverseMap = new ConcurrentHashMap<>();
 
         // 获取规则
         Map arguments = new ConcurrentHashMap();
         arguments.put("type", "occupy");
         arguments.put("status", 0);
-        dataProcessing(domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream, incrementalTasks, currentTask);
+        dataProcessing(domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream, incrementalTasks, currentTask, dynamicAttrs, valueUpdateMap, valueInsertMap, finalDynamicCodes, finalValueMap, attrMap, attrReverseMap);
 
         List<OccupyDto> occupiesFromSSO = occupyDao.findAll(tenant.getId(), null, null);
 
@@ -143,9 +184,15 @@ public class OccupyServiceImpl implements OccupyService {
                 }});
             }
         }
+        if (!CollectionUtils.isEmpty(valueInsertMap)) {
+            valueInsert = new ArrayList<>(valueInsertMap.values());
+        }
+        if (!CollectionUtils.isEmpty(valueUpdateMap)) {
+            valueUpdate = new ArrayList<>(valueUpdateMap.values());
+        }
 
         try {
-            occupyDao.saveToSso(result, tenant.getId());
+            occupyDao.saveToSso(result, tenant.getId(), valueUpdate, valueInsert);
             //if (!CollectionUtils.isEmpty(incrementalTasks)) {
             //    //添加增量日志
             //    incrementalTaskService.saveAll(incrementalTasks, domain);
@@ -197,7 +244,8 @@ public class OccupyServiceImpl implements OccupyService {
         }
     }
 
-    private List<OccupyDto> dataProcessing(DomainInfo domain, Tenant tenant, Map<String, CardType> userCardTypeMap, Map<String, CardType> identityCardTypeMap, Map arguments, Map<String, List<OccupyDto>> result, ArrayList<OccupyDto> deleteFromSSO, Map<String, OccupyDto> occupyDtoFromUpstream, List<IncrementalTask> incrementalTasks, TaskLog currentTask) {
+    private List<OccupyDto> dataProcessing(DomainInfo domain, Tenant tenant, Map<String, CardType> userCardTypeMap, Map<String, CardType> identityCardTypeMap, Map arguments, Map<String, List<OccupyDto>> result, ArrayList<OccupyDto> deleteFromSSO, Map<String, OccupyDto> occupyDtoFromUpstream, List<IncrementalTask> incrementalTasks, TaskLog currentTask,
+                                           List<DynamicAttr> dynamicAttrs, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, List<String> finalDynamicCodes, Map<String, List<DynamicValue>> finalValueMap, Map<String, String> attrMap, Map<String, String> attrReverseMap) {
         List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
         if (null == nodes || nodes.size() <= 0) {
             throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
@@ -287,6 +335,14 @@ public class OccupyServiceImpl implements OccupyService {
                 .collect(Collectors.toMap(occupyDto -> (occupyDto.getIdentityCardType() + ":" + occupyDto.getIdentityCardNo()), occupyDto -> occupyDto, (v1, v2) -> v2));
         log.info("数据库中人员身份数据经过重复过滤后:{}", occupiesFromSSOIdentityMap.size());
 
+        //扩展字段逻辑处理
+        if (!CollectionUtils.isEmpty(dynamicAttrs)) {
+            attrMap = dynamicAttrs.stream().collect(Collectors.toMap(DynamicAttr::getId, DynamicAttr::getCode));
+            attrReverseMap = dynamicAttrs.stream().collect(Collectors.toMap(DynamicAttr::getCode, DynamicAttr::getId));
+        }
+
+        Map<String, String> finalAttrMap = attrMap;
+        Map<String, String> finalAttrReverseMap = attrReverseMap;
 
         //获取租户下所有 "身份"权威源类型，根据类型的 人员匹配字段，定义的map，优化内存
 
@@ -488,6 +544,20 @@ public class OccupyServiceImpl implements OccupyService {
 
                     String personKey = "";
                     List<Person> persons = new ArrayList<>();
+                    //处理扩展字段
+                    ConcurrentHashMap<String, String> map = null;
+                    if (!CollectionUtils.isEmpty(finalDynamicCodes)) {
+                        map = new ConcurrentHashMap<>();
+                        for (String dynamicCode : finalDynamicCodes) {
+                            if (occupyObj.containsKey(dynamicCode)) {
+                                if (StringUtils.isNotBlank(occupyObj.getString(dynamicCode))) {
+                                    map.put(dynamicCode, occupyObj.getString(dynamicCode));
+                                }
+                            }
+                        }
+                        log.info("处理{}的上游扩展字段值为{}", occupyObj, map);
+                        occupyDto.setDynamic(map);
+                    }
                     switch (findPersonKey) {
                         case "CARD_TYPE_NO":
                             if (StringUtils.isBlank(occupyDto.getPersonCardNo()) || StringUtils.isBlank(occupyDto.getPersonCardType())) {
@@ -711,7 +781,7 @@ public class OccupyServiceImpl implements OccupyService {
             //当前时刻
             LocalDateTime now = LocalDateTime.now();
             occupiesFromSSOMap.forEach((key, occupyFromSSO) -> {
-                calculate(occupyDtoFromUpstream, result, key, occupyFromSSO, finalUpstreamMap, preViewOccupyMap, now);
+                calculate(occupyDtoFromUpstream, result, key, occupyFromSSO, finalUpstreamMap, preViewOccupyMap, now, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap);
             });
             /**
              * 新增 上游提供start,end_time则使用作为最终有效期(如果当前时刻在最终有效期,且标识为状态为失效则为start_time-now()),否则为1970-2100
@@ -730,6 +800,26 @@ public class OccupyServiceImpl implements OccupyService {
                         //        val.setValidEndTime(now);
                         //    }
                         //}
+
+                        ArrayList<DynamicValue> dynamicValues = new ArrayList<>();
+                        Map<String, String> dynamic = val.getDynamic();
+                        if (!CollectionUtils.isEmpty(dynamic)) {
+                            for (Map.Entry<String, String> str : dynamic.entrySet()) {
+                                DynamicValue dynamicValue = new DynamicValue();
+                                dynamicValue.setId(UUID.randomUUID().toString());
+                                dynamicValue.setValue(str.getValue());
+                                dynamicValue.setEntityId(val.getOccupyId());
+                                dynamicValue.setTenantId(tenant.getId());
+                                dynamicValue.setAttrId(finalAttrReverseMap.get(str.getKey()));
+                                valueInsertMap.put(dynamicValue.getAttrId() + "-" + dynamicValue.getEntityId(), dynamicValue);
+                                //扩展字段预览展示
+                                dynamicValue.setKey(dynamicValue.getAttrId());
+                                dynamicValue.setCode(str.getValue());
+                                dynamicValues.add(dynamicValue);
+                            }
+                        }
+                        val.setAttrsValues(dynamicValues);
+
                         checkValidTime(val, now, false);
                         if (result.containsKey("insert")) {
                             result.get("insert").add(val);
@@ -848,7 +938,7 @@ public class OccupyServiceImpl implements OccupyService {
      * @param preViewOccupyMap
      * @param now
      */
-    private void calculate(Map<String, OccupyDto> occupyDtoFromUpstream, Map<String, List<OccupyDto>> result, String key, OccupyDto occupyFromSSO, Map<String, Upstream> upstreamMap, Map<String, OccupyDto> preViewOccupyMap, LocalDateTime now) {
+    private void calculate(Map<String, OccupyDto> occupyDtoFromUpstream, Map<String, List<OccupyDto>> result, String key, OccupyDto occupyFromSSO, Map<String, Upstream> upstreamMap, Map<String, OccupyDto> preViewOccupyMap, LocalDateTime now, Map<String, String> attrMap, Map<String, List<DynamicValue>> valueMap, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap) {
         // 对比出需要修改的occupy
         if (occupyDtoFromUpstream.containsKey(key) &&
                 occupyDtoFromUpstream.get(key).getUpdateTime().isAfter(occupyFromSSO.getUpdateTime())) {
@@ -868,6 +958,9 @@ public class OccupyServiceImpl implements OccupyService {
                 boolean timeFlag = false;
                 //恢复失效标识
                 //   boolean invalidRecoverFlag = true;
+                //是否处理扩展字段标识
+                boolean dyFlag = true;
+
                 if (!"PULL".equals(occupyFromSSO.getDataSource())) {
                     updateFlag = true;
                 }
@@ -1082,24 +1175,34 @@ public class OccupyServiceImpl implements OccupyService {
 
                             checkValidTime(occupyFromSSO, now, activeFlag);
                         }
-                        //log.info("人员身份修改了一条数据,修改地:1");
-                        if (result.containsKey("update")) {
-                            result.get("update").add(occupyFromSSO);
-                        } else {
-                            result.put("update", new ArrayList<OccupyDto>() {{
-                                this.add(occupyFromSSO);
-                            }});
+                        if (dyFlag) {
+                            //上游的扩展字段
+                            Map<String, String> dynamic = newOccupy.getDynamic();
+                            List<DynamicValue> dyValuesFromSSO = null;
+                            //数据库的扩展字段
+                            if (!CollectionUtils.isEmpty(valueMap)) {
+                                dyValuesFromSSO = valueMap.get(occupyFromSSO.getOccupyId());
+                            }
+                            dynamicProcessing(valueUpdateMap, valueInsertMap, attrMap, occupyFromSSO, dynamic, dyValuesFromSSO);
+                            dyFlag = false;
                         }
-                        log.info("人员身份对比后更新{} --> {}", occupyFromSSO, occupyDtoFromUpstream.get(key));
-                        //处理人员预览数据
-                        preViewOccupyMap.put(occupyFromSSO.getOccupyId(), occupyFromSSO);
+                        ////log.info("人员身份修改了一条数据,修改地:1");
+                        //if (result.containsKey("update")) {
+                        //    result.get("update").add(occupyFromSSO);
+                        //} else {
+                        //    result.put("update", new ArrayList<OccupyDto>() {{
+                        //        this.add(occupyFromSSO);
+                        //    }});
+                        //}
+                        //log.info("人员身份对比后更新{} --> {}", occupyFromSSO, occupyDtoFromUpstream.get(key));
+                        ////处理人员预览数据
+                        //preViewOccupyMap.put(occupyFromSSO.getOccupyId(), occupyFromSSO);
                     }
 
 
                 }
                 // 对比后，权威源提供的"映射字段"数据和sso中没有差异。 （active字段不提供） 不提供的默认active为true 即为置为从失效恢复的情况
                 if (!updateFlag && occupyFromSSO.getDelMark() != 1) {
-                    //
 
                     if (!occupyFromSSO.getActive().equals(newOccupy.getActive())) {
                         occupyFromSSO.setActive(newOccupy.getActive());
@@ -1108,6 +1211,61 @@ public class OccupyServiceImpl implements OccupyService {
                         occupyFromSSO.setValidStartTime(now);
                         occupyFromSSO.setValidEndTime(null == occupyFromSSO.getEndTime() ? DEFAULT_END_TIME : occupyFromSSO.getEndTime());
                         checkValidTime(occupyFromSSO, now, true);
+
+                        if (dyFlag) {
+                            //上游的扩展字段
+                            Map<String, String> dynamic = newOccupy.getDynamic();
+                            List<DynamicValue> dyValuesFromSSO = null;
+                            //数据库的扩展字段
+                            if (!CollectionUtils.isEmpty(valueMap)) {
+                                dyValuesFromSSO = valueMap.get(occupyFromSSO.getOccupyId());
+                            }
+                            dynamicProcessing(valueUpdateMap, valueInsertMap, attrMap, newOccupy, dynamic, dyValuesFromSSO);
+                            dyFlag = false;
+                        }
+                        //if (result.containsKey("update")) {
+                        //    result.get("update").add(occupyFromSSO);
+                        //} else {
+                        //    result.put("update", new ArrayList<OccupyDto>() {{
+                        //        this.add(occupyFromSSO);
+                        //    }});
+                        //}
+                        ////处理人员预览数据
+                        //preViewOccupyMap.put(occupyFromSSO.getOccupyId(), occupyFromSSO);
+                        //log.info("人员身份对比后更新{} --> {}", occupyFromSSO, occupyDtoFromUpstream.get(key));
+
+                    }
+
+                }
+
+
+                if (!dyFlag) {
+                    //log.info("人员身份修改了一条数据,修改地:1");
+                    if (result.containsKey("update")) {
+                        result.get("update").add(occupyFromSSO);
+                    } else {
+                        result.put("update", new ArrayList<OccupyDto>() {{
+                            this.add(occupyFromSSO);
+                        }});
+                    }
+                    log.info("人员身份对比后更新{} --> {}", occupyFromSSO, occupyDtoFromUpstream.get(key));
+                    //处理人员预览数据
+                    preViewOccupyMap.put(occupyFromSSO.getOccupyId(), occupyFromSSO);
+                }
+
+                //处理扩展字段对比     修改标识为false则认为主体字段没有差异
+                if (!updateFlag && dyFlag) {
+                    //上游的扩展字段
+                    Map<String, String> dynamic = newOccupy.getDynamic();
+                    List<DynamicValue> dyValuesFromSSO = null;
+                    //数据库的扩展字段
+                    if (!CollectionUtils.isEmpty(valueMap)) {
+                        dyValuesFromSSO = valueMap.get(occupyFromSSO.getOccupyId());
+                    }
+                    Boolean valueFlag = dynamicProcessing(valueUpdateMap, valueInsertMap, attrMap, occupyFromSSO, dynamic, dyValuesFromSSO);
+
+                    if (valueFlag) {
+                        //log.info("人员身份修改了一条数据,修改地:1");
                         if (result.containsKey("update")) {
                             result.get("update").add(occupyFromSSO);
                         } else {
@@ -1115,14 +1273,13 @@ public class OccupyServiceImpl implements OccupyService {
                                 this.add(occupyFromSSO);
                             }});
                         }
+                        log.info("人员身份对比后  仅扩展字段有变更 更新{} --> {}", occupyFromSSO, occupyDtoFromUpstream.get(key));
                         //处理人员预览数据
                         preViewOccupyMap.put(occupyFromSSO.getOccupyId(), occupyFromSSO);
-                        log.info("人员身份对比后更新{} --> {}", occupyFromSSO, occupyDtoFromUpstream.get(key));
-
                     }
 
                 }
-                //log.info("人员身份对比后更新{}-{}", occupyFromSSO, occupyDtoFromUpstream.get(key));
+
             } else {
                 log.debug("该身份对应{}", occupyFromSSO.getOccupyId());
             }
@@ -1402,9 +1559,43 @@ public class OccupyServiceImpl implements OccupyService {
         ArrayList<OccupyDto> deleteFromSSO = new ArrayList<>();
         //上游数据,用于异常的数据展示
         Map<String, OccupyDto> occupyDtoFromUpstream = new HashMap<>();
+
+        //获取扩展字段列表
+        List<String> dynamicCodes = new ArrayList<>();
+
+        List<DynamicValue> dynamicValues = new ArrayList<>();
+
+        List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
+        log.info("获取到当前租户{}的映射字段集为{}", tenant.getId(), dynamicAttrs);
+
+        //扩展字段修改容器
+        Map<String, DynamicValue> valueUpdateMap = new ConcurrentHashMap<>();
+        //扩展字段新增容器
+        Map<String, DynamicValue> valueInsertMap = new ConcurrentHashMap<>();
+
+        if (!CollectionUtils.isEmpty(dynamicAttrs)) {
+            dynamicCodes = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getCode()).collect(Collectors.toList());
+            //获取扩展value
+            List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getId()).collect(Collectors.toList());
+
+            dynamicValues = dynamicValueDao.findAllByAttrId(attrIds, tenant.getId());
+        }
+
+        //扩展字段值分组
+        Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(dynamicValues)) {
+            valueMap = dynamicValues.stream().filter(dynamicValue -> !StringUtils.isBlank(dynamicValue.getEntityId())).collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
+        }
+        List<String> finalDynamicCodes = dynamicCodes;
+        Map<String, List<DynamicValue>> finalValueMap = valueMap;
+
+        //扩展字段id与code对应map
+        Map<String, String> attrMap = new ConcurrentHashMap<>();
+        Map<String, String> attrReverseMap = new ConcurrentHashMap<>();
+
         List<OccupyDto> occupyDtos = null;
         try {
-            occupyDtos = dataProcessing(domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream, null, null);
+            occupyDtos = dataProcessing(domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream, null, null, dynamicAttrs, valueUpdateMap, valueInsertMap, finalDynamicCodes, finalValueMap, attrMap, attrReverseMap);
         } catch (Exception e) {
             e.printStackTrace();
             throw new CustomException(ResultCode.FAILED, e.getMessage());
@@ -1451,4 +1642,83 @@ public class OccupyServiceImpl implements OccupyService {
             log.info("人员身份通过人员证件获取到人员信息{}", personKey);
         }*/
     }
+
+
+    /**
+     * @param valueUpdateMap  扩展字段修改map
+     * @param valueInsertMap  扩展字段新增map
+     * @param attrMap         扩展字段  id 与code  对应map
+     * @param ssoBean         sso对象
+     * @param dynamic         上游扩展字段
+     * @param dyValuesFromSSO sso扩展字段值
+     * @return
+     */
+    private Boolean dynamicProcessing(Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, String> attrMap, OccupyDto ssoBean, Map<String, String> dynamic, List<DynamicValue> dyValuesFromSSO) {
+        Boolean valueFlag = false;
+        //扩展字段处理结果集
+        ArrayList<DynamicValue> dynValues = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(dyValuesFromSSO)) {
+            Map<String, DynamicValue> collect = dyValuesFromSSO.stream().collect(Collectors.toMap(DynamicValue::getAttrId, dynamicValue -> dynamicValue));
+            for (Map.Entry<String, String> str : attrMap.entrySet()) {
+                String o = dynamic.get(str.getValue());
+                if (collect.containsKey(str.getKey())) {
+                    DynamicValue dynamicValue = collect.get(str.getKey());
+                    if (null != o && !o.equals(dynamicValue.getValue())) {
+                        log.info("主体{}扩展字段不同{}->{},修改扩展字段", ssoBean.getOccupyId(), dynamicValue.getValue(), o);
+                        dynamicValue.setValue(o);
+                        //扩展字段预览展示
+                        dynamicValue.setKey(dynamicValue.getAttrId());
+                        dynamicValue.setCode(str.getValue());
+                        dynValues.add(dynamicValue);
+                        valueUpdateMap.put(dynamicValue.getAttrId() + "-" + dynamicValue.getEntityId(), dynamicValue);
+                        valueFlag = true;
+                    } else {
+                        //相同则直接放入person
+                        //扩展字段预览展示
+                        dynamicValue.setKey(dynamicValue.getAttrId());
+                        dynamicValue.setCode(str.getValue());
+                        dynValues.add(dynamicValue);
+                    }
+                } else {
+                    if (dynamic.containsKey(str.getValue())) {
+                        //上游有  数据库没有则新增
+                        DynamicValue dynamicValue = new DynamicValue();
+                        dynamicValue.setId(UUID.randomUUID().toString());
+                        dynamicValue.setValue(o);
+                        dynamicValue.setEntityId(ssoBean.getOccupyId());
+                        dynamicValue.setAttrId(str.getKey());
+                        valueFlag = true;
+                        log.info("主体{}扩展字段新增{}", ssoBean.getOccupyId(), o);
+                        //扩展字段预览展示
+                        dynamicValue.setKey(dynamicValue.getAttrId());
+                        dynamicValue.setCode(str.getValue());
+                        dynValues.add(dynamicValue);
+                        valueInsertMap.put(dynamicValue.getAttrId() + "-" + dynamicValue.getEntityId(), dynamicValue);
+                    }
+                }
+            }
+        } else {
+            for (Map.Entry<String, String> str : attrMap.entrySet()) {
+                if (dynamic.containsKey(str.getValue())) {
+                    String o = dynamic.get(str.getValue());
+                    valueFlag = true;
+                    //上游有  数据库没有则新增
+                    DynamicValue dynamicValue = new DynamicValue();
+                    dynamicValue.setId(UUID.randomUUID().toString());
+                    dynamicValue.setValue(o);
+                    dynamicValue.setEntityId(ssoBean.getOccupyId());
+                    dynamicValue.setAttrId(str.getKey());
+                    log.info("主体{}扩展字段新增{}", ssoBean.getOccupyId(), o);
+                    valueInsertMap.put(dynamicValue.getAttrId() + "-" + dynamicValue.getEntityId(), dynamicValue);
+                    //扩展字段预览展示
+                    dynamicValue.setKey(dynamicValue.getAttrId());
+                    dynamicValue.setCode(str.getValue());
+                    dynValues.add(dynamicValue);
+                }
+            }
+        }
+        ssoBean.setAttrsValues(dynValues);
+        return valueFlag;
+    }
+
 }

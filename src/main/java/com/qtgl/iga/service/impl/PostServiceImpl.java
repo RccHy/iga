@@ -192,7 +192,7 @@ public class PostServiceImpl implements PostService {
         // 验证监控规则
         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
         List<Map.Entry<TreeBean, String>> invalid = collect.get("invalid");
-        calculationService.monitorRules(domain, lastTaskLog, beans.size(), delete,invalid, "post");
+        calculationService.monitorRules(domain, lastTaskLog, beans.size(), delete, invalid, "post");
         saveToSso(collect, tenant.getId(), attrMap, valueUpdate, valueInsert);
         //if (!CollectionUtils.isEmpty(incrementalTasks)) {
         //    //添加增量日志
@@ -204,7 +204,7 @@ public class PostServiceImpl implements PostService {
             if (!CollectionUtils.isEmpty(occupyDtos)) {
                 Map<String, List<OccupyDto>> octResult = new HashMap<>();
                 octResult.put("update", occupyDtos);
-                occupyDao.saveToSso(octResult, tenant.getId());
+                occupyDao.saveToSso(octResult, tenant.getId(), null, null);
                 userLogDao.saveUserLog(occupyDtos, tenant.getId());
                 logger.info("因岗位变动 导致:{}条,身份有效期发生变化", occupyDtos.size());
             }

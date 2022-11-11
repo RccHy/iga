@@ -2,6 +2,7 @@ package com.qtgl.iga.dao;
 
 import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bo.DomainInfo;
+import com.qtgl.iga.bo.DynamicValue;
 
 import java.util.List;
 import java.util.Map;
@@ -10,7 +11,7 @@ public interface OccupyDao {
 
     List<OccupyDto> findAll(String tenantId, String deptCode, String postCode);
 
-    Integer saveToSso(Map<String, List<OccupyDto>> occupyMa, String tenantId);
+    Integer saveToSso(Map<String, List<OccupyDto>> occupyMa, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert);
 
     void removeData(DomainInfo domain);
 
@@ -18,5 +19,5 @@ public interface OccupyDao {
 
     List<OccupyDto> findOccupyTemp(Map<String, Object> arguments, DomainInfo domain);
 
-    Integer findOccupyTempCount(Map<String, Object> arguments,DomainInfo domain);
+    Integer findOccupyTempCount(Map<String, Object> arguments, DomainInfo domain);
 }

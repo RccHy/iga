@@ -1,8 +1,11 @@
 package com.qtgl.iga.bean;
 
+import com.qtgl.iga.bo.DynamicValue;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author 1
@@ -60,8 +63,10 @@ public class OccupyDto {
      * 逻辑处理字段 规则是否启用
      */
     private Boolean ruleStatus;
+    private Map<String, String> dynamic;
 
-
+    //扩展字段值
+    private List<DynamicValue> attrsValues;
 
 
 

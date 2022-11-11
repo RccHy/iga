@@ -315,7 +315,7 @@ public class DeptServiceImpl implements DeptService {
         Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
         List<Map.Entry<TreeBean, String>> invalid = collect.get("invalid");
-        calculationService.monitorRules(domain, lastTaskLog, beans.size(), delete,invalid, "dept");
+        calculationService.monitorRules(domain, lastTaskLog, beans.size(), delete, invalid, "dept");
 
         //保存到数据库
         saveToSso(collect, tenant.getId(), attrMap, valueUpdate, valueInsert);
@@ -329,7 +329,7 @@ public class DeptServiceImpl implements DeptService {
             if (!CollectionUtils.isEmpty(occupyDtos)) {
                 Map<String, List<OccupyDto>> octResult = new HashMap<>();
                 octResult.put("update", occupyDtos);
-                occupyDao.saveToSso(octResult, tenant.getId());
+                occupyDao.saveToSso(octResult, tenant.getId(), null, null);
                 userLogDao.saveUserLog(occupyDtos, tenant.getId());
                 logger.info("因组织机构变动 导致:{}条,身份有效期发生变化", occupyDtos.size());
             }
