@@ -70,3 +70,13 @@ iga:
 logging:
   file:
     name: iga.log
+
+management:
+  server:
+    port: 9090
+  endpoint:
+    web:
+      exposure:
+        include: "*"
+    health:
+      show-details=always: always

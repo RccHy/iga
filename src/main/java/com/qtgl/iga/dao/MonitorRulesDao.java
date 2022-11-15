@@ -17,4 +17,6 @@ public interface MonitorRulesDao {
     MonitorRules saveMonitorRules(MonitorRules monitorRules);
 
     MonitorRules updateMonitorRules(MonitorRules monitorRules);
+
+    void initialization(String domain);
 }

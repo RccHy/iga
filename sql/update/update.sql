@@ -1,3 +1,4 @@
+
 --20221026
 update  t_mgr_upstream_types set person_characteristic='USERNAME' where  person_characteristic='ACCOUNT_NO';
 
