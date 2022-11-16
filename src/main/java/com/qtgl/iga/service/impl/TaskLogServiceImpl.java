@@ -5,6 +5,10 @@ import com.qtgl.iga.bo.TaskLog;
 import com.qtgl.iga.dao.TaskLogDao;
 import com.qtgl.iga.service.TaskLogService;
 import com.qtgl.iga.utils.FileUtil;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Metrics;
+import io.micrometer.core.instrument.Tags;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -26,6 +30,9 @@ public class TaskLogServiceImpl implements TaskLogService {
     @Autowired
     FileUtil fileUtil;
 
+    @Autowired
+    private MeterRegistry meterRegistry;
+
     @Override
     public List<TaskLog> findAll(String domain) {
         return taskLogDao.findAll(domain);
@@ -42,6 +49,12 @@ public class TaskLogServiceImpl implements TaskLogService {
         //        e.printStackTrace();
         //    }
         //}
+
+        if(taskLog.getStatus().equals("failed")){
+            meterRegistry.gauge("iga_sync_error_task", Tags.of("dept", taskLog.getDeptNo(), "post", taskLog.getPersonNo(),"user",taskLog.getPersonNo(),"occupy",taskLog.getOccupyNo()), -1);
+
+        }
+
         return taskLogDao.save(taskLog, domain, type);
     }
 
