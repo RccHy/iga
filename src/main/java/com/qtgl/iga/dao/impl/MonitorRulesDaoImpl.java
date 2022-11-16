@@ -134,10 +134,10 @@ public class MonitorRulesDaoImpl implements MonitorRulesDao {
     @Override
     public void initialization(String domain) {
         String sql = "INSERT INTO t_mgr_monitor_rules (id, rules, type, domain, active, active_time, create_time)\n" +
-                "VALUES (uuid(), '$count/$result>50', 'dept', ?, true, now(), now())," +
-                "       (uuid(), '$count/$result>50', 'occupy', ?, true, now(), now())," +
-                "       (uuid(), '$count/$result>50', 'post', ?, true, now(), now())," +
-                "       (uuid(), '$count/$result>50', 'person', ?, true, now(), now());";
+                "VALUES (uuid(), '$result/$count>50', 'dept', ?, true, now(), now())," +
+                "       (uuid(), '$result/$count>50', 'occupy', ?, true, now(), now())," +
+                "       (uuid(), '$result/$count>50', 'post', ?, true, now(), now())," +
+                "       (uuid(), '$result/$count>50', 'person', ?, true, now(), now());";
         jdbcIGA.update(sql, preparedStatement -> {
             preparedStatement.setObject(1, domain);
             preparedStatement.setObject(2, domain);
