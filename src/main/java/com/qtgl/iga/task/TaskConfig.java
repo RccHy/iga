@@ -229,17 +229,17 @@ public class TaskConfig {
                                     log.info("{}本次同步无异常数据", domainInfo.getDomainName());
                                 }
                                 log.info("{}同步结束,task:{}", domainInfo.getDomainName(), taskLog.getId());
-//                            } catch (CustomException e) {
-//                                log.error("定时同步异常：" + e);
-//                                taskLog.setStatus("failed");
-//                                taskLog.setReason(e.getErrorMsg());
-//                                //taskLog.setData(JSON.toJSONString(JSON.toJSON(e.getData())));
-//                                //if (StringUtils.isNotBlank(TaskConfig.errorData.get(domainInfo.getId()))) {
-//                                //    this.upload(domainInfo, taskLog);
-//                                //} else {
-//                                //    taskLogService.save(taskLog, domainInfo.getDomainId(), "update");
-//                                //}
-//                                e.printStackTrace();
+                            } catch (CustomException e) {
+                                log.error("定时同步异常：" + e);
+                                taskLog.setStatus("failed");
+                                taskLog.setReason(e.getErrorMsg());
+                                //taskLog.setData(JSON.toJSONString(JSON.toJSON(e.getData())));
+                                //if (StringUtils.isNotBlank(TaskConfig.errorData.get(domainInfo.getId()))) {
+                                //    this.upload(domainInfo, taskLog);
+                                //} else {
+                                //    taskLogService.save(taskLog, domainInfo.getDomainId(), "update");
+                                //}
+                                e.printStackTrace();
                             } catch (Exception e) {
                                 log.error("定时同步异常：" + e);
                                 taskLog.setStatus("failed");
