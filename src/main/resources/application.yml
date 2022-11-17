@@ -79,4 +79,7 @@ management:
       exposure:
         include: "*"
     health:
-      show-details=always: always
+      show-details: always
+  metrics:
+    tags:
+      application: ${server.servlet.context-path}
