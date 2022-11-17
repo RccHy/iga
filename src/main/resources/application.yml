@@ -71,15 +71,27 @@ logging:
   file:
     name: iga.log
 
+#management:
+#  server:
+#    port: 9090
+#  endpoint:
+#    web:
+#      exposure:
+#        include: "*"
+#    health:
+#      show-details: always
+
+
 management:
   server:
     port: 9090
-  endpoint:
+  endpoints:
     web:
       exposure:
         include: "*"
+  endpoint:
     health:
-      show-details: always
+      show-details: ALWAYS
   metrics:
     tags:
       application: ${server.servlet.context-path}
