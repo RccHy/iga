@@ -1,3 +1,23 @@
+### 20221130
+
+**数据库**
+- 无
+
+**new：**
+- 人员身份扩展字段同步支持
+
+**bug fix**
+- 治理规则监控规则初始化 bug fix
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20221130
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20221102
+
+
 
 ### 20221107
 
