@@ -33,7 +33,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
     public List<UpstreamTypeVo> findAll(Map<String, Object> arguments, String domain) {
         String sql = "select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_type_id as deptTypeId," +
                 "enable_prefix as enablePrefix,active,active_time as activeTime,root,create_time as createTime," +
-                "update_time as updateTime, graphql_url as graphqlUrl,service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId , is_page as isPage, syn_way as synWay, is_incremental as isIncremental from  t_mgr_upstream_types where 1 = 1  and active = 1 and domain=? ";
+                "update_time as updateTime, graphql_url as graphqlUrl,service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId , is_page as isPage, syn_way as synWay, is_incremental as isIncremental,person_characteristic as personCharacteristic from  t_mgr_upstream_types where 1 = 1  and active = 1 and domain=? ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
@@ -153,7 +153,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
     public UpstreamType saveUpstreamType(UpstreamType upStreamType, String domain) {
 
 
-        String sql = "insert into t_mgr_upstream_types  values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        String sql = "insert into t_mgr_upstream_types  values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         //生成主键和时间
         String id = UUID.randomUUID().toString().replace("-", "");
         upStreamType.setId(id);
@@ -180,6 +180,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
             preparedStatement.setObject(16, upStreamType.getIsPage());
             preparedStatement.setObject(17, upStreamType.getSynWay());
             preparedStatement.setObject(18, upStreamType.getIsIncremental());
+            preparedStatement.setObject(19, upStreamType.getPersonCharacteristic());
         });
         if (null != upStreamType.getUpstreamTypeFields() && upStreamType.getUpstreamTypeFields().size() > 0) {
             saveUpstreamTypeField(upStreamType);
@@ -260,7 +261,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         String sql = "update t_mgr_upstream_types  set upstream_id = ?,description = ?," +
                 "syn_type = ?,dept_type_id = ?,enable_prefix = ?,active = ?,active_time = ?," +
                 "root = ?,create_time = ?,update_time = ?,service_code = ?," +
-                "graphql_url = ?, domain = ? ,dept_tree_type_id = ? ,is_page = ? , syn_way = ?, is_incremental= ?  where id= ? ";
+                "graphql_url = ?, domain = ? ,dept_tree_type_id = ? ,is_page = ? , syn_way = ?, is_incremental= ?,person_characteristic=?  where id= ? ";
         Timestamp date = new Timestamp(System.currentTimeMillis());
         upStreamType.setUpdateTime(date);
         int update = jdbcIGA.update(sql, preparedStatement -> {
@@ -281,7 +282,8 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
             preparedStatement.setObject(15, upStreamType.getIsPage());
             preparedStatement.setObject(16, upStreamType.getSynWay());
             preparedStatement.setObject(17, upStreamType.getIsIncremental());
-            preparedStatement.setObject(18, upStreamType.getId());
+            preparedStatement.setObject(18, upStreamType.getPersonCharacteristic());
+            preparedStatement.setObject(19, upStreamType.getId());
 
         });
         int[] ints = updateUpstreamTypeFields(upStreamType);
@@ -440,7 +442,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         Object[] params = new Object[1];
         params[0] = upId;
         String sql = "select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_type_id as deptTypeId,enable_prefix as enablePrefix,active,active_time asactiveTime,root,create_time as createTime,update_time as updateTime," +
-                " graphql_url as graphqlUrl,service_code as serviceCode,domain,syn_way as synWay,is_page as isPage ,is_incremental as isIncremental from  t_mgr_upstream_types where  upstream_id = ?";
+                " graphql_url as graphqlUrl,service_code as serviceCode,domain,syn_way as synWay,is_page as isPage ,is_incremental as isIncremental,person_characteristic as personCharacteristic from  t_mgr_upstream_types where  upstream_id = ?";
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, params);
         ArrayList<UpstreamType> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
@@ -467,7 +469,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         String sql = "select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_type_id as deptTypeId," +
                 "enable_prefix as enablePrefix,active,active_time as activeTime,root,create_time as createTime," +
                 "update_time as updateTime, graphql_url as graphqlUrl,service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId , " +
-                "is_page as isPage,syn_way as synWay,is_incremental as isIncremental   from  t_mgr_upstream_types where id= ? and active=true  ";
+                "is_page as isPage,syn_way as synWay,is_incremental as isIncremental,person_characteristic as personCharacteristic   from  t_mgr_upstream_types where id= ? and active=true  ";
 
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id);
         UpstreamType upstreamType = new UpstreamType();
@@ -535,7 +537,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         String sql = "select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_type_id as deptTypeId," +
                 "enable_prefix as enablePrefix,active,active_time as activeTime,root,create_time as createTime," +
                 "update_time as updateTime, graphql_url as graphqlUrl,service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId , " +
-                "is_page as isPage,syn_way as synWay ,is_incremental as isIncremental  from  t_mgr_upstream_types where description= ? and  upstream_id = ? ";
+                "is_page as isPage,syn_way as synWay ,is_incremental as isIncremental,person_characteristic as personCharacteristic  from  t_mgr_upstream_types where description= ? and  upstream_id = ? ";
         List<Object> param = new ArrayList<>();
         param.add(upstreamTypeVo.getDescription());
         param.add(upstreamTypeVo.getUpstreamId());

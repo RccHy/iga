@@ -314,7 +314,8 @@ public class DeptServiceImpl implements DeptService {
         //  检测删除该部门 对 人员身份造成的影响。若影响范围过大，则停止操作。
         Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
-        calculationService.monitorRules(domain, lastTaskLog, beans.size(), delete, "dept");
+        List<Map.Entry<TreeBean, String>> invalid = collect.get("invalid");
+        calculationService.monitorRules(domain, lastTaskLog, beans.size(), delete, invalid, "dept");
 
         //保存到数据库
         saveToSso(collect, tenant.getId(), attrMap, valueUpdate, valueInsert);
@@ -328,7 +329,7 @@ public class DeptServiceImpl implements DeptService {
             if (!CollectionUtils.isEmpty(occupyDtos)) {
                 Map<String, List<OccupyDto>> octResult = new HashMap<>();
                 octResult.put("update", occupyDtos);
-                occupyDao.saveToSso(octResult, tenant.getId());
+                occupyDao.saveToSso(octResult, tenant.getId(), null, null);
                 userLogDao.saveUserLog(occupyDtos, tenant.getId());
                 logger.info("因组织机构变动 导致:{}条,身份有效期发生变化", occupyDtos.size());
             }
@@ -528,10 +529,10 @@ public class DeptServiceImpl implements DeptService {
                                     //是否处理扩展字段标识
                                     boolean dyFlag = true;
 
-                                    ////使用sso的对象,将需要修改的值赋值
-                                    //if ("API".equals(ssoBean.getDataSource())) {
-                                    //    updateFlag = true;
-                                    //}
+                                    //使用sso的对象,将需要修改的值赋值
+                                    if (!"PULL".equals(ssoBean.getDataSource())) {
+                                        updateFlag = true;
+                                    }
                                     //处理sso数据的active为null的情况
                                     if (null == ssoBean.getActive() || "".equals(ssoBean.getActive())) {
                                         ssoBean.setActive(1);

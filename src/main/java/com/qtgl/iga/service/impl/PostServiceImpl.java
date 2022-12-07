@@ -191,7 +191,8 @@ public class PostServiceImpl implements PostService {
         Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
         // 验证监控规则
         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
-        calculationService.monitorRules(domain, lastTaskLog, beans.size(), delete, "post");
+        List<Map.Entry<TreeBean, String>> invalid = collect.get("invalid");
+        calculationService.monitorRules(domain, lastTaskLog, beans.size(), delete, invalid, "post");
         saveToSso(collect, tenant.getId(), attrMap, valueUpdate, valueInsert);
         //if (!CollectionUtils.isEmpty(incrementalTasks)) {
         //    //添加增量日志
@@ -203,7 +204,7 @@ public class PostServiceImpl implements PostService {
             if (!CollectionUtils.isEmpty(occupyDtos)) {
                 Map<String, List<OccupyDto>> octResult = new HashMap<>();
                 octResult.put("update", occupyDtos);
-                occupyDao.saveToSso(octResult, tenant.getId());
+                occupyDao.saveToSso(octResult, tenant.getId(), null, null);
                 userLogDao.saveUserLog(occupyDtos, tenant.getId());
                 logger.info("因岗位变动 导致:{}条,身份有效期发生变化", occupyDtos.size());
             }
@@ -543,12 +544,13 @@ public class PostServiceImpl implements PostService {
                                     if (null == ssoBean.getActive() || "".equals(ssoBean.getActive())) {
                                         ssoBean.setActive(1);
                                     }
-                                    if (!"BUILTIN".equalsIgnoreCase(pullBean.getDataSource())) {
-                                        ssoBean.setDataSource("PULL");
-                                        ssoBean.setSource(pullBean.getSource());
-                                        ssoBean.setUpdateTime(now);
-                                        ssoBean.setFormal(pullBean.getFormal());
+                                    if (!"PULL".equalsIgnoreCase(ssoBean.getDataSource())) {
+                                        updateFlag = true;
                                     }
+                                    ssoBean.setDataSource("PULL");
+                                    ssoBean.setSource(pullBean.getSource());
+                                    ssoBean.setUpdateTime(now);
+                                    ssoBean.setFormal(pullBean.getFormal());
                                     ssoBean.setColor(pullBean.getColor());
                                     ssoBean.setIsRuled(pullBean.getIsRuled());
                                     ssoBean.setRuleStatus(pullBean.getRuleStatus());

@@ -328,8 +328,16 @@ public class NodeRulesCalculationServiceImpl {
      * @param delete      本次删除数据
      * @throws Exception
      */
-    public void monitorRules(DomainInfo domain, TaskLog lastTaskLog, Integer count, List<Map.Entry<TreeBean, String>> delete, String type) throws Exception {
-        if (null != delete && delete.size() > 0) {
+    public void monitorRules(DomainInfo domain, TaskLog lastTaskLog, Integer count, List<Map.Entry<TreeBean, String>> delete, List<Map.Entry<TreeBean, String>> invalid, String type) throws Exception {
+        List<Map.Entry<TreeBean, String>> all = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(delete)) {
+            all.addAll(delete);
+        }
+        if (!CollectionUtils.isEmpty(invalid)) {
+            all.addAll(invalid);
+        }
+
+        if (null != all && all.size() > 0) {
             // 获取 监控规则
             final List<MonitorRules> deptMonitorRules = monitorRulesDao.findAll(domain.getId(), type);
             if ("dept".equals(type)) {
@@ -340,7 +348,7 @@ public class NodeRulesCalculationServiceImpl {
             for (MonitorRules deptMonitorRule : deptMonitorRules) {
                 SimpleBindings bindings = new SimpleBindings();
                 bindings.put("$count", count);
-                bindings.put("$result", delete.size());
+                bindings.put("$result", all.size());
                 String reg = deptMonitorRule.getRules();
                 ScriptEngineManager sem = new ScriptEngineManager();
                 ScriptEngine engine = sem.getEngineByName("js");
@@ -348,11 +356,11 @@ public class NodeRulesCalculationServiceImpl {
                 if ((Boolean) eval) {
                     boolean flag = true;
                     // 如果上次日志状态 是【忽略】，则判断数据是否相同原因相同，相同则进行忽略
-                    if (null != lastTaskLog.getStatus() && lastTaskLog.getStatus().equals("ignore")) {
+                    if (null != lastTaskLog && null != lastTaskLog.getStatus() && lastTaskLog.getStatus().equals("ignore")) {
                         JSONArray objects = JSONArray.parseArray(lastTaskLog.getData());
                         Map<String, JSONObject> map = TreeUtil.toMap(objects);
                         if (null != map) {
-                            for (Map.Entry<TreeBean, String> treeBean : delete) {
+                            for (Map.Entry<TreeBean, String> treeBean : all) {
                                 if (!map.containsKey(treeBean.getKey().getCode())) {
                                     flag = true;
                                     break;
@@ -362,10 +370,10 @@ public class NodeRulesCalculationServiceImpl {
                         }
                     }
                     if (flag) {
-                        logger.error("{}删除数量{},超出监控设定", type, delete.size());
-                        List<TreeBean> treeBeanList = delete.stream().map(Map.Entry::getKey).collect(Collectors.toList());
+                        logger.error("{}删除数量{},超出监控设定", type, all.size());
+                        List<TreeBean> treeBeanList = all.stream().map(Map.Entry::getKey).collect(Collectors.toList());
                         TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(treeBeanList)));
-                        throw new CustomException(ResultCode.MONITOR_ERROR, null, treeBeanList, type, delete.size() + "");
+                        throw new CustomException(ResultCode.MONITOR_ERROR, null, treeBeanList, type, all.size() + "");
                     }
                 }
             }
@@ -382,32 +390,43 @@ public class NodeRulesCalculationServiceImpl {
      * @param delete
      * @throws Exception
      */
-    public void monitorRules(DomainInfo domain, TaskLog lastTaskLog, Integer count, List delete) throws Exception {
-        if (null != delete && delete.size() > 0) {
+    public void monitorRules(DomainInfo domain, TaskLog lastTaskLog, Integer count, List delete, List invalid) throws Exception {
+        List all = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(delete)) {
+            all.addAll(delete);
+        }
+        if (!CollectionUtils.isEmpty(invalid)) {
+            all.addAll(invalid);
+        }
+        if (null != all && all.size() > 0) {
+            String type = "occupy";
+            if (all.get(0).getClass().getSimpleName().equals("Person")) {
+                type = "person";
+            }
             // 获取 监控规则
-            final List<MonitorRules> deptMonitorRules = monitorRulesDao.findAll(domain.getId(), "person");
+            final List<MonitorRules> deptMonitorRules = monitorRulesDao.findAll(domain.getId(), type);
             for (MonitorRules deptMonitorRule : deptMonitorRules) {
                 SimpleBindings bindings = new SimpleBindings();
                 bindings.put("$count", count);
-                bindings.put("$result", delete.size());
+                bindings.put("$result", all.size());
                 String reg = deptMonitorRule.getRules();
                 ScriptEngineManager sem = new ScriptEngineManager();
                 ScriptEngine engine = sem.getEngineByName("js");
                 Object eval = engine.eval(reg, bindings);
-                String type = "人员身份";
                 if ((Boolean) eval) {
                     boolean flag = true;
+
                     // 如果上次日志状态 是【忽略】，则判断数据是否相同原因相同，相同则进行忽略
                     if (null != lastTaskLog && null != lastTaskLog.getStatus() && lastTaskLog.getStatus().equals("ignore")) {
                         JSONArray objects = JSONArray.parseArray(lastTaskLog.getData());
-                        if (delete.get(0).getClass().getSimpleName().equals("Person")) {
-                            type = "人员";
+                        if (all.get(0).getClass().getSimpleName().equals("Person")) {
+                            //type = "人员";
                             List<JSONObject> personList = objects.toJavaList(JSONObject.class);
                             Map<String, JSONObject> map = personList.stream().collect(Collectors.toMap(
                                     (code -> code.getString("openId")),
                                     (value -> value)));
 
-                            for (Object t : delete) {
+                            for (Object t : all) {
                                 Person person = (Person) t;
                                 if (!map.containsKey(person.getOpenId())) {
                                     flag = true;
@@ -416,12 +435,13 @@ public class NodeRulesCalculationServiceImpl {
                                 flag = false;
                             }
                         } else {
+                            //type = "人员身份";
                             List<JSONObject> personList = objects.toJavaList(JSONObject.class);
                             Map<String, JSONObject> map = personList.stream().collect(Collectors.toMap(
                                     (code -> code.getString("personId") + ":" + code.getString("postCode") + ":" + code.getString("deptCode")),
                                     (value -> value)));
 
-                            for (Object t : delete) {
+                            for (Object t : all) {
                                 OccupyDto occupyDto = (OccupyDto) t;
                                 if (!map.containsKey(occupyDto.getPersonId() + ":" + occupyDto.getPostCode() + ":" + occupyDto.getDeptCode())) {
                                     flag = true;
@@ -432,9 +452,9 @@ public class NodeRulesCalculationServiceImpl {
                         }
                     }
                     if (flag) {
-                        logger.error("{}删除数量{},超出监控设定", type, delete.size());
-                        TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(delete)));
-                        throw new CustomException(ResultCode.MONITOR_ERROR, null, delete, type, delete.size() + "");
+                        logger.error("{}删除数量{},超出监控设定", type.equals("person") ? "人员" : "人员身份", all.size());
+                        TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(all)));
+                        throw new CustomException(ResultCode.MONITOR_ERROR, null, all, type.equals("person") ? "人员" : "人员身份", all.size() + "");
 
                     }
                 }
@@ -517,7 +537,7 @@ public class NodeRulesCalculationServiceImpl {
      * @Description: 规则运算
      * @return: java.util.Map<java.lang.String, com.qtgl.iga.bean.TreeBean>
      */
-    public List<TreeBean> nodeRules(DomainInfo domain, DeptTreeType treeType, String nodeCode, List<TreeBean> mainTree, Integer status, String type, List<String> dynamicCodes, Map<String, TreeBean> ssoBeansMap, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamHashMap,  Map<TreeBean, String> result, Map<String, List<Node>> nodesMap, TaskLog currentTask) throws Exception {
+    public List<TreeBean> nodeRules(DomainInfo domain, DeptTreeType treeType, String nodeCode, List<TreeBean> mainTree, Integer status, String type, List<String> dynamicCodes, Map<String, TreeBean> ssoBeansMap, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamHashMap, Map<TreeBean, String> result, Map<String, List<Node>> nodesMap, TaskLog currentTask) throws Exception {
         //获取根节点的规则
         //List<Node> nodes = nodeDao.getByCode(domain.getId(), treeType, nodeCode, status, type);
         //获取组织机构信息
@@ -588,7 +608,11 @@ public class NodeRulesCalculationServiceImpl {
                             upstreamTree = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
                         } catch (CustomException e) {
                             e.setData(mainTree);
-                            throw e;
+                            if (new Long("1085").equals(e.getCode())) {
+                                throw new CustomException(ResultCode.INVOKE_URL_ERROR, "请求资源地址失败,请检查权威源:" + upstream.getAppName() + "(" + upstream.getAppCode() + ")" + "下的权威源类型:" + upstreamType.getDescription(), mainTree);
+                            } else {
+                                throw e;
+                            }
                         } catch (Exception e) {
 
                             logger.error("{} 节点 {} 中的类型 {} 表达式异常", (null == treeType ? "" : treeType.getName()), ("".equals(nodeCode) ? "根节点" : nodeCode), upstreamType.getDescription());

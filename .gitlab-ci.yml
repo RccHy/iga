@@ -45,7 +45,7 @@ deploy:devel:
     - kubectl -n devel apply -f k8s-deploy.yaml
     - kubectl -n devel rollout restart sts iga
   # disable artifacts downloading from previous steps
-  dependencies: [ ]    
+  dependencies: [ ]
   environment:
     name: dev
     url: http://devel.ketanyun.cn/iga
@@ -70,7 +70,7 @@ deploy:prod:
     url: https://cloud.ketanyun.cn/iga
   only:
     - master
-  when: manual      
+  when: manual
 
 # Master 分支CI，并自动产生一个以当前日期为版本号的镜像
 build:prod:

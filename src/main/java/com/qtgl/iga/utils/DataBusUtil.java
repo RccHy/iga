@@ -202,7 +202,7 @@ public class DataBusUtil {
         params.put("variables", variables);
 
         url = UrlUtil.getUrl(url);
-
+        log.info("----------invokeUrl :{} ,params:{}", url, params);
         String s = sendPostRequest(url, params);
         if (null == s || s.contains("errors")) {
             throw new CustomException(ResultCode.GET_DATA_ERROR, null, null, s);
@@ -214,12 +214,12 @@ public class DataBusUtil {
         JSONArray services = data.getJSONArray("services");
 
         if (services.size() <= 0) {
-            throw new CustomException(ResultCode.FAILED, "请求资源地址失败,请检查权威源类型");
+            throw new CustomException(ResultCode.FAILED, "请求资源" + split[2] + "地址失败,请检查权威源类型");
         }
         JSONObject endpoints = services.getJSONObject(0);
         JSONArray endPoint = endpoints.getJSONArray("endpoints");
         if (endpoints.size() <= 0) {
-            throw new CustomException(ResultCode.FAILED, "请求资源地址失败,请检查权威源类型");
+            throw new CustomException(ResultCode.INVOKE_URL_ERROR, "请求资源地址" + split[2] + "失败,请检查权威源类型");
         }
         JSONObject jo = endPoint.getJSONObject(0);
 
@@ -327,40 +327,18 @@ public class DataBusUtil {
                 query.addResultAttributes(edges);
                 query.addResultAttributes("totalCount");
 
+                query.getRequestParameter().addObjectParameter("offset", 0);
+                query.getRequestParameter().addObjectParameter("first", 5000);
 
-                log.info("body " + query);
-                GraphqlResponse response = null;
-                try {
-                    response = graphqlClient.doQuery(query);
-                } catch (IOException e) {
-                    log.info("response :  ->" + e.getMessage());
-                    e.printStackTrace();
+                Integer totalCount = doQueryData(upstreamType, graphqlClient, objects, query);
+                double ceil = Math.ceil(totalCount / 5000.0);
+                for (int i = 1; i < ceil; i++) {
+                    query.getRequestParameter().addObjectParameter("offset", i * 5000);
+                    query.getRequestParameter().addObjectParameter("first", 5000);
+                    doQueryData(upstreamType, graphqlClient, objects, query);
                 }
 
-                //获取数据，数据为map类型
-                result = response.getData();
-                for (Map.Entry<String, Object> entry : result.entrySet()) {
-                    log.debug("result  data --" + entry.getKey() + "------" + entry.getValue());
-                }
-
-                if (null == result || null == result.get("data")) {
-
-                    throw new CustomException(ResultCode.GET_DATA_ERROR, null, null, upstreamType.getDescription(), result.get("errors").toString());
-
-                }
-                Map dataMap = (Map) result.get("data");
-                Map deptMap = (Map) dataMap.get(upstreamType.getSynType());
-                JSONArray deptArray = (JSONArray) JSONArray.toJSON(deptMap.get("edges"));
-                Integer totalCount = (Integer) deptMap.get("totalCount");
                 log.info("类型:{},权威源类型:{},获取数据成功,总计:{}条", upstreamType.getSynType(), upstreamType.getId(), totalCount);
-                if (null != deptArray) {
-                    for (Object deptOb : deptArray) {
-                        JSONObject nodeJson = (JSONObject) deptOb;
-                        JSONObject node1 = nodeJson.getJSONObject("node");
-
-                        objects.add(node1);
-                    }
-                }
 
                 JSONArray resultJson = new JSONArray();
                 //获取sso数据
@@ -412,6 +390,7 @@ public class DataBusUtil {
 
 
                 }
+                log.info("-------------开始处理上游数据映射");
                 for (Object object : objects) {
                     BeanMap beanMap = new BeanMap(object);
                     //以查询结果为结果集装入处理表达式后的结果
@@ -551,12 +530,50 @@ public class DataBusUtil {
                     resultJson.add(innerMap);
 
                 }
+                log.info("-------------处理上游数据映射结束");
 
 
                 return resultJson;
             }
         }
         return null;
+    }
+
+    private Integer doQueryData(UpstreamType upstreamType, GraphqlClient graphqlClient, JSONArray objects, GraphqlQuery query) {
+        Map<String, Object> result;
+        log.info("body " + query);
+        GraphqlResponse response = null;
+        try {
+            response = graphqlClient.doQuery(query);
+        } catch (IOException e) {
+            log.info("response :  ->" + e.getMessage());
+            e.printStackTrace();
+        }
+
+        //获取数据，数据为map类型
+        result = response.getData();
+        for (Map.Entry<String, Object> entry : result.entrySet()) {
+            log.debug("result  data --" + entry.getKey() + "------" + entry.getValue());
+        }
+
+        if (null == result || null == result.get("data")) {
+
+            throw new CustomException(ResultCode.GET_DATA_ERROR, null, null, upstreamType.getDescription(), result.get("errors").toString());
+
+        }
+        Map dataMap = (Map) result.get("data");
+        Map deptMap = (Map) dataMap.get(upstreamType.getSynType());
+        JSONArray deptArray = (JSONArray) JSONArray.toJSON(deptMap.get("edges"));
+        Integer totalCount = (Integer) deptMap.get("totalCount");
+        if (null != deptArray) {
+            for (Object deptOb : deptArray) {
+                JSONObject nodeJson = (JSONObject) deptOb;
+                JSONObject node1 = nodeJson.getJSONObject("node");
+
+                objects.add(node1);
+            }
+        }
+        return totalCount;
     }
 
 
@@ -1067,7 +1084,7 @@ public class DataBusUtil {
                     pub = String.format(pub, "person.deleted", domain.getClientId(),
                             person.getOpenId(), UUID.randomUUID(),
                             person.getCreateTime().toEpochSecond(ZoneOffset.of("+8")), JSONObject.toJSONString(person).replace("\"", "\\\""));
-                    graphql.append(RandomStringUtils.randomAlphabetic(20)+ ":pub(message:" + pub + "){id}");
+                    graphql.append(RandomStringUtils.randomAlphabetic(20) + ":pub(message:" + pub + "){id}");
                 }
             }
 

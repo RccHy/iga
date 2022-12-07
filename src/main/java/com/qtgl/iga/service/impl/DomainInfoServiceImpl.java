@@ -25,6 +25,8 @@ public class DomainInfoServiceImpl implements DomainInfoService {
     @Autowired
     PostTypeDao postTypeDao;
     @Autowired
+    MonitorRulesDao monitorRulesDao;
+    @Autowired
     DeptRelationTypeDao deptRelationTypeDao;
 
     @Override
@@ -62,6 +64,8 @@ public class DomainInfoServiceImpl implements DomainInfoService {
             deptRelationTypeDao.initialization(domainInfo.getId());
             // 岗位类型
             postTypeDao.initialization(domainInfo.getId());
+            //  监控规则
+            monitorRulesDao.initialization(domainInfo.getId());
         }
 
 

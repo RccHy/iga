@@ -1,3 +1,108 @@
+### 20221130
+
+**数据库**
+- 无
+
+**new：**
+- 人员身份扩展字段同步支持
+
+**bug fix**
+- 治理规则监控规则初始化 bug fix
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20221130
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20221102
+
+
+
+### 20221107
+
+**数据库**
+- 无
+
+**new：**
+- 无
+
+**bug fix**
+- 数据治理 人员同步扩展字段处理 bug fix
+- 人员及身份同步 兼容手工合重  bug fix
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20221107
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20221102
+
+
+### 20221026
+
+**数据库**
+- 执行iga/update/update.sql下 20221026的sql
+
+**new：**
+- 无
+
+**bug fix**
+- 数据治理人员同步 bug fix
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20221025
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20220930
+
+
+### 20220930
+
+**数据库**
+- 执行iga/update/update.sql下 20220930的sql
+
+**new：**
+- 监控数据由仅监控删除数据调整为监控删除与失效数据
+- 人员,人员身份同步支持指定模式数据同步
+
+**bug fix**
+- 无
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20220930
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20220930
+
+
+
+### 20220908
+
+**数据库**
+- 无
+
+**new：**
+- 身份治理覆盖source及DataSource逻辑调整(PULL的数据，如果通过控制台(或者其他方式)修改过发生了源头的改变，在下次同步时会被强制同步回PULL，无论该数据是否发生过变化)  @刘洋 @殷佳波
+
+**bug fix**
+- 人员身份同步 bug fix  @陈洋
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20220906
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20220908
+
+
+
 ### 20220831
 
 **数据库**

@@ -232,22 +232,29 @@ public class TaskConfig {
                                 log.error("定时同步异常：" + e);
                                 taskLog.setStatus("failed");
                                 taskLog.setReason(e.getErrorMsg());
-                                if (StringUtils.isNotBlank(TaskConfig.errorData.get(domainInfo.getId()))) {
-                                    this.upload(domainInfo, taskLog);
-                                } else {
-                                    taskLogService.save(taskLog, domainInfo.getDomainId(), "update");
-                                }
+                                //taskLog.setData(JSON.toJSONString(JSON.toJSON(e.getData())));
+                                //if (StringUtils.isNotBlank(TaskConfig.errorData.get(domainInfo.getId()))) {
+                                //    this.upload(domainInfo, taskLog);
+                                //} else {
+                                //    taskLogService.save(taskLog, domainInfo.getDomainId(), "update");
+                                //}
                                 e.printStackTrace();
                             } catch (Exception e) {
                                 log.error("定时同步异常：" + e);
                                 taskLog.setStatus("failed");
                                 taskLog.setReason(e.getMessage());
+                                //if (StringUtils.isNotBlank(TaskConfig.errorData.get(domainInfo.getId()))) {
+                                //    this.upload(domainInfo, taskLog);
+                                //} else {
+                                //    taskLogService.save(taskLog, domainInfo.getDomainId(), "update");
+                                //}
+                                e.printStackTrace();
+                            } finally {
                                 if (StringUtils.isNotBlank(TaskConfig.errorData.get(domainInfo.getId()))) {
                                     this.upload(domainInfo, taskLog);
                                 } else {
                                     taskLogService.save(taskLog, domainInfo.getDomainId(), "update");
                                 }
-                                e.printStackTrace();
                             }
                         } else {
                             taskLog.setReason("有编辑中规则，跳过数据同步");

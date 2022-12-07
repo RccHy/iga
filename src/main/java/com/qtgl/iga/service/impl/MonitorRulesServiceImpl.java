@@ -43,4 +43,12 @@ public class MonitorRulesServiceImpl implements MonitorRulesService {
     public List<MonitorRules> findAll(String domain, String type) {
         return monitorRulesDao.findAll(domain, type);
     }
+
+    @Override
+    public void initialization(String domain) {
+          monitorRulesDao.initialization(domain);
+
+    }
+
+
 }
