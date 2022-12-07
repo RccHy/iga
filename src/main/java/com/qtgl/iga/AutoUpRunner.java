@@ -18,13 +18,17 @@ public class AutoUpRunner implements CommandLineRunner {
     DomainInfoService domainInfoService;
     @Autowired
     MonitorRulesService monitorRulesService;
+
     @Override
     public void run(String... args) throws Exception {
-        for (DomainInfo domainInfo : domainInfoService.findAll()) {
-            // 【对 2022-11月前版本增加，自动增加对没有设置限制规则的环境，  默认限制 50%删除 上限】
-            List<MonitorRules> monitorRules = monitorRulesService.findAll(domainInfo.getId(),null);
-            if(null==monitorRules||monitorRules.size()<=0){
-                monitorRulesService.initialization(domainInfo.getId());
+        List<DomainInfo> all = domainInfoService.findAll();
+        if (null != all) {
+            for (DomainInfo domainInfo : all) {
+                // 【对 2022-11月前版本增加，自动增加对没有设置限制规则的环境，  默认限制 50%删除 上限】
+                List<MonitorRules> monitorRules = monitorRulesService.findAll(domainInfo.getId(), null);
+                if (null == monitorRules || monitorRules.size() <= 0) {
+                    monitorRulesService.initialization(domainInfo.getId());
+                }
             }
         }
     }
