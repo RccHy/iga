@@ -4,13 +4,14 @@ import com.qtgl.iga.bean.OccupyConnection;
 import com.qtgl.iga.bean.PersonConnection;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.DomainInfo;
+import com.qtgl.iga.bo.PreViewTask;
 import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.service.OccupyService;
 import com.qtgl.iga.service.PersonService;
 import com.qtgl.iga.service.PostService;
 import com.qtgl.iga.utils.CertifiedConnector;
-import com.qtgl.iga.utils.exception.GraphqlExceptionUtils;
 import com.qtgl.iga.utils.exception.CustomException;
+import com.qtgl.iga.utils.exception.GraphqlExceptionUtils;
 import graphql.schema.DataFetcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -135,6 +136,119 @@ public class DeptDataFetcher {
                 logger.error(domain.getDomainName() + e.getMessage());
 
                 return GraphqlExceptionUtils.getObject("查询人员身份失败", e);
+            }
+
+
+        };
+    }
+
+    public DataFetcher preViewPersons() {
+        return dataFetchingEvn -> {
+            //1。更具token信息验证是否合法，并判断其租户
+            DomainInfo domain = CertifiedConnector.getDomain();
+            // 获取传入参数
+            Map<String, Object> arguments = dataFetchingEvn.getArguments();
+
+
+            try {
+                PersonConnection persons = personService.preViewPersons(arguments, domain);
+                return persons;
+            } catch (CustomException e) {
+                e.printStackTrace();
+                logger.error(domain.getDomainName() + e.getMessage());
+
+                return GraphqlExceptionUtils.getObject("预览人员失败", e);
+
+            }
+
+
+        };
+    }
+
+    public DataFetcher preViewOccupies() {
+        return dataFetchingEvn -> {
+            //1。更具token信息验证是否合法，并判断其租户
+            DomainInfo domain = CertifiedConnector.getDomain();
+            // 获取传入参数
+            Map<String, Object> arguments = dataFetchingEvn.getArguments();
+
+            try {
+                OccupyConnection occupies = occupyService.preViewOccupies(arguments, domain);
+                return occupies;
+            } catch (CustomException e) {
+                e.printStackTrace();
+                logger.error(domain.getDomainName() + e.getMessage());
+
+                return GraphqlExceptionUtils.getObject("预览人员身份失败", e);
+            }
+
+
+        };
+    }
+
+    public DataFetcher reFreshPersons() {
+        return dataFetchingEvn -> {
+            //1。更具token信息验证是否合法，并判断其租户
+            DomainInfo domain = CertifiedConnector.getDomain();
+            // 获取传入参数
+            Map<String, Object> arguments = dataFetchingEvn.getArguments();
+
+
+            try {
+                PreViewTask result = personService.reFreshPersons(arguments, domain,null);
+                return result;
+            } catch (CustomException e) {
+                e.printStackTrace();
+                logger.error(domain.getDomainName() + e.getMessage());
+
+                return GraphqlExceptionUtils.getObject("刷新人员失败", e);
+
+            }
+
+
+        };
+    }
+
+    public DataFetcher reFreshOccupies() {
+        return dataFetchingEvn -> {
+            //1。更具token信息验证是否合法，并判断其租户
+            DomainInfo domain = CertifiedConnector.getDomain();
+            // 获取传入参数
+            Map<String, Object> arguments = dataFetchingEvn.getArguments();
+
+
+            try {
+                PreViewTask result = occupyService.reFreshOccupies(arguments, domain,null);
+                return result;
+            } catch (CustomException e) {
+                e.printStackTrace();
+                logger.error(domain.getDomainName() + e.getMessage());
+
+                return GraphqlExceptionUtils.getObject("刷新人员身份失败", e);
+
+            }
+
+
+        };
+    }
+
+    public DataFetcher reFreshTaskStatus() {
+        return dataFetchingEvn -> {
+            //1。更具token信息验证是否合法，并判断其租户
+            DomainInfo domain = CertifiedConnector.getDomain();
+            // 获取传入参数
+            Map<String, Object> arguments = dataFetchingEvn.getArguments();
+
+
+            try {
+                PreViewTask result = personService.reFreshTaskStatus(arguments, domain);
+                return result;
+            } catch (CustomException e) {
+                e.printStackTrace();
+                logger.error(domain.getDomainName() + e.getMessage());
+
+                return GraphqlExceptionUtils.getObject("查询任务失败", e);
+
             }
 
 

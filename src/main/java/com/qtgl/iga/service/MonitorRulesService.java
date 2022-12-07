@@ -17,4 +17,6 @@ public interface MonitorRulesService {
     MonitorRules updateMonitorRules(MonitorRules monitorRules);
 
     List<MonitorRules> findAll(String domain, String type);
+
+    void initialization(String domain);
 }

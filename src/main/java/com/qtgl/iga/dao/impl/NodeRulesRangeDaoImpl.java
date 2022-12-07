@@ -2,9 +2,11 @@ package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.NodeRulesRange;
+import com.qtgl.iga.bo.UpstreamTypeField;
 import com.qtgl.iga.dao.NodeRulesRangeDao;
 import com.qtgl.iga.utils.MyBeanUtils;
 import com.qtgl.iga.vo.NodeRulesVo;
+import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -165,6 +167,19 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
             preparedStatement.setObject(2, id);
         });
         return update;
+    }
+
+    @Override
+    public ArrayList<UpstreamTypeField> getByUpstreamTypeId(String id) {
+        List<Map<String, Object>> filedList = jdbcIGA.queryForList("select id,upstream_type_id as upstreamTypeId,source_field as sourceField , target_field as targetField,create_time as createTime,update_time as updateTime,domain from t_mgr_upstream_types_field where upstream_type_id = ? ", id);
+        ArrayList<UpstreamTypeField> upstreamTypeFields = new ArrayList<>();
+        for (Map<String, Object> stringObjectMap : filedList) {
+            UpstreamTypeField upstreamTypeField = new UpstreamTypeField();
+            BeanMap bean = BeanMap.create(upstreamTypeField);
+            bean.putAll(stringObjectMap);
+            upstreamTypeFields.add(upstreamTypeField);
+        }
+        return upstreamTypeFields;
     }
 
 }

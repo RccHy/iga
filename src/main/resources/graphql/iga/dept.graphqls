@@ -5,10 +5,20 @@ extend type Query {
     depts(status:Int,scenes:Boolean!):[Dept]
     #查询岗位
     posts(status:Int,scenes:Boolean!):[Dept]
-    #查询人员  offset:跳过几条  first:取几条
+    #查询人员详情  offset:跳过几条  first:取几条
     persons(upstreamTypeId:String,offset:Int,first:Int):PersonConnection
-    #查询人员身份  offset:跳过几条  first:取几条
+    #查询人员身份详情  offset:跳过几条  first:取几条
     occupies(upstreamTypeId:String,offset:Int,first:Int):OccupyConnection
+    #预览人员  offset:跳过几条  first:取几条
+    preViewPersons(type:String,filter:PersonFilter ,offset:Int,first:Int):PersonConnection
+    #预览人员身份  offset:跳过几条  first:取几条
+    preViewOccupies(type:String,filter:OccupyFilter,offset:Int,first:Int):OccupyConnection
+    #刷新  type表示类型(person)
+    reFreshPersons(type:String):PreViewTask
+    #刷新  type表示类型(occupy)
+    reFreshOccupies(type:String):PreViewTask
+    #通过任务标识获取任务进行状态
+    reFreshTaskStatus(taskId:String):PreViewTask
 }
 
 
@@ -75,6 +85,8 @@ type Person{
     active:Int
     #是否删除
     delMark:Int
+    #扩展字段
+    attrsValues : [DynamicValue]
 
 }
 
@@ -115,6 +127,48 @@ type Occupy{
     index:Int
 
 
+}
+
+type DynamicValue{
+    #key值
+    key : String
+    #代码
+    code : String
+    #值
+    value : String
+}
+
+input PersonFilter{
+    active:booleanFilter
+    name:stringFilter
+    username:stringFilter
+    cardNo:stringFilter
+    email:stringFilter
+    phone:stringFilter
+}
+
+input OccupyFilter{
+    active:booleanFilter
+    name:stringFilter
+    username:stringFilter
+    cardNo:stringFilter
+    positionCardNo:stringFilter
+    positionEndTime:timestampFilter
+    positionStartTime:timestampFilter
+    deptCode:stringFilter
+    postCode:stringFilter
+}
+
+#预览结果集###
+type PreViewTask{
+    #任务状态
+    status: String
+    #任务标识
+    taskId: String
+    #创建时间
+    createTime:Timestamp
+    # 修改时间
+    updateTime:Timestamp
 }
 
 

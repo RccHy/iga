@@ -22,7 +22,13 @@ public class DeptProvider {
                 .dataFetcher("depts", dataFetcher.findDept())
                 .dataFetcher("posts", dataFetcher.findPosts())
                 .dataFetcher("persons", dataFetcher.findPersons())
-                .dataFetcher("occupies", dataFetcher.findOccupies());
+                .dataFetcher("occupies", dataFetcher.findOccupies())
+                .dataFetcher("preViewPersons", dataFetcher.preViewPersons())
+                .dataFetcher("preViewOccupies", dataFetcher.preViewOccupies())
+                .dataFetcher("reFreshPersons", dataFetcher.reFreshPersons())
+                .dataFetcher("reFreshOccupies", dataFetcher.reFreshOccupies())
+                .dataFetcher("reFreshTaskStatus", dataFetcher.reFreshTaskStatus());
+
     }
 
 

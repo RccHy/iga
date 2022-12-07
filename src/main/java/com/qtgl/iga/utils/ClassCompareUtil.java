@@ -153,6 +153,7 @@ public class ClassCompareUtil {
                 typeClass = newValue.getClass();
             }
             Method method = clazz.getDeclaredMethod(methodName, typeClass);
+            method.setAccessible(true);
             method.invoke(obj, getClassTypeValue(typeClass, newValue));
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -193,9 +194,9 @@ public class ClassCompareUtil {
             }
             return value;
         } else if (typeClass == String.class) {
-            if (null == value) {
-                return "";
-            }
+            //if (null == value) {
+            //    return null;
+            //}
             return value;
         } else if (typeClass == boolean.class) {
             if (null == value) {

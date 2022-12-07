@@ -1,0 +1,21 @@
+extend type Query {
+
+  checkList: [Check]
+}
+
+
+
+
+
+
+
+type Check{
+  # 检测项名称
+  name: String!
+  # 如有错误 详细描述
+  desc: String
+  #  pass 成功 fail 失败 waring 警告
+  state: String!
+}
+
+

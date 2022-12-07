@@ -2,14 +2,16 @@ package com.qtgl.iga.bo;
 
 import lombok.Data;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 /**
  * @author 1
  */
 @Data
-public class Person {
+public class Person implements Serializable,Cloneable {
 
     /**
      * 主键
@@ -99,6 +101,33 @@ public class Person {
      */
     private String password;
 
-    private Map<String,String> dynamic;
+    private Map<String, String> dynamic;
+    /**
+     * 逻辑处理字段 规则是否启用
+     */
+    private Boolean ruleStatus;
 
+    //扩展字段值
+    private List<DynamicValue> attrsValues;
+    /**
+     * 创建来源
+     */
+    private String createSource;
+    /**
+     * 创建来源(机读)
+     * push  PULL  BUILTIN
+     */
+    private String createDataSource;
+
+
+    @Override
+    public Object clone()  {
+        Person person = null;
+        try{
+            person = (Person) super.clone();
+        }catch(CloneNotSupportedException e) {
+            e.printStackTrace();
+        }
+        return person;
+    }
 }

@@ -59,7 +59,7 @@ vm构建命令，根据实际环境替换对应的值<br/>
 
 5:授权<br/>
 【前置条件：bus部署完成，console本身部署完成 】<br/>
-通过console 应用中心  -->  应用中心授权 -->【搜索iga】 --> 右侧点击"编辑权限" --> 选择所有"服务读写"<br/>
+通过console 应用中心  -->  应用数据授权 -->【搜索iga】 --> 右侧点击"编辑权限" --> 选择所有"服务读写"<br/>
 ![img_1.png](img_1.png)
 
 
@@ -76,8 +76,9 @@ vm构建命令，根据实际环境替换对应的值<br/>
 | SSO_API_DATASOURCE_URL      | sso-api项目数据库地址                                       | jdbc:mysql://XXXX:3306/sso-api?rewriteBatchedStatements=true |
 | SSO_API_DATASOURCE_USERNAME | 数据库用户名                                                | -----                                                        |
 | SSO_API_DATASOURCE_PASSWORD | 数据库地址                                                  | -----                                                        |
-| OAUTH_AUTHORIZE_URL         | OAuth Authority 地址                                        | /sso/oauth2/authorize 支持多租环境，多租环境下任意挑选其中一租户的sso绝对路径 |
-| OAUTH_TOKEN_URL             | OAuth Token 地址                                            | /sso/oauth2/token 支持多租环境，多租环境下任意挑选其中一租户的sso绝对路径 |
+| OAUTH_AUTHORIZE_URL         | OAuth Authority 地址                                        | /sso/oauth2/authorize 支持多租环境 |
+| OAUTH_TOKEN_URL             | OAuth Token 地址                                            | /sso/oauth2/token 支持多租环境|
+| OAUTH_INTROSPECT_URL             | OAuth INTROSPECT 地址                                  | /sso/oauth2/introspect 支持多租环境 |
 | BUS_URL                     | BUS服务地址                                                 | /bus/graphql/builtin 支持多租环境，多租环境下任意挑选其中一租户的bus绝对路径 |
 | OAUTH_CLIENT_ID             | 应用id                                                      | ------                                                       |
 | OAUTH_CLIENT_SECRET         | 应用密钥                                                    | ------                                                       |
@@ -94,14 +95,17 @@ vm构建命令，根据实际环境替换对应的值<br/>
 
 # 表达式支持
 
-| 描述           | 表达式参考                     | 推荐场景                                      |
-| -------------- | ------------------------------ | --------------------------------------------- |
-| 变量           | $Code                          | 将数据中Code字段作为变量                      |
-| 常量           | ABC                            | 将ABC作为固定不变的值，一般作用于字段映射赋值 |
-| 全部数据       | =*                             | 挂载、排除规则                                |
-| 正则过滤数据   | =Reg("^hr_20.$")               | 挂载、排除规则                                |
-| 重命名计算脚本 | ="hr_"+$Code                   | 字段映射 对值重新赋值                         |
-| 判断计算脚本   | =if($Code=='ABC'){ "1"+$Code } | 字段映射 对值重新赋值                         |
+| 描述         | 表达式参考                                                                                   | 推荐场景                                      |
+|------------|-----------------------------------------------------------------------------------------| --------------------------------------------- |
+| 变量         | $Code                                                                                   | 将数据中Code字段作为变量                      |
+| 常量         | ABC                                                                                     | 将ABC作为固定不变的值，一般作用于字段映射赋值 |
+| 全部数据       | =*                                                                                      | 挂载、排除规则                                |
+| 正则过滤数据     | =Reg("^hr_20.$")                                                                        | 挂载、排除规则                                |
+| 重命名计算脚本    | ="hr_"+$Code                                                                            | 字段映射 对值重新赋值                         |
+| 判断计算脚本     | =if($Code=='ABC'){ "1"+$Code }                                                          | 字段映射 对值重新赋值                         |
+| 数据库对象      | $ENTITY                                                                                 | 想取出数据库中手机号进行运算可通过   $ENTITY.cellphone  进行获取值                         |
+| 数据库已有值参与运算 | =if($ENTITY.cellphone==''&#124;&#124;$ENTITY.cellphone== null){$SJ}else{$ENTITY.cellphone} | 数据库中 手机号为空的时候，认上游SJ字段的值。 否则保留数据源当前值                   |
+
 
 # 异常说明(具体报错原因查看对应提示)
 

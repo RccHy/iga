@@ -1,10 +1,8 @@
 package com.qtgl.iga.service.impl;
 
 import com.qtgl.iga.bean.NodeDto;
-import com.qtgl.iga.bo.DomainInfo;
-import com.qtgl.iga.bo.Node;
-import com.qtgl.iga.bo.NodeRulesRange;
-import com.qtgl.iga.bo.TaskLog;
+import com.qtgl.iga.bean.TreeBean;
+import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.NodeDao;
 import com.qtgl.iga.dao.NodeRulesDao;
 import com.qtgl.iga.dao.NodeRulesRangeDao;
@@ -19,10 +17,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import org.springframework.util.CollectionUtils;
 
 import java.sql.Timestamp;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -314,6 +314,9 @@ public class NodeServiceImpl implements NodeService {
         List<Node> nodes = nodeDao.findNodesByStatusAndType(status, type, domain, version);
         if (null != nodes && nodes.size() > 0) {
             for (Node node : nodes) {
+                if(node.getStatus().equals(3)){
+                    continue;
+                }
                 List<NodeRulesVo> rules = nodeRulesDao.findNodeRulesByNodeId(node.getId(), null);
                 if (null != rules && rules.size() > 0) {
                     for (NodeRulesVo rule : rules) {
@@ -408,19 +411,29 @@ public class NodeServiceImpl implements NodeService {
             List<NodeDto> nodes = findNodes(map, domain.getId());
             //复制数据
             if (null != nodes && nodes.size() > 0) {
+                ConcurrentHashMap<String, String> inheritMap = new ConcurrentHashMap<>();
                 for (NodeDto node : nodes) {
                     node.setId(null);
                     node.setStatus(1);
                     node.setCreateTime(System.currentTimeMillis());
                     if (null != node.getNodeRules()) {
                         for (NodeRulesVo nodeRule : node.getNodeRules()) {
-                            nodeRule.setId(null);
+                            String nodeRulesNewId = UUID.randomUUID().toString().replace("-", "");
+                            inheritMap.put(nodeRule.getId(),nodeRulesNewId);
+                            nodeRule.setId(nodeRulesNewId);
                             nodeRule.setStatus(1);
                             if (null != nodeRule.getNodeRulesRanges()) {
                                 for (NodeRulesRange nodeRulesRange : nodeRule.getNodeRulesRanges()) {
                                     nodeRulesRange.setId(null);
                                     nodeRulesRange.setStatus(1);
                                 }
+                            }
+                        }
+                        //继承规则inherit_id赋值
+                        for (NodeRulesVo nodeRule : node.getNodeRules()) {
+                            if(null!=nodeRule.getInheritId()){
+                                String newInheritId = inheritMap.get(nodeRule.getInheritId());
+                                nodeRule.setInheritId(newInheritId);
                             }
                         }
                     }
@@ -446,6 +459,35 @@ public class NodeServiceImpl implements NodeService {
             throw new CustomException(ResultCode.FAILED, "类型不能为空");
         }
         return nodeDao.findByStatus(status, domain, type);
+    }
+
+    @Override
+    public void updateNodeAndRules(List<Node> nodes, List<TreeBean> beans) {
+        //运算完成的结果集中不包含node所指定的挂载节点,则该规则需置为无效
+        ArrayList<Node> invalidNodes = new ArrayList<>();
+        ArrayList<NodeRulesVo> invalidNodeRules = new ArrayList<>();
+        ArrayList<NodeRulesRange> invalidNodeRulesRanges = new ArrayList<>();
+        if(!CollectionUtils.isEmpty(beans)&&!CollectionUtils.isEmpty(nodes)){
+            Map<String, TreeBean> collect = beans.stream().collect(Collectors.toMap(TreeBean::getCode, treeBean -> treeBean));
+            for (Node node : nodes) {
+                if(!StringUtils.isBlank(node.getNodeCode())){
+                    if(!collect.containsKey(node.getNodeCode())){
+                        invalidNodes.add(node);
+                        List<NodeRulesVo> nodeRulesVos = nodeRulesDao.findPullNodeRulesByNodeId(node.getId(), null);
+                        if(!CollectionUtils.isEmpty(nodeRulesVos)){
+                            invalidNodeRules.addAll(nodeRulesVos);
+                            for (NodeRulesVo nodeRulesVo : nodeRulesVos) {
+                                List<NodeRulesRange> nodeRulesRanges = nodeRulesRangeDao.getByRulesId(nodeRulesVo.getId(), null);
+                                if(!CollectionUtils.isEmpty(nodeRulesRanges)){
+                                    invalidNodeRulesRanges.addAll(nodeRulesRanges);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            nodeDao.updateNodeAndRules(invalidNodes,invalidNodeRules,invalidNodeRulesRanges);
+        }
     }
 
 }

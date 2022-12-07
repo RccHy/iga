@@ -103,5 +103,14 @@ public class UpstreamType implements Serializable {
      * 方式
      */
     private Integer synWay;
+    /**
+     * 是否增量
+     */
+    private Boolean isIncremental;
+
+    /**
+     * [人特征，人员类型合重方式以及身份匹配人方式] CARD_TYPE_NO:证件类型+证件号码 CARD_NO:仅证件号码 ACCOUNT_NO:用户名 EMAIL:邮箱 CELLPHONE:手机号 OPENID:openid(仅身份类型匹配人)
+     */
+    private String personCharacteristic;
 
 }

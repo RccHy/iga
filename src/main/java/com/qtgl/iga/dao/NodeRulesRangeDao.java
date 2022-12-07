@@ -3,7 +3,9 @@ package com.qtgl.iga.dao;
 
 import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.NodeRulesRange;
+import com.qtgl.iga.bo.UpstreamTypeField;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public interface NodeRulesRangeDao {
@@ -20,4 +22,6 @@ public interface NodeRulesRangeDao {
     NodeRulesRange saveNodeRuleRange(NodeRulesRange rulesRange);
 
     Integer makeNodeRulesRangesToHistory(String id, Integer status);
+
+    ArrayList<UpstreamTypeField> getByUpstreamTypeId(String id);
 }

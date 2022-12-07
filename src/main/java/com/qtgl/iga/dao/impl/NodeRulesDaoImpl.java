@@ -30,11 +30,15 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
         List<NodeRules> nodeRules = null;
         List<Object> para = new ArrayList<>();
         para.add(nodeId);
-        para.add(active);
+        //para.add(active);
         StringBuffer sql = new StringBuffer("select id, node_id as nodeId,type,active,inherit_id as inheritId," +
                 " active_time as activeTime, create_time as createTime,  update_time as updateTime," +
                 "service_key as serviceKey,upstream_types_id as upstreamTypesId,sort,status " +
-                " from t_mgr_node_rules where node_id=? and active=?  ");
+                " from t_mgr_node_rules where node_id=?  ");
+        if (null != active) {
+            sql.append(" and active=? ");
+            para.add(active);
+        }
         if (null != type) {
             sql.append(" and type=? ");
             para.add(type);
@@ -83,6 +87,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
 
             }
         }
+        //todo 修改时间
         List<NodeRulesVo> nodeRules = nodeDto.getNodeRules();
         int[] ints = jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
             @Override
@@ -310,6 +315,67 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
             preparedStatement.setObject(2, id);
         });
         return update;
+    }
+
+    @Override
+    public List<NodeRules> findNodeRulesByServiceKey(String id, Integer status, Integer type) {
+        List<NodeRules> nodeRules = new ArrayList<>();
+        String sql = "select id,node_id as nodeId,type as type,active as active," +
+                "create_time as createTime,service_key as serviceKey,upstream_types_id as upstreamTypesId,inherit_id as inheritId," +
+                "active_time as activeTime,update_time as updateTime,sort,status from t_mgr_node_rules where 1 = 1 and service_key= ? and type=? and active=true  ";
+        List<Object> param = new ArrayList<>();
+        param.add(id);
+        param.add(type);
+        if (null != status) {
+            sql = sql + "and status =? ";
+            param.add(status);
+        } else {
+            sql = sql + "and status !=? ";
+            param.add(2);
+        }
+        List<Map<String, Object>> maps = jdbcIGA.queryForList(sql, param.toArray());
+        if (null != maps && maps.size() > 0) {
+            for (Map<String, Object> map : maps) {
+                NodeRules nodeRule = new NodeRules();
+                try {
+                    MyBeanUtils.populate(nodeRule, map);
+                } catch (IllegalAccessException | InvocationTargetException e) {
+                    e.printStackTrace();
+                }
+                nodeRules.add(nodeRule);
+            }
+            return nodeRules;
+        }
+        return null;
+    }
+
+    @Override
+    public List<NodeRulesVo> findPullNodeRulesByNodeId(String id, Integer status) {
+        String sql = "select id,node_id as nodeId,type as type,active as active," +
+                "create_time as createTime,service_key as serviceKey,upstream_types_id as upstreamTypesId,inherit_id as inheritId," +
+                "active_time as activeTime,update_time as updateTime , sort ,status from t_mgr_node_rules where node_id =? and type= 1 ";
+        List<Object> param = new ArrayList<>();
+        param.add(id);
+        if (null != status) {
+            sql = sql + "and status =? ";
+            param.add(status);
+        }
+        sql = sql + "order by sort asc";
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, param.toArray());
+        ArrayList<NodeRulesVo> list = new ArrayList<>();
+        if (null != mapList && mapList.size() > 0) {
+            for (Map<String, Object> map : mapList) {
+                NodeRulesVo nodeRules = new NodeRulesVo();
+                try {
+                    MyBeanUtils.populate(nodeRules, map);
+                } catch (IllegalAccessException | InvocationTargetException e) {
+                    e.printStackTrace();
+                }
+                list.add(nodeRules);
+            }
+            return list;
+        }
+        return null;
     }
 
 

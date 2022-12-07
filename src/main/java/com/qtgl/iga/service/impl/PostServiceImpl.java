@@ -1,6 +1,7 @@
 package com.qtgl.iga.service.impl;
 
 
+import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
@@ -51,6 +52,14 @@ public class PostServiceImpl implements PostService {
     DynamicAttrDaoImpl dynamicAttrDao;
     @Autowired
     DynamicValueDaoImpl dynamicValueDao;
+    @Autowired
+    UpstreamDao upstreamDao;
+    @Autowired
+    NodeDao nodeDao;
+    @Autowired
+    IncrementalTaskDao incrementalTaskDao;
+    @Autowired
+    UserLogDao userLogDao;
 
     @Value("${iga.hostname}")
     String hostname;
@@ -60,7 +69,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
-    public Map<TreeBean, String> buildPostUpdateResult(DomainInfo domain, TaskLog lastTaskLog) throws Exception {
+    public Map<TreeBean, String> buildPostUpdateResult(DomainInfo domain, TaskLog lastTaskLog, TaskLog currentTask) throws Exception {
         //获取默认数据
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         if (null == tenant) {
@@ -87,6 +96,20 @@ public class PostServiceImpl implements PostService {
         //}
         //获取完整的非PULL根数据以及加入逻辑根节点
         rootBeans.addAll(ssoBeans);
+        //通过tenantId查询ssoApis库中的数据
+        List<TreeBean> beans = postDao.findByTenantId(tenant.getId());
+
+        //将null赋为""
+        if (null != beans && beans.size() > 0) {
+            for (TreeBean bean : beans) {
+                if (StringUtils.isBlank(bean.getParentCode())) {
+                    bean.setParentCode("");
+                }
+            }
+        }
+        //map做增量处理值传递
+        Map<String, TreeBean> ssoBeansMap = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
+
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
         //ArrayList<TreeBean> treeBeans = new ArrayList<>();
@@ -104,6 +127,8 @@ public class PostServiceImpl implements PostService {
 
         List<DynamicValue> valueUpdate = new ArrayList<>();
 
+        //增量日志容器
+        //List<IncrementalTask> incrementalTasks = new ArrayList<>();
         //扩展字段新增容器
         ArrayList<DynamicValue> valueInsert = new ArrayList<>();
 
@@ -125,30 +150,33 @@ public class PostServiceImpl implements PostService {
             valueMap = dynamicValues.stream().collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
         }
         mainTreeBeans.addAll(ssoBeans);
-
+        //获取该租户下的当前类型的无效权威源
+        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
+        Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(upstreams)) {
+            upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
+        }
+        //获取岗位治理下所有的运行中规则
+        List<Node> nodes = nodeDao.getByTreeType(domain.getId(), null, 0, TYPE);
+        Map<String, List<Node>> nodesMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(nodes)) {
+            nodesMap = nodes.stream().collect(Collectors.groupingBy(Node::getNodeCode));
+        }
         for (TreeBean rootBean : rootBeans) {
 
-            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes);
+            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, result, nodesMap, currentTask);
 
         }
         // 判断重复(code)
         calculationService.groupByCode(mainTreeBeans, 0, domain);
 
-        //通过tenantId查询ssoApis库中的数据
-        List<TreeBean> beans = postDao.findByTenantId(tenant.getId());
-
-        //将null赋为""
-        if (null != beans && beans.size() > 0) {
-            for (TreeBean bean : beans) {
-                if (StringUtils.isBlank(bean.getParentCode())) {
-                    bean.setParentCode("");
-                }
-            }
-        }
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
 
         //同步到sso
-        beans = dataProcessing(mainTreeMap, domain, "", beans, result, now, dynamicAttrs, valueMap, valueUpdate, valueInsert);
+        beans = new ArrayList<>(ssoBeansMap.values());
+        //监控身份
+        ArrayList<TreeBean> occupyMonitors = new ArrayList<>();
+        beans = dataProcessing(mainTreeMap, domain, "", beans, result, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, occupyMonitors);
 //        if (null != beans) {
 //            beans.addAll(treeBeans);
 //        }
@@ -163,9 +191,25 @@ public class PostServiceImpl implements PostService {
         Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
         // 验证监控规则
         List<Map.Entry<TreeBean, String>> delete = collect.get("delete");
-        calculationService.monitorRules(domain, lastTaskLog, beans.size(), delete, "post");
+        List<Map.Entry<TreeBean, String>> invalid = collect.get("invalid");
+        calculationService.monitorRules(domain, lastTaskLog, beans.size(), delete, invalid, "post");
         saveToSso(collect, tenant.getId(), attrMap, valueUpdate, valueInsert);
+        //if (!CollectionUtils.isEmpty(incrementalTasks)) {
+        //    //添加增量日志
+        //    incrementalTaskDao.saveAll(incrementalTasks, domain);
+        //}
+        if (!CollectionUtils.isEmpty(occupyMonitors)) {
+            //处理因组织机构变化影响的历史身份有效期
+            ArrayList<OccupyDto> occupyDtos = occupyProcessing(occupyMonitors, tenant.getId());
+            if (!CollectionUtils.isEmpty(occupyDtos)) {
+                Map<String, List<OccupyDto>> octResult = new HashMap<>();
+                octResult.put("update", occupyDtos);
+                occupyDao.saveToSso(octResult, tenant.getId(), null, null);
+                userLogDao.saveUserLog(occupyDtos, tenant.getId());
+                logger.info("因岗位变动 导致:{}条,身份有效期发生变化", occupyDtos.size());
+            }
 
+        }
         return result;
 
     }
@@ -213,6 +257,20 @@ public class PostServiceImpl implements PostService {
         //获取完整的非PULL根数据以及加入逻辑根节点
         rootBeans.addAll(ssoBeans);
 
+        //通过tenantId查询ssoApis库中的数据
+        List<TreeBean> beans = postDao.findByTenantId(tenant.getId());
+
+        //将null赋为""
+        if (null != beans && beans.size() > 0) {
+            for (TreeBean bean : beans) {
+                if (StringUtils.isBlank(bean.getParentCode())) {
+                    bean.setParentCode("");
+                }
+            }
+        }
+        //map做增量处理值传递
+        Map<String, TreeBean> ssoBeansMap = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
+
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
         //ArrayList<TreeBean> treeBeans = new ArrayList<>();
@@ -248,31 +306,47 @@ public class PostServiceImpl implements PostService {
         if (!CollectionUtils.isEmpty(dynamicValues)) {
             valueMap = dynamicValues.stream().collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
         }
+        logger.info("获取到当前租户{}的映射字段集为{}", tenant.getId(), dynamicAttrs);
+
         Map<String, TreeBean> rootBeansMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
 
         mainTreeBeans.addAll(ssoBeans);
+        //获取该租户下的当前类型的无效权威源
+        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
+        Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(upstreams)) {
+            upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
+        }
+        //获取岗位治理下所有的编辑中规则
+        List<Node> nodes = nodeDao.getByTreeType(domain.getId(), null, status, TYPE);
+        Map<String, List<Node>> nodesMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(nodes)) {
+            nodesMap = nodes.stream().collect(Collectors.groupingBy(Node::getNodeCode));
+        }
         for (TreeBean rootBean : rootBeans) {
 
-            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, dynamicCodes);
+            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, result, nodesMap, null);
 
         }
 
-        //通过tenantId查询ssoApis库中的数据
-        List<TreeBean> beans = postDao.findByTenantId(tenant.getId());
-        //将null赋为""
-        if (null != beans && beans.size() > 0) {
-            for (TreeBean bean : beans) {
-                if (StringUtils.isBlank(bean.getParentCode())) {
-                    bean.setParentCode("");
-                }
-            }
-        }
-        Map<String, TreeBean> collect = beans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-        collect.putAll(rootBeansMap);
-        beans = new ArrayList<>(collect.values());
+        ////通过tenantId查询ssoApis库中的数据
+        //List<TreeBean> beans = postDao.findByTenantId(tenant.getId());
+        ////将null赋为""
+        //if (null != beans && beans.size() > 0) {
+        //    for (TreeBean bean : beans) {
+        //        if (StringUtils.isBlank(bean.getParentCode())) {
+        //            bean.setParentCode("");
+        //        }
+        //    }
+        //}
+        //Map<String, TreeBean> collect = beans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
+        //collect.putAll(rootBeansMap);
+        ssoBeansMap.putAll(rootBeansMap);
+        beans = new ArrayList<>(ssoBeansMap.values());
         //数据对比处理
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
-        beans = dataProcessing(mainTreeMap, domain, "", beans, result, now, dynamicAttrs, valueMap, valueUpdate, valueInsert);
+
+        beans = dataProcessing(mainTreeMap, domain, "", beans, result, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, null);
 
 //        if (null != beans) {
 //            beans.addAll(treeBeans);
@@ -283,7 +357,8 @@ public class PostServiceImpl implements PostService {
 
         // 判断重复(code)
         calculationService.groupByCode(beans, status, domain);
-
+        List<Node> nodeList = nodeDao.findNodesByStatusAndType(status, TYPE, domain.getId(), null);
+        nodeService.updateNodeAndRules(nodeList, beans);
         return beans;
 
     }
@@ -367,7 +442,8 @@ public class PostServiceImpl implements PostService {
                 updateList.add(key.getKey());
             }
         }
-
+        logger.info("岗位处理结束:扩展字段处理需要修改{},需要新增{}", CollectionUtils.isEmpty(valueUpdate) ? 0 : valueUpdate.size(), CollectionUtils.isEmpty(valueInsert) ? 0 : valueInsert.size());
+        logger.debug("岗位处理结束:扩展字段处理需要修改{},需要新增{}", valueUpdate, valueInsert);
         Integer flag = postDao.renewData(insertList, updateList, deleteList, invalidList, valueUpdate, valueInsert, tenantId);
         if (null != flag && flag > 0) {
 
@@ -408,7 +484,7 @@ public class PostServiceImpl implements PostService {
      * 1：根据规则拉取所有权威源岗位数据
      * 2：获取sso所有的岗位数据(包括已删除的)
      * <p>
-     * 3：根据上游部门和数据库中岗位进行对比
+     * 3：根据上游岗位和数据库中岗位进行对比
      * A：新增  上游提供、sso数据库中没有            对于active和del_mark字段 上游提供使用上游,不提供则默认有效未删除
      * B：修改  上游和sso对比后字段值有差异
      * C：删除  上游提供了del_mark             (上游必须del_mark字段)
@@ -416,7 +492,7 @@ public class PostServiceImpl implements PostService {
      * E: 删除恢复  之前被标记为删除后再通过推送了相同的数据   (上游必须del_mark字段)
      * E: 失效恢复  之前被标记为失效后再通过推送了相同的数据   提供active则修改对比时直接覆盖,不提供则手动恢复
      **/
-    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> ssoBeans, Map<TreeBean, String> result, LocalDateTime now, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert) {
+    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> ssoBeans, Map<TreeBean, String> result, LocalDateTime now, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamMap, ArrayList<TreeBean> occupyMonitors) {
         //将sso的数据转化为map方便对比
         Map<String, TreeBean> ssoCollect = new HashMap<>();
         if (null != ssoBeans && ssoBeans.size() > 0) {
@@ -438,104 +514,135 @@ public class PostServiceImpl implements PostService {
             //赋值treeTypeId
             pullBean.setTreeType(treeTypeId);
             if (null != ssoBeans) {
-                //遍历数据库数据
-                for (TreeBean ssoBean : ssoBeans) {
-                    if (pullBean.getCode().equals(ssoBean.getCode())) {
+                //来自数据库的部分主树数据没有对应规则标识,默认有效
+                if (null == pullBean.getRuleStatus()) {
+                    pullBean.setRuleStatus(true);
+                }
+                if (pullBean.getRuleStatus()) {
+                    //遍历数据库数据
+                    for (TreeBean ssoBean : ssoBeans) {
+                        if (pullBean.getCode().equals(ssoBean.getCode())) {
 
-                        if (null != pullBean.getCreateTime()) {
-                            //修改
-                            if (null == ssoBean.getCreateTime() || pullBean.getCreateTime().isAfter(ssoBean.getCreateTime())) {
-                                //修改标识 1.source为非BUILTIN 则进行覆盖  2.source都为PULL则对比字段 有修改再标识为true
-                                boolean updateFlag = false;
-                                //删除恢复标识
-                                boolean delRecoverFlag = false;
-                                //del字段标识
-                                boolean delFlag = false;
-                                //失效标识
-                                boolean invalidFlag = false;
+                            if (null != pullBean.getUpdateTime()) {
+                                //修改
+                                if (null == ssoBean.getUpdateTime() || pullBean.getUpdateTime().isAfter(ssoBean.getUpdateTime())) {
+                                    //修改标识 1.source为非BUILTIN 则进行覆盖  2.source都为PULL则对比字段 有修改再标识为true
+                                    boolean updateFlag = false;
+                                    //删除恢复标识
+                                    boolean delRecoverFlag = false;
+                                    //del字段标识
+                                    boolean delFlag = false;
+                                    //失效标识
+                                    boolean invalidFlag = false;
 //                                //是否手动恢复有效标识 (如果上游提供则置为false)
 //                                boolean invalidRecoverFlag = true;
-                                //上游是否提供active字段
-                                boolean activeFlag = false;
-                                //是否处理扩展字段标识
-                                boolean dyFlag = true;
-
-                                if (!"BUILTIN".equalsIgnoreCase(pullBean.getDataSource())) {
+                                    //上游是否提供active字段
+                                    boolean activeFlag = false;
+                                    //是否处理扩展字段标识
+                                    boolean dyFlag = true;
+                                    //处理sso数据的active为null的情况
+                                    if (null == ssoBean.getActive() || "".equals(ssoBean.getActive())) {
+                                        ssoBean.setActive(1);
+                                    }
+                                    if (!"PULL".equalsIgnoreCase(ssoBean.getDataSource())) {
+                                        updateFlag = true;
+                                    }
                                     ssoBean.setDataSource("PULL");
                                     ssoBean.setSource(pullBean.getSource());
                                     ssoBean.setUpdateTime(now);
                                     ssoBean.setFormal(pullBean.getFormal());
-                                }
-                                ssoBean.setColor(pullBean.getColor());
-                                ssoBean.setIsRuled(pullBean.getIsRuled());
+                                    ssoBean.setColor(pullBean.getColor());
+                                    ssoBean.setIsRuled(pullBean.getIsRuled());
+                                    ssoBean.setRuleStatus(pullBean.getRuleStatus());
 
 
-                                List<UpstreamTypeField> fields = null;
-                                if (null != pullBean.getUpstreamTypeId()) {
-                                    fields = DataBusUtil.typeFields.get(pullBean.getUpstreamTypeId());
-                                }
-                                //获取对应权威源的映射字段
-                                if (null != fields && fields.size() > 0) {
-                                    for (UpstreamTypeField field : fields) {
-                                        String sourceField = field.getSourceField();
-
-                                        Object newValue = ClassCompareUtil.getGetMethod(pullBean, sourceField);
-                                        Object oldValue = ClassCompareUtil.getGetMethod(ssoBean, sourceField);
-                                        //均为空 跳过
-                                        if (null == oldValue && null == newValue) {
-                                            continue;
-                                        }
-                                        //不为空且相同 跳过
-                                        if (null != oldValue && oldValue.equals(newValue)) {
-                                            continue;
-                                        }
-                                        //将修改表示改为true 标识数据需要修改
-                                        updateFlag = true;
-                                        //如果上游给出删除标记 则使用上游的   不给则不处理
-                                        if ("delMark".equalsIgnoreCase(sourceField) && null != ssoBean.getDelMark() && null != pullBean.getDelMark() && (ssoBean.getDelMark() == 1) && (pullBean.getDelMark() == 0)) {
-                                            //恢复标识
-                                            delRecoverFlag = true;
-                                            continue;
-                                        }
-                                        if ("delMark".equalsIgnoreCase(sourceField) && null != ssoBean.getDelMark() && null != pullBean.getDelMark() && (ssoBean.getDelMark() == 0) && (pullBean.getDelMark() == 1)) {
-                                            //删除标识
-                                            delFlag = true;
-                                            continue;
-                                        }
-                                        if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
-                                            invalidFlag = true;
-                                        }
-//                                        if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
-//                                            invalidRecoverFlag = false;
-//                                        }
-                                        if (sourceField.equalsIgnoreCase("active")) {
-                                            activeFlag = true;
-                                        }
-
-                                        //将值更新到sso对象
-                                        ClassCompareUtil.setValue(ssoBean, ssoBean.getClass(), sourceField, oldValue, newValue);
-                                        logger.debug("岗位信息更新{}:字段{}: {} -> {} ", pullBean.getCode(), sourceField, oldValue, newValue);
+                                    List<UpstreamTypeField> fields = null;
+                                    if (null != pullBean.getUpstreamTypeId()) {
+                                        fields = DataBusUtil.typeFields.get(pullBean.getUpstreamTypeId());
                                     }
-                                }
+                                    //获取对应权威源的映射字段
+                                    if (null != fields && fields.size() > 0) {
+                                        for (UpstreamTypeField field : fields) {
+                                            String sourceField = field.getSourceField();
 
-                                //标识为恢复数据
-                                if (delRecoverFlag) {
-                                    ssoBean.setDelMark(0);
-                                    result.put(ssoBean, "recover");
-                                    //修改标记置为false
-                                    updateFlag = false;
-                                    logger.info("岗位信息{}从删除恢复", ssoBean.getCode());
-                                }
-                                //标识为删除的数据
-                                if (delFlag) {
-                                    //将数据放入删除集合
-                                    ssoBean.setDelMark(1);
-                                    ssoCollect.remove(ssoBean.getCode());
-                                    result.put(ssoBean, "delete");
-                                    //修改标记置为false
-                                    updateFlag = false;
-                                    logger.info("岗位对比后需要删除{}", ssoBean);
-                                }
+                                            Object newValue = ClassCompareUtil.getGetMethod(pullBean, sourceField);
+                                            Object oldValue = ClassCompareUtil.getGetMethod(ssoBean, sourceField);
+                                            //均为空 跳过
+                                            if (null == oldValue && null == newValue) {
+                                                continue;
+                                            }
+                                            //不为空且相同 跳过
+                                            if (null != oldValue && oldValue.equals(newValue)) {
+                                                continue;
+                                            }
+                                            //将修改表示改为true 标识数据需要修改
+                                            updateFlag = true;
+                                            //if("开发者".equals(ssoBean.getName())){
+                                            //    logger.info("开发者区别字段:{} 新旧值:{}->{},实体:{}->{}",sourceField,oldValue,newValue,ssoBean,pullBean);
+                                            //}
+                                            //如果上游给出删除标记 则使用上游的   不给则不处理
+                                            if ("delMark".equalsIgnoreCase(sourceField) && null != ssoBean.getDelMark() && null != pullBean.getDelMark() && (ssoBean.getDelMark() == 1) && (pullBean.getDelMark() == 0)) {
+                                                //恢复标识
+                                                delRecoverFlag = true;
+                                                continue;
+                                            }
+                                            if ("delMark".equalsIgnoreCase(sourceField) && null != ssoBean.getDelMark() && null != pullBean.getDelMark() && (ssoBean.getDelMark() == 0) && (pullBean.getDelMark() == 1)) {
+                                                //删除标识
+                                                delFlag = true;
+                                                continue;
+                                            }
+                                            if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
+                                                invalidFlag = true;
+                                            }
+                                            if (sourceField.equalsIgnoreCase("active")) {
+                                                activeFlag = true;
+                                            }
+                                            if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
+                                                //从失效恢复,赋值有效时间
+                                                ssoBean.setActiveTime(now);
+                                            }
+
+                                            //将值更新到sso对象
+                                            ClassCompareUtil.setValue(ssoBean, ssoBean.getClass(), sourceField, oldValue, newValue);
+                                            if (activeFlag && null != occupyMonitors) {
+                                                occupyMonitors.add(ssoBean);
+                                            }
+                                            logger.info("岗位信息更新{}:字段{}: {} -> {} ", pullBean.getCode(), sourceField, oldValue, newValue);
+                                        }
+                                    }
+
+                                    //标识为恢复数据
+                                    if (delRecoverFlag) {
+                                        ssoBean.setDelMark(0);
+                                        result.put(ssoBean, "recover");
+                                        if (null != occupyMonitors) {
+                                            occupyMonitors.add(ssoBean);
+                                        }
+                                        //修改标记置为false
+                                        updateFlag = false;
+                                        logger.info("岗位信息{}从删除恢复", ssoBean.getCode());
+                                    }
+                                    //标识为删除的数据
+                                    if (delFlag) {
+                                        if ((null != ssoBean.getRuleStatus() && !ssoBean.getRuleStatus()) || (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource()))) {
+                                            result.put(ssoBean, "obsolete");
+                                            logger.info("岗位对比后应删除{},但检测到对应权威源已经无效或规则未启用,跳过该数据", ssoBean.getId());
+                                        } else {
+                                            //将数据放入删除集合
+                                            ssoBean.setDelMark(1);
+                                            ssoBean.setActive(0);
+                                            ssoBean.setActiveTime(now);
+                                            ssoCollect.remove(ssoBean.getCode());
+                                            if (null != occupyMonitors) {
+                                                occupyMonitors.add(ssoBean);
+                                            }
+                                            result.put(ssoBean, "delete");
+                                            //修改标记置为false
+                                            updateFlag = false;
+                                            logger.info("岗位对比后需要删除{}", ssoBean.getId());
+
+                                        }
+                                    }
 //                                //恢复失效数据  未提供active手动处理
 //                                if (invalidRecoverFlag && ssoBean.getActive() != 1) {
 //                                    //修改标记置为false
@@ -545,17 +652,52 @@ public class PostServiceImpl implements PostService {
 //                                    logger.info("岗位信息{}从失效恢复", ssoBean.getCode());
 //                                }
 
-                                //修改不为删除的数据
-                                if (updateFlag && ssoBean.getDelMark() != 1) {
+                                    //修改不为删除的数据
+                                    if (updateFlag && ssoBean.getDelMark() != 1) {
 
-                                    ssoBean.setUpdateTime(now);
-                                    //失效
-                                    if (invalidFlag) {
-                                        result.put(ssoBean, "invalid");
-                                    } else {
+                                        ssoBean.setUpdateTime(now);
+                                        //失效
+                                        if (invalidFlag) {
+                                            if ((null != ssoBean.getRuleStatus() && !ssoBean.getRuleStatus()) || (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource()))) {
+                                                result.put(ssoBean, "obsolete");
+                                                logger.info("岗位对比后应置为失效{},但检测到对应权威源已无效或规则未启用,跳过该数据", ssoBean.getId());
+                                            } else {
+                                                result.put(ssoBean, "invalid");
+                                                if (null != occupyMonitors) {
+                                                    occupyMonitors.add(ssoBean);
+                                                }
+                                                logger.info("岗位对比后需要置为失效{}", ssoBean.getId());
+                                            }
+                                        } else {
+                                            //将数据放入修改集合
+                                            ssoCollect.put(ssoBean.getCode(), ssoBean);
+
+                                            if (dyFlag) {
+                                                //上游的扩展字段
+                                                Map<String, String> dynamic = pullBean.getDynamic();
+                                                List<DynamicValue> dyValuesFromSSO = null;
+                                                //数据库的扩展字段
+                                                if (!CollectionUtils.isEmpty(valueMap)) {
+                                                    dyValuesFromSSO = valueMap.get(ssoBean.getId());
+                                                }
+                                                dynamicProcessing(valueUpdate, valueInsert, attrMap, ssoBean, dynamic, dyValuesFromSSO);
+                                                dyFlag = false;
+                                            }
+                                        }
+                                        logger.info("岗位对比后需要修改{}", ssoBean);
+
+                                    }
+                                    //上游未提供active并且sso与上游源该字段值不一致
+                                    if (!activeFlag && (!ssoBean.getActive().equals(pullBean.getActive()))) {
+                                        ssoBean.setUpdateTime(now);
+                                        ssoBean.setActive(pullBean.getActive());
+                                        ssoBean.setActiveTime(now);
                                         //将数据放入修改集合
+                                        if (null != occupyMonitors) {
+                                            occupyMonitors.add(ssoBean);
+                                        }
                                         ssoCollect.put(ssoBean.getCode(), ssoBean);
-
+                                        logger.info("手动从失效中恢复{}", ssoBean);
                                         if (dyFlag) {
                                             //上游的扩展字段
                                             Map<String, String> dynamic = pullBean.getDynamic();
@@ -568,91 +710,87 @@ public class PostServiceImpl implements PostService {
                                             dyFlag = false;
                                         }
                                     }
-                                    logger.info("岗位对比后需要修改{}", ssoBean);
 
-                                }
-                                //上游未提供active并且sso与上游源该字段值不一致
-                                if (!activeFlag && (!ssoBean.getActive().equals(pullBean.getActive()))) {
-                                    ssoBean.setUpdateTime(now);
-                                    ssoBean.setActive(pullBean.getActive());
-                                    //将数据放入修改集合
-                                    ssoCollect.put(ssoBean.getCode(), ssoBean);
-                                    logger.info("手动从失效中恢复{}", ssoBean);
-                                    if (dyFlag) {
-                                        //上游的扩展字段
-                                        Map<String, String> dynamic = pullBean.getDynamic();
-                                        List<DynamicValue> dyValuesFromSSO = null;
-                                        //数据库的扩展字段
-                                        if (!CollectionUtils.isEmpty(valueMap)) {
-                                            dyValuesFromSSO = valueMap.get(ssoBean.getId());
+                                    //上游未提供delmark并且sso与上游源该字段值不一致
+                                    if (!delFlag && !delRecoverFlag && (!ssoBean.getDelMark().equals(pullBean.getDelMark()))) {
+                                        ssoBean.setUpdateTime(now);
+                                        ssoBean.setDelMark(pullBean.getDelMark());
+                                        if (null != occupyMonitors) {
+                                            occupyMonitors.add(ssoBean);
                                         }
-                                        dynamicProcessing(valueUpdate, valueInsert, attrMap, ssoBean, dynamic, dyValuesFromSSO);
-                                        dyFlag = false;
-                                    }
-                                }
-
-                                //上游未提供delmark并且sso与上游源该字段值不一致
-                                if (!delFlag && !delRecoverFlag && (!ssoBean.getDelMark().equals(pullBean.getDelMark()))) {
-                                    ssoBean.setUpdateTime(now);
-                                    ssoBean.setDelMark(pullBean.getDelMark());
-                                    //将数据放入修改集合
-                                    ssoCollect.put(ssoBean.getCode(), ssoBean);
-                                    logger.info("手动从删除中恢复{}", ssoBean);
-                                    if (dyFlag) {
-                                        //上游的扩展字段
-                                        Map<String, String> dynamic = pullBean.getDynamic();
-                                        List<DynamicValue> dyValuesFromSSO = null;
-                                        //数据库的扩展字段
-                                        if (!CollectionUtils.isEmpty(valueMap)) {
-                                            dyValuesFromSSO = valueMap.get(ssoBean.getId());
+                                        //将数据放入修改集合
+                                        ssoCollect.put(ssoBean.getCode(), ssoBean);
+                                        logger.info("手动从删除中恢复{}", ssoBean);
+                                        if (dyFlag) {
+                                            //上游的扩展字段
+                                            Map<String, String> dynamic = pullBean.getDynamic();
+                                            List<DynamicValue> dyValuesFromSSO = null;
+                                            //数据库的扩展字段
+                                            if (!CollectionUtils.isEmpty(valueMap)) {
+                                                dyValuesFromSSO = valueMap.get(ssoBean.getId());
+                                            }
+                                            dynamicProcessing(valueUpdate, valueInsert, attrMap, ssoBean, dynamic, dyValuesFromSSO);
+                                            dyFlag = false;
                                         }
-                                        dynamicProcessing(valueUpdate, valueInsert, attrMap, ssoBean, dynamic, dyValuesFromSSO);
-                                        dyFlag = false;
                                     }
-                                }
 
-                                //防止重复将数据放入
-                                if (!dyFlag) {
-                                    result.put(ssoBean, "update");
-                                }
-
-                                //处理扩展字段对比     修改标识为false则认为主体字段没有差异
-                                if (!updateFlag && dyFlag) {
-                                    //上游的扩展字段
-                                    Map<String, String> dynamic = pullBean.getDynamic();
-                                    List<DynamicValue> dyValuesFromSSO = null;
-                                    //数据库的扩展字段
-                                    if (!CollectionUtils.isEmpty(valueMap)) {
-                                        dyValuesFromSSO = valueMap.get(ssoBean.getId());
-                                    }
-                                    Boolean valueFlag = dynamicProcessing(valueUpdate, valueInsert, attrMap, ssoBean, dynamic, dyValuesFromSSO);
-                                    if (valueFlag) {
+                                    //防止重复将数据放入
+                                    if (!dyFlag) {
                                         result.put(ssoBean, "update");
                                     }
 
+                                    //处理扩展字段对比     修改标识为false则认为主体字段没有差异
+                                    if (!updateFlag && dyFlag) {
+                                        //上游的扩展字段
+                                        Map<String, String> dynamic = pullBean.getDynamic();
+                                        List<DynamicValue> dyValuesFromSSO = null;
+                                        //数据库的扩展字段
+                                        if (!CollectionUtils.isEmpty(valueMap)) {
+                                            dyValuesFromSSO = valueMap.get(ssoBean.getId());
+                                        }
+                                        Boolean valueFlag = dynamicProcessing(valueUpdate, valueInsert, attrMap, ssoBean, dynamic, dyValuesFromSSO);
+                                        if (valueFlag) {
+                                            result.put(ssoBean, "update");
+                                        }
+
+                                    }
+                                } else {
+                                    //如果数据不是最新的则忽略
+                                    result.put(pullBean, "obsolete");
                                 }
                             } else {
-                                //如果数据不是最新的则忽略
+                                //上游创建时间为null,则默认忽略
                                 result.put(pullBean, "obsolete");
                             }
-                        } else {
-                            //上游创建时间为null,则默认忽略
-                            result.put(pullBean, "obsolete");
+                            flag = false;
                         }
-                        flag = false;
-                    }
 
+                    }
+                } else {
+                    logger.info("岗位{},对应规则未启用,本次跳过该数据", pullBean);
                 }
-                //没有相等的应该是新增(对比code没有对应的标识为新增)
-                if (flag) {
+
+                //没有相等的应该是新增(对比code没有对应的标识为新增)  并且当前数据的来源规则是启用的
+                if (flag && pullBean.getRuleStatus()) {
+                    pullBean.setDataSource("PULL");
+
+                    if (null != occupyMonitors) {
+                        occupyMonitors.add(pullBean);
+                    }
                     //新增
                     ssoCollect.put(pullBean.getCode(), pullBean);
                     result.put(pullBean, "insert");
                 }
             } else {
-                //数据库数据为空的话,则默认全部新增
-                ssoCollect.put(pullBean.getCode(), pullBean);
-                result.put(pullBean, "insert");
+                //数据库数据为空的话且数据来源规则是启用的,则默认新增
+                if (pullBean.getRuleStatus()) {
+                    pullBean.setDataSource("PULL");
+                    if (null != occupyMonitors) {
+                        occupyMonitors.add(pullBean);
+                    }
+                    ssoCollect.put(pullBean.getCode(), pullBean);
+                    result.put(pullBean, "insert");
+                }
             }
 
         }
@@ -677,9 +815,21 @@ public class PostServiceImpl implements PostService {
                             //如果为有效的再走失效并更新修改时间,
                             //本身就是无效的则不做处理
                             if (1 == ssoBean.getActive()) {
-                                ssoBean.setActive(0);
-                                ssoBean.setUpdateTime(now);
-                                result.put(ssoBean, "invalid");
+                                if ((null != ssoBean.getRuleStatus() && !ssoBean.getRuleStatus()) || (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource()))) {
+                                    result.put(ssoBean, "obsolete");
+                                    logger.info("岗位对比后应置为失效{},但检测到对应权威源已无效或规则未启用,跳过该数据", ssoBean.getId());
+                                } else {
+                                    ssoBean.setActive(0);
+                                    ssoBean.setUpdateTime(now);
+                                    ssoBean.setActiveTime(now);
+                                    if (null != occupyMonitors) {
+                                        //身份监控岗位失效数据
+                                        occupyMonitors.add(ssoBean);
+                                    }
+                                    result.put(ssoBean, "invalid");
+                                    logger.info("岗位对比后需要置为失效{}", ssoBean.getId());
+                                }
+
 
                             }
                         }
@@ -733,6 +883,55 @@ public class PostServiceImpl implements PostService {
             }
         }
         return valueFlag;
+    }
+
+    private ArrayList<OccupyDto> occupyProcessing(ArrayList<TreeBean> occupyMonitors, String tenantId) {
+        ArrayList<OccupyDto> resultOccupies = new ArrayList<>();
+        //包含失效,恢复,新增的岗位数据
+        List<OccupyDto> occupyDtos = occupyDao.findAll(tenantId, null, null);
+        Map<String, List<OccupyDto>> collect = occupyDtos.stream().collect(Collectors.groupingBy(OccupyDto::getDeptCode));
+        LocalDateTime now = LocalDateTime.now();
+        for (TreeBean treeBean : occupyMonitors) {
+            if (collect.containsKey(treeBean.getCode())) {
+                List<OccupyDto> dtoList = collect.get(treeBean.getCode());
+                if (!CollectionUtils.isEmpty(dtoList)) {
+                    for (OccupyDto dto : dtoList) {
+                        dto.setUpdateTime(now);
+                        if (treeBean.getActive() == 1) {
+                            //新增或恢复的岗位  将orphan为2(因岗位无效导致的无效身份) 的有效期重新计算
+                            if (2 == dto.getOrphan()) {
+
+                                dto.setValidStartTime(now);
+                                dto.setValidEndTime(null != dto.getEndTime() ? dto.getEndTime() : OccupyServiceImpl.DEFAULT_END_TIME);
+                                dto.setOrphan(0);
+                                OccupyServiceImpl.checkValidTime(dto, now, true);
+                                resultOccupies.add(dto);
+                            } else if (3 == dto.getOrphan()) {
+                                //orphan为3(因组织机构和岗位无效导致的无效身份)的改为 orphan 1
+                                dto.setOrphan(1);
+                                resultOccupies.add(dto);
+                            }
+
+                        } else {
+                            //岗位置为无效  将orphan为0的置为2 有效期重新计算
+                            if (0 == dto.getOrphan() || null == dto.getOrphan()) {
+                                dto.setValidEndTime(now);
+                                dto.setOrphan(2);
+                                resultOccupies.add(dto);
+                            } else if (1 == dto.getOrphan()) {
+                                dto.setOrphan(3);
+                                resultOccupies.add(dto);
+                            }
+
+                        }
+
+                    }
+                }
+            }
+        }
+        return resultOccupies;
+
+
     }
 
 

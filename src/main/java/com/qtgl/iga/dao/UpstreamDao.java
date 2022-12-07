@@ -1,7 +1,7 @@
 package com.qtgl.iga.dao;
 
 
-import com.qtgl.iga.bo.Upstream;
+import com.qtgl.iga.bo.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,4 +21,9 @@ public interface UpstreamDao {
 
     ArrayList<Upstream> getUpstreams(String id, String domain);
 
+    Integer saveUpstreamAndTypesAndNode(Upstream upstream, List<UpstreamType> upstreamTypes, List<Node> nodes, List<NodeRules> nodeRulesList, DomainInfo domainInfo);
+
+    void findByAppNameAndAppCode(String appName, String appCode, String domain);
+
+    ArrayList<Upstream> findByDomainAndActiveIsFalse(String id);
 }

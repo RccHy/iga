@@ -3,6 +3,7 @@ package com.qtgl.iga.dao.impl;
 import com.qtgl.iga.bo.MonitorRules;
 import com.qtgl.iga.dao.MonitorRulesDao;
 import com.qtgl.iga.utils.MyBeanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
@@ -27,8 +28,15 @@ public class MonitorRulesDaoImpl implements MonitorRulesDao {
     public List<MonitorRules> findAll(String domain, String type) {
         List<MonitorRules> monitorRulesList = new ArrayList<>();
         try {
-            String sql = "select id , rules ,type , domain,active,active_time as activeTime,create_time as createTime,update_time as updateTime  from  t_mgr_monitor_rules where domain=? and type=? and active=true";
-            List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, domain, type);
+            String sql = "select id , rules ,type , domain,active,active_time as activeTime,create_time as createTime,update_time as updateTime  from  t_mgr_monitor_rules where domain=?  and active=true ";
+            List<Map<String, Object>> mapList=new ArrayList<>();
+            if(StringUtils.isNotBlank(type)){
+                sql=sql+" and type=? ";
+                mapList= jdbcIGA.queryForList(sql, domain, type);
+            }else{
+                mapList= jdbcIGA.queryForList(sql, domain);
+            }
+
             if (null != mapList && mapList.size() > 0) {
                 for (Map<String, Object> map : mapList) {
                     MonitorRules montorRules = new MonitorRules();
@@ -121,5 +129,21 @@ public class MonitorRulesDaoImpl implements MonitorRulesDao {
             });
             return update > 0 ? monitorRules : null;
         }
+    }
+
+    @Override
+    public void initialization(String domain) {
+        String sql = "INSERT INTO t_mgr_monitor_rules (id, rules, type, domain, active, active_time, create_time)\n" +
+                "VALUES (uuid(), '$result/$count>50', 'dept', ?, true, now(), now())," +
+                "       (uuid(), '$result/$count>50', 'occupy', ?, true, now(), now())," +
+                "       (uuid(), '$result/$count>50', 'post', ?, true, now(), now())," +
+                "       (uuid(), '$result/$count>50', 'person', ?, true, now(), now());";
+        jdbcIGA.update(sql, preparedStatement -> {
+            preparedStatement.setObject(1, domain);
+            preparedStatement.setObject(2, domain);
+            preparedStatement.setObject(3, domain);
+            preparedStatement.setObject(4, domain);
+
+        });
     }
 }

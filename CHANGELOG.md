@@ -1,3 +1,256 @@
+### 20221130
+
+**数据库**
+- 无
+
+**new：**
+- 人员身份扩展字段同步支持
+
+**bug fix**
+- 治理规则监控规则初始化 bug fix
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20221130
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20221102
+
+
+
+### 20221107
+
+**数据库**
+- 无
+
+**new：**
+- 无
+
+**bug fix**
+- 数据治理 人员同步扩展字段处理 bug fix
+- 人员及身份同步 兼容手工合重  bug fix
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20221107
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20221102
+
+
+### 20221026
+
+**数据库**
+- 执行iga/update/update.sql下 20221026的sql
+
+**new：**
+- 无
+
+**bug fix**
+- 数据治理人员同步 bug fix
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20221025
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20220930
+
+
+### 20220930
+
+**数据库**
+- 执行iga/update/update.sql下 20220930的sql
+
+**new：**
+- 监控数据由仅监控删除数据调整为监控删除与失效数据
+- 人员,人员身份同步支持指定模式数据同步
+
+**bug fix**
+- 无
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20220930
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20220930
+
+
+
+### 20220908
+
+**数据库**
+- 无
+
+**new：**
+- 身份治理覆盖source及DataSource逻辑调整(PULL的数据，如果通过控制台(或者其他方式)修改过发生了源头的改变，在下次同步时会被强制同步回PULL，无论该数据是否发生过变化)  @刘洋 @殷佳波
+
+**bug fix**
+- 人员身份同步 bug fix  @陈洋
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20220906
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20220908
+
+
+
+### 20220831
+
+**数据库**
+- 执行iga/update/update.sql下 20220830的sql
+
+**new：**
+- 无
+
+**bug fix**
+- 人员身份有效期相关逻辑处理修改
+- 身份治理权威源人员,人员身份修改数据后 DataSource未修改的 bug fix
+- 人员及人员身份预览任务相关 bug fix
+- 增量同步日志与主概览日志关联逻辑添加
+- 人员及人员身份删除规则 bug fix
+- pub 接口 bug fix
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20220831
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20220831
+
+### 20220819
+
+
+**bug fix**
+- 优化初始化租户的逻辑，防止重复创建
+ 
+### 20220808
+
+**数据库**
+- 执行iga/update/update.sql下 20220805的sql
+
+**new：**
+- 无
+
+**bug fix**
+- 组织机构,岗位数据同步activeTime不更新 bug fix
+- 过时继承规则数据处理
+- 人员同步证件类型校验异常bug fix
+- 人员同步最终有效期未处理的 bug fix
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20220808
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20220808
+
+### 20220726
+
+**数据库**
+- 执行iga/update/update.sql下 20220725的sql
+
+**new：**
+- 人员,人员身份预览日志数据添加  (需执行数据库脚本)
+- 权威源映射字段 map表达式支持
+- 数据治理增量数据同步支持 (需执行对应数据库脚本)
+- 身份有效期逻辑调整
+- 组织机构岗位添加失效规则逻辑,上游拉取节点配置规则后,下次同步不再提供该节点,则该节点的对应规则置为无效
+
+
+**bug fix**
+- user_log 数据插入 判断条件,失效数据未插入的bug 修复 @欧云海 
+- 身份同步orphan变更传递bug 修复 @欧云海
+- 组织机构,岗位同步 排序字段遗漏同步的bug fix
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20220726
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20220726
+
+
+### 20220615
+
+**数据库**
+- 执行iga/update/update.sql下 20220615的sql
+
+**new：**
+- 人员,人员身份预览功能
+- 同步表达式 $ENTITY相关支持,具体配置规则参考 README
+  **bug fix**
+- 无
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20220615
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20220615
+
+
+
+### 20220520
+
+**数据库**
+- 执行iga/update/update.sql下 20220513的sql
+
+**new：**
+- iga CRD相关接口开发
+- 手动触发定时任务功能
+- 权威源失效则本批数据不做删除失效处理
+  **bug fix**
+- 校验规则 查询有效条件
+- 同步扩展字段bug fix @欧云海
+- 人员身份数据库重复身份处理,重复的身份以包含工号及修改时间进行冗余数据删除处理
+- 岗位同步映射字段处理(主要针对于身份岗同步异常处理),参考iga/update/update.sql
+- 同步任务同步,最近三条都失败的情况下则不进行定时同步任务,处理后可正常同步 @刘洋
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20220520
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20220520
+
+
+
+
+### 20220411
+
+**数据库**
+- 无
+
+**new：**
+- 无
+
+**bug fix**
+- 权威源系统权限校验细化
+  之前在身份治理->权威源管理中配置对应的推送权威源类型就认定当前应用有操作的权限,  细化后需要配置到对应的治理规则中去,例如人员推送,1.权威源管理中首先配置推送的权威源类型,2.在人员治理中,配置对应的推送规则,才会生效.  注:不配置规则 就会没有对应的操作权限,本改动属于不兼容变动
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20220411
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20220411
+
+
 ### 20220222
 
 **数据库**
@@ -67,9 +320,10 @@
 
 **new**
 - 环境变量 `APP_CLIENT` 改名为 `OAUTH_CLIENT_ID`
-- 环境变量 `APP_SECRET` 改名为 `OAUTH_INTROSPECT_URL`
+- 环境变量 `APP_SECRET` 改名为 `OAUTH_CLIENT_SECERT`
 - 环境变量 `BUS_URL` 的值发生更改，改为标准 BUS服务地址.可参考[README.md]
 - 新增环境变量 `OAUTH_TOKEN_URL` 可参考[README.md]
+- 新增环境变量 `OAUTH_INTROSPECT_URL` 可参考[README.md]
 - 新增环境变量 `OAUTH_AUTHORIZE_URL` 可参考[README.md]
 - 后端新增 `岗位类型` `部门类型` 排序字段
 **delete**
@@ -352,4 +606,4 @@ D：配置允许进行接口进行推送数据，并覆盖更新同一个上游�
 **依赖其他项目：**
 - docker.qtgl.com.cn/product/console:20210426
 
-[https://github.com/infoplus/canvas-docs/wiki/MQ]: https://github.com/infoplus/canvas-docs/wiki/MQ<br/>
+[https://github.co

@@ -45,9 +45,16 @@ server:
   servlet:
     context-path: /iga
   origin: ${SERVICE_ORIGIN}
+  tomcat:
+    remoteip:
+      remote-ip-header: X-Forwarded-For
+    protocol:
+      protocol-header: X-Forwarded-Proto
+    use-relative-redirects: true
+  forward-headers-strategy: framework
 
 file:
-  url: ${FILE_URL}
+  url: ${FILE_URL:}
 
 
 task:
@@ -55,10 +62,36 @@ task:
 
 
 
+
 iga:
   hostname: ${HOSTNAME}
-
+  version: @commit.time@
 
 logging:
   file:
     name: iga.log
+
+#management:
+#  server:
+#    port: 9090
+#  endpoint:
+#    web:
+#      exposure:
+#        include: "*"
+#    health:
+#      show-details: always
+
+
+management:
+  server:
+    port: 9090
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: ALWAYS
+  metrics:
+    tags:
+      application: ${server.servlet.context-path}

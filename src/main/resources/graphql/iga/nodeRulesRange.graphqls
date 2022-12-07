@@ -37,7 +37,7 @@ type NodeRulesRange{
     #修改时间
     updateTime :Timestamp
 
-    #状态 0 发布 1 编辑中 2 历史
+    #状态 0 发布 1 编辑中 2 历史 3 失效
     status :Int
 }
 
@@ -68,7 +68,7 @@ input InputNodeRulesRange{
     #修改时间
     updateTime :Timestamp
 
-    #状态 0 发布 1 编辑中 2 历史
+    #状态 0 发布 1 编辑中 2 历史 3 失效
     status :Int
 }
 

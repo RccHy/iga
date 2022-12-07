@@ -1,12 +1,9 @@
 package com.qtgl.iga.service.impl;
 
 
-import com.qtgl.iga.bo.NodeRules;
-import com.qtgl.iga.bo.UpstreamType;
-import com.qtgl.iga.bo.UpstreamTypeField;
-import com.qtgl.iga.dao.NodeRulesDao;
-import com.qtgl.iga.dao.UpstreamDao;
-import com.qtgl.iga.dao.UpstreamTypeDao;
+import com.qtgl.iga.bo.*;
+import com.qtgl.iga.dao.*;
+import com.qtgl.iga.service.NodeRulesService;
 import com.qtgl.iga.service.UpstreamTypeService;
 import com.qtgl.iga.utils.DataBusUtil;
 import com.qtgl.iga.utils.enumerate.ResultCode;
@@ -17,7 +14,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
+import javax.annotation.Resource;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,11 +34,55 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
     UpstreamDao upstreamDao;
     @Autowired
     DataBusUtil dataBusUtil;
+    @Autowired
+    NodeRulesRangeDao nodeRulesRangeDao;
+    @Autowired
+    DeptTypeDao deptTypeDao;
+    @Autowired
+    DeptTreeTypeDao deptTreeTypeDao;
+    @Resource
+    NodeRulesService nodeRulesService;
+
     public static Logger logger = LoggerFactory.getLogger(UpstreamTypeServiceImpl.class);
 
     @Override
     public List<UpstreamTypeVo> findAll(Map<String, Object> arguments, String domain) {
-        return upstreamTypeDao.findAll(arguments, domain);
+        List<UpstreamTypeVo> upstreamTypeVos = upstreamTypeDao.findAll(arguments, domain);
+        if (!CollectionUtils.isEmpty(upstreamTypeVos)) {
+            for (UpstreamTypeVo upstreamTypeVo : upstreamTypeVos) {
+                //映射字段
+                ArrayList<UpstreamTypeField> upstreamTypeFields = nodeRulesRangeDao.getByUpstreamTypeId(upstreamTypeVo.getId());
+                upstreamTypeVo.setUpstreamTypeFields(upstreamTypeFields);
+                //权威源查询
+
+                Upstream upstream = upstreamDao.findById(upstreamTypeVo.getUpstreamId());
+                if (null == upstream) {
+                    logger.error("权威源规则无有效权威源数据");
+                    throw new CustomException(ResultCode.FAILED, "权威源规则无对应有效权威源");
+                }
+                upstreamTypeVo.setUpstream(upstream);
+                //source赋值
+                upstreamTypeVo.setSource(upstream.getAppName() + "(" + upstream.getAppCode() + ")");
+                //组织机构类型查询
+                DeptType deptType = deptTypeDao.findById(upstreamTypeVo.getDeptTypeId());
+                upstreamTypeVo.setDeptType(deptType);
+
+                //组织机构类型树查询
+                DeptTreeType byId = deptTreeTypeDao.findById(upstreamTypeVo.getDeptTreeTypeId());
+                upstreamTypeVo.setDeptTreeType(byId);
+                //发布状态的nodeRules 通过同步方式,serviceKey以及发布状态获取nodeRule
+                List<NodeRules> nodeRules = nodeRulesDao.findNodeRulesByServiceKey(upstreamTypeVo.getId(), 0, upstreamTypeVo.getSynWay());
+
+                if (!CollectionUtils.isEmpty(nodeRules)) {
+                    upstreamTypeVo.setNodeRules(nodeRules);
+                    upstreamTypeVo.setHasRules(true);
+                } else {
+                    upstreamTypeVo.setHasRules(false);
+                }
+
+            }
+        }
+        return upstreamTypeVos;
     }
 
     @Override
@@ -50,7 +94,9 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
         }
         List<NodeRules> oldRules = nodeRulesDao.findNodeRulesByUpStreamTypeId((String) arguments.get("id"), 2);
         if (null != oldRules && oldRules.size() > 0) {
-            throw new CustomException(ResultCode.FAILED, "删除权威源类型失败,有绑定的历史node规则");
+            //删除历史版本
+            nodeRulesService.deleteBatchRules(oldRules, domain);
+            //throw new CustomException(ResultCode.FAILED, "删除权威源类型失败,有绑定的历史node规则");
         }
         return upstreamTypeDao.deleteUpstreamType((String) arguments.get("id"), domain);
     }

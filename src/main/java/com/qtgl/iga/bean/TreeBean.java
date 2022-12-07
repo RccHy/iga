@@ -64,6 +64,11 @@ public class TreeBean implements Serializable {
      * 修改时间
      */
     private LocalDateTime updateTime;
+
+    /**
+     * 有效时间
+     */
+    private LocalDateTime activeTime;
     /**
      * 权威源类型
      */
@@ -71,7 +76,7 @@ public class TreeBean implements Serializable {
     /**
      * 排序字段
      */
-    private Integer deptIndex;
+    private Integer index;
     /**
      * 组织机构代码
      */
@@ -114,7 +119,21 @@ public class TreeBean implements Serializable {
      */
     private String relationType;
 
-    private Map<String,String> dynamic;
+    private Map<String, String> dynamic;
+
+    /**
+     * 逻辑处理字段 规则是否启用
+     */
+    private Boolean ruleStatus;
+    /**
+     * 创建来源
+     */
+    private String createSource;
+    /**
+     * 创建来源(机读)
+     * push  PULL  BUILTIN
+     */
+    private String createDataSource;
 
 //    private String deptTreeTypeId;
 //    public DeptBean(Dept dept) {

@@ -49,7 +49,7 @@ public class NodeRulesRange {
      */
     private Long updateTime;
     /**
-     * 当前状态 0 发布 1 编辑中 2 历史
+     * 当前状态 0 发布 1 编辑中 2 历史 3失效
      */
     private Integer status;
 

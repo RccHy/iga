@@ -91,7 +91,8 @@ create table t_mgr_task_log
     update_time timestamp   null,
     domain      varchar(50) null comment '租户',
     reason      text        null,
-    data        text        null
+    data        text        null,
+    syn_way     int(11)     null comment '同步方式 :1为手动同步'
 )
     comment '同步任务日志表';
 
@@ -142,7 +143,9 @@ create table t_mgr_upstream_types
     domain            varchar(50)      null comment '租户外键',
     dept_tree_type_id varchar(50)      null comment '属组织机构类别树外键',
     is_page           bit              not null comment '是否分页,0为不支持',
-    syn_way           int(1)           null comment ' 拉取0/推送1'
+    syn_way           int(1)           null comment ' 拉取1/推送0',
+    `is_incremental` bit NULL DEFAULT NULL COMMENT '\r\n是否增量  0为不是增量',
+    `person_characteristic` varchar(50) null comment '[人特征，人员类型合重方式以及身份匹配人方式] CARD_TYPE_NO:证件类型+证件号码 CARD_NO:仅证件号码 USERNAME:用户名 EMAIL:邮箱 CELLPHONE:手机号 OPENID:openid(仅身份类型匹配人)'
 )
     comment '上游源类型注册表' charset = utf8;
 
@@ -222,3 +225,95 @@ create table t_mgr_dept_relation_type
 	relation_index int null comment '排序'
 )
 comment '组织机构关系类型表';
+
+CREATE TABLE `occupy_temp`  (
+                                `id` varchar(36) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+                                `user_type` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `user_code` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `name` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `gender` varchar(10) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `country` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `birthday` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `card_type` varchar(10) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `card_no` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `del_mark` tinyint(1) NULL DEFAULT 0,
+                                `start_time` datetime NULL DEFAULT NULL,
+                                `end_time` datetime NULL DEFAULT NULL,
+                                `create_time` datetime NULL DEFAULT NULL,
+                                `update_time` datetime NULL DEFAULT NULL,
+                                `tenant_id` varchar(36) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `person_card_type` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `dept_code` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `person_card_no` varchar(200) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `post_code` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `post_name` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `source` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `data_source` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `active` tinyint(1) NULL DEFAULT 1,
+                                `active_time` datetime NULL DEFAULT NULL,
+                                `tags` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `description` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `user_index` int(11) NULL DEFAULT 0,
+                                `valid_start_time` datetime NULL DEFAULT NULL,
+                                `valid_end_time` datetime NULL DEFAULT NULL,
+                                `account_no` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `orphan` tinyint(1) NOT NULL DEFAULT 0,
+                                PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
+
+CREATE TABLE `person_temp`  (
+                                `id` varchar(36) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+                                `name` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `open_id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `account_no` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `gender` varchar(10) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `birthday` varchar(10) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `description` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `del_mark` tinyint(1) NULL DEFAULT 0,
+                                `create_time` datetime NULL DEFAULT NULL,
+                                `update_time` datetime NULL DEFAULT NULL,
+                                `tenant_id` varchar(36) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `card_type` varchar(10) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `card_no` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `cellphone` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `email` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `data_source` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `sex` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `tags` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `active` tinyint(1) NULL DEFAULT 1,
+                                `active_time` datetime NULL DEFAULT NULL,
+                                `valid_start_time` datetime NULL DEFAULT NULL,
+                                `valid_end_time` datetime NULL DEFAULT NULL,
+                                `freeze_time` datetime NULL DEFAULT NULL,
+                                `state` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                `source` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+                                PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+CREATE TABLE `t_mgr_pre_view_task`  (
+                                        `id` varchar(36) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '主键id',
+                                        `task_id` varchar(36) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '任务标识',
+                                        `status` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '任务状态',
+                                        `create_time` timestamp NULL DEFAULT NULL COMMENT '创建时间',
+                                        `type` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '预览类型',
+                                        `domain` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '租户信息外建',
+                                        `update_time` timestamp NULL DEFAULT NULL COMMENT '修改时间',
+                                        PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+CREATE TABLE `incremental_task`  (
+                                     `id` varchar(36) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '主键id',
+                                     `type` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '类型 组织机构、岗位、人、身份',
+                                     `time` timestamp NULL DEFAULT NULL COMMENT '下次同步查询时间戳。（max9:_then:10。 返回数据 最小时间小于max 则取max。最大时间大于then 则取10）',
+                                     `create_time` timestamp NULL DEFAULT NULL COMMENT '数据获取完成时间',
+                                     `upstream_type_id` varchar(32) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '权威源类型ID',
+                                     `domain` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '所属租户',
+                                     PRIMARY KEY (`id`) USING BTREE,
+                                     INDEX `type_index`(`type`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
+
+SET FOREIGN_KEY_CHECKS = 1;

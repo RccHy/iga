@@ -24,4 +24,6 @@ public interface TaskLogService {
     TaskLog last(String domain);
 
     Map<String,String> downLog(String id, String domain);
+
+    Boolean checkTaskStatus(String domain);
 }

@@ -48,7 +48,7 @@ type Node{
     #部门树类型
     deptTreeType:String
 
-    #状态 0 发布 1 编辑中 2 历史
+    #状态 0 发布 1 编辑中 2 历史 3失效
     status :Int
 
     #是否继承
@@ -83,7 +83,7 @@ input InputNode{
     #规则明细
     nodeRules:[InputNodeRules]
 
-    #状态 0 发布 1 编辑中 2 历史
+    #状态 0 发布 1 编辑中 2 历史 3失效
     status :Int
 
     #类型

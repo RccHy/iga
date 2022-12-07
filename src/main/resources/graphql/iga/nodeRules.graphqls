@@ -39,7 +39,7 @@ type NodeRules{
     sort:Int
     #规则明细作用域
     nodeRulesRanges:[NodeRulesRange]
-    #状态 0 发布 1 编辑中 2 历史
+    #状态 0 发布 1 编辑中 2 历史 3 失效
     status :Int
 }
 
@@ -70,7 +70,7 @@ input InputNodeRules{
     sort:Int
     #规则明细作用域
     nodeRulesRanges:[InputNodeRulesRange]
-    #状态 0 发布 1 编辑中 2 历史
+    #状态 0 发布 1 编辑中 2 历史 3失效
     status :Int
 }
 

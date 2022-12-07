@@ -51,7 +51,7 @@ public class JdbcTemplateConfig {
      * 装配事务管理器
      */
     @Bean(name = "sso-transactionManager")
-    @Primary
+
     public DataSourceTransactionManager transactionManager2(@Qualifier("dsSSO") DataSource dsSSO) {
         return new DataSourceTransactionManager(dsSSO);
     }
@@ -64,22 +64,22 @@ public class JdbcTemplateConfig {
         return new TransactionTemplate(transactionManager2);
     }
 
-//    /**
-//     * 装配事务管理器
-//     */
-//    @Bean(name = "iga-transactionManager")
-//    @Primary
-//    public DataSourceTransactionManager transactionManager3(@Qualifier("dsIGA") DataSource dsIGA) {
-//        return new DataSourceTransactionManager(dsIGA);
-//    }
-//
-//    /**
-//     * JDBC事务操作配置
-//     */
-//    @Bean(name = "iga-txTemplate")
-//    public TransactionTemplate transactionTemplate3(@Qualifier("iga-transactionManager") DataSourceTransactionManager transactionManager3) {
-//        return new TransactionTemplate(transactionManager3);
-//    }
+    /**
+     * 装配事务管理器
+     */
+    @Bean(name = "iga-transactionManager")
+    @Primary
+    public DataSourceTransactionManager transactionManager3(@Qualifier("dsIGA") DataSource dsIGA) {
+        return new DataSourceTransactionManager(dsIGA);
+    }
+
+    /**
+     * JDBC事务操作配置
+     */
+    @Bean(name = "iga-txTemplate")
+    public TransactionTemplate transactionTemplate3(@Qualifier("iga-transactionManager") DataSourceTransactionManager transactionManager3) {
+        return new TransactionTemplate(transactionManager3);
+    }
 
 
 }

@@ -6,7 +6,7 @@ import java.util.List;
 
 public interface DomainInfoDao {
 
-    void save(DomainInfo domainInfo);
+    Integer save(DomainInfo domainInfo);
 
     List<DomainInfo> findAll();
 

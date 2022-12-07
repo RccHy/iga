@@ -2,6 +2,7 @@ package com.qtgl.iga.service;
 
 
 import com.qtgl.iga.bean.NodeDto;
+import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.Node;
 
@@ -33,4 +34,6 @@ public interface NodeService {
     Integer judgeEdit(Map<String, Object> arguments, DomainInfo domain, String type) throws Exception;
 
     List<Node> nodeStatus(Map<String, Object> arguments, String id) throws Exception;
+
+    void updateNodeAndRules(List<Node> nodes, List<TreeBean> beans);
 }

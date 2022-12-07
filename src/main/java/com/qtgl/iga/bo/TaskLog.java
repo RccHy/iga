@@ -55,4 +55,8 @@ public class TaskLog {
      * 数据
      */
     private String data;
+    /**
+     * 同步方式
+     */
+    private Integer synWay;
 }

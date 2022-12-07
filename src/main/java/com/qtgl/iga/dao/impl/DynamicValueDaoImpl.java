@@ -26,7 +26,7 @@ public class DynamicValueDaoImpl implements DynamicValueDao {
     public List<DynamicValue> findAllByAttrId(List<String> attrIds, String tenantId) {
         List<Object> param = new ArrayList<>();
         param.add(tenantId);
-        StringBuffer sql = new StringBuffer("select id, attr_id as attrId , entity_id as entityId, value ,tenant_id as tenantId  from dynamic_value where tenant_id=?  ");
+        StringBuffer sql = new StringBuffer("select v.id, attr_id as attrId , entity_id as entityId, value ,v.tenant_id as tenantId,a.code as code  from dynamic_value v,dynamic_attr a where v.attr_id = a.id and v.tenant_id=?  ");
         if (!CollectionUtils.isEmpty(attrIds)) {
             sql.append(" and attr_id in (");
             for (String attrId : attrIds) {
@@ -47,6 +47,7 @@ public class DynamicValueDaoImpl implements DynamicValueDao {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+            dynamicValue.setKey(dynamicValue.getAttrId());
             dynamicValues.add(dynamicValue);
         });
         return dynamicValues;
