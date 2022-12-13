@@ -40,12 +40,12 @@ public class TaskLogServiceImpl implements TaskLogService {
 
     @Override
     public Integer save(TaskLog taskLog, String domain, String type) {
-        if(null!=taskLog.getStatus()&&taskLog.getStatus().equals("failed")){
-            meterRegistry.gauge("iga_sync_error_task", Tags.of("dept", taskLog.getDeptNo(), "post", taskLog.getPersonNo(),"user",taskLog.getPersonNo(),"occupy",taskLog.getOccupyNo()), -1);
-        }
-        if(null!=taskLog.getStatus()&&taskLog.getStatus().equals("done")){
-            meterRegistry.gauge("iga_sync_success_task", Tags.of("dept", taskLog.getDeptNo(), "post", taskLog.getPersonNo(),"user",taskLog.getPersonNo(),"occupy",taskLog.getOccupyNo()), 1);
-        }
+//        if(null!=taskLog.getStatus()&&taskLog.getStatus().equals("failed")){
+//            meterRegistry.gauge("iga_sync_error_task", Tags.of("dept", taskLog.getDeptNo(), "post", taskLog.getPersonNo(),"user",taskLog.getPersonNo(),"occupy",taskLog.getOccupyNo()), -1);
+//        }
+//        if(null!=taskLog.getStatus()&&taskLog.getStatus().equals("done")){
+//            meterRegistry.gauge("iga_sync_success_task", Tags.of("dept", taskLog.getDeptNo(), "post", taskLog.getPersonNo(),"user",taskLog.getPersonNo(),"occupy",taskLog.getOccupyNo()), 1);
+//        }
 
         return taskLogDao.save(taskLog, domain, type);
     }
