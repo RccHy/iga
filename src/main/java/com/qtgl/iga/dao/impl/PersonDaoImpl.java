@@ -64,7 +64,7 @@ public class PersonDaoImpl implements PersonDao {
                 " LEFT JOIN `password` p ON p.account_id = i.id  " +
                 " WHERE " +
                 " i.tenant_id = ?  " +
-                " AND i.del_mark = 0 " +
+                //" AND i.del_mark = 0 " +
                 " ORDER BY " +
                 " i.update_time";
         List<Map<String, Object>> maps = jdbcSSO.queryForList(sql, tenantId);
@@ -616,7 +616,7 @@ public class PersonDaoImpl implements PersonDao {
         List<Map<String, Object>> maps = jdbcSSO.queryForList(sql, tenantId);
         List<Person> personList = new ArrayList<>();
         for (Map<String, Object> map : maps) {
-            Person person=new Person();
+            Person person = new Person();
             person.setId(map.get("id").toString());
             person.setOpenId(map.get("openid").toString());
             if (map.get("card_type").toString().equals("CELLPHONE")) {
@@ -635,7 +635,7 @@ public class PersonDaoImpl implements PersonDao {
                 person.setCardNo(map.get("card_no").toString());
                 continue;
             }
-            if(StringUtils.isNotBlank(map.get("card_type").toString())&&StringUtils.isNotBlank(map.get("card_no").toString())){
+            if (StringUtils.isNotBlank(map.get("card_type").toString()) && StringUtils.isNotBlank(map.get("card_no").toString())) {
                 person.setCardType(map.get("card_type").toString());
                 person.setCardNo(map.get("card_no").toString());
             }

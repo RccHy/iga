@@ -160,7 +160,7 @@ public class OccupyDaoImpl implements OccupyDao {
 
                     String sql = "UPDATE `user` SET user_type = ?, card_type = ?, user_code = ?, del_mark = ?, start_time = ?, end_time = ?, update_time = ?,dept_code = ?,  " +
                             " source = ?, data_source = ?,  user_index = ?,active=?,active_time=?,account_no=?,valid_start_time=?,valid_end_time=?,orphan=?" +
-                            " WHERE id = ? and update_time < ?  ";
+                            " WHERE id = ? and update_time <= ?  ";
 
                     int[] ints = jdbcSSO.batchUpdate(sql, new BatchPreparedStatementSetter() {
                         @Override
