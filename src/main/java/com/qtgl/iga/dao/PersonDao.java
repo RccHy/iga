@@ -31,4 +31,6 @@ public interface PersonDao {
 
 
     List<Person> mergeCharacteristicPerson(String tenantId);
+
+    List<Person> getAllAndActiveIsTrue(String id);
 }
