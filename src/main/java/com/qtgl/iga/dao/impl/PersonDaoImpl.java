@@ -64,7 +64,7 @@ public class PersonDaoImpl implements PersonDao {
                 " LEFT JOIN `password` p ON p.account_id = i.id  " +
                 " WHERE " +
                 " i.tenant_id = ?  " +
-                //" AND i.del_mark = 0 " +
+                " AND i.del_mark = 0 " +
                 " ORDER BY " +
                 " i.update_time";
         List<Map<String, Object>> maps = jdbcSSO.queryForList(sql, tenantId);
@@ -645,53 +645,5 @@ public class PersonDaoImpl implements PersonDao {
         return personList;
     }
 
-    @Override
-    public List<Person> getAllAndDelMarkIsTrue(String tenantId) {
-        String sql = " SELECT " +
-                " i.id, " +
-                " i.NAME as name, " +
-                " i.tags, " +
-                " i.open_id AS openId, " +
-                " i.account_no AS accountNo, " +
-                " i.card_type AS cardType, " +
-                " i.card_no AS cardNo, " +
-                " i.cellphone, " +
-                " i.email, " +
-                " i.source, " +
-                " i.data_source AS dataSource, " +
-                " i.active, " +
-                " i.active_time AS activeTime, " +
-                " i.create_time AS createTime, " +
-                " i.update_time AS updateTime, " +
-                " i.del_mark AS delMark," +
-                " i.valid_start_time AS validStartTime, " +
-                " i.valid_end_time AS validEndTime, " +
-                " p.`password` AS `password`  " +
-                " FROM " +
-                " identity i " +
-                " LEFT JOIN `password` p ON p.account_id = i.id  " +
-                " WHERE " +
-                " i.tenant_id = ?  " +
-                " AND i.del_mark = 0 " +
-                " ORDER BY " +
-                " i.update_time";
-        List<Map<String, Object>> maps = jdbcSSO.queryForList(sql, tenantId);
-
-        List<Person> personList = new ArrayList<>();
-
-        if (null != maps && maps.size() > 0) {
-            maps.forEach(map -> {
-                Person person = new Person();
-                try {
-                    MyBeanUtils.populate(person, map);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                personList.add(person);
-            });
-
-        }
-        return personList;
-    }
 
 }
