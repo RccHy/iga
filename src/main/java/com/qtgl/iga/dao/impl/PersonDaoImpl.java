@@ -646,7 +646,7 @@ public class PersonDaoImpl implements PersonDao {
     }
 
     @Override
-    public List<Person> getAllAndActiveIsTrue(String tenantId) {
+    public List<Person> getAllAndDelMarkIsTrue(String tenantId) {
         String sql = " SELECT " +
                 " i.id, " +
                 " i.NAME as name, " +
@@ -672,7 +672,7 @@ public class PersonDaoImpl implements PersonDao {
                 " LEFT JOIN `password` p ON p.account_id = i.id  " +
                 " WHERE " +
                 " i.tenant_id = ?  " +
-                //" AND i.del_mark = 0 " +
+                " AND i.del_mark = 0 " +
                 " ORDER BY " +
                 " i.update_time";
         List<Map<String, Object>> maps = jdbcSSO.queryForList(sql, tenantId);

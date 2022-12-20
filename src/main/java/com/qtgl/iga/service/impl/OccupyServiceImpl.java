@@ -255,7 +255,7 @@ public class OccupyServiceImpl implements OccupyService {
         List<NodeRules> occupyRules = rulesDao.getByNodeAndType(nodeId, 1, true, 0);
 
         // 获取sso中所有人员，用于验证 身份信息是否合法
-        List<Person> personFromSSO = personDao.getAllAndActiveIsTrue(tenant.getId());
+        List<Person> personFromSSO = personDao.getAllAndDelMarkIsTrue(tenant.getId());
         if (personFromSSO.size() <= 0) {
             throw new CustomException(ResultCode.FAILED, "数据库中无人员信息");
         }
