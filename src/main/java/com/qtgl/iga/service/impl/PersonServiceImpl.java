@@ -298,6 +298,11 @@ public class PersonServiceImpl implements PersonService {
             distinctPersonMap = distinctPerson.stream().filter(person -> !StringUtils.isBlank(person.getId())).collect(Collectors.toMap(Person::getId, person -> person, (v1, v2) -> v2));
             people.addAll(distinctPerson);
         }
+        //获取sso 删除的人员数据
+        List<Person> personDelMarkFromSSOList = personDao.getDelMarkPeople(tenant.getId());
+        if (!CollectionUtils.isEmpty(personDelMarkFromSSOList)) {
+            people.addAll(personDelMarkFromSSOList);
+        }
         Map<String, Person> preViewPersonMap = people.stream().filter(person -> !StringUtils.isBlank(person.getId())).collect(Collectors.toMap(Person::getId, person -> person, (v1, v2) -> v2));
         //预置对比丢失的失效人员
         Map<String, Person> invalidPersonMap = people.stream().filter(person -> !StringUtils.isBlank(person.getId()) && null != person.getValidEndTime() && null != person.getValidStartTime() && now.isBefore(person.getValidEndTime()) && now.isAfter(person.getValidStartTime())).collect(Collectors.toMap(person -> (person.getId()), person -> person, (v1, v2) -> v2));
@@ -682,6 +687,14 @@ public class PersonServiceImpl implements PersonService {
                     result.get("invalid").addAll(new ArrayList<>(tempResult.get("invalid").values()));
                 } else {
                     result.put("invalid", new ArrayList<>(tempResult.get("invalid").values()));
+                }
+
+            }
+            if (!CollectionUtils.isEmpty(tempResult.get("delete"))) {
+                if (result.containsKey("delete")) {
+                    result.get("delete").addAll(new ArrayList<>(tempResult.get("delete").values()));
+                } else {
+                    result.put("delete", new ArrayList<>(tempResult.get("delete").values()));
                 }
 
             }
@@ -1234,6 +1247,9 @@ public class PersonServiceImpl implements PersonService {
                     if (tempResult.containsKey("update")) {
                         tempResult.get("update").remove(personFromSSO.getId());
                     }
+                    if (tempResult.containsKey("delete")) {
+                        tempResult.get("delete").remove(personFromSSO.getId());
+                    }
 
                 } else {
 
@@ -1411,12 +1427,19 @@ public class PersonServiceImpl implements PersonService {
                                     }
                                 }
                             }
-                            if (result.containsKey("delete")) {
-                                result.get("delete").add(newPerson);
+                            //if (result.containsKey("delete")) {
+                            //    result.get("delete").add(newPerson);
+                            //} else {
+                            //    ArrayList<Person> people = new ArrayList<>();
+                            //    people.add(newPerson);
+                            //    result.put("delete", people);
+                            //}
+                            if (tempResult.containsKey("delete")) {
+                                tempResult.get("delete").put(newPerson.getId(), newPerson);
                             } else {
-                                ArrayList<Person> people = new ArrayList<>();
-                                people.add(newPerson);
-                                result.put("delete", people);
+                                ConcurrentHashMap<String, Person> hashMap = new ConcurrentHashMap<>();
+                                hashMap.put(newPerson.getId(), newPerson);
+                                tempResult.put("delete", hashMap);
                             }
                             //处理人员预览数据
                             //preViewPersonMap.remove(personFromSSO.getId());
