@@ -286,7 +286,13 @@ public class PersonServiceImpl implements PersonService {
         List<Person> people = new ArrayList<>();
 
 
-        // 获取 sso数据
+        //获取sso 删除的人员数据
+        List<Person> personDelMarkFromSSOList = personDao.getDelMarkPeople(tenant.getId());
+        if (!CollectionUtils.isEmpty(personDelMarkFromSSOList)) {
+            people.addAll(personDelMarkFromSSOList);
+        }
+
+        // 获取 sso数据 (后续覆盖后覆盖前,)
         List<Person> personFromSSOList = personDao.getAll(tenant.getId());
         if (!CollectionUtils.isEmpty(personFromSSOList)) {
             people.addAll(personFromSSOList);
@@ -298,11 +304,7 @@ public class PersonServiceImpl implements PersonService {
             distinctPersonMap = distinctPerson.stream().filter(person -> !StringUtils.isBlank(person.getId())).collect(Collectors.toMap(Person::getId, person -> person, (v1, v2) -> v2));
             people.addAll(distinctPerson);
         }
-        //获取sso 删除的人员数据
-        List<Person> personDelMarkFromSSOList = personDao.getDelMarkPeople(tenant.getId());
-        if (!CollectionUtils.isEmpty(personDelMarkFromSSOList)) {
-            people.addAll(personDelMarkFromSSOList);
-        }
+
         Map<String, Person> preViewPersonMap = people.stream().filter(person -> !StringUtils.isBlank(person.getId())).collect(Collectors.toMap(Person::getId, person -> person, (v1, v2) -> v2));
         //预置对比丢失的失效人员
         Map<String, Person> invalidPersonMap = people.stream().filter(person -> !StringUtils.isBlank(person.getId()) && null != person.getValidEndTime() && null != person.getValidStartTime() && now.isBefore(person.getValidEndTime()) && now.isAfter(person.getValidStartTime())).collect(Collectors.toMap(person -> (person.getId()), person -> person, (v1, v2) -> v2));
@@ -1449,7 +1451,8 @@ public class PersonServiceImpl implements PersonService {
                             log.info("人员对比后应删除{},但检测到对应权威源已无效或规则未启用,跳过该数据", newPerson.getId());
                         }
                     }
-                    if (updateFlag && personFromSSO.getDelMark() != 1) {
+                    //if (updateFlag && personFromSSO.getDelMark() != 1) {
+                    if (updateFlag) {
                         //personFromSSO.setSource(newPerson.getSource());
                         //personFromSSO.setUpdateTime(newPerson.getUpdateTime());
                         // 需要设置人员密码
@@ -1546,7 +1549,8 @@ public class PersonServiceImpl implements PersonService {
                     }
 
                     // 对比后，权威源提供的"映射字段"数据和sso中没有差异。（active字段不提供）
-                    if (!updateFlag && personFromSSO.getDelMark() != 1) {
+                    //if (!updateFlag && personFromSSO.getDelMark() != 1) {
+                    if (!updateFlag) {
 
                         if (!personFromSSO.getActive().equals(newPerson.getActive())) {
                             //personFromSSO.setActive(newPerson.getActive());
