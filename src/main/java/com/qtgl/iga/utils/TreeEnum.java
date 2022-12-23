@@ -40,7 +40,9 @@ public enum TreeEnum {
 
     INDEPENDENT("independent", "是否独立部门"),
 
-    END_TIME("endTime", "结束时间");
+    END_TIME("endTime", "结束时间"),
+
+    BIRTHDAY("birthday", "生日");
 
     //INDEX("index", "排序");
 

@@ -29,7 +29,7 @@ public class Person implements Serializable,Cloneable {
     /**
      * 生日
      */
-    private String birthday;
+    private LocalDateTime birthday;
     /**
      * 头像
      */

@@ -411,6 +411,9 @@ public class PersonServiceImpl implements PersonService {
                     if (null != personObj.getTimestamp(TreeEnum.UPDATE_TIME.getCode())) {
                         personObj.put(TreeEnum.UPDATE_TIME.getCode(), personObj.getTimestamp(TreeEnum.UPDATE_TIME.getCode()));
                     }
+                    if (null != personObj.getTimestamp(TreeEnum.BIRTHDAY.getCode())) {
+                        personObj.put(TreeEnum.BIRTHDAY.getCode(), personObj.getTimestamp(TreeEnum.BIRTHDAY.getCode()));
+                    }
                     Person personUpstream = personObj.toJavaObject(Person.class);
 
 
