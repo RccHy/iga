@@ -186,7 +186,22 @@ public class PersonServiceImpl implements PersonService {
         Map arguments = new ConcurrentHashMap();
         arguments.put("type", "person");
         arguments.put("status", 0);
-        dataProcessing(domain, tenant, cardTypeMap, dynamicAttrs, valueUpdateMap, valueInsertMap, finalDynamicCodes, finalValueMap, result, attrMap, attrReverseMap, arguments, currentTask);
+
+        List<Node> nodes= nodeDao.findNodes(arguments, domain.getId());
+        if (null == nodes || nodes.size() <= 0) {
+            log.error( "无人员管理规则信息");
+            return null;
+            //throw new CustomException(ResultCode.FAILED, "无人员管理规则信息");
+        }
+        String nodeId = nodes.get(0).getId();
+        //
+        List<NodeRules> userRules = rulesDao.getByNodeAndType(nodeId, 1, null, 0);
+        if (null == userRules || userRules.size() == 0) {
+            log.error( "无人员管理规则信息");
+            return null;
+            //throw new CustomException(ResultCode.FAILED, "无人员规则信息");
+        }
+        dataProcessing(nodes,userRules,domain, tenant, cardTypeMap, dynamicAttrs, valueUpdateMap, valueInsertMap, finalDynamicCodes, finalValueMap, result, attrMap, attrReverseMap, arguments, currentTask);
         // 验证监控规则
         List<Person> personFromSSOList = personDao.getAll(tenant.getId());
         log.info("--------------------开始验证人员监控规则");
@@ -269,22 +284,9 @@ public class PersonServiceImpl implements PersonService {
         return result;
     }
 
-    private List<Person> dataProcessing(DomainInfo domain, Tenant tenant, Map<String, CardType> cardTypeMap, List<DynamicAttr> dynamicAttrs, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, List<String> finalDynamicCodes, Map<String, List<DynamicValue>> finalValueMap, Map<String, List<Person>> result, Map<String, String> attrMap, Map<String, String> attrReverseMap, Map arguments, TaskLog currentTask) {
-        List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
-        if (null == nodes || nodes.size() <= 0) {
-            throw new CustomException(ResultCode.FAILED, "无人员管理规则信息");
-        }
-        String nodeId = nodes.get(0).getId();
-        //
-        List<NodeRules> userRules = rulesDao.getByNodeAndType(nodeId, 1, null, 0);
-
-
+    private List<Person> dataProcessing(List<Node> nodes,List<NodeRules> userRules,DomainInfo domain, Tenant tenant, Map<String, CardType> cardTypeMap, List<DynamicAttr> dynamicAttrs, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, List<String> finalDynamicCodes, Map<String, List<DynamicValue>> finalValueMap, Map<String, List<Person>> result, Map<String, String> attrMap, Map<String, String> attrReverseMap, Map arguments, TaskLog currentTask) {
         final LocalDateTime now = LocalDateTime.now();
-        if (null == userRules || userRules.size() == 0) {
-            throw new CustomException(ResultCode.FAILED, "无人员规则信息");
-        }
         List<Person> people = new ArrayList<>();
-
 
         //获取sso 删除的人员数据
         List<Person> personDelMarkFromSSOList = personDao.getDelMarkPeople(tenant.getId());
@@ -1938,7 +1940,20 @@ public class PersonServiceImpl implements PersonService {
         log.info("----------------- upstream Person start:{}", System.currentTimeMillis());
         List<Person> personList = null;
         try {
-            personList = dataProcessing(domain, tenant, cardTypeMap, dynamicAttrs, valueUpdateMap, valueInsertMap, finalDynamicCodes, finalValueMap, result, attrMap, attrReverseMap, arguments, null);
+            List<Node> nodes= nodeDao.findNodes(arguments, domain.getId());
+            if (null == nodes || nodes.size() <= 0) {
+                log.error( "无人员管理规则信息");
+
+                throw new CustomException(ResultCode.FAILED, "无人员管理规则信息");
+            }
+            String nodeId = nodes.get(0).getId();
+            //
+            List<NodeRules> userRules = rulesDao.getByNodeAndType(nodeId, 1, null, 0);
+            if (null == userRules || userRules.size() == 0) {
+                log.error( "无人员管理规则信息");
+                throw new CustomException(ResultCode.FAILED, "无人员规则信息");
+            }
+            personList = dataProcessing(nodes,userRules,domain, tenant, cardTypeMap, dynamicAttrs, valueUpdateMap, valueInsertMap, finalDynamicCodes, finalValueMap, result, attrMap, attrReverseMap, arguments, null);
         } catch (Exception e) {
             e.printStackTrace();
             throw new CustomException(ResultCode.FAILED, e.getMessage());

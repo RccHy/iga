@@ -168,7 +168,20 @@ public class OccupyServiceImpl implements OccupyService {
         Map arguments = new ConcurrentHashMap();
         arguments.put("type", "occupy");
         arguments.put("status", 0);
-        dataProcessing(domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream, incrementalTasks, currentTask, dynamicAttrs, valueUpdateMap, valueInsertMap, finalDynamicCodes, finalValueMap, attrMap, attrReverseMap);
+
+        List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
+        if (null == nodes || nodes.size() <= 0) {
+            log.error("无人员身份管理规则信息");
+            return null;
+        }
+        String nodeId = nodes.get(0).getId();
+        List<NodeRules> occupyRules = rulesDao.getByNodeAndType(nodeId, 1, true, 0);
+        // 获取所有规则 字段，用于更新验证
+        if (null == occupyRules || occupyRules.size() == 0) {
+            log.error("无人员身份管理规则信息");
+            return null;
+        }
+        dataProcessing(nodes,occupyRules,domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream, incrementalTasks, currentTask, dynamicAttrs, valueUpdateMap, valueInsertMap, finalDynamicCodes, finalValueMap, attrMap, attrReverseMap);
 
         List<OccupyDto> occupiesFromSSO = occupyDao.findAll(tenant.getId(), null, null);
 
@@ -244,15 +257,9 @@ public class OccupyServiceImpl implements OccupyService {
         }
     }
 
-    private List<OccupyDto> dataProcessing(DomainInfo domain, Tenant tenant, Map<String, CardType> userCardTypeMap, Map<String, CardType> identityCardTypeMap, Map arguments, Map<String, List<OccupyDto>> result, ArrayList<OccupyDto> deleteFromSSO, Map<String, OccupyDto> occupyDtoFromUpstream, List<IncrementalTask> incrementalTasks, TaskLog currentTask,
+    private List<OccupyDto> dataProcessing(List<Node> nodes,List<NodeRules> occupyRules,DomainInfo domain, Tenant tenant, Map<String, CardType> userCardTypeMap, Map<String, CardType> identityCardTypeMap, Map arguments, Map<String, List<OccupyDto>> result, ArrayList<OccupyDto> deleteFromSSO, Map<String, OccupyDto> occupyDtoFromUpstream, List<IncrementalTask> incrementalTasks, TaskLog currentTask,
                                            List<DynamicAttr> dynamicAttrs, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, List<String> finalDynamicCodes, Map<String, List<DynamicValue>> finalValueMap, Map<String, String> attrMap, Map<String, String> attrReverseMap) {
-        List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
-        if (null == nodes || nodes.size() <= 0) {
-            throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
-        }
-        String nodeId = nodes.get(0).getId();
 
-        List<NodeRules> occupyRules = rulesDao.getByNodeAndType(nodeId, 1, true, 0);
 
         // 获取sso中所有人员，用于验证 身份信息是否合法
         List<Person> personFromSSO = personDao.getAll(tenant.getId());
@@ -263,10 +270,7 @@ public class OccupyServiceImpl implements OccupyService {
         List<Person> mergePerson = personDao.mergeCharacteristicPerson(tenant.getId());
         log.info("合重的人员size：" + mergePerson.size());
 
-        // 获取所有规则 字段，用于更新验证
-        if (null == occupyRules || occupyRules.size() == 0) {
-            throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
-        }
+
 
 
         // 获取sso中所有的有效的 组织机构 、 岗位信息
@@ -1595,7 +1599,21 @@ public class OccupyServiceImpl implements OccupyService {
 
         List<OccupyDto> occupyDtos = null;
         try {
-            occupyDtos = dataProcessing(domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream, null, null, dynamicAttrs, valueUpdateMap, valueInsertMap, finalDynamicCodes, finalValueMap, attrMap, attrReverseMap);
+
+            List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
+            if (null == nodes || nodes.size() <= 0) {
+                log.error("无人员身份管理规则信息");
+                throw new CustomException(ResultCode.FAILED,"无人员身份管理规则信息");
+            }
+            String nodeId = nodes.get(0).getId();
+            List<NodeRules> occupyRules = rulesDao.getByNodeAndType(nodeId, 1, true, 0);
+            // 获取所有规则 字段，用于更新验证
+            if (null == occupyRules || occupyRules.size() == 0) {
+                log.error("无人员身份管理规则信息");
+                throw new  CustomException(ResultCode.FAILED,"无人员身份管理规则信息");
+            }
+
+            occupyDtos = dataProcessing(nodes,occupyRules,domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream, null, null, dynamicAttrs, valueUpdateMap, valueInsertMap, finalDynamicCodes, finalValueMap, attrMap, attrReverseMap);
         } catch (Exception e) {
             e.printStackTrace();
             throw new CustomException(ResultCode.FAILED, e.getMessage());

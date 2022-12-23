@@ -21,6 +21,20 @@ public class Person implements Serializable,Cloneable {
      * 名称
      */
     private String name;
+
+    /**
+     * 性别
+     */
+    private String sex;
+    /**
+     * 生日
+     */
+    private String birthday;
+    /**
+     * 头像
+     */
+    private String avatar;
+
     /**
      * 用户名
      */
@@ -118,6 +132,8 @@ public class Person implements Serializable,Cloneable {
      * push  PULL  BUILTIN
      */
     private String createDataSource;
+
+
 
 
     @Override

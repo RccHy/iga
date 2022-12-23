@@ -1,9 +1,6 @@
 package com.qtgl.iga.dao.impl;
 
-import com.qtgl.iga.bo.Certificate;
-import com.qtgl.iga.bo.DomainInfo;
-import com.qtgl.iga.bo.DynamicValue;
-import com.qtgl.iga.bo.Person;
+import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.PersonDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import com.qtgl.iga.utils.MyBeanUtils;
@@ -21,6 +18,7 @@ import org.springframework.util.CollectionUtils;
 import javax.annotation.Resource;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.*;
 
 
@@ -37,6 +35,10 @@ public class PersonDaoImpl implements PersonDao {
     @Resource(name = "sso-txTemplate")
     TransactionTemplate txTemplate;
 
+
+    @Resource(name = "iga-txTemplate")
+    TransactionTemplate igaTemplate;
+
     @Override
     public List<Person> getAll(String tenantId) {
         String sql = " SELECT " +
@@ -50,6 +52,8 @@ public class PersonDaoImpl implements PersonDao {
                 " i.cellphone, " +
                 " i.email, " +
                 " i.source, " +
+                " i.sex, " +
+                " i.birthday, " +
                 " i.data_source AS dataSource, " +
                 " i.active, " +
                 " i.active_time AS activeTime, " +
@@ -97,8 +101,8 @@ public class PersonDaoImpl implements PersonDao {
 
 
                     String str = "insert into identity (id, `name`, account_no,open_id,  del_mark, create_time, update_time, tenant_id, card_type, card_no, cellphone, email, data_source, tags,  `active`, active_time,`source`,valid_start_time,valid_end_time,freeze_time," +
-                            "create_data_source,create_source)" +
-                            " values  (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                            "create_data_source,create_source,birthday)" +
+                            " values  (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
 
                     int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
@@ -126,6 +130,7 @@ public class PersonDaoImpl implements PersonDao {
                             preparedStatement.setObject(20, list.get(i).getFreezeTime());
                             preparedStatement.setObject(21, list.get(i).getDataSource());
                             preparedStatement.setObject(22, list.get(i).getSource());
+                            preparedStatement.setObject(23, list.get(i).getBirthday());
                         }
 
                         @Override
@@ -136,7 +141,7 @@ public class PersonDaoImpl implements PersonDao {
                 }
                 if (personMap.containsKey("update") || personMap.containsKey("invalid")) {
                     String str = "UPDATE identity set  `name`= ?, account_no=?,  del_mark=?, update_time=?, tenant_id=?,  cellphone=?, email=?,  tags=?,  `active`=?, active_time=? ,`source`= ?,data_source=?,valid_start_time=?,valid_end_time=? ," +
-                            " card_type =? ,card_no=? where id=? and update_time<= ? ";
+                            " card_type =? ,card_no=?,birthday=? where id=? and update_time<= ? ";
                     List<Person> list = new ArrayList<>();
                     List<Person> update = personMap.get("update");
                     List<Person> invalid = personMap.get("invalid");
@@ -166,8 +171,9 @@ public class PersonDaoImpl implements PersonDao {
                             preparedStatement.setObject(14, list.get(i).getValidEndTime());
                             preparedStatement.setObject(15, list.get(i).getCardType());
                             preparedStatement.setObject(16, list.get(i).getCardNo());
-                            preparedStatement.setObject(17, list.get(i).getId());
-                            preparedStatement.setObject(18, list.get(i).getUpdateTime());
+                            preparedStatement.setObject(17, list.get(i).getBirthday());
+                            preparedStatement.setObject(18, list.get(i).getId());
+                            preparedStatement.setObject(19, list.get(i).getUpdateTime());
                         }
 
                         @Override
@@ -295,9 +301,347 @@ public class PersonDaoImpl implements PersonDao {
                 throw new CustomException(ResultCode.FAILED, "同步终止，人员同步异常！");
             }
         });
-
-
     }
+
+
+    @Override
+    public Integer saveToSsoTest(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert,List<DynamicAttr> attrList, ArrayList<Certificate> certificates) {
+        // 删除租户下所有数据
+        String deleteSql = "delete from identity where tenant_id = ? ";
+        jdbcIGA.update(deleteSql,tenantId);
+
+        String str = "insert into identity (id, `name`, account_no,open_id,  del_mark, create_time, update_time, tenant_id, card_type, card_no, cellphone, email, data_source, tags,  `active`, active_time,`source`,valid_start_time,valid_end_time,freeze_time," +
+                "create_data_source,create_source,sex,birthday,avatar,sync_state)" +
+                " values  (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        return igaTemplate.execute(transactionStatus -> {
+            try {
+                if (personMap.containsKey("keep")) {
+                    final List<Person> list = personMap.get("keep");
+                    int[] ints = jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, list.get(i).getId());
+                            preparedStatement.setObject(2, list.get(i).getName());
+                            preparedStatement.setObject(3, list.get(i).getAccountNo());
+                            preparedStatement.setObject(4, list.get(i).getOpenId());
+                            preparedStatement.setObject(5, list.get(i).getDelMark());
+                            preparedStatement.setObject(6, list.get(i).getCreateTime());
+                            preparedStatement.setObject(7, list.get(i).getUpdateTime());
+                            preparedStatement.setObject(8, tenantId);
+                            preparedStatement.setObject(9, list.get(i).getCardType());
+                            preparedStatement.setObject(10, list.get(i).getCardNo());
+                            preparedStatement.setObject(11, list.get(i).getCellphone());
+                            preparedStatement.setObject(12, list.get(i).getEmail());
+                            preparedStatement.setObject(13, list.get(i).getDataSource());
+                            preparedStatement.setObject(14, list.get(i).getTags());
+                            preparedStatement.setObject(15, list.get(i).getActive());
+                            preparedStatement.setObject(16, list.get(i).getActiveTime());
+                            preparedStatement.setObject(17, list.get(i).getSource());
+                            preparedStatement.setObject(18, list.get(i).getValidStartTime());
+                            preparedStatement.setObject(19, list.get(i).getValidEndTime());
+                            preparedStatement.setObject(20, list.get(i).getFreezeTime());
+                            preparedStatement.setObject(21, list.get(i).getDataSource());
+                            preparedStatement.setObject(22, list.get(i).getSource());
+
+                            preparedStatement.setObject(23, list.get(i).getSex());
+                            preparedStatement.setObject(24, list.get(i).getBirthday());
+                            preparedStatement.setObject(25, list.get(i).getAvatar());
+                            preparedStatement.setObject(26, 0);
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return list.size();
+                        }
+                    });
+                }
+
+
+
+                if (personMap.containsKey("insert")) {
+                    final List<Person> list = personMap.get("insert");
+                    int[] ints = jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, list.get(i).getId());
+                            preparedStatement.setObject(2, list.get(i).getName());
+                            preparedStatement.setObject(3, list.get(i).getAccountNo());
+                            preparedStatement.setObject(4, list.get(i).getOpenId());
+                            preparedStatement.setObject(5, list.get(i).getDelMark());
+                            preparedStatement.setObject(6, list.get(i).getCreateTime());
+                            preparedStatement.setObject(7, list.get(i).getUpdateTime());
+                            preparedStatement.setObject(8, tenantId);
+                            preparedStatement.setObject(9, list.get(i).getCardType());
+                            preparedStatement.setObject(10, list.get(i).getCardNo());
+                            preparedStatement.setObject(11, list.get(i).getCellphone());
+                            preparedStatement.setObject(12, list.get(i).getEmail());
+                            preparedStatement.setObject(13, list.get(i).getDataSource());
+                            preparedStatement.setObject(14, list.get(i).getTags());
+                            preparedStatement.setObject(15, list.get(i).getActive());
+                            preparedStatement.setObject(16, list.get(i).getActiveTime());
+                            preparedStatement.setObject(17, list.get(i).getSource());
+                            preparedStatement.setObject(18, list.get(i).getValidStartTime());
+                            preparedStatement.setObject(19, list.get(i).getValidEndTime());
+                            preparedStatement.setObject(20, list.get(i).getFreezeTime());
+                            preparedStatement.setObject(21, list.get(i).getDataSource());
+                            preparedStatement.setObject(22, list.get(i).getSource());
+                            preparedStatement.setObject(23, list.get(i).getSex());
+                            preparedStatement.setObject(24, list.get(i).getBirthday());
+                            preparedStatement.setObject(25, list.get(i).getAvatar());
+                            preparedStatement.setObject(26, 1);
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return list.size();
+                        }
+                    });
+                }
+                if (personMap.containsKey("update")) {
+                    final List<Person> list = personMap.get("update");
+                    int[] ints = jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, list.get(i).getId());
+                            preparedStatement.setObject(2, list.get(i).getName());
+                            preparedStatement.setObject(3, list.get(i).getAccountNo());
+                            preparedStatement.setObject(4, list.get(i).getOpenId());
+                            preparedStatement.setObject(5, list.get(i).getDelMark());
+                            preparedStatement.setObject(6, list.get(i).getCreateTime());
+                            preparedStatement.setObject(7, LocalDateTime.now());
+                            preparedStatement.setObject(8, tenantId);
+                            preparedStatement.setObject(9, list.get(i).getCardType());
+                            preparedStatement.setObject(10, list.get(i).getCardNo());
+                            preparedStatement.setObject(11, list.get(i).getCellphone());
+                            preparedStatement.setObject(12, list.get(i).getEmail());
+                            preparedStatement.setObject(13, list.get(i).getDataSource());
+                            preparedStatement.setObject(14, list.get(i).getTags());
+                            preparedStatement.setObject(15, list.get(i).getActive());
+                            preparedStatement.setObject(16, list.get(i).getActiveTime());
+                            preparedStatement.setObject(17, list.get(i).getSource());
+                            preparedStatement.setObject(18, list.get(i).getValidStartTime());
+                            preparedStatement.setObject(19, list.get(i).getValidEndTime());
+                            preparedStatement.setObject(20, list.get(i).getFreezeTime());
+                            preparedStatement.setObject(21, list.get(i).getDataSource());
+                            preparedStatement.setObject(22, list.get(i).getSource());
+                            preparedStatement.setObject(23, list.get(i).getSex());
+                            preparedStatement.setObject(24, list.get(i).getBirthday());
+                            preparedStatement.setObject(25, list.get(i).getAvatar());
+                            preparedStatement.setObject(26, 3);
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return list.size();
+                        }
+                    });
+                }
+
+                if (personMap.containsKey("delete")) {
+                    final List<Person> list = personMap.get("delete");
+                    int[] ints = jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, list.get(i).getId());
+                            preparedStatement.setObject(2, list.get(i).getName());
+                            preparedStatement.setObject(3, list.get(i).getAccountNo());
+                            preparedStatement.setObject(4, list.get(i).getOpenId());
+                            preparedStatement.setObject(5, 1);
+                            preparedStatement.setObject(6, list.get(i).getCreateTime());
+                            preparedStatement.setObject(7, LocalDateTime.now());
+                            preparedStatement.setObject(8, tenantId);
+                            preparedStatement.setObject(9, list.get(i).getCardType());
+                            preparedStatement.setObject(10, list.get(i).getCardNo());
+                            preparedStatement.setObject(11, list.get(i).getCellphone());
+                            preparedStatement.setObject(12, list.get(i).getEmail());
+                            preparedStatement.setObject(13, list.get(i).getDataSource());
+                            preparedStatement.setObject(14, list.get(i).getTags());
+                            preparedStatement.setObject(15, list.get(i).getActive());
+                            preparedStatement.setObject(16, list.get(i).getActiveTime());
+                            preparedStatement.setObject(17, list.get(i).getSource());
+                            preparedStatement.setObject(18, list.get(i).getValidStartTime());
+                            preparedStatement.setObject(19, list.get(i).getValidEndTime());
+                            preparedStatement.setObject(20, list.get(i).getFreezeTime());
+                            preparedStatement.setObject(21, list.get(i).getDataSource());
+                            preparedStatement.setObject(22, list.get(i).getSource());
+                            preparedStatement.setObject(23, list.get(i).getSex());
+                            preparedStatement.setObject(24, list.get(i).getBirthday());
+                            preparedStatement.setObject(25, list.get(i).getAvatar());
+                            preparedStatement.setObject(26, 2);
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return list.size();
+                        }
+                    });
+
+                }
+
+
+                if ( personMap.containsKey("invalid")) {
+                    final List<Person> list = personMap.get("invalid");
+                    int[] ints = jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, list.get(i).getId());
+                            preparedStatement.setObject(2, list.get(i).getName());
+                            preparedStatement.setObject(3, list.get(i).getAccountNo());
+                            preparedStatement.setObject(4, list.get(i).getOpenId());
+                            preparedStatement.setObject(5, list.get(i).getDelMark());
+                            preparedStatement.setObject(6, list.get(i).getCreateTime());
+                            preparedStatement.setObject(7, LocalDateTime.now());
+                            preparedStatement.setObject(8, tenantId);
+                            preparedStatement.setObject(9, list.get(i).getCardType());
+                            preparedStatement.setObject(10, list.get(i).getCardNo());
+                            preparedStatement.setObject(11, list.get(i).getCellphone());
+                            preparedStatement.setObject(12, list.get(i).getEmail());
+                            preparedStatement.setObject(13, list.get(i).getDataSource());
+                            preparedStatement.setObject(14, list.get(i).getTags());
+                            preparedStatement.setObject(15, list.get(i).getActive());
+                            preparedStatement.setObject(16, list.get(i).getActiveTime());
+                            preparedStatement.setObject(17, list.get(i).getSource());
+                            preparedStatement.setObject(18, list.get(i).getValidStartTime());
+                            preparedStatement.setObject(19, list.get(i).getValidEndTime());
+                            preparedStatement.setObject(20, list.get(i).getFreezeTime());
+                            preparedStatement.setObject(21, list.get(i).getDataSource());
+                            preparedStatement.setObject(22, list.get(i).getSource());
+                            preparedStatement.setObject(23, list.get(i).getSex());
+                            preparedStatement.setObject(24, list.get(i).getBirthday());
+                            preparedStatement.setObject(25, list.get(i).getAvatar());
+                            preparedStatement.setObject(26, 4);
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return list.size();
+                        }
+                    });
+                }
+
+
+
+
+
+
+               /* if (personMap.containsKey("password")) {
+                    final List<Person> list = personMap.get("password");
+
+                    String str = "INSERT INTO password(id,account_id,password,create_time,update_time,del_mark )" +
+                            " SELECT " +
+                            " uuid(),?,?,now(),now(),0 " +
+                            " FROM DUAL " +
+                            " WHERE NOT  EXISTS(select * from password where account_id=?)";
+
+
+                    int[] ints = jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, list.get(i).getId());
+                            preparedStatement.setObject(2, list.get(i).getPassword());
+                            preparedStatement.setObject(3, list.get(i).getId());
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return list.size();
+                        }
+                    });
+                }*/
+
+
+
+
+                List<DynamicValue> dynamicValues = new ArrayList<>();
+                if (!CollectionUtils.isEmpty(valueInsert)) {
+                    dynamicValues.addAll(valueInsert);
+                }
+                if (!CollectionUtils.isEmpty(valueUpdate)) {
+                    dynamicValues.addAll(valueUpdate);
+                }
+
+
+                if (!CollectionUtils.isEmpty(dynamicValues)) {
+
+                    // 删除、并重新创建扩展字段
+                    String deleteDynamicAttrSql = "delete from dynamic_attr where   type='USER' and tenant_id = ?";
+                    jdbcIGA.update(deleteDynamicAttrSql, new Object[]{new String(tenantId)});
+
+                    String deleteDynamicValueSql = "delete from dynamic_value where  tenant_id = ? and attr_id not in (select id from dynamic_attr )";
+                    jdbcIGA.update(deleteDynamicValueSql, new Object[]{new String(tenantId)});
+
+                    String addDynamicValueSql = "INSERT INTO dynamic_attr (id, name, code, required, description, tenant_id, create_time, update_time, type, field_type, format, is_search, attr_index) VALUES (?,?,?,?,?,?,?,?,'USER',?,?,?,?)";
+                    jdbcIGA.batchUpdate(addDynamicValueSql, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            DynamicAttr attr = attrList.get(i);
+                            preparedStatement.setObject(1, attr.getId());
+                            preparedStatement.setObject(2, attr.getName());
+                            preparedStatement.setObject(3, attr.getCode());
+                            preparedStatement.setObject(4, attr.getRequired());
+                            preparedStatement.setObject(5, attr.getDescription());
+                            preparedStatement.setObject(6, tenantId);
+                            preparedStatement.setObject(7, attr.getCreateTime());
+                            preparedStatement.setObject(8, attr.getUpdateTime());
+                            preparedStatement.setObject(9, attr.getFieldType());
+                            preparedStatement.setObject(10, attr.getFormat());
+                            preparedStatement.setObject(11, attr.getIsSearch());
+                            preparedStatement.setObject(12, attr.getAttrIndex());
+                        }
+                        @Override
+                        public int getBatchSize() {
+                            return attrList.size();
+                        }
+                    });
+
+
+                    String valueStr = "INSERT INTO dynamic_value (`id`, `attr_id`, `entity_id`, `value`, `tenant_id`) VALUES (?, ?, ?, ?, ?)";
+                    jdbcIGA.batchUpdate(valueStr, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, dynamicValues.get(i).getId());
+                            preparedStatement.setObject(2, dynamicValues.get(i).getAttrId());
+                            preparedStatement.setObject(3, dynamicValues.get(i).getEntityId());
+                            preparedStatement.setObject(4, dynamicValues.get(i).getValue());
+                            preparedStatement.setObject(5, tenantId);
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return dynamicValues.size();
+                        }
+                    });
+                }
+
+                if (!CollectionUtils.isEmpty(certificates)) {
+                    String certificateStr = "update certificate set card_type=? , card_no =? ,update_time=?  where id= ?";
+                    jdbcIGA.batchUpdate(certificateStr, new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                            preparedStatement.setObject(1, certificates.get(i).getCardType());
+                            preparedStatement.setObject(2, certificates.get(i).getCardNo());
+                            preparedStatement.setObject(3, certificates.get(i).getUpdateTime());
+                            preparedStatement.setObject(4, certificates.get(i).getId());
+                        }
+
+                        @Override
+                        public int getBatchSize() {
+                            return certificates.size();
+                        }
+                    });
+                }
+
+
+                return 1;
+            } catch (Exception e) {
+                e.printStackTrace();
+                transactionStatus.setRollbackOnly();
+                // transactionStatus.rollbackToSavepoint(savepoint);
+                throw new CustomException(ResultCode.FAILED, "同步终止，人员同步异常！");
+            }
+        });
+    }
+
 
     @Override
     public Integer saveToTemp(List<Person> personList, DomainInfo domainInfo) {
@@ -402,6 +746,8 @@ public class PersonDaoImpl implements PersonDao {
                 " i.cellphone, " +
                 " i.email, " +
                 " i.source, " +
+                " i.sex, " +
+                " i.birthday, " +
                 " i.data_source AS dataSource, " +
                 " i.active, " +
                 " i.active_time AS activeTime, " +

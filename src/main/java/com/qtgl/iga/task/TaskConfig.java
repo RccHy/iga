@@ -187,18 +187,25 @@ public class TaskConfig {
 
                                 //=============人员数据同步至sso=============
                                 Map<String, List<Person>> personResult = personService.buildPerson(domainInfo, lastTaskLog, taskLog);
-                                Integer insertPerson = (personResult.containsKey("insert") ? personResult.get("insert").size() : 0);
-                                Integer deletePerson = personResult.containsKey("delete") ? personResult.get("delete").size() : 0;
-                                Integer updatePerson = (personResult.containsKey("update") ? personResult.get("update").size() : 0);
-                                Integer invalidPerson = personResult.containsKey("invalid") ? personResult.get("invalid").size() : 0;
-                                String personNo = insertPerson + "/" + deletePerson + "/" + updatePerson + "/" + invalidPerson;
-                                log.info(Thread.currentThread().getName() + ": 人员同步完成{}==={}", personNo, System.currentTimeMillis());
-                                taskLog.setPersonNo(personNo);
+                                Integer countPerson=0;
+                                if(null==personResult){
+                                    log.error("无人员管理规则，不进行人员同步");
+                                    taskLog.setPersonNo("--/--/--/--");
+                                }else {
+                                    Integer insertPerson = (personResult.containsKey("insert") ? personResult.get("insert").size() : 0);
+                                    Integer deletePerson = personResult.containsKey("delete") ? personResult.get("delete").size() : 0;
+                                    Integer updatePerson = (personResult.containsKey("update") ? personResult.get("update").size() : 0);
+                                    Integer invalidPerson = personResult.containsKey("invalid") ? personResult.get("invalid").size() : 0;
+                                    String personNo = insertPerson + "/" + deletePerson + "/" + updatePerson + "/" + invalidPerson;
+                                    log.info(Thread.currentThread().getName() + ": 人员同步完成{}==={}", personNo, System.currentTimeMillis());
+                                    taskLog.setPersonNo(personNo);
+                                    countPerson=insertPerson + deletePerson + updatePerson + invalidPerson;
+                                }
                                 //    taskLog.setData(errorData.get(domainInfo.getId()));
                                 taskLogService.save(taskLog, domainInfo.getId(), "update");
 
                                 // PUT   MQ
-                                if (personResult.size() > 0 && (insertPerson + deletePerson + updatePerson + invalidPerson) < 100) {
+                                if (null!=personResult&&personResult.size() > 0 && countPerson < 100) {
                                     pubResult = dataBusUtil.pub(null, personResult, null, "person", domainInfo);
                                     log.info("person pub:{}", pubResult);
                                 }
@@ -206,19 +213,27 @@ public class TaskConfig {
 
                                 //人员身份同步至sso
                                 final Map<String, List<OccupyDto>> occupyResult = occupyService.buildOccupy(domainInfo, lastTaskLog, taskLog);
-                                //Integer recoverOccupy = occupyResult.containsKey("recover") ? deptResultMap.get("recover").size() : 0;
-                                Integer insertOccupy = (occupyResult.containsKey("insert") ? occupyResult.get("insert").size() : 0);
-                                Integer deleteOccupy = occupyResult.containsKey("delete") ? occupyResult.get("delete").size() : 0;
-                                Integer updateOccupy = (occupyResult.containsKey("update") ? occupyResult.get("update").size() : 0);
-                                Integer invalidOccupy = occupyResult.containsKey("invalid") ? occupyResult.get("invalid").size() : 0;
-                                String occupyNo = insertOccupy + "/" + deleteOccupy + "/" + updateOccupy + "/" + invalidOccupy;
-                                log.info(Thread.currentThread().getName() + ": 人员身份同步完成{}==={}", occupyNo, System.currentTimeMillis());
-                                taskLog.setStatus("done");
-                                taskLog.setOccupyNo(occupyNo);
+                                Integer countOccupy=0;
+                                if(null==occupyResult){
+                                    log.error("无身份管理规则，不进行身份同步");
+                                    taskLog.setStatus("done");
+                                    taskLog.setPersonNo("--/--/--/--");
+                                }else {
+                                    //Integer recoverOccupy = occupyResult.containsKey("recover") ? deptResultMap.get("recover").size() : 0;
+                                    Integer insertOccupy = (occupyResult.containsKey("insert") ? occupyResult.get("insert").size() : 0);
+                                    Integer deleteOccupy = occupyResult.containsKey("delete") ? occupyResult.get("delete").size() : 0;
+                                    Integer updateOccupy = (occupyResult.containsKey("update") ? occupyResult.get("update").size() : 0);
+                                    Integer invalidOccupy = occupyResult.containsKey("invalid") ? occupyResult.get("invalid").size() : 0;
+                                    String occupyNo = insertOccupy + "/" + deleteOccupy + "/" + updateOccupy + "/" + invalidOccupy;
+                                    countOccupy=insertOccupy + deleteOccupy + updateOccupy + invalidOccupy;
+                                    log.info(Thread.currentThread().getName() + ": 人员身份同步完成{}==={}", occupyNo, System.currentTimeMillis());
+                                    taskLog.setStatus("done");
+                                    taskLog.setOccupyNo(occupyNo);
+                                }
                                 taskLogService.save(taskLog, domainInfo.getId(), "update");
 
                                 // PUT   MQ
-                                if (occupyResult.size() > 0 && (insertOccupy + deleteOccupy + updateOccupy + invalidOccupy) < 500) {
+                                if (null!=occupyResult&&occupyResult.size() > 0 && countOccupy < 500) {
                                     pubResult = dataBusUtil.pub(null, null, occupyResult, "occupy", domainInfo);
                                     log.info("occupy pub:{}", pubResult);
                                 }

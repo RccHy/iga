@@ -1,9 +1,6 @@
 package com.qtgl.iga.dao;
 
-import com.qtgl.iga.bo.Certificate;
-import com.qtgl.iga.bo.DomainInfo;
-import com.qtgl.iga.bo.DynamicValue;
-import com.qtgl.iga.bo.Person;
+import com.qtgl.iga.bo.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +13,8 @@ public interface PersonDao {
 
 
     Integer saveToSso(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, ArrayList<Certificate> certificates);
+
+    Integer saveToSsoTest(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, List<DynamicAttr> attrList, ArrayList<Certificate> certificates);
 
     Integer saveToTemp(List<Person> personList, DomainInfo domainInfo);
 
