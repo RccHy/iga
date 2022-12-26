@@ -210,7 +210,6 @@ public class TaskConfig {
                                     log.info("person pub:{}", pubResult);
                                 }
 
-
                                 //人员身份同步至sso
                                 final Map<String, List<OccupyDto>> occupyResult = occupyService.buildOccupy(domainInfo, lastTaskLog, taskLog);
                                 Integer countOccupy=0;
