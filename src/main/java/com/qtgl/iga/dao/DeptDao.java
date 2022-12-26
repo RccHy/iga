@@ -3,6 +3,7 @@ package com.qtgl.iga.dao;
 
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.Dept;
+import com.qtgl.iga.bo.DynamicAttr;
 import com.qtgl.iga.bo.DynamicValue;
 
 import java.util.ArrayList;
@@ -22,7 +23,8 @@ public interface DeptDao {
     ArrayList<TreeBean> deleteDept(ArrayList<TreeBean> list);
 
     Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, ArrayList<TreeBean> invalidList, List<DynamicValue> valueUpdate,List<DynamicValue> valueInsert, String tenantId);
-
+    Integer renewDataTest(ArrayList<TreeBean> keepList, ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, ArrayList<TreeBean> invalidList, List<DynamicValue> valueUpdate,
+                          List<DynamicValue> valueInsert, List<DynamicAttr> attrList, String tenantId);
     List<TreeBean> findBySourceAndTreeType(String api, String code, String tenantId);
 
     List<TreeBean> findActiveDataByTenantId(String tenantId);

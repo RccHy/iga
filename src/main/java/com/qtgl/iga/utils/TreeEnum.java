@@ -38,7 +38,11 @@ public enum TreeEnum {
 
     START_TIME("startTime", "开始时间"),
 
-    END_TIME("endTime", "结束时间");
+    INDEPENDENT("independent", "是否独立部门"),
+
+    END_TIME("endTime", "结束时间"),
+
+    BIRTHDAY("birthday", "生日");
 
     //INDEX("index", "排序");
 

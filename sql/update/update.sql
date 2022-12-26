@@ -1,3 +1,178 @@
+-- 20221220
+
+CREATE TABLE `dept` (
+                        `id` varchar(50) DEFAULT NULL,
+                        `dept_code` varchar(50) DEFAULT NULL,
+                        `dept_name` varchar(200) DEFAULT NULL,
+                        `dept_en_name` varchar(100) DEFAULT NULL COMMENT '英文名称',
+                        `parent_code` varchar(50) DEFAULT NULL,
+                        `del_mark` tinyint(4) DEFAULT NULL,
+                        `tenant_id` varchar(50) DEFAULT NULL,
+                        `update_time` datetime DEFAULT NULL,
+                        `source` varchar(20) DEFAULT NULL,
+                        `tags` varchar(50) DEFAULT NULL,
+                        `data_source` varchar(255) DEFAULT NULL,
+                        `description` varchar(255) DEFAULT NULL,
+                        `orphan` tinyint(4) DEFAULT NULL,
+                        `tree_type` varchar(50) DEFAULT NULL,
+                        `type` varchar(50) DEFAULT NULL,
+                        `relation_type` varchar(50) DEFAULT NULL COMMENT '关系类型  01隶属 02 直设 03 内设 04 挂靠 ',
+                        `create_time` datetime DEFAULT NULL,
+                        `active` tinyint(4) DEFAULT NULL,
+                        `active_time` datetime DEFAULT NULL,
+                        `dept_index` int(11) DEFAULT NULL,
+                        `abbreviation` varchar(100) DEFAULT NULL,
+                        `independent` tinyint(1) DEFAULT NULL,
+                        `create_data_source` varchar(100) DEFAULT NULL COMMENT '创建来源(机读)',
+                        `create_source` varchar(100) DEFAULT NULL COMMENT '创建来源',
+                        `sync_state` int(2) DEFAULT NULL COMMENT '同步后状态 0 无变化 1 新增 2 修改 3 删除 4 失效'
+);
+CREATE TABLE `user_type` (
+                             `id` varchar(50) NOT NULL,
+                             `user_type` varchar(50) DEFAULT NULL,
+                             `name` varchar(50) DEFAULT NULL,
+                             `delay_time` int(11) DEFAULT NULL,
+                             `tenant_id` varchar(50) DEFAULT NULL,
+                             `formal` tinyint(1) DEFAULT NULL,
+                             `del_mark` tinyint(1) DEFAULT 0,
+                             `create_time` datetime NOT NULL,
+                             `update_time` datetime NOT NULL,
+                             `data_source` varchar(100) DEFAULT NULL,
+                             `parent_code` varchar(50) DEFAULT NULL,
+                             `tags` varchar(255) DEFAULT NULL,
+                             `description` varchar(100) DEFAULT NULL,
+                             `orphan` tinyint(1) DEFAULT NULL,
+                             `active` tinyint(1) DEFAULT 1,
+                             `active_time` datetime DEFAULT NULL,
+                             `user_type_index` int(11) DEFAULT 0,
+                             `source` varchar(100) DEFAULT NULL,
+                             `post_type` varchar(50) DEFAULT NULL,
+                             `monitor` tinyint(1) DEFAULT NULL,
+                             `dept_type_code` varchar(50) DEFAULT NULL,
+                             `client_id` varchar(50) DEFAULT NULL,
+                             `create_data_source` varchar(100) DEFAULT NULL COMMENT '创建来源(机读)',
+                             `create_source` varchar(100) DEFAULT NULL COMMENT '创建来源',
+                             `sync_state` int(2) DEFAULT NULL COMMENT '同步后状态 0 无变化 1 新增 2 修改 3 删除 4 失效',
+                             PRIMARY KEY (`id`) USING BTREE,
+                             UNIQUE KEY `user_type_tenant_id` (`user_type`,`tenant_id`) USING BTREE
+);
+
+CREATE TABLE `user` (
+                        `id` varchar(36) NOT NULL,
+                        `identity_id` varchar(36) NOT NULL,
+                        `user_type` varchar(100) DEFAULT NULL,
+                        `user_code` varchar(50) DEFAULT NULL,
+                        `name` varchar(100) DEFAULT NULL,
+                        `card_type` varchar(10) DEFAULT NULL,
+                        `card_no` varchar(50) DEFAULT NULL,
+                        `del_mark` tinyint(1) DEFAULT 0,
+                        `start_time` datetime DEFAULT NULL,
+                        `end_time` datetime DEFAULT NULL,
+                        `create_time` datetime DEFAULT NULL,
+                        `update_time` datetime DEFAULT NULL,
+                        `tenant_id` varchar(36) DEFAULT NULL,
+                        `dept_code` varchar(100) DEFAULT NULL,
+                        `source` varchar(100) DEFAULT NULL,
+                        `data_source` varchar(100) DEFAULT NULL,
+                        `active` tinyint(1) DEFAULT 1,
+                        `active_time` datetime DEFAULT NULL,
+                        `tags` varchar(255) DEFAULT NULL,
+                        `description` varchar(100) DEFAULT NULL,
+                        `user_index` int(11) DEFAULT 0,
+                        `valid_start_time` datetime DEFAULT NULL,
+                        `valid_end_time` datetime DEFAULT NULL,
+                        `account_no` varchar(50) DEFAULT NULL,
+                        `orphan` int(1) NOT NULL DEFAULT 0,
+                        `create_data_source` varchar(100) DEFAULT NULL COMMENT '创建来源(机读)',
+                        `create_source` varchar(100) DEFAULT NULL COMMENT '创建来源',
+                        `sync_state` int(2) DEFAULT NULL COMMENT '同步后状态 0 无变化 1 新增 2 修改 3 删除 4 失效',
+                        PRIMARY KEY (`id`) USING BTREE,
+                        KEY `user_type` (`user_type`) USING BTREE,
+                        KEY `user_code` (`user_code`) USING BTREE,
+                        KEY `start_time` (`start_time`) USING BTREE,
+                        KEY `end_time` (`end_time`) USING BTREE,
+                        KEY `tenant_id` (`tenant_id`) USING BTREE,
+                        KEY `dept_code` (`dept_code`) USING BTREE
+);
+CREATE TABLE `identity` (
+                            `id` varchar(36) NOT NULL,
+                            `name` varchar(100) DEFAULT NULL,
+                            `open_id` varchar(50) DEFAULT NULL,
+                            `account_no` varchar(50) DEFAULT NULL,
+                            `description` varchar(100) DEFAULT NULL,
+                            `del_mark` tinyint(1) DEFAULT 0,
+                            `create_time` datetime DEFAULT NULL,
+                            `update_time` datetime DEFAULT NULL,
+                            `tenant_id` varchar(36) DEFAULT NULL,
+                            `card_type` varchar(10) DEFAULT NULL,
+                            `card_no` varchar(50) DEFAULT NULL,
+                            `cellphone` varchar(50) DEFAULT NULL,
+                            `email` varchar(100) DEFAULT NULL,
+                            `source` varchar(100) DEFAULT '',
+                            `data_source` varchar(100) DEFAULT NULL,
+                            `sex` varchar(50) DEFAULT NULL,
+                            `birthday` varchar(10) DEFAULT NULL,
+                            `avatar` varchar(500)DEFAULT NULL,
+                            `tags` varchar(255) DEFAULT NULL,
+                            `active` tinyint(1) DEFAULT 1,
+                            `active_time` datetime DEFAULT NULL,
+                            `valid_start_time` datetime DEFAULT NULL,
+                            `valid_end_time` datetime DEFAULT NULL,
+                            `freeze_time` datetime DEFAULT NULL,
+                            `state` varchar(50) DEFAULT NULL,
+                            `create_data_source` varchar(100) DEFAULT NULL COMMENT '创建来源(机读)',
+                            `create_source` varchar(100) DEFAULT NULL COMMENT '创建来源',
+                            `sync_state` int(2) DEFAULT NULL COMMENT '同步后状态 0 无变化 1 新增 2 修改 3 删除 4 失效',
+                            PRIMARY KEY (`id`) USING BTREE,
+                            UNIQUE KEY `open_id` (`open_id`) USING BTREE,
+                            KEY `account_no` (`account_no`) USING BTREE,
+                            KEY `del_mark` (`del_mark`) USING BTREE,
+                            KEY `tenant_id` (`tenant_id`) USING BTREE,
+                            KEY `cellphone` (`cellphone`) USING BTREE,
+                            KEY `email` (`email`) USING BTREE,
+                            KEY `card_type_card_no` (`card_type`,`card_no`) USING BTREE
+);
+CREATE TABLE `dynamic_attr` (
+                                `id` varchar(50) NOT NULL,
+                                `name` varchar(50) DEFAULT NULL,
+                                `code` varchar(50) DEFAULT NULL,
+                                `required` tinyint(1) DEFAULT 0,
+                                `description` varchar(50) DEFAULT NULL,
+                                `tenant_id` varchar(50) DEFAULT NULL,
+                                `create_time` datetime NOT NULL DEFAULT current_timestamp(),
+                                `update_time` datetime NOT NULL DEFAULT current_timestamp(),
+                                `type` varchar(50) NOT NULL COMMENT '作用于： 人员USER、岗位POST、部门DEPT',
+                                `field_type` varchar(50) NOT NULL COMMENT '字段类型 String、Int、Timestamp、Boolean、Float',
+                                `format` varchar(50) DEFAULT NULL COMMENT '格式化',
+                                `is_search` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否支持查询',
+                                `attr_index` int(11) DEFAULT NULL COMMENT '排序',
+                                PRIMARY KEY (`id`) USING BTREE
+);
+CREATE TABLE `dynamic_value` (
+                                 `id` varchar(50) NOT NULL,
+                                 `attr_id` varchar(50) DEFAULT NULL,
+                                 `entity_id` varchar(50) DEFAULT NULL,
+                                 `value` varchar(100) DEFAULT NULL,
+                                 `tenant_id` varchar(50) DEFAULT NULL,
+                                 PRIMARY KEY (`id`) USING BTREE,
+                                 UNIQUE KEY `attr_entity` (`attr_id`,`entity_id`),
+                                 KEY `attr_id_index` (`attr_id`) USING BTREE COMMENT '扩展字段索引',
+                                 KEY `entity_id_index` (`entity_id`) USING BTREE COMMENT '实体字段索引'
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 --20221026
 update  t_mgr_upstream_types set person_characteristic='USERNAME' where  person_characteristic='ACCOUNT_NO';
