@@ -1467,8 +1467,8 @@ public class PersonServiceImpl implements PersonService {
                                 log.info("人员对比后应删除{},但检测到对应权威源已无效或规则未启用,跳过该数据", newPerson.getId());
                             }
                         }
-                        //if (updateFlag && personFromSSO.getDelMark() != 1) {
-                        if (updateFlag) {
+                        if (updateFlag && personFromSSO.getDelMark() != 1) {
+                        //if (updateFlag) {
                             //personFromSSO.setSource(newPerson.getSource());
                             //personFromSSO.setUpdateTime(newPerson.getUpdateTime());
                             // 需要设置人员密码
@@ -1565,8 +1565,8 @@ public class PersonServiceImpl implements PersonService {
                         }
 
                         // 对比后，权威源提供的"映射字段"数据和sso中没有差异。（active字段不提供）
-                        //if (!updateFlag && personFromSSO.getDelMark() != 1) {
-                        if (!updateFlag) {
+                        if (!updateFlag && personFromSSO.getDelMark() != 1) {
+                        //if (!updateFlag) {
 
                             if (!personFromSSO.getActive().equals(newPerson.getActive())) {
                                 //personFromSSO.setActive(newPerson.getActive());
