@@ -1,3 +1,23 @@
+### 20221229
+
+**数据库**
+- 无
+
+**new：**
+- 人员同步支持birthday字段同步
+
+**bug fix**
+- 人员同步扩展字段同步逻辑 bug fix @戴会勇,@刘雨
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20221229
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20221229
+
+
 ### 20221130
 
 **数据库**
