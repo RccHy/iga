@@ -109,7 +109,7 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
             throw new CustomException(ResultCode.FAILED, "请选择或先添加权威源");
         }
         //校验名称重复
-        List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType);
+        List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType,domain);
         if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
             throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
         }
@@ -134,7 +134,7 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
 
         }
         //校验名称重复
-        List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType);
+        List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType,upstreamType.getDomain());
         if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
             throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
         }

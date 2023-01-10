@@ -415,7 +415,7 @@ public class ApiController {
             deptUpstreamType.setDescription(description);
             deptUpstreamType.setIsPage(false);
             //校验名称重复
-            List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(deptUpstreamType);
+            List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(deptUpstreamType,domainInfo.getId());
             if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
                 throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
             }

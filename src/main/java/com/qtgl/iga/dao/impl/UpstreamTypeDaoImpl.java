@@ -533,14 +533,15 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
     }
 
     @Override
-    public List<UpstreamType> findByUpstreamIdAndDescription(UpstreamType upstreamTypeVo) {
+    public List<UpstreamType> findByUpstreamIdAndDescription(UpstreamType upstreamTypeVo,String domain) {
         String sql = "select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_type_id as deptTypeId," +
                 "enable_prefix as enablePrefix,active,active_time as activeTime,root,create_time as createTime," +
                 "update_time as updateTime, graphql_url as graphqlUrl,service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId , " +
-                "is_page as isPage,syn_way as synWay ,is_incremental as isIncremental,person_characteristic as personCharacteristic  from  t_mgr_upstream_types where description= ? and  upstream_id = ? ";
+                "is_page as isPage,syn_way as synWay ,is_incremental as isIncremental,person_characteristic as personCharacteristic  from  t_mgr_upstream_types where description= ? and  upstream_id = ? and domain=?";
         List<Object> param = new ArrayList<>();
         param.add(upstreamTypeVo.getDescription());
         param.add(upstreamTypeVo.getUpstreamId());
+        param.add(domain);
         if (null != upstreamTypeVo && upstreamTypeVo.getId() != null) {
             sql = sql + " and id != ?";
             param.add(upstreamTypeVo.getId());
