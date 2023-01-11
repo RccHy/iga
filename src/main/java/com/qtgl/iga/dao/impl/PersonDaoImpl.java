@@ -2,6 +2,7 @@ package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.PersonDao;
+import com.qtgl.iga.service.impl.OccupyServiceImpl;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import com.qtgl.iga.utils.MyBeanUtils;
 import com.qtgl.iga.utils.enumerate.ResultCode;
@@ -186,14 +187,16 @@ public class PersonDaoImpl implements PersonDao {
                 if (personMap.containsKey("delete")) {
                     final List<Person> list = personMap.get("delete");
 
-                    String str = "UPDATE identity set  del_mark= 1 , update_time=now() , data_source=? " +
+                    String str = "UPDATE identity set  del_mark= 1 , update_time=now() , data_source=?,active=0,valid_start_time=?,valid_end_time=? " +
                             " where id= ?  ";
 
                     int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
                             preparedStatement.setObject(1, list.get(i).getDataSource());
-                            preparedStatement.setObject(2, list.get(i).getId());
+                            preparedStatement.setObject(2, OccupyServiceImpl.DEFAULT_START_TIME);
+                            preparedStatement.setObject(3, OccupyServiceImpl.DEFAULT_START_TIME);
+                            preparedStatement.setObject(4, list.get(i).getId());
                         }
 
                         @Override
@@ -305,10 +308,10 @@ public class PersonDaoImpl implements PersonDao {
 
 
     @Override
-    public Integer saveToSsoTest(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert,List<DynamicAttr> attrList, ArrayList<Certificate> certificates) {
+    public Integer saveToSsoTest(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, List<DynamicAttr> attrList, ArrayList<Certificate> certificates) {
         // 删除租户下所有数据
         String deleteSql = "delete from identity where tenant_id = ? ";
-        jdbcIGA.update(deleteSql,tenantId);
+        jdbcIGA.update(deleteSql, tenantId);
 
         String str = "insert into identity (id, `name`, account_no,open_id,  del_mark, create_time, update_time, tenant_id, card_type, card_no, cellphone, email, data_source, tags,  `active`, active_time,`source`,valid_start_time,valid_end_time,freeze_time," +
                 "create_data_source,create_source,sex,birthday,avatar,sync_state)" +
@@ -355,7 +358,6 @@ public class PersonDaoImpl implements PersonDao {
                         }
                     });
                 }
-
 
 
                 if (personMap.containsKey("insert")) {
@@ -479,7 +481,7 @@ public class PersonDaoImpl implements PersonDao {
                 }
 
 
-                if ( personMap.containsKey("invalid")) {
+                if (personMap.containsKey("invalid")) {
                     final List<Person> list = personMap.get("invalid");
                     int[] ints = jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
                         @Override
@@ -550,8 +552,6 @@ public class PersonDaoImpl implements PersonDao {
                 }*/
 
 
-
-
                 List<DynamicValue> dynamicValues = new ArrayList<>();
                 if (!CollectionUtils.isEmpty(valueInsert)) {
                     dynamicValues.addAll(valueInsert);
@@ -588,6 +588,7 @@ public class PersonDaoImpl implements PersonDao {
                             preparedStatement.setObject(11, attr.getIsSearch());
                             preparedStatement.setObject(12, attr.getAttrIndex());
                         }
+
                         @Override
                         public int getBatchSize() {
                             return attrList.size();
