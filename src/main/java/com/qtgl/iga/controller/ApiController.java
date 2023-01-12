@@ -558,4 +558,27 @@ public class ApiController {
         return jsonObject;
     }
 
+
+    @RequestMapping("/dealWithPerson")
+    @ResponseBody
+    public JSONObject dealWithPerson(){
+        JSONObject jsonObject = new JSONObject();
+
+        try {
+            DomainInfo domainInfo = CertifiedConnector.getDomain();
+            jsonObject = personService.dealWithPerson(domainInfo);
+        } catch (CustomException e) {
+            e.printStackTrace();
+            jsonObject.put("code", "FAILED");
+            jsonObject.put("message", e.getErrorMsg());
+        }catch (Exception e) {
+            e.printStackTrace();
+            jsonObject.put("code", "FAILED");
+            jsonObject.put("message", e.getMessage());
+        }
+
+
+        return jsonObject;
+    }
+
 }

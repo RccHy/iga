@@ -547,7 +547,7 @@ public class PersonServiceImpl implements PersonService {
                         });
                     } else if (CARD_TYPE_NO.equals(personCharacteristic)) {
                         // 证件类型+证件号码
-                        //todo 覆盖逻辑有问题
+                        // 覆盖逻辑调整
                         log.info("---------------------------------start2:"+System.currentTimeMillis());
                         Map<String, Person> personFromSSOMapByCardTypeAndNo = new ArrayList<>(preViewPersonMap.values()).stream()
                                 .filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo())).sorted(Comparator.comparing(Person::getUpdateTime))
@@ -2316,6 +2316,49 @@ public class PersonServiceImpl implements PersonService {
         }
         personDao.saveToSsoTest(result, tenant.getId(), valueUpdate, valueInsert, dynamicAttrs, certificates);
         return null;
+    }
+
+    @Override
+    public JSONObject dealWithPerson(DomainInfo domain) {
+        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        if (null == tenant) {
+            throw new CustomException(ResultCode.FAILED, "租户不存在");
+        }
+        //最终结果集
+        ArrayList<Person> resultPeople = new ArrayList<>();
+        //存放重复标识的map
+        ConcurrentHashMap<String, List<Person>> peopleMap = new ConcurrentHashMap<>();
+        //获取 有重复 用户名 证件类型 及 证件类型号码  的标识
+        List<Person> people = personDao.findRepeatPerson(tenant.getId(),"PULL");
+        if(!CollectionUtils.isEmpty(people)){
+            for (Person person : people) {
+                if(StringUtils.isBlank(person.getAccountNo())&&StringUtils.isBlank(person.getCardType())&&StringUtils.isBlank(person.getCardNo())){
+                    continue;
+                }
+                peopleMap.put(person.getAccountNo()+":"+person.getCardType()+":"+person.getCardNo(),new ArrayList<>());
+            }
+        }
+        //获取当前租户所有PULL source的人员
+        List<Person> repeatPeople = personDao.findPersonByDataSource(tenant.getId(),"PULL");
+        //去除更新时间最新的人员
+        if(!CollectionUtils.isEmpty(repeatPeople)){
+            for (Person repeatPerson : repeatPeople) {
+                if(peopleMap.containsKey(repeatPerson.getAccountNo()+":"+repeatPerson.getCardType()+":"+repeatPerson.getCardNo())){
+                    peopleMap.get(repeatPerson.getAccountNo()+":"+repeatPerson.getCardType()+":"+repeatPerson.getCardNo()).add(repeatPerson);
+                }
+            }
+        }
+        if(!CollectionUtils.isEmpty(peopleMap)){
+            for (String key : peopleMap.keySet()) {
+                List<Person> values = peopleMap.get(key);
+                values.remove(values.size()-1);
+                if(!CollectionUtils.isEmpty(values)){
+                    resultPeople.addAll(values);
+                }
+            }
+        }
+        //删除人员,人员身份 及其对应中间表信息
+        return personDao.dealWithPeople(resultPeople);
     }
 
 }

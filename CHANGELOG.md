@@ -1,3 +1,25 @@
+### 20230113
+
+**数据库**
+- 无
+
+**new：**
+- 无
+
+**bug fix**
+- 权威源查询租户相关条件补充
+- 人员及人员身份同步相关bug fix
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20230113
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20221229
+
+
+
 ### 20221229
 
 **数据库**

@@ -1,5 +1,6 @@
 package com.qtgl.iga.service;
 
+import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.PersonConnection;
 import com.qtgl.iga.bean.TaskResult;
 import com.qtgl.iga.bo.DomainInfo;
@@ -24,4 +25,6 @@ public interface PersonService {
     PreViewTask reFreshTaskStatus(Map<String, Object> arguments, DomainInfo domain);
 
     TaskResult testPersonTask(DomainInfo domain);
+
+    JSONObject dealWithPerson(DomainInfo domainInfo);
 }
