@@ -1,7 +1,9 @@
 package com.qtgl.iga.dao.impl;
 
+import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.PersonDao;
+import com.qtgl.iga.service.impl.OccupyServiceImpl;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import com.qtgl.iga.utils.MyBeanUtils;
 import com.qtgl.iga.utils.enumerate.ResultCode;
@@ -186,14 +188,16 @@ public class PersonDaoImpl implements PersonDao {
                 if (personMap.containsKey("delete")) {
                     final List<Person> list = personMap.get("delete");
 
-                    String str = "UPDATE identity set  del_mark= 1 , update_time=now() , data_source=? " +
+                    String str = "UPDATE identity set  del_mark= 1 , update_time=now() , data_source=?,active=0,valid_start_time=?,valid_end_time=? " +
                             " where id= ?  ";
 
                     int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
                             preparedStatement.setObject(1, list.get(i).getDataSource());
-                            preparedStatement.setObject(2, list.get(i).getId());
+                            preparedStatement.setObject(2, OccupyServiceImpl.DEFAULT_START_TIME);
+                            preparedStatement.setObject(3, OccupyServiceImpl.DEFAULT_START_TIME);
+                            preparedStatement.setObject(4, list.get(i).getId());
                         }
 
                         @Override
@@ -305,10 +309,10 @@ public class PersonDaoImpl implements PersonDao {
 
 
     @Override
-    public Integer saveToSsoTest(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert,List<DynamicAttr> attrList, ArrayList<Certificate> certificates) {
+    public Integer saveToSsoTest(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, List<DynamicAttr> attrList, ArrayList<Certificate> certificates) {
         // 删除租户下所有数据
         String deleteSql = "delete from identity where tenant_id = ? ";
-        jdbcIGA.update(deleteSql,tenantId);
+        jdbcIGA.update(deleteSql, tenantId);
 
         String str = "insert into identity (id, `name`, account_no,open_id,  del_mark, create_time, update_time, tenant_id, card_type, card_no, cellphone, email, data_source, tags,  `active`, active_time,`source`,valid_start_time,valid_end_time,freeze_time," +
                 "create_data_source,create_source,sex,birthday,avatar,sync_state)" +
@@ -355,7 +359,6 @@ public class PersonDaoImpl implements PersonDao {
                         }
                     });
                 }
-
 
 
                 if (personMap.containsKey("insert")) {
@@ -479,7 +482,7 @@ public class PersonDaoImpl implements PersonDao {
                 }
 
 
-                if ( personMap.containsKey("invalid")) {
+                if (personMap.containsKey("invalid")) {
                     final List<Person> list = personMap.get("invalid");
                     int[] ints = jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
                         @Override
@@ -550,8 +553,6 @@ public class PersonDaoImpl implements PersonDao {
                 }*/
 
 
-
-
                 List<DynamicValue> dynamicValues = new ArrayList<>();
                 if (!CollectionUtils.isEmpty(valueInsert)) {
                     dynamicValues.addAll(valueInsert);
@@ -588,6 +589,7 @@ public class PersonDaoImpl implements PersonDao {
                             preparedStatement.setObject(11, attr.getIsSearch());
                             preparedStatement.setObject(12, attr.getAttrIndex());
                         }
+
                         @Override
                         public int getBatchSize() {
                             return attrList.size();
@@ -1038,6 +1040,126 @@ public class PersonDaoImpl implements PersonDao {
 
         }
         return personList;
+    }
+
+    @Override
+    public List<Person> findRepeatPerson(String tenantId,String dataSource) {
+        String sql = " SELECT " +
+                " i.id, " +
+                " i.account_no AS accountNo, " +
+                " i.card_no AS cardNo, " +
+                " i.card_type AS cardType, " +
+                " i.source, " +
+                " i.data_source AS dataSource, " +
+                " i.update_time AS updateTime " +
+                " FROM " +
+                " identity i " +
+                " WHERE " +
+                " i.tenant_id = ? " +
+                " and data_source = ? " +
+                " GROUP BY " +
+                " i.account_no,i.card_no,i.card_type HAVING count(1)>1 ";
+        List<Map<String, Object>> maps = jdbcSSO.queryForList(sql, tenantId,"PULL");
+
+        List<Person> personList = new ArrayList<>();
+
+        if (null != maps && maps.size() > 0) {
+            maps.forEach(map -> {
+                Person person = new Person();
+                try {
+                    MyBeanUtils.populate(person, map);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                personList.add(person);
+            });
+
+        }
+        return personList;
+    }
+
+    @Override
+    public List<Person> findPersonByDataSource(String tenantId,String dataSource) {
+        String sql = " SELECT " +
+                " i.id, " +
+                " i.account_no AS accountNo, " +
+                " i.card_no AS cardNo, " +
+                " i.card_type AS cardType, " +
+                " i.source, " +
+                " i.data_source AS dataSource, " +
+                " i.update_time AS updateTime " +
+                " FROM " +
+                " identity i " +
+                " WHERE " +
+                " i.tenant_id = ? " +
+                " and data_source = ? " +
+                " ORDER BY " +
+                " i.update_time";
+        List<Map<String, Object>> maps = jdbcSSO.queryForList(sql, tenantId,"PULL");
+
+        List<Person> personList = new ArrayList<>();
+
+        if (null != maps && maps.size() > 0) {
+            maps.forEach(map -> {
+                Person person = new Person();
+                try {
+                    MyBeanUtils.populate(person, map);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                personList.add(person);
+            });
+
+        }
+        return personList;
+    }
+
+    @Override
+    public JSONObject dealWithPeople(ArrayList<Person> resultPeople) {
+        JSONObject jsonObject = new JSONObject();
+        txTemplate.execute(transactionStatus -> {
+            try {
+                if (!CollectionUtils.isEmpty(resultPeople)) {
+                    StringBuffer buffer = new StringBuffer();
+                    //删除人员
+                    StringBuffer str = new StringBuffer("delete from identity where id in( ");
+                    //存入参数
+                    List<Object> param = new ArrayList<>();
+                    for (Person resultPerson : resultPeople) {
+                        str.append("?,");
+                        param.add(resultPerson.getId());
+                    }
+                    str.replace(str.length()-1,str.length(),")");
+                    int update = jdbcSSO.update(str.toString(), param.toArray());
+                    buffer = buffer.append("重复人员删除数量:").append(update);
+
+                    //删除中间表
+                    StringBuffer identityUserSql = new StringBuffer("delete from identity_user where identity_id  not in (select id from identity ) ");
+                    jdbcSSO.update(identityUserSql.toString());
+
+                    //删除人员身份
+                    StringBuffer userSql = new StringBuffer("delete from user where id  not in (select user_id from identity_user ) ");
+                    int userCount = jdbcSSO.update(userSql.toString());
+
+
+                    buffer = buffer.append("因重复人员删除身份数量:").append(userCount);
+                    jsonObject.put("code", "SUCCESS");
+                    jsonObject.put("message", buffer.toString());
+
+                }else {
+                    jsonObject.put("code", "SUCCESS");
+                    jsonObject.put("message", "当前租户无重复标识人员");
+                }
+                return jsonObject;
+            } catch (Exception e) {
+                e.printStackTrace();
+                transactionStatus.setRollbackOnly();
+                // transactionStatus.rollbackToSavepoint(savepoint);
+                throw new CustomException(ResultCode.FAILED, "删除重复标识人员失败");
+            }
+        });
+
+        return jsonObject;
     }
 
 

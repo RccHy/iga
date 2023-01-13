@@ -9,7 +9,6 @@ import com.qtgl.iga.utils.FilterCodeEnum;
 import com.qtgl.iga.utils.MyBeanUtils;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
-import org.apache.tomcat.jni.Local;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -39,7 +38,6 @@ public class OccupyDaoImpl implements OccupyDao {
 
     @Resource(name = "iga-txTemplate")
     TransactionTemplate igaTemplate;
-
 
 
     @Override
@@ -202,15 +200,17 @@ public class OccupyDaoImpl implements OccupyDao {
 
                 if (occupyMap.containsKey("delete")) {
                     List<OccupyDto> list = occupyMap.get("delete");
-                    String sql = "UPDATE `user` SET  del_mark = 1, update_time = ?, data_source=? " +
+                    String sql = "UPDATE `user` SET  del_mark = 1, update_time = ?, data_source=?,active=0,valid_start_time=?,valid_end_time=? " +
                             " WHERE id = ? and update_time <= ?  ";
                     int[] ints = jdbcSSO.batchUpdate(sql, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
                             preparedStatement.setObject(1, list.get(i).getUpdateTime());
                             preparedStatement.setObject(2, list.get(i).getDataSource());
-                            preparedStatement.setObject(3, list.get(i).getOccupyId());
-                            preparedStatement.setObject(4, list.get(i).getUpdateTime());
+                            preparedStatement.setObject(3, list.get(i).getValidStartTime());
+                            preparedStatement.setObject(4, list.get(i).getValidEndTime());
+                            preparedStatement.setObject(5, list.get(i).getOccupyId());
+                            preparedStatement.setObject(6, list.get(i).getUpdateTime());
                         }
 
                         @Override
@@ -265,13 +265,8 @@ public class OccupyDaoImpl implements OccupyDao {
     }
 
 
-
-
     @Override
     public Integer saveToSsoTest(Map<String, List<OccupyDto>> occupyMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, List<DynamicAttr> attrList) {
-
-
-
 
 
         String sql = "INSERT INTO user " +
@@ -322,8 +317,6 @@ public class OccupyDaoImpl implements OccupyDao {
                         }
                     });
                 }
-
-
 
 
                 if (occupyMap.containsKey("insert")) {
@@ -485,8 +478,6 @@ public class OccupyDaoImpl implements OccupyDao {
                 }
 
 
-
-
                 List<DynamicValue> dynamicValues = new ArrayList<>();
                 if (!CollectionUtils.isEmpty(valueInsert)) {
                     dynamicValues.addAll(valueInsert);
@@ -522,6 +513,7 @@ public class OccupyDaoImpl implements OccupyDao {
                             preparedStatement.setObject(11, attr.getIsSearch());
                             preparedStatement.setObject(12, attr.getAttrIndex());
                         }
+
                         @Override
                         public int getBatchSize() {
                             return attrList.size();

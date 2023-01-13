@@ -15,7 +15,7 @@ public interface NodeRulesDao {
 
     NodeDto saveNodeRules(NodeDto nodeRules);
 
-    List<NodeRules> findNodeRules(Map<String, Object> arguments);
+    List<NodeRules> findNodeRules(Map<String, Object> arguments,String domain);
 
     NodeRules updateRules(NodeRules nodeRules);
 

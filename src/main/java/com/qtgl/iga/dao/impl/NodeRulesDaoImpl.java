@@ -117,10 +117,26 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
     }
 
     @Override
-    public List<NodeRules> findNodeRules(Map<String, Object> arguments) {
-        String sql = "select id,node_id as nodeId,type as type,active as active," +
-                "create_time as createTime,service_key as serviceKey,upstream_types_id as upstreamTypesId,inherit_id as inheritId," +
-                "active_time as activeTime,update_time as updateTime from t_mgr_node_rules where 1 = 1 and status =?";
+    public List<NodeRules> findNodeRules(Map<String, Object> arguments,String domain) {
+        String sql = " SELECT " +
+                " r.id, " +
+                " r.node_id AS nodeId, " +
+                " r.type AS type, " +
+                " r.active AS active, " +
+                " r.create_time AS createTime, " +
+                " r.service_key AS serviceKey, " +
+                " r.upstream_types_id AS upstreamTypesId, " +
+                " r.inherit_id AS inheritId, " +
+                " r.active_time AS activeTime, " +
+                " r.update_time AS updateTime  " +
+                " FROM " +
+                " t_mgr_node_rules r, " +
+                " t_mgr_node n  " +
+                " WHERE " +
+                " 1 = 1  " +
+                " AND r.`status` = ?  " +
+                " AND r.node_id = n.id  " +
+                " AND n.domain =? ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
@@ -128,6 +144,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
         Integer status = (Integer) arguments.get("status");
 
         param.add(status);
+        param.add(domain);
         dealData(arguments, stb, param);
 
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());

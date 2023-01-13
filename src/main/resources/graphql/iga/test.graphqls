@@ -1,0 +1,283 @@
+extend type Query {
+    #模拟人员同步任务
+    igaUsers(
+        name:stringFilter,
+        account:stringFilter,
+        username:stringFilter,
+        openid:stringFilter,
+        extension:[DynamicFilter],
+        offset:Int,
+        first:Int
+    ): [UserConnection]
+
+    #模拟身份同步任务
+    #userTaskData(
+    #offset:Int,
+    #first:Int
+    #): [UserConnection]
+
+    #模拟组织机构同步任务
+    igaDepartments(
+        offset:Int,
+        first:Int
+    ): [DepartmentConnection]
+
+    #模拟岗位同步任务
+    igaPosts(
+        offset:Int,
+        first:Int
+    ): [UserTypeConnection]
+
+    #查询测试同步任务上次同步具体变化数值
+    testTaskLog(type:String):TaskResult
+}
+
+
+extend type Mutation {
+    #模拟人员同步任务
+    testPersonTask: TaskResult
+
+    #模拟身份同步任务
+    testUserTask: TaskResult
+
+    #模拟组织机构同步任务
+    testDeptTask: TaskResult
+
+    #模拟岗位同步任务
+    testUserTypeTask: TaskResult
+}
+
+type TaskResult{
+    message:String
+}
+
+type UserConnection {
+    edges: [UserEdge]
+    totalCount: Int
+}
+
+type UserEdge {
+    node: User
+}
+
+type User{
+    id: ID
+    #名称
+    name: String
+    #会根据应用账号主体配置返回userCode 或 openid
+    account: String
+    #用户标识 USER_CODE/ALL_USER_CODE/ACCOUNT_NO
+    accountFriendly: String
+    #accountNo 用户名
+    username: String
+    openid: String
+    #证件类型
+    cardType: String
+    #证件号码   cardType 不为空 cardNo 必须有值
+    cardNo: String
+    #租户
+    tenantId: String
+    #创建时间
+    createTime:Timestamp
+    #修改时间
+    timestamp: Timestamp
+    #邮箱
+    email: String
+    #手机号
+    phone: String
+    #
+    express: Boolean
+    #是否禁用
+    disabled: Boolean
+    #来源
+    source: String
+    #数据来源(机读)
+    dataSource: String
+    #性别
+    sex: String
+    #生日
+    birthday: Timestamp
+    #标签
+    tags: String
+    #是否有效
+    active: Boolean
+    #有效状态变更时间
+    activeTime: Timestamp
+    #描述
+    description: String
+    #组织机构岗位
+    positions: [Position]
+    #扩展字段
+    attrsValues : [DynamicValue]
+    #证件
+    certificates : [Certificate]
+    #租户
+    tenant:String
+    #创建来源
+    createSource: String
+    #创建数据来源(机读)
+    createDataSource: String
+}
+
+type Position{
+    id: ID
+    #组织机构
+    dept: Department
+    #岗位
+    post : UserType
+    #代码
+    code : String
+    #是否禁用
+    disabled: Boolean
+    #创建时间
+    createTime:Timestamp
+    #开始时间
+    startTime : Timestamp
+    #结束时间
+    endTime : Timestamp
+    #修改时间
+    timestamp : Timestamp
+    #描述
+    description : String
+    #标签
+    tags : String
+    #是否有效
+    active : Boolean
+    #有效状态变更时间
+    activeTime : Timestamp
+    #排序
+    index : Int
+    #身份证件号码
+    cardNo : String
+    #身份证件类型
+    cardType : String
+    #最终开始时间
+    validStartTime : Timestamp
+    #最终结束时间
+    validEndTime : Timestamp
+    orphan : Int
+
+    #来源
+    createSource: String
+    #数据来源(机读)
+    createDataSource: String
+    #更新来源
+    source: String
+    #更新数据来源(机读)
+    dataSource: String
+    #扩展字段
+    attrsValues : [DynamicValue]
+    #是否虚拟身份
+    isVirtual:Boolean
+}
+
+type Certificate{
+    #证件标识
+    id:String
+    #证件类型
+    cardType: String
+    #证件编号
+    cardNo: String
+    #创建时间
+    createTime: Timestamp
+    #修改时间
+    updateTime: Timestamp
+    #是否有效
+    active: Boolean
+    #有效状态变更时间
+    activeTime: Timestamp
+    #来源
+    source: String
+    #来源人
+    fromUser:User
+}
+
+
+type DepartmentConnection {
+    edges: [DepartmentEdge]
+    totalCount: Int
+}
+
+type DepartmentEdge {
+    node: Department
+}
+
+type Department{
+    id: ID
+    #组织机构名称
+    name: String
+    #组织机构代码
+    code: String
+    #父级代码
+    parent: String
+    #标签
+    tags: String
+    #是否独立部门
+    independent: Boolean
+    @deprecated
+    #租户
+    tenantId: String
+    #修改时间
+    timestamp: Timestamp
+    #是否禁用
+    disabled: Boolean
+    #来源
+    source: String
+    #数据来源(机读)
+    dataSource: String
+    #描述
+    description: String
+    #组织机构树类型
+    treeType: String
+    #组织机构类型
+    type: String
+    #是否有效
+    active: Boolean
+    #有效状态变更时间
+    activeTime: Timestamp
+    #排序
+    index: Int
+    #创建时间
+    createTime: String
+    #租户
+    tenant: String
+    #扩展字段
+    attrsValues : [DynamicValue]
+    #英文名称
+    deptEnName:String
+    #简称
+    abbreviation:String
+    #关系类型
+    relationType:String @deprecated
+    jointOffice:[String] @deprecated
+    # 所有父级信息
+    ancestor:[Department]
+    #创建来源
+    createSource: String
+    #创建数据来源(机读)
+    createDataSource: String
+}
+
+type UserTypeConnection {
+    edges: [UserTypeEdge]
+    totalCount: Int
+}
+type UserTypeEdge {
+    node: UserType
+}
+
+type UserType{
+    # 检测项名称
+    name: String!
+    # 如有错误 详细描述
+    desc: String
+    #  pass 成功 fail 失败 waring 警告
+    state: String!
+}
+
+input DynamicFilter{
+    key:String
+    value:stringFilter
+}
+
+

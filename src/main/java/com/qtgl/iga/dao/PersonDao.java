@@ -1,5 +1,6 @@
 package com.qtgl.iga.dao;
 
+import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bo.*;
 
 import java.util.ArrayList;
@@ -32,4 +33,10 @@ public interface PersonDao {
     List<Person> mergeCharacteristicPerson(String tenantId);
 
     List<Person> getDelMarkPeople(String tenantId);
+
+    List<Person> findRepeatPerson(String tenantId,String dataSource);
+
+    List<Person> findPersonByDataSource(String tenantId,String dataSource);
+
+    JSONObject dealWithPeople(ArrayList<Person> resultPeople);
 }

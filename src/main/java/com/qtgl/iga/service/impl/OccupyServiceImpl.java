@@ -181,7 +181,7 @@ public class OccupyServiceImpl implements OccupyService {
             log.error("无人员身份管理规则信息");
             return null;
         }
-        dataProcessing(nodes,occupyRules,domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream, incrementalTasks, currentTask, dynamicAttrs, valueUpdateMap, valueInsertMap, finalDynamicCodes, finalValueMap, attrMap, attrReverseMap);
+        dataProcessing(nodes, occupyRules, domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream, incrementalTasks, currentTask, dynamicAttrs, valueUpdateMap, valueInsertMap, finalDynamicCodes, finalValueMap, attrMap, attrReverseMap);
 
         List<OccupyDto> occupiesFromSSO = occupyDao.findAll(tenant.getId(), null, null);
 
@@ -257,7 +257,7 @@ public class OccupyServiceImpl implements OccupyService {
         }
     }
 
-    private List<OccupyDto> dataProcessing(List<Node> nodes,List<NodeRules> occupyRules,DomainInfo domain, Tenant tenant, Map<String, CardType> userCardTypeMap, Map<String, CardType> identityCardTypeMap, Map arguments, Map<String, List<OccupyDto>> result, ArrayList<OccupyDto> deleteFromSSO, Map<String, OccupyDto> occupyDtoFromUpstream, List<IncrementalTask> incrementalTasks, TaskLog currentTask,
+    private List<OccupyDto> dataProcessing(List<Node> nodes, List<NodeRules> occupyRules, DomainInfo domain, Tenant tenant, Map<String, CardType> userCardTypeMap, Map<String, CardType> identityCardTypeMap, Map arguments, Map<String, List<OccupyDto>> result, ArrayList<OccupyDto> deleteFromSSO, Map<String, OccupyDto> occupyDtoFromUpstream, List<IncrementalTask> incrementalTasks, TaskLog currentTask,
                                            List<DynamicAttr> dynamicAttrs, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, List<String> finalDynamicCodes, Map<String, List<DynamicValue>> finalValueMap, Map<String, String> attrMap, Map<String, String> attrReverseMap) {
 
 
@@ -269,8 +269,6 @@ public class OccupyServiceImpl implements OccupyService {
         // 获取被合重过的人员信息
         List<Person> mergePerson = personDao.mergeCharacteristicPerson(tenant.getId());
         log.info("合重的人员size：" + mergePerson.size());
-
-
 
 
         // 获取sso中所有的有效的 组织机构 、 岗位信息
@@ -601,7 +599,7 @@ public class OccupyServiceImpl implements OccupyService {
                             if (persons.size() >= 0) {
                                 for (Person person : persons) {
                                     createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
-                                    log.info("【通过证件类型+证件号码匹配人员】人员身份通过人员类型+证件获取到人员信息{}", personKey);
+                                    log.debug("【通过证件类型+证件号码匹配人员】人员身份通过人员类型+证件获取到人员信息{}", personKey);
                                 }
                             }
 
@@ -631,7 +629,7 @@ public class OccupyServiceImpl implements OccupyService {
                             if (persons.size() >= 0) {
                                 for (Person person : persons) {
                                     createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
-                                    log.info("【通过证件号码匹配人员】人员身份找找到人员信息{}", personKey);
+                                    log.debug("【通过证件号码匹配人员】人员身份找找到人员信息{}", personKey);
                                 }
                             }
                             ;
@@ -660,7 +658,7 @@ public class OccupyServiceImpl implements OccupyService {
                             if (persons.size() >= 0) {
                                 for (Person person : persons) {
                                     createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
-                                    log.info("【通过用户名码匹配人员】人员身份找找到人员信息{}", personKey);
+                                    log.debug("【通过用户名码匹配人员】人员身份找找到人员信息{}", personKey);
                                 }
                             }
                             ;
@@ -689,7 +687,7 @@ public class OccupyServiceImpl implements OccupyService {
                             if (persons.size() >= 0) {
                                 for (Person person : persons) {
                                     createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
-                                    log.info("【通过邮箱匹配人员】人员身份找找到人员信息{}", personKey);
+                                    log.debug("【通过邮箱匹配人员】人员身份找找到人员信息{}", personKey);
                                 }
                             }
                             ;
@@ -718,7 +716,7 @@ public class OccupyServiceImpl implements OccupyService {
                             if (persons.size() >= 0) {
                                 for (Person person : persons) {
                                     createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
-                                    log.info("【通过电话匹配人员】人员身份找找到人员信息{}", personKey);
+                                    log.debug("【通过电话匹配人员】人员身份找找到人员信息{}", personKey);
                                 }
                             }
                             ;
@@ -740,7 +738,7 @@ public class OccupyServiceImpl implements OccupyService {
                             if (persons.size() >= 0) {
                                 for (Person person : persons) {
                                     createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
-                                    log.info("【通过OPENID匹配人员】人员身份找找到人员信息{}", personKey);
+                                    log.debug("【通过OPENID匹配人员】人员身份找找到人员信息{}", personKey);
                                 }
                             }
                             break;
@@ -1603,17 +1601,17 @@ public class OccupyServiceImpl implements OccupyService {
             List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
             if (null == nodes || nodes.size() <= 0) {
                 log.error("无人员身份管理规则信息");
-                throw new CustomException(ResultCode.FAILED,"无人员身份管理规则信息");
+                throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
             }
             String nodeId = nodes.get(0).getId();
             List<NodeRules> occupyRules = rulesDao.getByNodeAndType(nodeId, 1, true, 0);
             // 获取所有规则 字段，用于更新验证
             if (null == occupyRules || occupyRules.size() == 0) {
                 log.error("无人员身份管理规则信息");
-                throw new  CustomException(ResultCode.FAILED,"无人员身份管理规则信息");
+                throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
             }
 
-            occupyDtos = dataProcessing(nodes,occupyRules,domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream, null, null, dynamicAttrs, valueUpdateMap, valueInsertMap, finalDynamicCodes, finalValueMap, attrMap, attrReverseMap);
+            occupyDtos = dataProcessing(nodes, occupyRules, domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream, null, null, dynamicAttrs, valueUpdateMap, valueInsertMap, finalDynamicCodes, finalValueMap, attrMap, attrReverseMap);
         } catch (Exception e) {
             e.printStackTrace();
             throw new CustomException(ResultCode.FAILED, e.getMessage());

@@ -97,9 +97,9 @@ public class UpstreamServiceImpl implements UpstreamService {
 
     @Override
     @Transactional
-    public UpstreamDto saveUpstreamAndTypes(UpstreamDto upstreamDto, String id) throws Exception {
+    public UpstreamDto saveUpstreamAndTypes(UpstreamDto upstreamDto, String domain) throws Exception {
         // 添加权威源
-        Upstream upstream = upstreamDao.saveUpstream(upstreamDto, id);
+        Upstream upstream = upstreamDao.saveUpstream(upstreamDto, domain);
         UpstreamDto upstreamDb = new UpstreamDto(upstream);
         //添加权威源类型
         if (null == upstream) {
@@ -111,11 +111,11 @@ public class UpstreamServiceImpl implements UpstreamService {
             for (UpstreamType upstreamType : upstreamTypes) {
                 upstreamType.setUpstreamId(upstream.getId());
                 //校验名称重复
-                List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType);
+                List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType,domain);
                 if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
                     throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
                 }
-                UpstreamType upstreamTypeDb = upstreamTypeDao.saveUpstreamType(upstreamType, id);
+                UpstreamType upstreamTypeDb = upstreamTypeDao.saveUpstreamType(upstreamType, domain);
                 if (null != upstreamTypeDb) {
                     list.add(upstreamTypeDb);
                 } else {
@@ -179,7 +179,7 @@ public class UpstreamServiceImpl implements UpstreamService {
             for (UpstreamType upstreamType : upstreamTypes) {
                 UpstreamType upstreamResult = null;
                 //校验名称重复
-                List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType);
+                List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType,upstreamDto.getDomain());
                 if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
                     throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
                 }
