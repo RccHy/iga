@@ -20,6 +20,7 @@ public class TestTaskProvider {
     public TypeRuntimeWiring.Builder buildQueryRuntimeWiring() {
         return newTypeWiring("Query")
                 .dataFetcher("igaUsers", dataFetcher.igaUsers())
+                .dataFetcher("igaPersons", dataFetcher.igaPersons())
                 .dataFetcher("igaPosts", dataFetcher.igaPosts())
                 .dataFetcher("igaDepartments", dataFetcher.igaDepartments());
     }

@@ -27,4 +27,6 @@ public interface PersonService {
     TaskResult testPersonTask(DomainInfo domain);
 
     JSONObject dealWithPerson(DomainInfo domainInfo);
+
+    PersonConnection findTestPersons(Map<String, Object> arguments, DomainInfo domain);
 }

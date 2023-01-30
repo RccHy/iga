@@ -34,9 +34,11 @@ public interface PersonDao {
 
     List<Person> getDelMarkPeople(String tenantId);
 
-    List<Person> findRepeatPerson(String tenantId,String dataSource);
+    List<Person> findRepeatPerson(String tenantId, String dataSource);
 
-    List<Person> findPersonByDataSource(String tenantId,String dataSource);
+    List<Person> findPersonByDataSource(String tenantId, String dataSource);
 
     JSONObject dealWithPeople(ArrayList<Person> resultPeople);
+
+    Map<String, Object> findTestPersons(Map<String, Object> arguments, Tenant domain);
 }

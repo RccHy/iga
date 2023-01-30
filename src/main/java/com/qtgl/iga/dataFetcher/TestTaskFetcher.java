@@ -94,7 +94,7 @@ public class TestTaskFetcher {
      *
      * @return
      */
-    public DataFetcher queryPersonTaskData() {
+    public DataFetcher igaPersons() {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
@@ -103,7 +103,7 @@ public class TestTaskFetcher {
 
 
             try {
-                PersonConnection persons = personService.findPersons(arguments, domain);
+                PersonConnection persons = personService.findTestPersons(arguments, domain);
                 return persons;
             } catch (CustomException e) {
                 e.printStackTrace();
@@ -144,7 +144,7 @@ public class TestTaskFetcher {
     }
 
     /**
-     *  人员同步测试接口
+     * 人员同步测试接口
      *
      * @return
      */
@@ -159,7 +159,7 @@ public class TestTaskFetcher {
     }
 
     /**
-     *  人员身份同步测试接口
+     * 人员身份同步测试接口
      *
      * @return
      */
@@ -174,7 +174,7 @@ public class TestTaskFetcher {
     }
 
     /**
-     *  组织机构同步测试接口
+     * 组织机构同步测试接口
      *
      * @return
      */
@@ -189,7 +189,7 @@ public class TestTaskFetcher {
     }
 
     /**
-     *  岗位同步测试接口
+     * 岗位同步测试接口
      *
      * @return
      */

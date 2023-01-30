@@ -1,11 +1,7 @@
 extend type Query {
     #模拟人员同步任务
     igaUsers(
-        name:stringFilter,
-        account:stringFilter,
-        username:stringFilter,
-        openid:stringFilter,
-        extension:[DynamicFilter],
+        filter:IgaPersonFilter
         offset:Int,
         first:Int
     ): [UserConnection]
@@ -15,6 +11,11 @@ extend type Query {
     #offset:Int,
     #first:Int
     #): [UserConnection]
+    igaPersons(
+        filter:IgaPersonFilter
+        offset:Int,
+        first:Int
+    ): PersonConnection
 
     #模拟组织机构同步任务
     igaDepartments(
@@ -280,4 +281,9 @@ input DynamicFilter{
     value:stringFilter
 }
 
-
+input IgaPersonFilter{
+    name:stringFilter,
+    username:stringFilter,
+    openid:stringFilter,
+    extension:[DynamicFilter],
+}
