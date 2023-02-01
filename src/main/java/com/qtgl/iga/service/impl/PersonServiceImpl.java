@@ -6,7 +6,6 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.PersonConnection;
 import com.qtgl.iga.bean.PersonEdge;
-import com.qtgl.iga.bean.TaskResult;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.config.PreViewPersonThreadPool;
 import com.qtgl.iga.dao.*;
@@ -1956,10 +1955,10 @@ public class PersonServiceImpl implements PersonService {
         Map<String, DynamicValue> valueInsertMap = new ConcurrentHashMap<>();
 
         if (!CollectionUtils.isEmpty(dynamicAttrs)) {
-            dynamicCodes = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getCode()).collect(Collectors.toList());
+            dynamicCodes = dynamicAttrs.stream().map(DynamicAttr::getCode).collect(Collectors.toList());
 
             //获取扩展value
-            List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getId()).collect(Collectors.toList());
+            List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr::getId).collect(Collectors.toList());
 
             dynamicValues = dynamicValueDao.findAllByAttrId(attrIds, tenant.getId());
         }
@@ -1979,7 +1978,7 @@ public class PersonServiceImpl implements PersonService {
         Map<String, String> attrMap = new ConcurrentHashMap<>();
         Map<String, String> attrReverseMap = new ConcurrentHashMap<>();
         log.info("----------------- upstream Person start:{}", System.currentTimeMillis());
-        List<Person> personList = null;
+        List<Person> personList;
         try {
             List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
             if (null == nodes || nodes.size() <= 0) {
@@ -2164,9 +2163,38 @@ public class PersonServiceImpl implements PersonService {
     }
 
     @Override
-    public TaskResult testPersonTask(DomainInfo domain) {
-        //todo 处理线程问题
+    public PreViewTask testPersonTask(DomainInfo domain, PreViewTask viewTask) {
 
+        if (null == viewTask) {
+            viewTask = new PreViewTask();
+            viewTask.setTaskId(UUID.randomUUID().toString());
+            viewTask.setStatus("doing");
+            viewTask.setDomain(domain.getId());
+            viewTask.setType("person");
+        }
+        //查询进行中的刷新人员任务数
+        //Integer count = preViewTaskService.findByTypeAndStatus("person", "doing", domain);
+        //todo 通过线程池状态判断
+        //if (count <= 10) {
+        //    viewTask = preViewTaskService.saveTask(viewTask);
+        //} else {
+        //    throw new CustomException(ResultCode.FAILED, "当前任务数量已达上限,无法创建新的刷新任务,请耐心等待");
+        //}
+
+        if (PreViewPersonThreadPool.executorServiceMap.containsKey(domain.getDomainName())) {
+            ExecutorService executorService = PreViewPersonThreadPool.executorServiceMap.get(domain.getDomainName());
+            PreViewTask finalViewTask = viewTask;
+            executorService.execute(() -> {
+                dealTask(domain, finalViewTask);
+            });
+        } else {
+            PreViewPersonThreadPool.builderExecutor(domain.getDomainName());
+            testPersonTask(domain, viewTask);
+        }
+        return viewTask;
+    }
+
+    private void dealTask(DomainInfo domain, PreViewTask viewTask) {
         //错误数据置空
         TaskConfig.errorData.put(domain.getId(), "");
         personErrorData = new ConcurrentHashMap<>();
@@ -2227,7 +2255,7 @@ public class PersonServiceImpl implements PersonService {
         List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
         if (null == nodes || nodes.size() <= 0) {
             log.error("无人员管理规则信息");
-            return null;
+            return;
             //throw new CustomException(ResultCode.FAILED, "无人员管理规则信息");
         }
         String nodeId = nodes.get(0).getId();
@@ -2235,15 +2263,11 @@ public class PersonServiceImpl implements PersonService {
         List<NodeRules> userRules = rulesDao.getByNodeAndType(nodeId, 1, null, 0);
         if (null == userRules || userRules.size() == 0) {
             log.error("无人员管理规则信息");
-            return null;
+            return;
             //throw new CustomException(ResultCode.FAILED, "无人员规则信息");
         }
         dataProcessing(nodes, userRules, domain, tenant, cardTypeMap, dynamicAttrs, valueUpdateMap, valueInsertMap, finalDynamicCodes, finalValueMap, result, attrMap, attrReverseMap, arguments, null);
-        //// 验证监控规则
-        //List<Person> personFromSSOList = personDao.getAll(tenant.getId());
-        //log.info("--------------------开始验证人员监控规则");
-        //calculationService.monitorRules(domain, taskLog, personFromSSOList.size(), result.get("delete"), result.get("invalid"));
-        //log.info("--------------------验证人员监控规则结束");
+
         if (!CollectionUtils.isEmpty(personErrorData.get(domain.getId()))) {
             TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(personErrorData.get(domain.getId())));
         }
@@ -2316,9 +2340,12 @@ public class PersonServiceImpl implements PersonService {
             valueUpdate = new ArrayList<>(valueUpdateMap.values());
         }
         personDao.saveToSsoTest(result, tenant.getId(), valueUpdate, valueInsert, dynamicAttrs, certificates);
-        TaskResult taskResult = new TaskResult();
-        taskResult.setMessage("SUCCESS");
-        return taskResult;
+        if (null != viewTask) {
+            viewTask.setStatus("done");
+            viewTask.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+            preViewTaskService.saveTask(viewTask);
+            log.info("人员刷新完毕,任务id为:{}", viewTask.getTaskId());
+        }
     }
 
     @Override
@@ -2372,11 +2399,33 @@ public class PersonServiceImpl implements PersonService {
         Integer count = (Integer) testPersons.get("count");
         PersonConnection personConnection = new PersonConnection();
         if (!CollectionUtils.isEmpty(list)) {
+            List<DynamicValue> dynamicValues = new ArrayList<>();
+
+            List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByTypeIGA(TYPE, tenant.getId());
+
+            if (!CollectionUtils.isEmpty(dynamicAttrs)) {
+
+                //获取扩展value
+                List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr::getId).collect(Collectors.toList());
+
+                dynamicValues = dynamicValueDao.findAllByAttrIdIGA(attrIds, tenant.getId());
+            }
+            //扩展字段值分组
+            Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
+            if (!CollectionUtils.isEmpty(dynamicValues)) {
+                valueMap = dynamicValues.stream().filter(dynamicValue -> !StringUtils.isBlank(dynamicValue.getEntityId())).collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
+            }
+            Map<String, List<DynamicValue>> finalValueMap = valueMap;
+
             ArrayList<PersonEdge> personEdges = new ArrayList<>();
             for (Person person : list) {
                 PersonEdge personEdge = new PersonEdge();
                 personEdge.setNode(person);
-                //todo 处理扩展字段
+                //处理扩展字段值
+                if (!CollectionUtils.isEmpty(finalValueMap.get(person.getId()))) {
+                    List<DynamicValue> dynValues = finalValueMap.get(person.getId());
+                    person.setAttrsValues(dynValues);
+                }
                 personEdges.add(personEdge);
             }
             personConnection.setEdges(personEdges);

@@ -4,7 +4,7 @@ extend type Query {
         filter:IgaPersonFilter
         offset:Int,
         first:Int
-    ): [UserConnection]
+    ): UserConnection
 
     #模拟身份同步任务
     #userTaskData(
@@ -21,40 +21,39 @@ extend type Query {
     igaDepartments(
         offset:Int,
         first:Int
-    ): [DepartmentConnection]
+    ): DepartmentConnection
 
     #模拟岗位同步任务
     igaPosts(
         offset:Int,
         first:Int
-    ): [UserTypeConnection]
+    ): UserTypeConnection
 
     #查询测试同步任务上次同步具体变化数值
-    testTaskLog(type:String):TaskResult
+#    testTaskLog(type:String):TaskResult
 }
 
 
 extend type Mutation {
     #模拟人员同步任务
-    testPersonTask: TaskResult
+    testPersonTask: PreViewTask
 
     #模拟身份同步任务
-    testUserTask: TaskResult
+    testUserTask: PreViewTask
 
     #模拟组织机构同步任务
-    testDeptTask: TaskResult
+    testDeptTask: PreViewTask
 
     #模拟岗位同步任务
-    testUserTypeTask: TaskResult
+    testUserTypeTask: PreViewTask
 }
 
-type TaskResult{
-    message:String
-}
+
 
 type UserConnection {
     edges: [UserEdge]
     totalCount: Int
+    updateTime:Timestamp
 }
 
 type UserEdge {

@@ -3,9 +3,9 @@ package com.qtgl.iga.dataFetcher;
 
 import com.qtgl.iga.bean.OccupyConnection;
 import com.qtgl.iga.bean.PersonConnection;
-import com.qtgl.iga.bean.TaskResult;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.DomainInfo;
+import com.qtgl.iga.bo.PreViewTask;
 import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.service.OccupyService;
 import com.qtgl.iga.service.PersonService;
@@ -152,7 +152,7 @@ public class TestTaskFetcher {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
-            TaskResult taskResult = personService.testPersonTask(domain);
+            PreViewTask taskResult = personService.testPersonTask(domain,null);
             return taskResult;
 
         };
@@ -167,7 +167,7 @@ public class TestTaskFetcher {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
-            TaskResult taskResult = personService.testPersonTask(domain);
+            PreViewTask taskResult = occupyService.testUserTask(domain,null);
             return taskResult;
 
         };
@@ -182,7 +182,7 @@ public class TestTaskFetcher {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
-            TaskResult taskResult = personService.testPersonTask(domain);
+            PreViewTask taskResult = personService.testPersonTask(domain,null);
             return taskResult;
 
         };
@@ -197,7 +197,7 @@ public class TestTaskFetcher {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
-            TaskResult taskResult = personService.testPersonTask(domain);
+            PreViewTask taskResult = personService.testPersonTask(domain,null);
             return taskResult;
 
         };

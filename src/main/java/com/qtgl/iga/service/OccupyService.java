@@ -19,4 +19,9 @@ public interface OccupyService {
 
 
     PreViewTask reFreshOccupies(Map<String, Object> arguments, DomainInfo domain, PreViewTask preViewTask);
+
+    PreViewTask testUserTask(DomainInfo domain, PreViewTask preViewTask);
+
+    OccupyConnection findTestUsers(Map<String, Object> arguments, DomainInfo domain);
+
 }

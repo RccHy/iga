@@ -111,7 +111,7 @@ CREATE TABLE `identity` (
                             `source` varchar(100) DEFAULT '',
                             `data_source` varchar(100) DEFAULT NULL,
                             `sex` varchar(50) DEFAULT NULL,
-                            `birthday` varchar(10) DEFAULT NULL,
+                            `birthday` datetime DEFAULT NULL,
                             `avatar` varchar(500)DEFAULT NULL,
                             `tags` varchar(255) DEFAULT NULL,
                             `active` tinyint(1) DEFAULT 1,

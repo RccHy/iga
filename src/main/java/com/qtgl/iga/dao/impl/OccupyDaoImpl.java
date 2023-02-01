@@ -270,8 +270,8 @@ public class OccupyDaoImpl implements OccupyDao {
 
 
         String sql = "INSERT INTO user " +
-                "               (id, user_type, card_type,user_code, del_mark, start_time, end_time, create_time, update_time, tenant_id, dept_code, source, data_source, active, active_time,user_index,post_code,account_no,valid_start_time,valid_end_time,orphan,create_data_source,create_source,sync_state,identity_id) " +
-                "               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                "               (id, user_type, card_type,user_code, del_mark, start_time, end_time, create_time, update_time, tenant_id, dept_code, source, data_source, active, active_time,user_index,account_no,valid_start_time,valid_end_time,orphan,create_data_source,create_source,sync_state,identity_id) " +
+                "               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
         return igaTemplate.execute(transactionStatus -> {
             try {
@@ -300,15 +300,14 @@ public class OccupyDaoImpl implements OccupyDao {
                             preparedStatement.setObject(14, list.get(i).getActive());
                             preparedStatement.setObject(15, LocalDateTime.now());
                             preparedStatement.setObject(16, list.get(i).getIndex());
-                            preparedStatement.setObject(17, list.get(i).getPostCode());
-                            preparedStatement.setObject(18, list.get(i).getAccountNo());
-                            preparedStatement.setObject(19, list.get(i).getValidStartTime());
-                            preparedStatement.setObject(20, list.get(i).getValidEndTime());
-                            preparedStatement.setObject(21, list.get(i).getOrphan());
-                            preparedStatement.setObject(22, list.get(i).getDataSource());
-                            preparedStatement.setObject(23, list.get(i).getSource());
-                            preparedStatement.setObject(24, 0);
-                            preparedStatement.setObject(25, list.get(i).getPersonId());
+                            preparedStatement.setObject(17, list.get(i).getAccountNo());
+                            preparedStatement.setObject(18, list.get(i).getValidStartTime());
+                            preparedStatement.setObject(19, list.get(i).getValidEndTime());
+                            preparedStatement.setObject(20, list.get(i).getOrphan());
+                            preparedStatement.setObject(21, list.get(i).getDataSource());
+                            preparedStatement.setObject(22, list.get(i).getSource());
+                            preparedStatement.setObject(23, 0);
+                            preparedStatement.setObject(24, list.get(i).getPersonId());
                         }
 
                         @Override
@@ -340,15 +339,14 @@ public class OccupyDaoImpl implements OccupyDao {
                             preparedStatement.setObject(14, list.get(i).getActive());
                             preparedStatement.setObject(15, LocalDateTime.now());
                             preparedStatement.setObject(16, list.get(i).getIndex());
-                            preparedStatement.setObject(17, list.get(i).getPostCode());
-                            preparedStatement.setObject(18, list.get(i).getAccountNo());
-                            preparedStatement.setObject(19, list.get(i).getValidStartTime());
-                            preparedStatement.setObject(20, list.get(i).getValidEndTime());
-                            preparedStatement.setObject(21, list.get(i).getOrphan());
-                            preparedStatement.setObject(22, list.get(i).getDataSource());
-                            preparedStatement.setObject(23, list.get(i).getSource());
-                            preparedStatement.setObject(24, 1);
-                            preparedStatement.setObject(25, list.get(i).getPersonId());
+                            preparedStatement.setObject(17, list.get(i).getAccountNo());
+                            preparedStatement.setObject(18, list.get(i).getValidStartTime());
+                            preparedStatement.setObject(19, list.get(i).getValidEndTime());
+                            preparedStatement.setObject(20, list.get(i).getOrphan());
+                            preparedStatement.setObject(21, list.get(i).getDataSource());
+                            preparedStatement.setObject(22, list.get(i).getSource());
+                            preparedStatement.setObject(23, 1);
+                            preparedStatement.setObject(24, list.get(i).getPersonId());
                         }
 
                         @Override
@@ -380,15 +378,14 @@ public class OccupyDaoImpl implements OccupyDao {
                             preparedStatement.setObject(14, list.get(i).getActive());
                             preparedStatement.setObject(15, list.get(i).getCreateTime());
                             preparedStatement.setObject(16, list.get(i).getIndex());
-                            preparedStatement.setObject(17, list.get(i).getPostCode());
-                            preparedStatement.setObject(18, list.get(i).getAccountNo());
-                            preparedStatement.setObject(19, list.get(i).getValidStartTime());
-                            preparedStatement.setObject(20, list.get(i).getValidEndTime());
-                            preparedStatement.setObject(21, list.get(i).getOrphan());
-                            preparedStatement.setObject(22, list.get(i).getDataSource());
-                            preparedStatement.setObject(23, list.get(i).getSource());
-                            preparedStatement.setObject(24, 3);
-                            preparedStatement.setObject(25, list.get(i).getPersonId());
+                            preparedStatement.setObject(17, list.get(i).getAccountNo());
+                            preparedStatement.setObject(18, list.get(i).getValidStartTime());
+                            preparedStatement.setObject(19, list.get(i).getValidEndTime());
+                            preparedStatement.setObject(20, list.get(i).getOrphan());
+                            preparedStatement.setObject(21, list.get(i).getDataSource());
+                            preparedStatement.setObject(22, list.get(i).getSource());
+                            preparedStatement.setObject(23, 3);
+                            preparedStatement.setObject(24, list.get(i).getPersonId());
                         }
 
                         @Override
@@ -420,15 +417,14 @@ public class OccupyDaoImpl implements OccupyDao {
                             preparedStatement.setObject(14, list.get(i).getActive());
                             preparedStatement.setObject(15, list.get(i).getCreateTime());
                             preparedStatement.setObject(16, list.get(i).getIndex());
-                            preparedStatement.setObject(17, list.get(i).getPostCode());
-                            preparedStatement.setObject(18, list.get(i).getAccountNo());
-                            preparedStatement.setObject(19, list.get(i).getValidStartTime());
-                            preparedStatement.setObject(20, list.get(i).getValidEndTime());
-                            preparedStatement.setObject(21, list.get(i).getOrphan());
-                            preparedStatement.setObject(22, list.get(i).getDataSource());
-                            preparedStatement.setObject(23, list.get(i).getSource());
-                            preparedStatement.setObject(24, 2);
-                            preparedStatement.setObject(25, list.get(i).getPersonId());
+                            preparedStatement.setObject(17, list.get(i).getAccountNo());
+                            preparedStatement.setObject(18, list.get(i).getValidStartTime());
+                            preparedStatement.setObject(19, list.get(i).getValidEndTime());
+                            preparedStatement.setObject(20, list.get(i).getOrphan());
+                            preparedStatement.setObject(21, list.get(i).getDataSource());
+                            preparedStatement.setObject(22, list.get(i).getSource());
+                            preparedStatement.setObject(23, 2);
+                            preparedStatement.setObject(24, list.get(i).getPersonId());
                         }
 
                         @Override
@@ -459,15 +455,14 @@ public class OccupyDaoImpl implements OccupyDao {
                             preparedStatement.setObject(14, list.get(i).getActive());
                             preparedStatement.setObject(15, list.get(i).getCreateTime());
                             preparedStatement.setObject(16, list.get(i).getIndex());
-                            preparedStatement.setObject(17, list.get(i).getPostCode());
-                            preparedStatement.setObject(18, list.get(i).getAccountNo());
-                            preparedStatement.setObject(19, list.get(i).getValidStartTime());
-                            preparedStatement.setObject(20, list.get(i).getValidEndTime());
-                            preparedStatement.setObject(21, list.get(i).getOrphan());
-                            preparedStatement.setObject(22, list.get(i).getDataSource());
-                            preparedStatement.setObject(23, list.get(i).getSource());
-                            preparedStatement.setObject(24, 4);
-                            preparedStatement.setObject(25, list.get(i).getPersonId());
+                            preparedStatement.setObject(17, list.get(i).getAccountNo());
+                            preparedStatement.setObject(18, list.get(i).getValidStartTime());
+                            preparedStatement.setObject(19, list.get(i).getValidEndTime());
+                            preparedStatement.setObject(20, list.get(i).getOrphan());
+                            preparedStatement.setObject(21, list.get(i).getDataSource());
+                            preparedStatement.setObject(22, list.get(i).getSource());
+                            preparedStatement.setObject(23, 4);
+                            preparedStatement.setObject(24, list.get(i).getPersonId());
                         }
 
                         @Override

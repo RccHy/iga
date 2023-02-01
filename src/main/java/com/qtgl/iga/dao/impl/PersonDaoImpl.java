@@ -349,7 +349,6 @@ public class PersonDaoImpl implements PersonDao {
                             preparedStatement.setObject(20, list.get(i).getFreezeTime());
                             preparedStatement.setObject(21, list.get(i).getDataSource());
                             preparedStatement.setObject(22, list.get(i).getSource());
-
                             preparedStatement.setObject(23, list.get(i).getSex());
                             preparedStatement.setObject(24, list.get(i).getBirthday());
                             preparedStatement.setObject(25, list.get(i).getAvatar());
@@ -565,15 +564,10 @@ public class PersonDaoImpl implements PersonDao {
                 }
 
 
-                if (!CollectionUtils.isEmpty(dynamicValues)) {
-
+                if(!CollectionUtils.isEmpty(attrList)){
                     // 删除、并重新创建扩展字段
                     String deleteDynamicAttrSql = "delete from dynamic_attr where   type='USER' and tenant_id = ?";
-                    jdbcIGA.update(deleteDynamicAttrSql, new Object[]{new String(tenantId)});
-
-                    String deleteDynamicValueSql = "delete from dynamic_value where  tenant_id = ? and attr_id not in (select id from dynamic_attr )";
-                    jdbcIGA.update(deleteDynamicValueSql, new Object[]{new String(tenantId)});
-
+                    jdbcIGA.update(deleteDynamicAttrSql, tenantId);
                     String addDynamicValueSql = "INSERT INTO dynamic_attr (id, name, code, required, description, tenant_id, create_time, update_time, type, field_type, format, is_search, attr_index) VALUES (?,?,?,?,?,?,?,?,'USER',?,?,?,?)";
                     jdbcIGA.batchUpdate(addDynamicValueSql, new BatchPreparedStatementSetter() {
                         @Override
@@ -598,7 +592,11 @@ public class PersonDaoImpl implements PersonDao {
                             return attrList.size();
                         }
                     });
+                }
+                if (!CollectionUtils.isEmpty(dynamicValues)) {
 
+                    String deleteDynamicValueSql = "delete from dynamic_value where  tenant_id = ? and attr_id not in (select id from dynamic_attr )";
+                    jdbcIGA.update(deleteDynamicValueSql, tenantId);
 
                     String valueStr = "INSERT INTO dynamic_value (`id`, `attr_id`, `entity_id`, `value`, `tenant_id`) VALUES (?, ?, ?, ?, ?)";
                     jdbcIGA.batchUpdate(valueStr, new BatchPreparedStatementSetter() {
