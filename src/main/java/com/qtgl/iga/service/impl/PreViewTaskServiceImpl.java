@@ -15,8 +15,8 @@ public class PreViewTaskServiceImpl implements PreViewTaskService {
     PreViewTaskDao preViewTaskDao;
 
     @Override
-    public Integer findByTypeAndStatus(String occupy, String doing, DomainInfo domain) {
-        return preViewTaskDao.findByTypeAndStatus(occupy, doing, domain);
+    public Integer findByTypeAndStatus(String type, String doing, DomainInfo domain) {
+        return preViewTaskDao.findByTypeAndStatus(type, doing, domain);
     }
 
     @Override
@@ -32,5 +32,10 @@ public class PreViewTaskServiceImpl implements PreViewTaskService {
     @Override
     public Integer makeTaskDone() {
         return preViewTaskDao.makeTaskDone();
+    }
+
+    @Override
+    public PreViewTask findByTypeAndUpdateTime(String type, String domain) {
+        return preViewTaskDao.findByTypeAndUpdateTime(type, domain);
     }
 }

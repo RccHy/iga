@@ -196,6 +196,7 @@ type Certificate{
 type DepartmentConnection {
     edges: [DepartmentEdge]
     totalCount: Int
+    updateTime:Timestamp
 }
 
 type DepartmentEdge {
@@ -261,6 +262,7 @@ type Department{
 type UserTypeConnection {
     edges: [UserTypeEdge]
     totalCount: Int
+    updateTime:Timestamp
 }
 type UserTypeEdge {
     node: UserType
