@@ -2186,9 +2186,15 @@ public class PersonServiceImpl implements PersonService {
         if (PreViewPersonThreadPool.executorServiceMap.containsKey(domain.getDomainName())) {
             ExecutorService executorService = PreViewPersonThreadPool.executorServiceMap.get(domain.getDomainName());
             PreViewTask finalViewTask = viewTask;
-            executorService.execute(() -> {
-                dealTask(domain, finalViewTask);
-            });
+            try {
+                executorService.execute(() -> {
+                    dealTask(domain, finalViewTask);
+                });
+            } catch (Exception e) {
+                viewTask.setStatus("failed");
+                preViewTaskService.saveTask(viewTask);
+                throw new CustomException(ResultCode.FAILED, "当前正在人员测试同步中,请稍后再试");
+            }
         } else {
             PreViewPersonThreadPool.builderExecutor(domain.getDomainName());
             testPersonTask(domain, viewTask);
@@ -2436,7 +2442,7 @@ public class PersonServiceImpl implements PersonService {
 
         //查询上次同步的时间
         PreViewTask person = preViewTaskService.findByTypeAndUpdateTime("person", domain.getId());
-        if(null!=person){
+        if (null != person) {
             personConnection.setUpdateTime(person.getUpdateTime());
         }
 

@@ -1483,7 +1483,7 @@ public class PersonDaoImpl implements PersonDao {
 
             }
         }
-        StringBuffer buffer = new StringBuffer(" WHERE 1=1 AND I.TENANT_ID = ? ");
+        StringBuffer buffer = new StringBuffer(" WHERE 1=1 AND i.TENANT_ID = ? ");
         if (StringUtils.isNotBlank(sql)) {
             stb = sql.append(buffer).append(stb);
         } else {

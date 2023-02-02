@@ -106,7 +106,7 @@ public class PreViewTaskDaoImpl implements PreViewTaskDao {
 
     @Override
     public PreViewTask findByTypeAndUpdateTime(String type, String domain) {
-        String sql = " SELECT id,task_id as taskId,status,create_time as createTime,type,domain,update_time as updateTime from t_mgr_pre_view_task where domain=? and type =? and status='done' limit 1 ";
+        String sql = " SELECT id,task_id as taskId,status,create_time as createTime,type,domain,update_time as updateTime from t_mgr_pre_view_task where domain=? and type =? and status='done'  ORDER BY update_time desc limit 1 ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
