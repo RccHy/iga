@@ -38,8 +38,8 @@ public class NodeRulesServiceImpl implements NodeRulesService {
 
 
     @Override
-    public List<NodeRules> findNodeRules(Map<String, Object> arguments, String id) {
-        return nodeRulesDao.findNodeRules(arguments);
+    public List<NodeRules> findNodeRules(Map<String, Object> arguments, String domain) {
+        return nodeRulesDao.findNodeRules(arguments,domain);
     }
 
     @Override

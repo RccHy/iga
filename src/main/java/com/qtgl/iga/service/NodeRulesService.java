@@ -10,7 +10,7 @@ import java.util.Map;
 public interface NodeRulesService {
 
 
-    List<NodeRules> findNodeRules(Map<String, Object> arguments, String id);
+    List<NodeRules> findNodeRules(Map<String, Object> arguments, String domain);
 
     NodeRules deleteRules(Map<String, Object> arguments, String id) throws Exception;
 

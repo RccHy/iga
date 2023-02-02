@@ -18,6 +18,7 @@ public class PreViewRefresh implements ApplicationRunner {
     public void run(ApplicationArguments args) throws Exception {
 
         Integer byTaskId = preViewTaskService.makeTaskDone();
+
         log.info("---------------初始化人员,人员身份预览任务数据");
     }
 }

@@ -20,11 +20,30 @@ public class DynamicAttrDaoImpl implements DynamicAttrDao {
 
     @Resource(name = "jdbcSSO")
     JdbcTemplate jdbcSSO;
+    @Resource(name = "jdbcIGA")
+    JdbcTemplate jdbcIGA;
 
     @Override
     public List<DynamicAttr> findAllByType(String type, String tenantId) {
         String sql = "select id, name, code, required ,description,tenant_id as tenantId,type  from dynamic_attr where tenant_id=? and type=?";
         List<Map<String, Object>> listMaps = jdbcSSO.queryForList(sql, tenantId, type);
+        List<DynamicAttr> dynamicAttrs = new ArrayList<>();
+        listMaps.forEach(map -> {
+            DynamicAttr dynamicAttr = new DynamicAttr();
+            try {
+                MyBeanUtils.populate(dynamicAttr, map);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            dynamicAttrs.add(dynamicAttr);
+        });
+        return dynamicAttrs;
+    }
+
+    @Override
+    public List<DynamicAttr> findAllByTypeIGA(String type, String tenantId) {
+        String sql = "select id, name, code, required ,description,tenant_id as tenantId,type  from dynamic_attr where tenant_id=? and type=?";
+        List<Map<String, Object>> listMaps = jdbcIGA.queryForList(sql, tenantId, type);
         List<DynamicAttr> dynamicAttrs = new ArrayList<>();
         listMaps.forEach(map -> {
             DynamicAttr dynamicAttr = new DynamicAttr();
