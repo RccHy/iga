@@ -695,6 +695,8 @@ public class PersonServiceImpl implements PersonService {
             }
 
         }
+        //处理扩展字段
+
 
         if (!CollectionUtils.isEmpty(tempResult)) {
             if (!CollectionUtils.isEmpty(tempResult.get("update"))) {
@@ -2176,7 +2178,7 @@ public class PersonServiceImpl implements PersonService {
         //Integer count = preViewTaskService.findByTypeAndStatus("person", "doing", domain);
         //todo 通过线程池状态判断
         //if (count <= 10) {
-        //    viewTask = preViewTaskService.saveTask(viewTask);
+        viewTask = preViewTaskService.saveTask(viewTask);
         //} else {
         //    throw new CustomException(ResultCode.FAILED, "当前任务数量已达上限,无法创建新的刷新任务,请耐心等待");
         //}
@@ -2184,9 +2186,15 @@ public class PersonServiceImpl implements PersonService {
         if (PreViewPersonThreadPool.executorServiceMap.containsKey(domain.getDomainName())) {
             ExecutorService executorService = PreViewPersonThreadPool.executorServiceMap.get(domain.getDomainName());
             PreViewTask finalViewTask = viewTask;
-            executorService.execute(() -> {
-                dealTask(domain, finalViewTask);
-            });
+            try {
+                executorService.execute(() -> {
+                    dealTask(domain, finalViewTask);
+                });
+            } catch (Exception e) {
+                viewTask.setStatus("failed");
+                preViewTaskService.saveTask(viewTask);
+                throw new CustomException(ResultCode.FAILED, "当前正在人员测试同步中,请稍后再试");
+            }
         } else {
             PreViewPersonThreadPool.builderExecutor(domain.getDomainName());
             testPersonTask(domain, viewTask);
@@ -2339,7 +2347,7 @@ public class PersonServiceImpl implements PersonService {
         if (!CollectionUtils.isEmpty(valueUpdateMap)) {
             valueUpdate = new ArrayList<>(valueUpdateMap.values());
         }
-        personDao.saveToSsoTest(result, tenant.getId(), valueUpdate, valueInsert, dynamicAttrs, certificates);
+        personDao.saveToSsoTest(result, tenant.getId(), valueUpdate, valueInsert, dynamicAttrs, certificates, dynamicValues);
         if (null != viewTask) {
             viewTask.setStatus("done");
             viewTask.setUpdateTime(new Timestamp(System.currentTimeMillis()));
@@ -2431,6 +2439,12 @@ public class PersonServiceImpl implements PersonService {
             personConnection.setEdges(personEdges);
         }
         personConnection.setTotalCount(count);
+
+        //查询上次同步的时间
+        PreViewTask person = preViewTaskService.findByTypeAndUpdateTime("person", domain.getId());
+        if (null != person) {
+            personConnection.setUpdateTime(person.getUpdateTime());
+        }
 
         return personConnection;
     }

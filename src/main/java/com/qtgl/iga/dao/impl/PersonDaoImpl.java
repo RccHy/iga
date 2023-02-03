@@ -2,6 +2,7 @@ package com.qtgl.iga.dao.impl;
 
 import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bo.*;
+import com.qtgl.iga.dao.DynamicAttrDao;
 import com.qtgl.iga.dao.PersonDao;
 import com.qtgl.iga.service.impl.OccupyServiceImpl;
 import com.qtgl.iga.utils.FilterCodeEnum;
@@ -24,6 +25,7 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 
 @Repository
@@ -43,6 +45,9 @@ public class PersonDaoImpl implements PersonDao {
 
     @Resource(name = "iga-txTemplate")
     TransactionTemplate igaTemplate;
+
+    @Resource
+    DynamicAttrDao dynamicAttrDao;
 
     @Override
     public List<Person> getAll(String tenantId) {
@@ -312,7 +317,7 @@ public class PersonDaoImpl implements PersonDao {
 
 
     @Override
-    public Integer saveToSsoTest(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, List<DynamicAttr> attrList, ArrayList<Certificate> certificates) {
+    public Integer saveToSsoTest(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, List<DynamicAttr> attrList, ArrayList<Certificate> certificates, List<DynamicValue> dynamicValues) {
         // 删除租户下所有数据
         String deleteSql = "delete from identity where tenant_id = ? ";
         jdbcIGA.update(deleteSql, tenantId);
@@ -554,17 +559,17 @@ public class PersonDaoImpl implements PersonDao {
                     });
                 }*/
 
+                //
+                //List<DynamicValue> dynamicValues = new ArrayList<>();
+                //if (!CollectionUtils.isEmpty(valueInsert)) {
+                //    dynamicValues.addAll(valueInsert);
+                //}
+                //if (!CollectionUtils.isEmpty(valueUpdate)) {
+                //    dynamicValues.addAll(valueUpdate);
+                //}
 
-                List<DynamicValue> dynamicValues = new ArrayList<>();
-                if (!CollectionUtils.isEmpty(valueInsert)) {
-                    dynamicValues.addAll(valueInsert);
-                }
-                if (!CollectionUtils.isEmpty(valueUpdate)) {
-                    dynamicValues.addAll(valueUpdate);
-                }
 
-
-                if(!CollectionUtils.isEmpty(attrList)){
+                if (!CollectionUtils.isEmpty(attrList)) {
                     // 删除、并重新创建扩展字段
                     String deleteDynamicAttrSql = "delete from dynamic_attr where   type='USER' and tenant_id = ?";
                     jdbcIGA.update(deleteDynamicAttrSql, tenantId);
@@ -592,28 +597,60 @@ public class PersonDaoImpl implements PersonDao {
                             return attrList.size();
                         }
                     });
-                }
-                if (!CollectionUtils.isEmpty(dynamicValues)) {
-
-                    String deleteDynamicValueSql = "delete from dynamic_value where  tenant_id = ? and attr_id not in (select id from dynamic_attr )";
-                    jdbcIGA.update(deleteDynamicValueSql, tenantId);
-
+                    // 删除value条件
+                    String deleteDynamicValueSql = "delete from dynamic_value where  tenant_id = ? and attr_id  in (select id from dynamic_attr where type='USER' and tenant_id=?  )";
+                    jdbcIGA.update(deleteDynamicValueSql, tenantId, tenantId);
                     String valueStr = "INSERT INTO dynamic_value (`id`, `attr_id`, `entity_id`, `value`, `tenant_id`) VALUES (?, ?, ?, ?, ?)";
-                    jdbcIGA.batchUpdate(valueStr, new BatchPreparedStatementSetter() {
-                        @Override
-                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, dynamicValues.get(i).getId());
-                            preparedStatement.setObject(2, dynamicValues.get(i).getAttrId());
-                            preparedStatement.setObject(3, dynamicValues.get(i).getEntityId());
-                            preparedStatement.setObject(4, dynamicValues.get(i).getValue());
-                            preparedStatement.setObject(5, tenantId);
-                        }
 
-                        @Override
-                        public int getBatchSize() {
-                            return dynamicValues.size();
-                        }
-                    });
+                    if (!CollectionUtils.isEmpty(dynamicValues)) {
+                        jdbcIGA.batchUpdate(valueStr, new BatchPreparedStatementSetter() {
+                            @Override
+                            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                                preparedStatement.setObject(1, dynamicValues.get(i).getId());
+                                preparedStatement.setObject(2, dynamicValues.get(i).getAttrId());
+                                preparedStatement.setObject(3, dynamicValues.get(i).getEntityId());
+                                preparedStatement.setObject(4, dynamicValues.get(i).getValue());
+                                preparedStatement.setObject(5, tenantId);
+                            }
+
+                            @Override
+                            public int getBatchSize() {
+                                return dynamicValues.size();
+                            }
+                        });
+                    }
+                    if (!CollectionUtils.isEmpty(valueInsert)) {
+                        jdbcIGA.batchUpdate(valueStr, new BatchPreparedStatementSetter() {
+                            @Override
+                            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                                preparedStatement.setObject(1, dynamicValues.get(i).getId());
+                                preparedStatement.setObject(2, dynamicValues.get(i).getAttrId());
+                                preparedStatement.setObject(3, dynamicValues.get(i).getEntityId());
+                                preparedStatement.setObject(4, dynamicValues.get(i).getValue());
+                                preparedStatement.setObject(5, tenantId);
+                            }
+
+                            @Override
+                            public int getBatchSize() {
+                                return dynamicValues.size();
+                            }
+                        });
+                    }
+                    if (!CollectionUtils.isEmpty(valueUpdate)) {
+                        String valueUpdateStr = "update dynamic_value set `value`=? where id= ?";
+                        jdbcIGA.batchUpdate(valueUpdateStr, new BatchPreparedStatementSetter() {
+                            @Override
+                            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                                preparedStatement.setObject(1, valueUpdate.get(i).getValue());
+                                preparedStatement.setObject(2, valueUpdate.get(i).getId());
+                            }
+
+                            @Override
+                            public int getBatchSize() {
+                                return valueUpdate.size();
+                            }
+                        });
+                    }
                 }
 
                 if (!CollectionUtils.isEmpty(certificates)) {
@@ -1216,8 +1253,8 @@ public class PersonDaoImpl implements PersonDao {
                 "                 i.update_time AS updateTime, " +
                 "                 i.del_mark AS delMark," +
                 "                 i.valid_start_time AS validStartTime, " +
-                "                 i.valid_end_time AS validEndTime FROM identity i WHERE 1=1 and i.tenant_id =? ";
-        String countSql = "SELECT count(*) from identity i  WHERE 1=1 and i.tenant_id =?  ";
+                "                 i.valid_end_time AS validEndTime FROM identity i ";
+        String countSql = "SELECT count(*) from identity i   ";
         //主体查询语句
         StringBuffer stb = new StringBuffer(queryStr);
         //查询总数语句
@@ -1225,7 +1262,7 @@ public class PersonDaoImpl implements PersonDao {
 
         StringBuffer strTemp = new StringBuffer("  ");
         params.add(tenant.getId());
-        dealData(arguments, strTemp, params);
+        strTemp = dealDataAndAttr(arguments, strTemp, params, tenant.getId());
         stb.append(strTemp);
         countStb.append(strTemp);
         if (null != first && null != offset) {
@@ -1256,6 +1293,203 @@ public class PersonDaoImpl implements PersonDao {
         map.put("count", null == count ? 0 : count);
         map.put("list", list);
         return map;
+    }
+
+
+    private StringBuffer dealDataAndAttr(Map<String, Object> arguments, StringBuffer stb, List<Object> param, String tenantId) {
+
+        //扩展字段查询拼接主体sql
+        StringBuffer sql = new StringBuffer();
+
+        Iterator<Map.Entry<String, Object>> it = arguments.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<String, Object> entry = it.next();
+            if ("i.id".equals(entry.getKey())) {
+                stb.append("and i.id= ? ");
+                param.add(entry.getValue());
+            }
+
+            if ("filter".equals(entry.getKey())) {
+                HashMap<String, Object> map = (HashMap<String, Object>) entry.getValue();
+                for (Map.Entry<String, Object> str : map.entrySet()) {
+                    if ("name".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if ("like".equals(FilterCodeEnum.getDescByCode(soe.getKey()))) {
+                                stb.append("and i.name ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if ("in".equals(FilterCodeEnum.getDescByCode(soe.getKey())) || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and i.name ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and i.name ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+                    if ("username".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if ("like".equals(FilterCodeEnum.getDescByCode(soe.getKey()))) {
+                                stb.append("and i.account_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if ("in".equals(FilterCodeEnum.getDescByCode(soe.getKey())) || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and i.account_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and i.account_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+
+                    if ("openid".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if ("like".equals(FilterCodeEnum.getDescByCode(soe.getKey()))) {
+                                stb.append("and i.open_id ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if ("in".equals(FilterCodeEnum.getDescByCode(soe.getKey())) || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and i.open_id ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and i.open_id ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+
+                    if ("phone".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if ("like".equals(FilterCodeEnum.getDescByCode(soe.getKey()))) {
+                                stb.append("and i.cellphone ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if ("in".equals(FilterCodeEnum.getDescByCode(soe.getKey())) || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and i.cellphone ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and i.cellphone ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+                    if ("active".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            stb.append("and i.active ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                            param.add(soe.getValue());
+                        }
+                    }
+                    if ("cardNo".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "like")) {
+                                stb.append("and i.card_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and i.card_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and i.card_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+                    if ("email".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
+                                stb.append("and i.email ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and i.email ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and i.email ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+
+                    if ("extension".equals(str.getKey())) {
+                        List<HashMap<String, Object>> values = (List<HashMap<String, Object>>) str.getValue();
+                        if (!CollectionUtils.isEmpty(values)) {
+                            List<DynamicAttr> users = dynamicAttrDao.findAllByTypeIGA("USER", tenantId);
+                            Map<String, String> collect = users.stream().collect(Collectors.toMap(DynamicAttr::getCode, DynamicAttr::getId));
+                            char aliasOld = 'j';
+
+                            for (HashMap<String, Object> value : values) {
+                                String key = (String) value.get("key");
+                                if (collect.containsKey(key)) {
+                                    HashMap<String, Object> val = (HashMap<String, Object>) value.get("value");
+                                    for (Map.Entry<String, Object> soe : val.entrySet()) {
+                                        if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
+                                            char aliasNew = (char) (aliasOld + 1);
+                                            sql.append(" LEFT JOIN dynamic_value ").append(aliasNew).append(" ON ").append(aliasNew).append(".entity_id = ").append(" i.id ");
+                                            stb.append(" and (").append(aliasNew).append(".value = ? and ").append(aliasNew).append(".attr_id=? )");
+                                            aliasOld = aliasNew;
+                                            param.add("%" + soe.getValue() + "%");
+                                            param.add(collect.get(key));
+                                        } else {
+                                            char aliasNew = (char) (aliasOld + 1);
+
+                                            sql.append(" LEFT JOIN dynamic_value ").append(aliasNew).append(" ON ").append(aliasNew).append(".entity_id = ").append(" i.id ");
+                                            stb.append(" and (").append(aliasNew).append(".value = ? and ").append(aliasNew).append(".attr_id=? )");
+                                            aliasOld = aliasNew;
+                                            param.add(soe.getValue());
+                                            param.add(collect.get(key));
+                                        }
+                                    }
+
+                                }
+
+
+                            }
+                        }
+                    }
+
+                }
+
+            }
+        }
+        StringBuffer buffer = new StringBuffer(" WHERE 1=1 AND i.TENANT_ID = ? ");
+        if (StringUtils.isNotBlank(sql)) {
+            stb = sql.append(buffer).append(stb);
+        } else {
+            stb = buffer.append(stb);
+        }
+        return stb;
     }
 
 }

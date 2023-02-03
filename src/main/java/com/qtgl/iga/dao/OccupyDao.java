@@ -4,6 +4,7 @@ import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.DynamicAttr;
 import com.qtgl.iga.bo.DynamicValue;
+import com.qtgl.iga.bo.Tenant;
 
 import java.util.List;
 import java.util.Map;
@@ -23,4 +24,6 @@ public interface OccupyDao {
     List<OccupyDto> findOccupyTemp(Map<String, Object> arguments, DomainInfo domain);
 
     Integer findOccupyTempCount(Map<String, Object> arguments, DomainInfo domain);
+
+    Map<String, Object> findTestUsers(Map<String, Object> arguments, Tenant tenant);
 }

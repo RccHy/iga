@@ -4,6 +4,7 @@ import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.DynamicAttr;
 import com.qtgl.iga.bo.DynamicValue;
+import com.qtgl.iga.bo.Tenant;
 import com.qtgl.iga.dao.OccupyDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import com.qtgl.iga.utils.MyBeanUtils;
@@ -815,6 +816,36 @@ public class OccupyDaoImpl implements OccupyDao {
 
             }
         }
+    }
+
+
+    @Override
+    public Map<String, Object> findTestUsers(Map<String, Object> arguments, Tenant tenant) {
+        Object first = arguments.get("first");
+        Object offset = arguments.get("offset");
+
+        String queryStr = "SELECT " +
+                "                 i.id," +
+                "                 i.NAME as name, " +
+                "                 i.tags, " +
+                "                 i.open_id AS openId, " +
+                "                 i.account_no AS accountNo, " +
+                "                 i.card_type AS cardType, " +
+                "                 i.card_no AS cardNo, " +
+                "                 i.cellphone, " +
+                "                 i.email, " +
+                "                 i.source, " +
+                "                 i.data_source AS dataSource, " +
+                "                 i.active, " +
+                "                 i.active_time AS activeTime, " +
+                "                 i.create_time AS createTime, " +
+                "                 i.update_time AS updateTime, " +
+                "                 i.del_mark AS delMark," +
+                "                 i.valid_start_time AS validStartTime, " +
+                "                 i.valid_end_time AS validEndTime FROM identity i ";
+        String countSql = "SELECT count(*) from identity i   ";
+
+        return null;
     }
 
 

@@ -25,7 +25,8 @@ public class DynamicAttrDaoImpl implements DynamicAttrDao {
 
     @Override
     public List<DynamicAttr> findAllByType(String type, String tenantId) {
-        String sql = "select id, name, code, required ,description,tenant_id as tenantId,type  from dynamic_attr where tenant_id=? and type=?";
+        String sql = "select id, name, code, required ,description,tenant_id as tenantId,type," +
+                " field_type as fieldType,format,is_search as isSearch,attr_index as attrIndex  from dynamic_attr where tenant_id=? and type=?";
         List<Map<String, Object>> listMaps = jdbcSSO.queryForList(sql, tenantId, type);
         List<DynamicAttr> dynamicAttrs = new ArrayList<>();
         listMaps.forEach(map -> {
@@ -42,7 +43,8 @@ public class DynamicAttrDaoImpl implements DynamicAttrDao {
 
     @Override
     public List<DynamicAttr> findAllByTypeIGA(String type, String tenantId) {
-        String sql = "select id, name, code, required ,description,tenant_id as tenantId,type  from dynamic_attr where tenant_id=? and type=?";
+        String sql = "select id, name, code, required ,description,tenant_id as tenantId,type," +
+                " field_type as fieldType,format,is_search as isSearch,attr_index as attrIndex  from dynamic_attr where tenant_id=? and type=? ";
         List<Map<String, Object>> listMaps = jdbcIGA.queryForList(sql, tenantId, type);
         List<DynamicAttr> dynamicAttrs = new ArrayList<>();
         listMaps.forEach(map -> {

@@ -9,5 +9,5 @@ public interface DynamicAttrDao {
 
      List<DynamicAttr> findAllByType(String type, String domain);
 
-    List<DynamicAttr> findAllByTypeIGA(String type, String id);
+    List<DynamicAttr> findAllByTypeIGA(String type, String tenantId);
 }

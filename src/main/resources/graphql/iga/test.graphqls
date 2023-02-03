@@ -1,30 +1,26 @@
 extend type Query {
-    #模拟人员同步任务
-    igaUsers(
+    #查询模拟人员身份数据
+    igaOccupy(
         filter:IgaPersonFilter
         offset:Int,
         first:Int
-    ): UserConnection
+    ): IgaOccupyConnection
 
-    #模拟身份同步任务
-    #userTaskData(
-    #offset:Int,
-    #first:Int
-    #): [UserConnection]
-    igaPersons(
+    #查询模拟人员数据
+    igaUser(
         filter:IgaPersonFilter
         offset:Int,
         first:Int
     ): PersonConnection
 
-    #模拟组织机构同步任务
-    igaDepartments(
+    #查询模拟组织机构数据
+    igaDepartment(
         offset:Int,
         first:Int
     ): DepartmentConnection
 
-    #模拟岗位同步任务
-    igaPosts(
+    #查询模拟岗位数据
+    igaPost(
         offset:Int,
         first:Int
     ): UserTypeConnection
@@ -36,28 +32,42 @@ extend type Query {
 
 extend type Mutation {
     #模拟人员同步任务
-    testPersonTask: PreViewTask
+    testUserTask: PreViewTask
 
     #模拟身份同步任务
-    testUserTask: PreViewTask
+    testOccupyTask: PreViewTask
 
     #模拟组织机构同步任务
     testDeptTask: PreViewTask
 
     #模拟岗位同步任务
-    testUserTypeTask: PreViewTask
+    testPostTask: PreViewTask
 }
 
 
 
-type UserConnection {
-    edges: [UserEdge]
+type IgaOccupyConnection {
+    edges: [IgaOccupyEdge]
     totalCount: Int
     updateTime:Timestamp
 }
 
-type UserEdge {
-    node: User
+type IgaOccupyEdge {
+    node: IgaOccupy
+}
+
+type IgaOccupy{
+    id: ID
+    #名称
+    name: String
+    #用户名
+    account: String
+    #人员证件类型
+    cardType: String
+    #人员证件号码   cardType 不为空 cardNo 必须有值
+    cardNo: String
+    #身份
+    positions: [Occupy]
 }
 
 type User{
@@ -196,6 +206,7 @@ type Certificate{
 type DepartmentConnection {
     edges: [DepartmentEdge]
     totalCount: Int
+    updateTime:Timestamp
 }
 
 type DepartmentEdge {
@@ -261,6 +272,7 @@ type Department{
 type UserTypeConnection {
     edges: [UserTypeEdge]
     totalCount: Int
+    updateTime:Timestamp
 }
 type UserTypeEdge {
     node: UserType
@@ -284,5 +296,6 @@ input IgaPersonFilter{
     name:stringFilter,
     username:stringFilter,
     openid:stringFilter,
+    active:integerFilter
     extension:[DynamicFilter],
 }
