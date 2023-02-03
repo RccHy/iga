@@ -120,13 +120,16 @@ type Occupy{
     startTime:Timestamp
     #有效期结束时间
     endTime:Timestamp
+    #描述
+    description: String
     #是否有效
     active:Int
     #是否删除
     delMark:Int
     #排序
     index:Int
-
+    #扩展字段
+    attrsValues : [DynamicValue]
 
 }
 

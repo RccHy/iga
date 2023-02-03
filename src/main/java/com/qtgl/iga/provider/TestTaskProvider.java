@@ -19,19 +19,19 @@ public class TestTaskProvider {
 
     public TypeRuntimeWiring.Builder buildQueryRuntimeWiring() {
         return newTypeWiring("Query")
-                .dataFetcher("igaUsers", dataFetcher.igaUsers())
-                .dataFetcher("igaPersons", dataFetcher.igaPersons())
-                .dataFetcher("igaPosts", dataFetcher.igaPosts())
-                .dataFetcher("igaDepartments", dataFetcher.igaDepartments());
+                .dataFetcher("igaOccupy", dataFetcher.igaUsers())
+                .dataFetcher("igaUser", dataFetcher.igaPersons())
+                .dataFetcher("igaPost", dataFetcher.igaPosts())
+                .dataFetcher("igaDepartment", dataFetcher.igaDepartments());
     }
 
 
     public TypeRuntimeWiring.Builder buildMutationRuntimeWiring() throws Exception {
         return newTypeWiring("Mutation")
-                .dataFetcher("testPersonTask", dataFetcher.testPersonTask())
-                .dataFetcher("testUserTask", dataFetcher.testUserTask())
+                .dataFetcher("testUserTask", dataFetcher.testPersonTask())
+                .dataFetcher("testOccupyTask", dataFetcher.testUserTask())
                 .dataFetcher("testDeptTask", dataFetcher.testDeptTask())
-                .dataFetcher("testUserTypeTask", dataFetcher.testUserTypeTask());
+                .dataFetcher("testPostTask", dataFetcher.testUserTypeTask());
 
     }
 

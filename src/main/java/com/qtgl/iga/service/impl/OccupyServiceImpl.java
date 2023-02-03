@@ -1893,6 +1893,10 @@ public class OccupyServiceImpl implements OccupyService {
 
     @Override
     public OccupyConnection findTestUsers(Map<String, Object> arguments, DomainInfo domain) {
+        //查询租户
+        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        //根据条件查询符合条件的人员
+        Map<String, Object> testPersons = occupyDao.findTestUsers(arguments, tenant);
 
         return null;
     }
