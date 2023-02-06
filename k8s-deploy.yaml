@@ -108,7 +108,13 @@ spec:
               secretKeyRef:
                 name: iga-secret
                 key: task_cron
-
+        resources:
+          limits:
+            cpu: "1"
+            memory: 3000Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
         ports:
         - containerPort: 8080
       imagePullSecrets:
