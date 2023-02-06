@@ -28,6 +28,11 @@ public class IgaOccupy {
      * 人员证件号码
      */
     private String cardNo;
+
+    /**
+     * openid
+     */
+    private String openId;
     /**
      * 身份
      */

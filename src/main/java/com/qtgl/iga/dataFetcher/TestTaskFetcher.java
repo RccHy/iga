@@ -155,7 +155,7 @@ public class TestTaskFetcher {
 
 
             try {
-                PreViewTask taskResult = personService.testPersonTask(domain, null);
+                PreViewTask taskResult = personService.testUserTask(domain, null);
                 return taskResult;
             } catch (CustomException e) {
                 e.printStackTrace();
@@ -176,8 +176,16 @@ public class TestTaskFetcher {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
-            PreViewTask taskResult = occupyService.testUserTask(domain, null);
-            return taskResult;
+            try {
+
+                PreViewTask taskResult = occupyService.testOccupyTask(domain, null);
+                return taskResult;
+            } catch (CustomException e) {
+                e.printStackTrace();
+                logger.error(domain.getDomainName() + e.getMessage());
+
+                return GraphqlExceptionUtils.getObject("当前正在人员身份测试同步中,请稍后再试", e);
+            }
 
         };
     }
@@ -191,8 +199,7 @@ public class TestTaskFetcher {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
-            PreViewTask taskResult = personService.testPersonTask(domain, null);
-            return taskResult;
+            return null;
 
         };
     }
@@ -206,8 +213,7 @@ public class TestTaskFetcher {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
-            PreViewTask taskResult = personService.testPersonTask(domain, null);
-            return taskResult;
+            return null;
 
         };
     }

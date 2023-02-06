@@ -66,6 +66,8 @@ type IgaOccupy{
     cardType: String
     #人员证件号码   cardType 不为空 cardNo 必须有值
     cardNo: String
+    #openid
+    openId:String
     #身份
     positions: [Occupy]
     #同步后状态 0 无变化 1 新增 2 修改 3 删除 4 失效
@@ -333,8 +335,11 @@ input IgaUserFilter{
     username:stringFilter,
     phone:stringFilter,
     cardNo:stringFilter,
+    syncState:integerFilter,
     active:booleanFilter,
     email:stringFilter,
+    source:stringFilter,
+    createSource:stringFilter,
     extension:[DynamicFilter]
 }
 
@@ -345,6 +350,9 @@ input IgaOccupyFilter{
     positionActive:booleanFilter,
     dept:stringFilter,
     post:stringFilter,
+    syncState:integerFilter,
+    source:stringFilter,
+    createSource:stringFilter,
     personCardNo:stringFilter,
     positionCardNo:stringFilter,
     startTime:timestampFilter,

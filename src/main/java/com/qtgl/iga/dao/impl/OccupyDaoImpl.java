@@ -858,9 +858,10 @@ public class OccupyDaoImpl implements OccupyDao {
                 "                 a.account_no AS accountNo, " +
                 "                 a.name ," +
                 "                 a.card_type AS cardType," +
-                "                 a.card_no AS cardNo" +
-                "                 FROM identity a LEFT JOIN user b on a.id = b.identity_id ";
-        String countSql = "SELECT COUNT(DISTINCT a.id) from identity a  LEFT JOIN user b on a.id = b.identity_id  ";
+                "                 a.card_no AS cardNo," +
+                "                 a.open_id AS openId" +
+                "                 FROM identity a INNER JOIN user b on a.id = b.identity_id ";
+        String countSql = "SELECT COUNT(DISTINCT a.id) from identity a  INNER JOIN user b on a.id = b.identity_id  ";
         //主体查询语句
         StringBuffer stb = new StringBuffer(queryStr);
         //查询总数语句
@@ -907,13 +908,12 @@ public class OccupyDaoImpl implements OccupyDao {
         List<Object> params = new ArrayList<>();
 
         String queryStr = "SELECT " +
-                "                 a.id," +
-                "                 a.identity_id as identityId, " +
-                "                 a.user_type AS userType, " +
-                "                 a.user_code AS userCode, " +
+                "                 a.id as occupyId," +
+                "                 a.identity_id as personId, " +
+                "                 a.user_type AS postCode, " +
+                "                 a.user_code AS identityCardNo, " +
                 "                 a.name ," +
                 "                 a.card_type AS cardType," +
-                "                 a.card_no AS cardNo," +
                 "                 a.del_mark AS delMark," +
                 "                 a.start_time AS startTime," +
                 "                 a.end_time AS endTime," +
@@ -927,7 +927,7 @@ public class OccupyDaoImpl implements OccupyDao {
                 "                 a.active_time AS activeTime," +
                 "                 a.tags ," +
                 "                 a.description ," +
-                "                 a.user_index AS userIndex," +
+                "                 a.user_index AS 'index'," +
                 "                 a.valid_start_time AS validStartTime," +
                 "                 a.valid_end_time AS validEndTime," +
                 "                 a.orphan ," +
@@ -935,26 +935,258 @@ public class OccupyDaoImpl implements OccupyDao {
                 "                 a.create_source AS createSource," +
                 "                 a.sync_state AS syncState" +
                 "                 FROM  user  a ";
-        //拼接查询sql
-        StringBuffer buffer = new StringBuffer();
-        buffer.append(" where 1=1 and tenant_id = ?");
+        StringBuffer stb = new StringBuffer(queryStr);
+        StringBuffer strTemp = new StringBuffer("  ");
         params.add(tenant.getId());
+        strTemp = dealDataAndAttrOccupy(arguments, strTemp, params, tenant.getId(),keySet);
+
         if(!CollectionUtils.isEmpty(keySet)){
-            buffer.append(" and  a.identity_id in ( ");
+            strTemp.append(" and  a.identity_id in ( ");
             for (String identityId : keySet) {
-                buffer.append(" ?,");
-                    params.add(identityId);
+                strTemp.append(" ?,");
+                params.add(identityId);
             }
-            buffer.replace(buffer.length() - 1, buffer.length(), ") )");
+            strTemp.replace(strTemp.length() - 1, strTemp.length(), ") ");
         }
-        //todo this
-        return null;
+        stb.append(strTemp);
+        log.info(stb.toString());
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), params.toArray());
+        ArrayList<OccupyDto> list = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(mapList)) {
+
+            mapList.forEach(map -> {
+                OccupyDto occupyDto = new OccupyDto();
+                try {
+                    MyBeanUtils.populate(occupyDto, map);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                list.add(occupyDto);
+            });
+
+
+        }
+        return list;
+    }
+
+    private StringBuffer dealDataAndAttrOccupy(Map<String, Object> arguments, StringBuffer stb, List<Object> param, String tenantId,Set<String> keySet) {
+
+        //拼接查询sql
+        StringBuffer sql = new StringBuffer();
+
+        Iterator<Map.Entry<String, Object>> it = arguments.entrySet().iterator();
+
+        while (it.hasNext()) {
+            Map.Entry<String, Object> entry = it.next();
+
+            if ("filter".equals(entry.getKey())) {
+                HashMap<String, Object> map = (HashMap<String, Object>) entry.getValue();
+                for (Map.Entry<String, Object> str : map.entrySet()) {
+
+                    if ("dept".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if ("like".equals(FilterCodeEnum.getDescByCode(soe.getKey()))) {
+                                stb.append("and a.dept_code ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if ("in".equals(FilterCodeEnum.getDescByCode(soe.getKey())) || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and a.dept_code ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and a.dept_code ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+
+                    if ("post".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if ("like".equals(FilterCodeEnum.getDescByCode(soe.getKey()))) {
+                                stb.append("and a.user_type ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if ("in".equals(FilterCodeEnum.getDescByCode(soe.getKey())) || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and a.user_type ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and a.user_type ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+                    if ("syncState".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            stb.append("and a.sync_state ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                            param.add(soe.getValue());
+                        }
+                    }
+                    if ("positionActive".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if(Boolean.parseBoolean(soe.getValue().toString())){
+                                stb.append("  and ( NOW() BETWEEN a.valid_start_time and a.valid_end_time) ");
+                            }else {
+                                stb.append("  and  ( NOW() NOT BETWEEN a.valid_start_time and a.valid_end_time)");
+
+                            }
+                        }
+                    }
+
+                    if ("source".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "like")) {
+                                stb.append("and a.source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and a.source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and a.source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+                    if ("createSource".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "like")) {
+                                stb.append("and a.create_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and a.create_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and a.create_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+                    if ("positionCardNo".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "like")) {
+                                stb.append("and a.card_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and a.card_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and a.card_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+                    if ("startTime".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            //判断是否是区间
+                            if ("gt".equals(soe.getKey()) || "lt".equals(soe.getKey())
+                                    || "gte".equals(soe.getKey()) || "lte".equals(soe.getKey())) {
+                                stb.append("and a.valid_start_time ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+
+                            }
+                        }
+                    }
+                    if ("endTime".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            //判断是否是区间
+                            if ("gt".equals(soe.getKey()) || "lt".equals(soe.getKey())
+                                    || "gte".equals(soe.getKey()) || "lte".equals(soe.getKey())) {
+                                stb.append("and a.valid_end_time ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+
+                            }
+                        }
+                    }
+                    if ("extension".equals(str.getKey())) {
+                        List<HashMap<String, Object>> values = (List<HashMap<String, Object>>) str.getValue();
+                        if (!CollectionUtils.isEmpty(values)) {
+                            List<DynamicAttr> users = dynamicAttrDao.findAllByTypeIGA("IDENTITY", tenantId);
+                            Map<String, String> collect = users.stream().collect(Collectors.toMap(DynamicAttr::getCode, DynamicAttr::getId));
+                            char aliasOld = 'c';
+
+                            for (HashMap<String, Object> value : values) {
+                                String key = (String) value.get("key");
+                                if (collect.containsKey(key)) {
+                                    HashMap<String, Object> val = (HashMap<String, Object>) value.get("value");
+                                    for (Map.Entry<String, Object> soe : val.entrySet()) {
+                                        if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
+                                            char aliasNew = (char) (aliasOld + 1);
+                                            sql.append(" LEFT JOIN dynamic_value ").append(aliasNew).append(" ON ").append(aliasNew).append(".entity_id = ").append(" a.id ");
+                                            stb.append(" and (").append(aliasNew).append(".value = ? and ").append(aliasNew).append(".attr_id=? )");
+                                            aliasOld = aliasNew;
+                                            param.add("%" + soe.getValue() + "%");
+                                            param.add(collect.get(key));
+                                        } else {
+                                            char aliasNew = (char) (aliasOld + 1);
+
+                                            sql.append(" LEFT JOIN dynamic_value ").append(aliasNew).append(" ON ").append(aliasNew).append(".entity_id = ").append(" a.id ");
+                                            stb.append(" and (").append(aliasNew).append(".value = ? and ").append(aliasNew).append(".attr_id=? )");
+                                            aliasOld = aliasNew;
+                                            param.add(soe.getValue());
+                                            param.add(collect.get(key));
+                                        }
+                                    }
+
+                                }
+
+
+                            }
+                        }
+                    }
+
+                }
+
+            }
+        }
+
+        StringBuffer buffer = new StringBuffer(" WHERE 1=1 AND a.TENANT_ID = ? ");
+
+        if (StringUtils.isNotBlank(sql)) {
+            stb = sql.append(buffer).append(stb);
+        } else {
+            stb = buffer.append(stb);
+        }
+        return stb;
+
     }
 
     private StringBuffer dealDataAndAttr(Map<String, Object> arguments, StringBuffer stb, List<Object> param, String tenantId) {
 
         //扩展字段查询拼接主体sql
         StringBuffer sql = new StringBuffer();
+
+        boolean activeFlag = true;
+        boolean positionActiveFlag = true;
 
         Iterator<Map.Entry<String, Object>> it = arguments.entrySet().iterator();
         while (it.hasNext()) {
@@ -1007,6 +1239,53 @@ public class OccupyDaoImpl implements OccupyDao {
                             }
                         }
                     }
+                    if ("syncState".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            stb.append("and b.sync_state ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                            param.add(soe.getValue());
+                        }
+                    }
+                    if ("source".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "like")) {
+                                stb.append("and b.source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and b.source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and b.source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+                    if ("createSource".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "like")) {
+                                stb.append("and b.create_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and b.create_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and b.create_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
 
                     if ("dept".equals(str.getKey())) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
@@ -1050,6 +1329,19 @@ public class OccupyDaoImpl implements OccupyDao {
                         }
                     }
                     if ("active".equals(str.getKey())) {
+                        activeFlag=false;
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if(Boolean.parseBoolean(soe.getValue().toString())){
+                                stb.append("  and ( NOW() BETWEEN a.valid_start_time and a.valid_end_time) ");
+                            }else {
+                                stb.append("  and  ( NOW() NOT BETWEEN a.valid_start_time and a.valid_end_time)");
+
+                            }
+                        }
+                    }
+                    if ("positionActive".equals(str.getKey())) {
+                        positionActiveFlag=false;
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
                             if(Boolean.parseBoolean(soe.getValue().toString())){
@@ -1170,6 +1462,12 @@ public class OccupyDaoImpl implements OccupyDao {
             stb = sql.append(buffer).append(stb);
         } else {
             stb = buffer.append(stb);
+        }
+        if(activeFlag){
+            stb.append("  and ( NOW() BETWEEN a.valid_start_time and a.valid_end_time) ");
+        }
+        if(positionActiveFlag){
+            stb.append("  and ( NOW() BETWEEN b.valid_start_time and b.valid_end_time) ");
         }
         return stb;
     }

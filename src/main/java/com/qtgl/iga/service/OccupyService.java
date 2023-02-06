@@ -21,7 +21,7 @@ public interface OccupyService {
 
     PreViewTask reFreshOccupies(Map<String, Object> arguments, DomainInfo domain, PreViewTask preViewTask);
 
-    PreViewTask testUserTask(DomainInfo domain, PreViewTask preViewTask);
+    PreViewTask testOccupyTask(DomainInfo domain, PreViewTask preViewTask);
 
     IgaOccupyConnection igaOccupy(Map<String, Object> arguments, DomainInfo domain);
 
