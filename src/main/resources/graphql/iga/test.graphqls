@@ -1,14 +1,14 @@
 extend type Query {
     #查询模拟人员身份数据
     igaOccupy(
-        filter:IgaPersonFilter
+        filter:IgaOccupyFilter
         offset:Int,
         first:Int
     ): IgaOccupyConnection
 
     #查询模拟人员数据
     igaUser(
-        filter:IgaPersonFilter
+        filter:IgaUserFilter
         offset:Int,
         first:Int
     ): PersonConnection
@@ -68,6 +68,8 @@ type IgaOccupy{
     cardNo: String
     #身份
     positions: [Occupy]
+    #同步后状态 0 无变化 1 新增 2 修改 3 删除 4 失效
+    syncState :Int
 }
 
 type User{
@@ -267,6 +269,8 @@ type Department{
     createSource: String
     #创建数据来源(机读)
     createDataSource: String
+    #同步后状态 0 无变化 1 新增 2 修改 3 删除 4 失效
+    syncState :Int
 }
 
 type UserTypeConnection {
@@ -279,12 +283,44 @@ type UserTypeEdge {
 }
 
 type UserType{
-    # 检测项名称
-    name: String!
-    # 如有错误 详细描述
-    desc: String
-    #  pass 成功 fail 失败 waring 警告
-    state: String!
+    id: ID
+    #岗位名称
+    name: String
+    #岗位代码
+    code: String
+    #父级代码
+    parent: String
+    #标签
+    tags: String
+    @deprecated
+    #租户
+    tenantId: String
+    #修改时间
+    timestamp: Timestamp
+    #是否禁用
+    disabled: Boolean
+    #来源
+    source: String
+    #数据来源(机读)
+    dataSource: String
+    #描述
+    description: String
+    #是否有效
+    active: Boolean
+    #有效状态变更时间
+    activeTime: Timestamp
+    #排序
+    index: Int
+    #创建时间
+    createTime: String
+    #扩展字段
+    attrsValues : [DynamicValue]
+    #创建来源
+    createSource: String
+    #创建数据来源(机读)
+    createDataSource: String
+    #同步后状态 0 无变化 1 新增 2 修改 3 删除 4 失效
+    syncState :Int
 }
 
 input DynamicFilter{
@@ -292,10 +328,26 @@ input DynamicFilter{
     value:stringFilter
 }
 
-input IgaPersonFilter{
+input IgaUserFilter{
     name:stringFilter,
     username:stringFilter,
-    openid:stringFilter,
-    active:integerFilter
-    extension:[DynamicFilter],
+    phone:stringFilter,
+    cardNo:stringFilter,
+    active:booleanFilter,
+    email:stringFilter,
+    extension:[DynamicFilter]
+}
+
+input IgaOccupyFilter{
+    name:stringFilter,
+    username:stringFilter,
+    active:booleanFilter,
+    positionActive:booleanFilter,
+    dept:stringFilter,
+    post:stringFilter,
+    personCardNo:stringFilter,
+    positionCardNo:stringFilter,
+    startTime:timestampFilter,
+    endTime:timestampFilter,
+    extension:[DynamicFilter]
 }

@@ -2400,7 +2400,7 @@ public class PersonServiceImpl implements PersonService {
     }
 
     @Override
-    public PersonConnection findTestPersons(Map<String, Object> arguments, DomainInfo domain) {
+    public PersonConnection igaUser(Map<String, Object> arguments, DomainInfo domain) {
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         Map<String, Object> testPersons = personDao.findTestPersons(arguments, tenant);
         List<Person> list = (List<Person>) testPersons.get("list");

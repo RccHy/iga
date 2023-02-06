@@ -3,10 +3,7 @@ package com.qtgl.iga.service.impl;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.qtgl.iga.bean.OccupyConnection;
-import com.qtgl.iga.bean.OccupyDto;
-import com.qtgl.iga.bean.OccupyEdge;
-import com.qtgl.iga.bean.TreeBean;
+import com.qtgl.iga.bean.*;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.config.PreViewOccupyThreadPool;
 import com.qtgl.iga.dao.*;
@@ -1881,7 +1878,7 @@ public class OccupyServiceImpl implements OccupyService {
         if (!CollectionUtils.isEmpty(valueUpdateMap)) {
             valueUpdate = new ArrayList<>(valueUpdateMap.values());
         }
-        occupyDao.saveToSsoTest(result, tenant.getId(), valueUpdate, valueInsert, dynamicAttrs);
+        occupyDao.saveToSsoTest(result, tenant.getId(), valueUpdate, valueInsert, dynamicAttrs,dynamicValues);
 
         if (null != viewTask) {
             viewTask.setStatus("done");
@@ -1892,12 +1889,68 @@ public class OccupyServiceImpl implements OccupyService {
     }
 
     @Override
-    public OccupyConnection findTestUsers(Map<String, Object> arguments, DomainInfo domain) {
+    public IgaOccupyConnection igaOccupy(Map<String, Object> arguments, DomainInfo domain) {
         //查询租户
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        IgaOccupyConnection igaOccupyConnection = new IgaOccupyConnection();
         //根据条件查询符合条件的人员
-        Map<String, Object> testPersons = occupyDao.findTestUsers(arguments, tenant);
+        Map<String, Object> occupies = occupyDao.igaOccupy(arguments, tenant);
+        //根据人员查询相应的身份
+        List<IgaOccupy> list = (List<IgaOccupy>) occupies.get("list");
+        Integer count = (Integer) occupies.get("count");
+        if(!CollectionUtils.isEmpty(list)){
+            Map<String, IgaOccupy> collect = list.stream().collect(Collectors.toMap(IgaOccupy::getId, c -> c));
+            List<OccupyDto> occupyDtos = occupyDao.findOccupyByIdentityId(collect.keySet(),arguments,tenant);
 
-        return null;
+            //查询 扩展字段
+            List<DynamicValue> dynamicValues = new ArrayList<>();
+
+            List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByTypeIGA(TYPE, tenant.getId());
+
+            if (!CollectionUtils.isEmpty(dynamicAttrs)) {
+
+                //获取扩展value
+                List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr::getId).collect(Collectors.toList());
+
+                dynamicValues = dynamicValueDao.findAllByAttrIdIGA(attrIds, tenant.getId());
+            }
+            //扩展字段值分组
+            Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
+            if (!CollectionUtils.isEmpty(dynamicValues)) {
+                valueMap = dynamicValues.stream().filter(dynamicValue -> !StringUtils.isBlank(dynamicValue.getEntityId())).collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
+            }
+            Map<String, List<DynamicValue>> finalValueMap = valueMap;
+            Map<String,List<OccupyDto>> occupyDtoMap= occupyDtos.stream().collect(Collectors.groupingBy(occupyDto -> occupyDto.getPersonId()));
+            ArrayList<IgaOccupyEdge> igaOccupyEdges = new ArrayList<>();
+            //装配
+            for (IgaOccupy igaOccupy : list) {
+                IgaOccupyEdge igaOccupyEdge = new IgaOccupyEdge();
+                // 装配身份及扩展字段
+                List<OccupyDto> occupyDtoList = occupyDtoMap.get(igaOccupy.getId());
+                if(!CollectionUtils.isEmpty(occupyDtoList)){
+                    ArrayList<OccupyDto> occupyList = new ArrayList<>();
+                    for (OccupyDto occupyDto : occupyDtoList) {
+                        if (!CollectionUtils.isEmpty(finalValueMap.get(occupyDto.getOccupyId()))) {
+                            List<DynamicValue> dynValues = finalValueMap.get(occupyDto.getOccupyId());
+                            occupyDto.setAttrsValues(dynValues);
+                        }
+                        occupyList.add(occupyDto);
+                    }
+                }
+                igaOccupyEdge.setNode(igaOccupy);
+
+                igaOccupyEdges.add(igaOccupyEdge);
+            }
+
+        }
+        igaOccupyConnection.setTotalCount(count);
+        //查询上次同步的时间
+        PreViewTask person = preViewTaskService.findByTypeAndUpdateTime("occupy", domain.getId());
+        if (null != person) {
+            igaOccupyConnection.setUpdateTime(person.getUpdateTime());
+        }
+
+
+        return igaOccupyConnection;
     }
 }

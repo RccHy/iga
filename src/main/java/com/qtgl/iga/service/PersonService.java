@@ -27,5 +27,5 @@ public interface PersonService {
 
     JSONObject dealWithPerson(DomainInfo domainInfo);
 
-    PersonConnection findTestPersons(Map<String, Object> arguments, DomainInfo domain);
+    PersonConnection igaUser(Map<String, Object> arguments, DomainInfo domain);
 }
