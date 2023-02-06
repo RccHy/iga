@@ -36,6 +36,7 @@ input integerFilter {
 
 input booleanFilter{
     eq:Boolean
+    in:[Boolean]
 }
 
 input timestampFilter {
