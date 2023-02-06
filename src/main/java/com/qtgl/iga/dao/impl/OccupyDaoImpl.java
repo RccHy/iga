@@ -1,15 +1,16 @@
 package com.qtgl.iga.dao.impl;
 
+import com.qtgl.iga.bean.IgaOccupy;
 import com.qtgl.iga.bean.OccupyDto;
-import com.qtgl.iga.bo.DomainInfo;
-import com.qtgl.iga.bo.DynamicAttr;
-import com.qtgl.iga.bo.DynamicValue;
-import com.qtgl.iga.bo.Tenant;
+import com.qtgl.iga.bo.*;
+import com.qtgl.iga.dao.DynamicAttrDao;
 import com.qtgl.iga.dao.OccupyDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import com.qtgl.iga.utils.MyBeanUtils;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -23,9 +24,12 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Repository
 @Component
+@Slf4j
 public class OccupyDaoImpl implements OccupyDao {
 
 
@@ -39,7 +43,8 @@ public class OccupyDaoImpl implements OccupyDao {
 
     @Resource(name = "iga-txTemplate")
     TransactionTemplate igaTemplate;
-
+    @Resource
+    DynamicAttrDao dynamicAttrDao;
 
     @Override
     public List<OccupyDto> findAll(String tenantId, String deptCode, String postCode) {
@@ -267,7 +272,7 @@ public class OccupyDaoImpl implements OccupyDao {
 
 
     @Override
-    public Integer saveToSsoTest(Map<String, List<OccupyDto>> occupyMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, List<DynamicAttr> attrList) {
+    public Integer saveToSsoTest(Map<String, List<OccupyDto>> occupyMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, List<DynamicAttr> attrList, List<DynamicValue> dynamicValues) {
 
 
         String sql = "INSERT INTO user " +
@@ -473,25 +478,11 @@ public class OccupyDaoImpl implements OccupyDao {
                     });
                 }
 
-
-                List<DynamicValue> dynamicValues = new ArrayList<>();
-                if (!CollectionUtils.isEmpty(valueInsert)) {
-                    dynamicValues.addAll(valueInsert);
-                }
-                if (!CollectionUtils.isEmpty(valueUpdate)) {
-                    dynamicValues.addAll(valueUpdate);
-                }
-
-
-                if (!CollectionUtils.isEmpty(dynamicValues)) {
+                if (!CollectionUtils.isEmpty(attrList)) {
                     // 删除、并重新创建扩展字段
-                    String deleteDynamicAttrSql = "delete from dynamic_attr where   type='OCCUPY' and tenant_id = ?";
-                    jdbcIGA.update(deleteDynamicAttrSql, new Object[]{new String(tenantId)});
-
-                    String deleteDynamicValueSql = "delete from dynamic_value where  tenant_id = ? and attr_id not in (select id from dynamic_attr )";
-                    jdbcIGA.update(deleteDynamicValueSql, new Object[]{new String(tenantId)});
-
-                    String addDynamicValueSql = "INSERT INTO dynamic_attr (id, name, code, required, description, tenant_id, create_time, update_time, type, field_type, format, is_search, attr_index) VALUES (?,?,?,?,?,?,?,?,'OCCUPY',?,?,?,?)";
+                    String deleteDynamicAttrSql = "delete from dynamic_attr where   type='IDENTITY' and tenant_id = ?";
+                    jdbcIGA.update(deleteDynamicAttrSql, tenantId);
+                    String addDynamicValueSql = "INSERT INTO dynamic_attr (id, name, code, required, description, tenant_id, create_time, update_time, type, field_type, format, is_search, attr_index) VALUES (?,?,?,?,?,?,?,?,'IDENTITY',?,?,?,?)";
                     jdbcIGA.batchUpdate(addDynamicValueSql, new BatchPreparedStatementSetter() {
                         @Override
                         public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
@@ -515,24 +506,60 @@ public class OccupyDaoImpl implements OccupyDao {
                             return attrList.size();
                         }
                     });
-
-
+                    // 删除value条件
+                    String deleteDynamicValueSql = "delete from dynamic_value where  tenant_id = ? and attr_id  in (select id from dynamic_attr where type='IDENTITY' and tenant_id=?  )";
+                    jdbcIGA.update(deleteDynamicValueSql, tenantId, tenantId);
                     String valueStr = "INSERT INTO dynamic_value (`id`, `attr_id`, `entity_id`, `value`, `tenant_id`) VALUES (?, ?, ?, ?, ?)";
-                    jdbcIGA.batchUpdate(valueStr, new BatchPreparedStatementSetter() {
-                        @Override
-                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, dynamicValues.get(i).getId());
-                            preparedStatement.setObject(2, dynamicValues.get(i).getAttrId());
-                            preparedStatement.setObject(3, dynamicValues.get(i).getEntityId());
-                            preparedStatement.setObject(4, dynamicValues.get(i).getValue());
-                            preparedStatement.setObject(5, tenantId);
-                        }
 
-                        @Override
-                        public int getBatchSize() {
-                            return dynamicValues.size();
-                        }
-                    });
+                    if (!CollectionUtils.isEmpty(dynamicValues)) {
+                        jdbcIGA.batchUpdate(valueStr, new BatchPreparedStatementSetter() {
+                            @Override
+                            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                                preparedStatement.setObject(1, dynamicValues.get(i).getId());
+                                preparedStatement.setObject(2, dynamicValues.get(i).getAttrId());
+                                preparedStatement.setObject(3, dynamicValues.get(i).getEntityId());
+                                preparedStatement.setObject(4, dynamicValues.get(i).getValue());
+                                preparedStatement.setObject(5, tenantId);
+                            }
+
+                            @Override
+                            public int getBatchSize() {
+                                return dynamicValues.size();
+                            }
+                        });
+                    }
+                    if (!CollectionUtils.isEmpty(valueInsert)) {
+                        jdbcIGA.batchUpdate(valueStr, new BatchPreparedStatementSetter() {
+                            @Override
+                            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                                preparedStatement.setObject(1, dynamicValues.get(i).getId());
+                                preparedStatement.setObject(2, dynamicValues.get(i).getAttrId());
+                                preparedStatement.setObject(3, dynamicValues.get(i).getEntityId());
+                                preparedStatement.setObject(4, dynamicValues.get(i).getValue());
+                                preparedStatement.setObject(5, tenantId);
+                            }
+
+                            @Override
+                            public int getBatchSize() {
+                                return dynamicValues.size();
+                            }
+                        });
+                    }
+                    if (!CollectionUtils.isEmpty(valueUpdate)) {
+                        String valueUpdateStr = "update dynamic_value set `value`=? where id= ?";
+                        jdbcIGA.batchUpdate(valueUpdateStr, new BatchPreparedStatementSetter() {
+                            @Override
+                            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                                preparedStatement.setObject(1, valueUpdate.get(i).getValue());
+                                preparedStatement.setObject(2, valueUpdate.get(i).getId());
+                            }
+
+                            @Override
+                            public int getBatchSize() {
+                                return valueUpdate.size();
+                            }
+                        });
+                    }
                 }
 
 
@@ -820,32 +847,629 @@ public class OccupyDaoImpl implements OccupyDao {
 
 
     @Override
-    public Map<String, Object> findTestUsers(Map<String, Object> arguments, Tenant tenant) {
+    public Map<String, Object> igaOccupy(Map<String, Object> arguments, Tenant tenant) {
         Object first = arguments.get("first");
         Object offset = arguments.get("offset");
 
-        String queryStr = "SELECT " +
-                "                 i.id," +
-                "                 i.NAME as name, " +
-                "                 i.tags, " +
-                "                 i.open_id AS openId, " +
-                "                 i.account_no AS accountNo, " +
-                "                 i.card_type AS cardType, " +
-                "                 i.card_no AS cardNo, " +
-                "                 i.cellphone, " +
-                "                 i.email, " +
-                "                 i.source, " +
-                "                 i.data_source AS dataSource, " +
-                "                 i.active, " +
-                "                 i.active_time AS activeTime, " +
-                "                 i.create_time AS createTime, " +
-                "                 i.update_time AS updateTime, " +
-                "                 i.del_mark AS delMark," +
-                "                 i.valid_start_time AS validStartTime, " +
-                "                 i.valid_end_time AS validEndTime FROM identity i ";
-        String countSql = "SELECT count(*) from identity i   ";
+        List<Object> params = new ArrayList<>();
 
-        return null;
+        String queryStr = "SELECT " +
+                "                 DISTINCT a.id," +
+                "                 a.account_no AS accountNo, " +
+                "                 a.name ," +
+                "                 a.card_type AS cardType," +
+                "                 a.card_no AS cardNo," +
+                "                 a.open_id AS openId" +
+                "                 FROM identity a INNER JOIN user b on a.id = b.identity_id ";
+        String countSql = "SELECT COUNT(DISTINCT a.id) from identity a  INNER JOIN user b on a.id = b.identity_id  ";
+        //主体查询语句
+        StringBuffer stb = new StringBuffer(queryStr);
+        //查询总数语句
+        StringBuffer countStb = new StringBuffer(countSql);
+
+        StringBuffer strTemp = new StringBuffer("  ");
+        params.add(tenant.getId());
+        strTemp = dealDataAndAttr(arguments, strTemp, params, tenant.getId());
+        stb.append(strTemp);
+        countStb.append(strTemp);
+        if (null != first && null != offset) {
+            stb.append(" limit ").append(offset).append(",").append(first);
+        }
+
+        log.info(stb.toString());
+        log.info(countStb.toString());
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), params.toArray());
+        ArrayList<IgaOccupy> list = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(mapList)) {
+
+            mapList.forEach(map -> {
+                IgaOccupy person = new IgaOccupy();
+                try {
+                    MyBeanUtils.populate(person, map);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                list.add(person);
+            });
+
+
+        }
+        Integer count = jdbcIGA.queryForObject(countStb.toString(), params.toArray(), Integer.class);
+
+        ConcurrentHashMap<String, Object> map = new ConcurrentHashMap<>();
+        map.put("count", null == count ? 0 : count);
+        map.put("list", list);
+        return map;
+    }
+
+    @Override
+    public List<OccupyDto> findOccupyByIdentityId(Set<String> keySet, Map<String, Object> arguments,Tenant tenant) {
+        //根据人员id 和  筛选条件查询 身份并返回
+        List<Object> params = new ArrayList<>();
+
+        String queryStr = "SELECT " +
+                "                 a.id as occupyId," +
+                "                 a.identity_id as personId, " +
+                "                 a.user_type AS postCode, " +
+                "                 a.user_code AS identityCardNo, " +
+                "                 a.name ," +
+                "                 a.card_type AS cardType," +
+                "                 a.del_mark AS delMark," +
+                "                 a.start_time AS startTime," +
+                "                 a.end_time AS endTime," +
+                "                 a.create_time AS createTime," +
+                "                 a.update_time AS updateTime," +
+                "                 a.tenant_id AS tenantId," +
+                "                 a.dept_code AS deptCode," +
+                "                 a.source ," +
+                "                 a.data_source AS dataSource," +
+                "                 a.active ," +
+                "                 a.active_time AS activeTime," +
+                "                 a.tags ," +
+                "                 a.description ," +
+                "                 a.user_index AS 'index'," +
+                "                 a.valid_start_time AS validStartTime," +
+                "                 a.valid_end_time AS validEndTime," +
+                "                 a.orphan ," +
+                "                 a.create_data_source AS createDataSource," +
+                "                 a.create_source AS createSource," +
+                "                 a.sync_state AS syncState" +
+                "                 FROM  user  a ";
+        StringBuffer stb = new StringBuffer(queryStr);
+        StringBuffer strTemp = new StringBuffer("  ");
+        params.add(tenant.getId());
+        strTemp = dealDataAndAttrOccupy(arguments, strTemp, params, tenant.getId(),keySet);
+
+        if(!CollectionUtils.isEmpty(keySet)){
+            strTemp.append(" and  a.identity_id in ( ");
+            for (String identityId : keySet) {
+                strTemp.append(" ?,");
+                params.add(identityId);
+            }
+            strTemp.replace(strTemp.length() - 1, strTemp.length(), ") ");
+        }
+        stb.append(strTemp);
+        log.info(stb.toString());
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), params.toArray());
+        ArrayList<OccupyDto> list = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(mapList)) {
+
+            mapList.forEach(map -> {
+                OccupyDto occupyDto = new OccupyDto();
+                try {
+                    MyBeanUtils.populate(occupyDto, map);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                list.add(occupyDto);
+            });
+
+
+        }
+        return list;
+    }
+
+    private StringBuffer dealDataAndAttrOccupy(Map<String, Object> arguments, StringBuffer stb, List<Object> param, String tenantId,Set<String> keySet) {
+
+        //拼接查询sql
+        StringBuffer sql = new StringBuffer();
+
+        Iterator<Map.Entry<String, Object>> it = arguments.entrySet().iterator();
+
+        while (it.hasNext()) {
+            Map.Entry<String, Object> entry = it.next();
+
+            if ("filter".equals(entry.getKey())) {
+                HashMap<String, Object> map = (HashMap<String, Object>) entry.getValue();
+                for (Map.Entry<String, Object> str : map.entrySet()) {
+
+                    if ("dept".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if ("like".equals(FilterCodeEnum.getDescByCode(soe.getKey()))) {
+                                stb.append("and a.dept_code ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if ("in".equals(FilterCodeEnum.getDescByCode(soe.getKey())) || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and a.dept_code ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and a.dept_code ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+
+                    if ("post".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if ("like".equals(FilterCodeEnum.getDescByCode(soe.getKey()))) {
+                                stb.append("and a.user_type ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if ("in".equals(FilterCodeEnum.getDescByCode(soe.getKey())) || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and a.user_type ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and a.user_type ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+                    if ("syncState".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            stb.append("and a.sync_state ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                            param.add(soe.getValue());
+                        }
+                    }
+                    if ("positionActive".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if(Boolean.parseBoolean(soe.getValue().toString())){
+                                stb.append("  and ( NOW() BETWEEN a.valid_start_time and a.valid_end_time) ");
+                            }else {
+                                stb.append("  and  ( NOW() NOT BETWEEN a.valid_start_time and a.valid_end_time)");
+
+                            }
+                        }
+                    }
+
+                    if ("source".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "like")) {
+                                stb.append("and a.source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and a.source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and a.source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+                    if ("createSource".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "like")) {
+                                stb.append("and a.create_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and a.create_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and a.create_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+                    if ("positionCardNo".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "like")) {
+                                stb.append("and a.card_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and a.card_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and a.card_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+                    if ("startTime".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            //判断是否是区间
+                            if ("gt".equals(soe.getKey()) || "lt".equals(soe.getKey())
+                                    || "gte".equals(soe.getKey()) || "lte".equals(soe.getKey())) {
+                                stb.append("and a.valid_start_time ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+
+                            }
+                        }
+                    }
+                    if ("endTime".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            //判断是否是区间
+                            if ("gt".equals(soe.getKey()) || "lt".equals(soe.getKey())
+                                    || "gte".equals(soe.getKey()) || "lte".equals(soe.getKey())) {
+                                stb.append("and a.valid_end_time ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+
+                            }
+                        }
+                    }
+                    if ("extension".equals(str.getKey())) {
+                        List<HashMap<String, Object>> values = (List<HashMap<String, Object>>) str.getValue();
+                        if (!CollectionUtils.isEmpty(values)) {
+                            List<DynamicAttr> users = dynamicAttrDao.findAllByTypeIGA("IDENTITY", tenantId);
+                            Map<String, String> collect = users.stream().collect(Collectors.toMap(DynamicAttr::getCode, DynamicAttr::getId));
+                            char aliasOld = 'c';
+
+                            for (HashMap<String, Object> value : values) {
+                                String key = (String) value.get("key");
+                                if (collect.containsKey(key)) {
+                                    HashMap<String, Object> val = (HashMap<String, Object>) value.get("value");
+                                    for (Map.Entry<String, Object> soe : val.entrySet()) {
+                                        if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
+                                            char aliasNew = (char) (aliasOld + 1);
+                                            sql.append(" LEFT JOIN dynamic_value ").append(aliasNew).append(" ON ").append(aliasNew).append(".entity_id = ").append(" a.id ");
+                                            stb.append(" and (").append(aliasNew).append(".value = ? and ").append(aliasNew).append(".attr_id=? )");
+                                            aliasOld = aliasNew;
+                                            param.add("%" + soe.getValue() + "%");
+                                            param.add(collect.get(key));
+                                        } else {
+                                            char aliasNew = (char) (aliasOld + 1);
+
+                                            sql.append(" LEFT JOIN dynamic_value ").append(aliasNew).append(" ON ").append(aliasNew).append(".entity_id = ").append(" a.id ");
+                                            stb.append(" and (").append(aliasNew).append(".value = ? and ").append(aliasNew).append(".attr_id=? )");
+                                            aliasOld = aliasNew;
+                                            param.add(soe.getValue());
+                                            param.add(collect.get(key));
+                                        }
+                                    }
+
+                                }
+
+
+                            }
+                        }
+                    }
+
+                }
+
+            }
+        }
+
+        StringBuffer buffer = new StringBuffer(" WHERE 1=1 AND a.TENANT_ID = ? ");
+
+        if (StringUtils.isNotBlank(sql)) {
+            stb = sql.append(buffer).append(stb);
+        } else {
+            stb = buffer.append(stb);
+        }
+        return stb;
+
+    }
+
+    private StringBuffer dealDataAndAttr(Map<String, Object> arguments, StringBuffer stb, List<Object> param, String tenantId) {
+
+        //扩展字段查询拼接主体sql
+        StringBuffer sql = new StringBuffer();
+
+        boolean activeFlag = true;
+        boolean positionActiveFlag = true;
+
+        Iterator<Map.Entry<String, Object>> it = arguments.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<String, Object> entry = it.next();
+            if ("a.id".equals(entry.getKey())) {
+                stb.append("and i.id= ? ");
+                param.add(entry.getValue());
+            }
+
+            if ("filter".equals(entry.getKey())) {
+                HashMap<String, Object> map = (HashMap<String, Object>) entry.getValue();
+                for (Map.Entry<String, Object> str : map.entrySet()) {
+                    if ("name".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if ("like".equals(FilterCodeEnum.getDescByCode(soe.getKey()))) {
+                                stb.append("and a.name ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if ("in".equals(FilterCodeEnum.getDescByCode(soe.getKey())) || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and a.name ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and a.name ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+                    if ("username".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if ("like".equals(FilterCodeEnum.getDescByCode(soe.getKey()))) {
+                                stb.append("and a.account_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if ("in".equals(FilterCodeEnum.getDescByCode(soe.getKey())) || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and a.account_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and a.account_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+                    if ("syncState".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            stb.append("and b.sync_state ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                            param.add(soe.getValue());
+                        }
+                    }
+                    if ("source".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "like")) {
+                                stb.append("and b.source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and b.source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and b.source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+                    if ("createSource".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "like")) {
+                                stb.append("and b.create_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and b.create_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and b.create_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+
+                    if ("dept".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if ("like".equals(FilterCodeEnum.getDescByCode(soe.getKey()))) {
+                                stb.append("and b.dept_code ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if ("in".equals(FilterCodeEnum.getDescByCode(soe.getKey())) || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and b.dept_code ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and b.dept_code ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+
+                    if ("post".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if ("like".equals(FilterCodeEnum.getDescByCode(soe.getKey()))) {
+                                stb.append("and b.user_type ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if ("in".equals(FilterCodeEnum.getDescByCode(soe.getKey())) || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and b.user_type ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and b.user_type ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+                    if ("active".equals(str.getKey())) {
+                        activeFlag=false;
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if(Boolean.parseBoolean(soe.getValue().toString())){
+                                stb.append("  and ( NOW() BETWEEN a.valid_start_time and a.valid_end_time) ");
+                            }else {
+                                stb.append("  and  ( NOW() NOT BETWEEN a.valid_start_time and a.valid_end_time)");
+
+                            }
+                        }
+                    }
+                    if ("positionActive".equals(str.getKey())) {
+                        positionActiveFlag=false;
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if(Boolean.parseBoolean(soe.getValue().toString())){
+                                stb.append("  and ( NOW() BETWEEN b.valid_start_time and b.valid_end_time) ");
+                            }else {
+                                stb.append("  and  ( NOW() NOT BETWEEN b.valid_start_time and b.valid_end_time)");
+
+                            }
+                        }
+                    }
+                    if ("personCardNo".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "like")) {
+                                stb.append("and a.card_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and a.card_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and a.card_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+                    if ("positionCardNo".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "like")) {
+                                stb.append("and b.card_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and b.card_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and b.card_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+                    if ("startTime".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            //判断是否是区间
+                            if ("gt".equals(soe.getKey()) || "lt".equals(soe.getKey())
+                                    || "gte".equals(soe.getKey()) || "lte".equals(soe.getKey())) {
+                                stb.append("and valid_start_time ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+
+                            }
+                        }
+                    }
+                    if ("endTime".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            //判断是否是区间
+                            if ("gt".equals(soe.getKey()) || "lt".equals(soe.getKey())
+                                    || "gte".equals(soe.getKey()) || "lte".equals(soe.getKey())) {
+                                stb.append("and valid_end_time ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+
+                            }
+                        }
+                    }
+                    if ("extension".equals(str.getKey())) {
+                        List<HashMap<String, Object>> values = (List<HashMap<String, Object>>) str.getValue();
+                        if (!CollectionUtils.isEmpty(values)) {
+                            List<DynamicAttr> users = dynamicAttrDao.findAllByTypeIGA("IDENTITY", tenantId);
+                            Map<String, String> collect = users.stream().collect(Collectors.toMap(DynamicAttr::getCode, DynamicAttr::getId));
+                            char aliasOld = 'c';
+
+                            for (HashMap<String, Object> value : values) {
+                                String key = (String) value.get("key");
+                                if (collect.containsKey(key)) {
+                                    HashMap<String, Object> val = (HashMap<String, Object>) value.get("value");
+                                    for (Map.Entry<String, Object> soe : val.entrySet()) {
+                                        if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
+                                            char aliasNew = (char) (aliasOld + 1);
+                                            sql.append(" LEFT JOIN dynamic_value ").append(aliasNew).append(" ON ").append(aliasNew).append(".entity_id = ").append(" b.id ");
+                                            stb.append(" and (").append(aliasNew).append(".value = ? and ").append(aliasNew).append(".attr_id=? )");
+                                            aliasOld = aliasNew;
+                                            param.add("%" + soe.getValue() + "%");
+                                            param.add(collect.get(key));
+                                        } else {
+                                            char aliasNew = (char) (aliasOld + 1);
+
+                                            sql.append(" LEFT JOIN dynamic_value ").append(aliasNew).append(" ON ").append(aliasNew).append(".entity_id = ").append(" b.id ");
+                                            stb.append(" and (").append(aliasNew).append(".value = ? and ").append(aliasNew).append(".attr_id=? )");
+                                            aliasOld = aliasNew;
+                                            param.add(soe.getValue());
+                                            param.add(collect.get(key));
+                                        }
+                                    }
+
+                                }
+
+
+                            }
+                        }
+                    }
+
+                }
+
+            }
+        }
+        StringBuffer buffer = new StringBuffer(" WHERE 1=1 AND a.TENANT_ID = ? ");
+        if (StringUtils.isNotBlank(sql)) {
+            stb = sql.append(buffer).append(stb);
+        } else {
+            stb = buffer.append(stb);
+        }
+        if(activeFlag){
+            stb.append("  and ( NOW() BETWEEN a.valid_start_time and a.valid_end_time) ");
+        }
+        if(positionActiveFlag){
+            stb.append("  and ( NOW() BETWEEN b.valid_start_time and b.valid_end_time) ");
+        }
+        return stb;
     }
 
 

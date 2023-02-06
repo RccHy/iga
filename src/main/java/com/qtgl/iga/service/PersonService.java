@@ -23,9 +23,9 @@ public interface PersonService {
 
     PreViewTask reFreshTaskStatus(Map<String, Object> arguments, DomainInfo domain);
 
-    PreViewTask testPersonTask(DomainInfo domain, PreViewTask preViewTask);
+    PreViewTask testUserTask(DomainInfo domain, PreViewTask preViewTask);
 
     JSONObject dealWithPerson(DomainInfo domainInfo);
 
-    PersonConnection findTestPersons(Map<String, Object> arguments, DomainInfo domain);
+    PersonConnection igaUser(Map<String, Object> arguments, DomainInfo domain);
 }

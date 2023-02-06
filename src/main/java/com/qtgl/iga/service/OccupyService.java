@@ -1,5 +1,6 @@
 package com.qtgl.iga.service;
 
+import com.qtgl.iga.bean.IgaOccupyConnection;
 import com.qtgl.iga.bean.OccupyConnection;
 import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bo.DomainInfo;
@@ -20,8 +21,8 @@ public interface OccupyService {
 
     PreViewTask reFreshOccupies(Map<String, Object> arguments, DomainInfo domain, PreViewTask preViewTask);
 
-    PreViewTask testUserTask(DomainInfo domain, PreViewTask preViewTask);
+    PreViewTask testOccupyTask(DomainInfo domain, PreViewTask preViewTask);
 
-    OccupyConnection findTestUsers(Map<String, Object> arguments, DomainInfo domain);
+    IgaOccupyConnection igaOccupy(Map<String, Object> arguments, DomainInfo domain);
 
 }

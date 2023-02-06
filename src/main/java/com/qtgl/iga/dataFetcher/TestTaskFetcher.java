@@ -1,7 +1,7 @@
 package com.qtgl.iga.dataFetcher;
 
 
-import com.qtgl.iga.bean.OccupyConnection;
+import com.qtgl.iga.bean.IgaOccupyConnection;
 import com.qtgl.iga.bean.PersonConnection;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.DomainInfo;
@@ -45,7 +45,7 @@ public class TestTaskFetcher {
      *
      * @return
      */
-    public DataFetcher igaDepartments() {
+    public DataFetcher igaDepartment() {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
@@ -70,7 +70,7 @@ public class TestTaskFetcher {
      *
      * @return
      */
-    public DataFetcher igaPosts() {
+    public DataFetcher igaPost() {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
@@ -94,7 +94,7 @@ public class TestTaskFetcher {
      *
      * @return
      */
-    public DataFetcher igaPersons() {
+    public DataFetcher igaUser() {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
@@ -103,7 +103,7 @@ public class TestTaskFetcher {
 
 
             try {
-                PersonConnection persons = personService.findTestPersons(arguments, domain);
+                PersonConnection persons = personService.igaUser(arguments, domain);
                 return persons;
             } catch (CustomException e) {
                 e.printStackTrace();
@@ -122,7 +122,7 @@ public class TestTaskFetcher {
      *
      * @return
      */
-    public DataFetcher igaUsers() {
+    public DataFetcher igaOccupy() {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
@@ -130,7 +130,7 @@ public class TestTaskFetcher {
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
 
             try {
-                OccupyConnection occupies = occupyService.findOccupies(arguments, domain);
+                IgaOccupyConnection occupies = occupyService.igaOccupy(arguments, domain);
                 return occupies;
             } catch (CustomException e) {
                 e.printStackTrace();
@@ -148,14 +148,14 @@ public class TestTaskFetcher {
      *
      * @return
      */
-    public DataFetcher testPersonTask() {
+    public DataFetcher testUserTask() {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
 
 
             try {
-                PreViewTask taskResult = personService.testPersonTask(domain, null);
+                PreViewTask taskResult = personService.testUserTask(domain, null);
                 return taskResult;
             } catch (CustomException e) {
                 e.printStackTrace();
@@ -172,12 +172,20 @@ public class TestTaskFetcher {
      *
      * @return
      */
-    public DataFetcher testUserTask() {
+    public DataFetcher testOccupyTask() {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
-            PreViewTask taskResult = occupyService.testUserTask(domain, null);
-            return taskResult;
+            try {
+
+                PreViewTask taskResult = occupyService.testOccupyTask(domain, null);
+                return taskResult;
+            } catch (CustomException e) {
+                e.printStackTrace();
+                logger.error(domain.getDomainName() + e.getMessage());
+
+                return GraphqlExceptionUtils.getObject("当前正在人员身份测试同步中,请稍后再试", e);
+            }
 
         };
     }
@@ -191,8 +199,7 @@ public class TestTaskFetcher {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
-            PreViewTask taskResult = personService.testPersonTask(domain, null);
-            return taskResult;
+            return null;
 
         };
     }
@@ -202,12 +209,11 @@ public class TestTaskFetcher {
      *
      * @return
      */
-    public DataFetcher testUserTypeTask() {
+    public DataFetcher testPostTask() {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
-            PreViewTask taskResult = personService.testPersonTask(domain, null);
-            return taskResult;
+            return null;
 
         };
     }

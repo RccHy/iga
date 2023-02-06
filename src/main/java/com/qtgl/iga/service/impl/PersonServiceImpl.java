@@ -2165,7 +2165,7 @@ public class PersonServiceImpl implements PersonService {
     }
 
     @Override
-    public PreViewTask testPersonTask(DomainInfo domain, PreViewTask viewTask) {
+    public PreViewTask testUserTask(DomainInfo domain, PreViewTask viewTask) {
 
         if (null == viewTask) {
             viewTask = new PreViewTask();
@@ -2174,14 +2174,9 @@ public class PersonServiceImpl implements PersonService {
             viewTask.setDomain(domain.getId());
             viewTask.setType("person");
         }
-        //查询进行中的刷新人员任务数
-        //Integer count = preViewTaskService.findByTypeAndStatus("person", "doing", domain);
-        //todo 通过线程池状态判断
-        //if (count <= 10) {
+
         viewTask = preViewTaskService.saveTask(viewTask);
-        //} else {
-        //    throw new CustomException(ResultCode.FAILED, "当前任务数量已达上限,无法创建新的刷新任务,请耐心等待");
-        //}
+
 
         if (PreViewPersonThreadPool.executorServiceMap.containsKey(domain.getDomainName())) {
             ExecutorService executorService = PreViewPersonThreadPool.executorServiceMap.get(domain.getDomainName());
@@ -2197,7 +2192,7 @@ public class PersonServiceImpl implements PersonService {
             }
         } else {
             PreViewPersonThreadPool.builderExecutor(domain.getDomainName());
-            testPersonTask(domain, viewTask);
+            testUserTask(domain, viewTask);
         }
         return viewTask;
     }
@@ -2400,7 +2395,7 @@ public class PersonServiceImpl implements PersonService {
     }
 
     @Override
-    public PersonConnection findTestPersons(Map<String, Object> arguments, DomainInfo domain) {
+    public PersonConnection igaUser(Map<String, Object> arguments, DomainInfo domain) {
         Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
         Map<String, Object> testPersons = personDao.findTestPersons(arguments, tenant);
         List<Person> list = (List<Person>) testPersons.get("list");

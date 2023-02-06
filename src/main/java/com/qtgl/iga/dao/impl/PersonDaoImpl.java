@@ -1253,6 +1253,7 @@ public class PersonDaoImpl implements PersonDao {
                 "                 i.update_time AS updateTime, " +
                 "                 i.del_mark AS delMark," +
                 "                 i.valid_start_time AS validStartTime, " +
+                "                 i.sync_state AS syncState, " +
                 "                 i.valid_end_time AS validEndTime FROM identity i ";
         String countSql = "SELECT count(*) from identity i   ";
         //主体查询语句
@@ -1397,8 +1398,12 @@ public class PersonDaoImpl implements PersonDao {
                     if ("active".equals(str.getKey())) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            stb.append("and i.active ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
-                            param.add(soe.getValue());
+                            if(Boolean.parseBoolean(soe.getValue().toString())){
+                                stb.append("  and ( NOW() BETWEEN i.valid_start_time and i.valid_end_time) ");
+                            }else {
+                                stb.append("  and  ( NOW() NOT BETWEEN i.valid_start_time and i.valid_end_time)");
+
+                            }
                         }
                     }
                     if ("cardNo".equals(str.getKey())) {
@@ -1437,6 +1442,54 @@ public class PersonDaoImpl implements PersonDao {
                                 stb.replace(stb.length() - 1, stb.length(), ")");
                             } else {
                                 stb.append("and i.email ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+                    if ("syncState".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            stb.append("and i.sync_state ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                            param.add(soe.getValue());
+                        }
+                    }
+
+                    if ("source".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "like")) {
+                                stb.append("and i.source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and i.source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and i.source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+                    if ("createSource".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "like")) {
+                                stb.append("and i.create_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and i.create_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and i.create_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                                 param.add(soe.getValue());
                             }
                         }
