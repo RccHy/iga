@@ -59,7 +59,8 @@ type PreViewTask{
     createTime:Timestamp
     # 修改时间
     updateTime:Timestamp
-    #
+    #统计变更数量  没有变化/新增/删除/修改/无效
+    statistics:String
     # 失败的原因
     reason:String
 
