@@ -913,7 +913,7 @@ public class OccupyDaoImpl implements OccupyDao {
                 "                 a.user_type AS postCode, " +
                 "                 a.user_code AS identityCardNo, " +
                 "                 a.name ," +
-                "                 a.card_type AS cardType," +
+                "                 a.card_type AS identityCardType," +
                 "                 a.del_mark AS delMark," +
                 "                 a.start_time AS startTime," +
                 "                 a.end_time AS endTime," +
