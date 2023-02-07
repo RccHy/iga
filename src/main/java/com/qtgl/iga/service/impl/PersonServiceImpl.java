@@ -2172,7 +2172,7 @@ public class PersonServiceImpl implements PersonService {
             viewTask.setTaskId(UUID.randomUUID().toString());
             viewTask.setStatus("doing");
             viewTask.setDomain(domain.getId());
-            viewTask.setType("person");
+            viewTask.setType("user");
         }
 
         viewTask = preViewTaskService.saveTask(viewTask);
@@ -2436,7 +2436,7 @@ public class PersonServiceImpl implements PersonService {
         personConnection.setTotalCount(count);
 
         //查询上次同步的时间
-        PreViewTask person = preViewTaskService.findByTypeAndUpdateTime("person", domain.getId());
+        PreViewTask person = preViewTaskService.findByTypeAndUpdateTime("user", domain.getId());
         if (null != person) {
             personConnection.setUpdateTime(person.getUpdateTime());
         }
