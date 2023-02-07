@@ -135,6 +135,8 @@ type Occupy{
     index:Int
     #扩展字段
     attrsValues : [DynamicValue]
+    #同步后状态 0 无变化 1 新增 2 修改 3 删除 4 失效
+    syncState :Int
 
 }
 
