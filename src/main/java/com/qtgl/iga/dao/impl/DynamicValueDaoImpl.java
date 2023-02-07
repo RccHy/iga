@@ -96,7 +96,8 @@ public class DynamicValueDaoImpl implements DynamicValueDao {
                 sql.append(" , identity i where v.attr_id = a.id and i.id=v.entity_id and i.del_mark =0 and v.tenant_id=?  and a.type= ? ");
                 break;
             case "IDENTITY":
-                sql.append(" , user i where v.attr_id = a.id and i.id=v.entity_id and i.del_mark =0 and v.tenant_id=?  and a.type= ? ");
+                sql.append(" , user i,identity_user iu,identity o where v.attr_id = a.id and i.id=v.entity_id and i.del_mark =0 " +
+                        "and iu.user_id=i.id and o.id=iu.identity_id and o.del_mark=0 and v.tenant_id=?  and a.type= ? ");
                 break;
             case "DEPT":
                 sql.append(" , dept i where v.attr_id = a.id and i.id=v.entity_id and i.del_mark =0 and v.tenant_id=?  and a.type= ? ");
