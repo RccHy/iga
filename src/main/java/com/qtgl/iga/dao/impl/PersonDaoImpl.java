@@ -1301,7 +1301,7 @@ public class PersonDaoImpl implements PersonDao {
 
         //扩展字段查询拼接主体sql
         StringBuffer sql = new StringBuffer();
-
+        boolean activeFlag = true;
         Iterator<Map.Entry<String, Object>> it = arguments.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<String, Object> entry = it.next();
@@ -1397,13 +1397,42 @@ public class PersonDaoImpl implements PersonDao {
                     }
                     if ("active".equals(str.getKey())) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        activeFlag= false;
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            if(Boolean.parseBoolean(soe.getValue().toString())){
-                                stb.append("  and ( NOW() BETWEEN i.valid_start_time and i.valid_end_time) ");
-                            }else {
-                                stb.append("  and  ( NOW() NOT BETWEEN i.valid_start_time and i.valid_end_time)");
+                            if ("eq".equals(soe.getKey())) {
+                                if (Boolean.parseBoolean(soe.getValue().toString())) {
+                                    stb.append("  and ( NOW() BETWEEN i.valid_start_time and i.valid_end_time) ");
+                                } else {
+                                    stb.append("  and  ( NOW() NOT BETWEEN i.valid_start_time and i.valid_end_time)");
 
+                                }
+                            } else if ("in".equals(FilterCodeEnum.getDescByCode(soe.getKey()))) {
+                                Boolean trueFlag = false;
+                                Boolean falseFlag = false;
+                                ArrayList<Boolean> value1 = (ArrayList<Boolean>) soe.getValue();
+                                StringBuffer temp = new StringBuffer();
+                                temp.append(" and ( ");
+                                for (Boolean b : value1) {
+                                    if(b){
+                                        trueFlag=true;
+                                        temp.append(" ( NOW() BETWEEN i.valid_start_time and i.valid_end_time) or");
+                                    }else {
+                                        falseFlag=true;
+                                        temp.append(" ( NOW() NOT BETWEEN i.valid_start_time and i.valid_end_time) or");
+                                    }
+                                    if(trueFlag&&falseFlag){
+                                        break;
+                                    }
+                                }
+                                if(trueFlag&&falseFlag){
+
+                                }else {
+                                    temp.replace(temp.length() - 2, temp.length(), ")");
+                                    stb.append(temp);
+                                }
                             }
+
+
                         }
                     }
                     if ("cardNo".equals(str.getKey())) {
@@ -1449,8 +1478,10 @@ public class PersonDaoImpl implements PersonDao {
                     if ("syncState".equals(str.getKey())) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            stb.append("and i.sync_state ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
-                            param.add(soe.getValue());
+                            if ("eq".equals(soe.getKey())) {
+                                stb.append("and i.sync_state ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
                         }
                     }
 
@@ -1541,6 +1572,9 @@ public class PersonDaoImpl implements PersonDao {
             stb = sql.append(buffer).append(stb);
         } else {
             stb = buffer.append(stb);
+        }
+        if(activeFlag){
+            stb.append("  and ( NOW() BETWEEN i.valid_start_time and i.valid_end_time) ");
         }
         return stb;
     }

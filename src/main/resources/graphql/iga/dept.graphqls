@@ -121,6 +121,10 @@ type Occupy{
     startTime:Timestamp
     #有效期结束时间
     endTime:Timestamp
+    #最终有效期开始时间
+    validStartTime:Timestamp
+    #最终有效期结束时间
+    validEndTime:Timestamp
     #描述
     description: String
     #是否有效

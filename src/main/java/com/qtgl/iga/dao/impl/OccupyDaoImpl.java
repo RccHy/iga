@@ -1027,18 +1027,46 @@ public class OccupyDaoImpl implements OccupyDao {
                     if ("syncState".equals(str.getKey())) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            stb.append("and a.sync_state ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
-                            param.add(soe.getValue());
+                            if ("eq".equals(soe.getKey())) {
+                                stb.append("and a.sync_state ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
                         }
                     }
                     if ("positionActive".equals(str.getKey())) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            if(Boolean.parseBoolean(soe.getValue().toString())){
-                                stb.append("  and ( NOW() BETWEEN a.valid_start_time and a.valid_end_time) ");
-                            }else {
-                                stb.append("  and  ( NOW() NOT BETWEEN a.valid_start_time and a.valid_end_time)");
+                            if ("eq".equals(soe.getKey())) {
+                                if (Boolean.parseBoolean(soe.getValue().toString())) {
+                                    stb.append("  and ( NOW() BETWEEN a.valid_start_time and a.valid_end_time) ");
+                                } else {
+                                    stb.append("  and  ( NOW() NOT BETWEEN a.valid_start_time and a.valid_end_time)");
 
+                                }
+                            } else if ("in".equals(FilterCodeEnum.getDescByCode(soe.getKey()))) {
+                                Boolean trueFlag = false;
+                                Boolean falseFlag = false;
+                                ArrayList<Boolean> value1 = (ArrayList<Boolean>) soe.getValue();
+                                StringBuffer temp = new StringBuffer();
+                                temp.append(" and ( ");
+                                for (Boolean b : value1) {
+                                    if(b){
+                                        trueFlag=true;
+                                        temp.append(" ( NOW() BETWEEN a.valid_start_time and a.valid_end_time) or");
+                                    }else {
+                                        falseFlag=true;
+                                        temp.append(" ( NOW() NOT BETWEEN a.valid_start_time and a.valid_end_time) or");
+                                    }
+                                    if(trueFlag&&falseFlag){
+                                        break;
+                                    }
+                                }
+                                if(trueFlag&&falseFlag){
+
+                                }else {
+                                    temp.replace(temp.length() - 2, temp.length(), ")");
+                                    stb.append(temp);
+                                }
                             }
                         }
                     }
@@ -1242,8 +1270,10 @@ public class OccupyDaoImpl implements OccupyDao {
                     if ("syncState".equals(str.getKey())) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            stb.append("and b.sync_state ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
-                            param.add(soe.getValue());
+                            if ("eq".equals(soe.getKey())) {
+                                stb.append("and b.sync_state ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
                         }
                     }
                     if ("source".equals(str.getKey())) {
@@ -1332,23 +1362,77 @@ public class OccupyDaoImpl implements OccupyDao {
                         activeFlag=false;
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            if(Boolean.parseBoolean(soe.getValue().toString())){
-                                stb.append("  and ( NOW() BETWEEN a.valid_start_time and a.valid_end_time) ");
-                            }else {
-                                stb.append("  and  ( NOW() NOT BETWEEN a.valid_start_time and a.valid_end_time)");
+                            if ("eq".equals(soe.getKey())) {
+                                if (Boolean.parseBoolean(soe.getValue().toString())) {
+                                    stb.append("  and ( NOW() BETWEEN a.valid_start_time and a.valid_end_time) ");
+                                } else {
+                                    stb.append("  and  ( NOW() NOT BETWEEN a.valid_start_time and a.valid_end_time)");
 
+                                }
+                            } else if ("in".equals(FilterCodeEnum.getDescByCode(soe.getKey()))) {
+                                Boolean trueFlag = false;
+                                Boolean falseFlag = false;
+                                ArrayList<Boolean> value1 = (ArrayList<Boolean>) soe.getValue();
+                                StringBuffer temp = new StringBuffer();
+                                temp.append(" and ( ");
+                                for (Boolean b : value1) {
+                                    if(b){
+                                        trueFlag=true;
+                                        temp.append(" ( NOW() BETWEEN a.valid_start_time and a.valid_end_time) or");
+                                    }else {
+                                        falseFlag=true;
+                                        temp.append(" ( NOW() NOT BETWEEN a.valid_start_time and a.valid_end_time) or");
+                                    }
+                                    if(trueFlag&&falseFlag){
+                                        break;
+                                    }
+                                }
+                                if(trueFlag&&falseFlag){
+
+                                }else {
+                                    temp.replace(temp.length() - 2, temp.length(), ")");
+                                    stb.append(temp);
+                                }
                             }
+
+
                         }
                     }
                     if ("positionActive".equals(str.getKey())) {
                         positionActiveFlag=false;
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
-                            if(Boolean.parseBoolean(soe.getValue().toString())){
-                                stb.append("  and ( NOW() BETWEEN b.valid_start_time and b.valid_end_time) ");
-                            }else {
-                                stb.append("  and  ( NOW() NOT BETWEEN b.valid_start_time and b.valid_end_time)");
+                            if ("eq".equals(soe.getKey())) {
+                                if (Boolean.parseBoolean(soe.getValue().toString())) {
+                                    stb.append("  and ( NOW() BETWEEN b.valid_start_time and b.valid_end_time) ");
+                                } else {
+                                    stb.append("  and  ( NOW() NOT BETWEEN b.valid_start_time and b.valid_end_time)");
 
+                                }
+                            } else if ("in".equals(FilterCodeEnum.getDescByCode(soe.getKey()))) {
+                                Boolean trueFlag = false;
+                                Boolean falseFlag = false;
+                                ArrayList<Boolean> value1 = (ArrayList<Boolean>) soe.getValue();
+                                StringBuffer temp = new StringBuffer();
+                                temp.append(" and ( ");
+                                for (Boolean b : value1) {
+                                    if(b){
+                                        trueFlag=true;
+                                        temp.append(" ( NOW() BETWEEN b.valid_start_time and b.valid_end_time) or");
+                                    }else {
+                                        falseFlag=true;
+                                        temp.append(" ( NOW() NOT BETWEEN b.valid_start_time and b.valid_end_time) or");
+                                    }
+                                    if(trueFlag&&falseFlag){
+                                        break;
+                                    }
+                                }
+                                if(trueFlag&&falseFlag){
+
+                                }else {
+                                    temp.replace(temp.length() - 2, temp.length(), ")");
+                                    stb.append(temp);
+                                }
                             }
                         }
                     }
