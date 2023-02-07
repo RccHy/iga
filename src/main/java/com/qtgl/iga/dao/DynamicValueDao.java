@@ -10,4 +10,6 @@ public interface DynamicValueDao {
      List<DynamicValue> findAllByAttrId(List<String> attrIds, String tenantId);
 
     List<DynamicValue> findAllByAttrIdIGA(List<String> attrIds, String id);
+
+    List<DynamicValue> findAllAttrByType(String tenantId, String type);
 }

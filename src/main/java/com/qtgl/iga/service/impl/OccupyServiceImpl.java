@@ -1827,10 +1827,10 @@ public class OccupyServiceImpl implements OccupyService {
 
         if (!CollectionUtils.isEmpty(dynamicAttrs)) {
             dynamicCodes = dynamicAttrs.stream().map(DynamicAttr::getCode).collect(Collectors.toList());
-            //获取扩展value
-            List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr::getId).collect(Collectors.toList());
+            ////获取扩展value
+            //List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr::getId).collect(Collectors.toList());
 
-            dynamicValues = dynamicValueDao.findAllByAttrId(attrIds, tenant.getId());
+            dynamicValues = dynamicValueDao.findAllAttrByType(tenant.getId(), TYPE);
         }
 
         //扩展字段值分组
