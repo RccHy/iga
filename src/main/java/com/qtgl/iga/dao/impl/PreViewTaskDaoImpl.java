@@ -127,4 +127,28 @@ public class PreViewTaskDaoImpl implements PreViewTaskDao {
 
         return preViewTask;
     }
+
+    @Override
+    public PreViewTask findLastPreViewTask(String type, String domain) {
+        String sql = " SELECT id,task_id as taskId,status,create_time as createTime,type,domain,update_time as updateTime from t_mgr_pre_view_task where domain=? and type =?  ORDER BY update_time desc limit 1 ";
+        //拼接sql
+        StringBuffer stb = new StringBuffer(sql);
+        //存入参数
+        List<Object> param = new ArrayList<>();
+        param.add(domain);
+        param.add(type);
+        List<Map<String, Object>> maps = jdbcIGA.queryForList(stb.toString(), param.toArray());
+        PreViewTask preViewTask = new PreViewTask();
+        if (!CollectionUtils.isEmpty(maps)) {
+            for (Map<String, Object> map : maps) {
+                BeanMap beanMap = BeanMap.create(preViewTask);
+                beanMap.putAll(map);
+
+                return preViewTask;
+            }
+
+        }
+
+        return preViewTask;
+    }
 }

@@ -22,7 +22,8 @@ public class TestTaskProvider {
                 .dataFetcher("igaOccupy", dataFetcher.igaOccupy())
                 .dataFetcher("igaUser", dataFetcher.igaUser())
                 .dataFetcher("igaPost", dataFetcher.igaPost())
-                .dataFetcher("igaDepartment", dataFetcher.igaDepartment());
+                .dataFetcher("igaDepartment", dataFetcher.igaDepartment())
+                .dataFetcher("lastPreViewTask",dataFetcher.lastPreViewTask());
     }
 
 

@@ -24,6 +24,10 @@ extend type Query {
         offset:Int,
         first:Int
     ): UserTypeConnection
+    # 最近一次模拟同步任务情况
+    lastPreViewTask(
+        type:String!
+    ):PreViewTask
 
     #查询测试同步任务上次同步具体变化数值
 #    testTaskLog(type:String):TaskResult
@@ -44,6 +48,22 @@ extend type Mutation {
     testPostTask: PreViewTask
 }
 
+
+#预览结果集###
+type PreViewTask{
+    #任务状态
+    status: String
+    #任务标识
+    taskId: String
+    #创建时间
+    createTime:Timestamp
+    # 修改时间
+    updateTime:Timestamp
+    #
+    # 失败的原因
+    reason:String
+
+}
 
 
 type IgaOccupyConnection {

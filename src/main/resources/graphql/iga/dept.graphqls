@@ -168,18 +168,6 @@ input OccupyFilter{
     postCode:stringFilter
 }
 
-#预览结果集###
-type PreViewTask{
-    #任务状态
-    status: String
-    #任务标识
-    taskId: String
-    #创建时间
-    createTime:Timestamp
-    # 修改时间
-    updateTime:Timestamp
-}
-
 
 
 

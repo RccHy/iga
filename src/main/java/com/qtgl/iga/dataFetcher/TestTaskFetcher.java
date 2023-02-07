@@ -6,10 +6,7 @@ import com.qtgl.iga.bean.PersonConnection;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.PreViewTask;
-import com.qtgl.iga.service.DeptService;
-import com.qtgl.iga.service.OccupyService;
-import com.qtgl.iga.service.PersonService;
-import com.qtgl.iga.service.PostService;
+import com.qtgl.iga.service.*;
 import com.qtgl.iga.utils.CertifiedConnector;
 import com.qtgl.iga.utils.exception.CustomException;
 import com.qtgl.iga.utils.exception.GraphqlExceptionUtils;
@@ -40,6 +37,10 @@ public class TestTaskFetcher {
     @Autowired
     OccupyService occupyService;
 
+
+    @Autowired
+    PreViewTaskService preViewTaskService;
+
     /**
      * 查询测试同步的 组织机构数据
      *
@@ -61,6 +62,24 @@ public class TestTaskFetcher {
                 return GraphqlExceptionUtils.getObject("查询部门失败", e);
 
 
+            }
+        };
+    }
+
+    public DataFetcher lastPreViewTask(){
+        return dataFetchingEvn -> {
+            //1。更具token信息验证是否合法，并判断其租户
+            DomainInfo domain = CertifiedConnector.getDomain();
+            // 获取传入参数
+            Map<String, Object> arguments = dataFetchingEvn.getArguments();
+            try {
+                PreViewTask preViewTask = preViewTaskService.findLastPreViewTask(arguments.get("type").toString(), domain.getId());
+                return preViewTask;
+            } catch (CustomException e) {
+                e.printStackTrace();
+                logger.error(domain.getDomainName() + e.getErrorMsg());
+
+                return GraphqlExceptionUtils.getObject("查询最近一次同步任务失败", e);
             }
         };
     }

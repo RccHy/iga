@@ -38,4 +38,9 @@ public class PreViewTaskServiceImpl implements PreViewTaskService {
     public PreViewTask findByTypeAndUpdateTime(String type, String domain) {
         return preViewTaskDao.findByTypeAndUpdateTime(type, domain);
     }
+
+    @Override
+    public PreViewTask findLastPreViewTask(String type, String domain) {
+        return preViewTaskDao.findLastPreViewTask(type, domain);
+    }
 }

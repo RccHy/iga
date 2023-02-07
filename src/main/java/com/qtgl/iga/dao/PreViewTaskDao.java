@@ -15,4 +15,6 @@ public interface PreViewTaskDao {
     Integer makeTaskDone();
 
     PreViewTask findByTypeAndUpdateTime(String type, String domain);
+    PreViewTask findLastPreViewTask(String type, String domain);
+
 }
