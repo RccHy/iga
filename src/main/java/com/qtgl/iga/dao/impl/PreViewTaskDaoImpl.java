@@ -61,13 +61,15 @@ public class PreViewTaskDaoImpl implements PreViewTaskDao {
             });
         } else {
             //修改
-            sql = "UPDATE `t_mgr_pre_view_task` SET  `status` = ? , `update_time` = ? WHERE `id` = ? and domain=? ";
+            sql = "UPDATE `t_mgr_pre_view_task` SET  `status` = ? , `update_time` = ?,statistics=?,reason=? WHERE `id` = ? and domain=? ";
             viewTask.setUpdateTime(new Timestamp(System.currentTimeMillis()));
             int update = jdbcIGA.update(sql, preparedStatement -> {
                 preparedStatement.setObject(1, viewTask.getStatus());
                 preparedStatement.setObject(2, viewTask.getUpdateTime());
-                preparedStatement.setObject(3, viewTask.getId());
-                preparedStatement.setObject(4, viewTask.getDomain());
+                preparedStatement.setObject(3, viewTask.getStatistics());
+                preparedStatement.setObject(4, viewTask.getReason());
+                preparedStatement.setObject(5, viewTask.getId());
+                preparedStatement.setObject(6, viewTask.getDomain());
             });
         }
         return viewTask;
@@ -130,7 +132,7 @@ public class PreViewTaskDaoImpl implements PreViewTaskDao {
 
     @Override
     public PreViewTask findLastPreViewTask(String type, String domain) {
-        String sql = " SELECT id,task_id as taskId,status,create_time as createTime,type,domain,update_time as updateTime from t_mgr_pre_view_task where domain=? and type =?  ORDER BY update_time desc limit 1 ";
+        String sql = " SELECT id,task_id as taskId,status,create_time as createTime,type,domain,update_time as updateTime,statistics,reason from t_mgr_pre_view_task where domain=? and type =?  ORDER BY update_time desc limit 1 ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数

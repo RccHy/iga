@@ -31,6 +31,7 @@ import java.time.ZoneOffset;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -1767,18 +1768,21 @@ public class OccupyServiceImpl implements OccupyService {
         if (PreViewOccupyThreadPool.executorServiceMap.containsKey(domain.getDomainName())) {
             ExecutorService executorService = PreViewOccupyThreadPool.executorServiceMap.get(domain.getDomainName());
             PreViewTask finalViewTask = viewTask;
-            executorService.execute(() -> {
-                try {
-                    executorService.execute(() -> {
-                        dealTask(domain, finalViewTask);
-                    });
-                } catch (Exception e) {
-                    finalViewTask.setStatus("failed");
-                    preViewTaskService.saveTask(finalViewTask);
-                    throw new CustomException(ResultCode.FAILED, "当前正在人员身份测试同步中,请稍后再试");
-                }
-
-            });
+            try {
+                executorService.execute(() -> {
+                    dealTask(domain, finalViewTask);
+                });
+            } catch (RejectedExecutionException e) {
+                viewTask.setStatus("failed");
+                finalViewTask.setReason("当前正在人员身份测试同步中,请稍后再试");
+                preViewTaskService.saveTask(viewTask);
+                throw new CustomException(ResultCode.FAILED, "当前正在人员身份测试同步中,请稍后再试");
+            } catch (Exception e) {
+                viewTask.setStatus("failed");
+                finalViewTask.setReason(e.getMessage());
+                preViewTaskService.saveTask(viewTask);
+                throw new CustomException(ResultCode.FAILED, e.getMessage());
+            }
         } else {
             PreViewOccupyThreadPool.builderExecutor(domain.getDomainName());
             testOccupyTask(domain, viewTask);
@@ -1883,6 +1887,14 @@ public class OccupyServiceImpl implements OccupyService {
         occupyDao.saveToSsoTest(result, tenant.getId(), valueUpdate, valueInsert, dynamicAttrs, dynamicValues);
 
         if (null != viewTask) {
+            //没有变化/新增/删除/修改/无效
+            Integer keep = result.containsKey("keep") ? result.get("keep").size() : 0;
+            Integer insert = (result.containsKey("insert") ? result.get("insert").size() : 0);
+            Integer delete = result.containsKey("delete") ? result.get("delete").size() : 0;
+            Integer update = (result.containsKey("update") ? result.get("update").size() : 0);
+            Integer invalid = result.containsKey("invalid") ? result.get("invalid").size() : 0;
+            String statistics = keep + "/" + insert + "/" + delete + "/" + update + "/" + invalid;
+            viewTask.setStatistics(statistics);
             viewTask.setStatus("done");
             viewTask.setUpdateTime(new Timestamp(System.currentTimeMillis()));
             preViewTaskService.saveTask(viewTask);

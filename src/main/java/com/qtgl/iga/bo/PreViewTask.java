@@ -41,4 +41,14 @@ public class PreViewTask {
      */
     private Timestamp updateTime;
 
+    /**
+     * 统计变更数量  没有变化/新增/删除/修改/无效
+     */
+    private String statistics;
+    /**
+     * 失败的原因
+     */
+    private String reason;
+
+
 }
