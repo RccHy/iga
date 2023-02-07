@@ -93,16 +93,16 @@ public class DynamicValueDaoImpl implements DynamicValueDao {
         StringBuffer sql = new StringBuffer("select v.id, attr_id as attrId , entity_id as entityId, value ,v.tenant_id as tenantId,a.code as code  from dynamic_value v,dynamic_attr a ");
         switch (type) {
             case "USER":
-                sql.append(" , identity i where v.attr_id = a.id and i.id=v.entity_id and v.tenant_id=?  and a.type= ? ");
+                sql.append(" , identity i where v.attr_id = a.id and i.id=v.entity_id and i.del_mark =0 and v.tenant_id=?  and a.type= ? ");
                 break;
             case "IDENTITY":
-                sql.append(" , user i where v.attr_id = a.id and i.id=v.entity_id and v.tenant_id=?  and a.type= ? ");
+                sql.append(" , user i where v.attr_id = a.id and i.id=v.entity_id and i.del_mark =0 and v.tenant_id=?  and a.type= ? ");
                 break;
             case "DEPT":
-                sql.append(" , dept i where v.attr_id = a.id and i.id=v.entity_id and v.tenant_id=?  and a.type= ? ");
+                sql.append(" , dept i where v.attr_id = a.id and i.id=v.entity_id and i.del_mark =0 and v.tenant_id=?  and a.type= ? ");
                 break;
             case "POST":
-                sql.append(" , user_type i where v.attr_id = a.id and i.id=v.entity_id and v.tenant_id=?  and a.type= ? ");
+                sql.append(" , user_type i where v.attr_id = a.id and i.id=v.entity_id and i.del_mark =0 and v.tenant_id=?  and a.type= ? ");
                 break;
             default:
                 return null;
