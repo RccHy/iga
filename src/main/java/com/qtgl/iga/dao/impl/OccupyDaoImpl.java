@@ -903,7 +903,7 @@ public class OccupyDaoImpl implements OccupyDao {
     }
 
     @Override
-    public List<OccupyDto> findOccupyByIdentityId(Set<String> keySet, Map<String, Object> arguments,Tenant tenant) {
+    public List<OccupyDto> findOccupyByIdentityId(Set<String> keySet, Map<String, Object> arguments, Tenant tenant) {
         //根据人员id 和  筛选条件查询 身份并返回
         List<Object> params = new ArrayList<>();
 
@@ -938,9 +938,9 @@ public class OccupyDaoImpl implements OccupyDao {
         StringBuffer stb = new StringBuffer(queryStr);
         StringBuffer strTemp = new StringBuffer("  ");
         params.add(tenant.getId());
-        strTemp = dealDataAndAttrOccupy(arguments, strTemp, params, tenant.getId(),keySet);
+        strTemp = dealDataAndAttrOccupy(arguments, strTemp, params, tenant.getId(), keySet);
 
-        if(!CollectionUtils.isEmpty(keySet)){
+        if (!CollectionUtils.isEmpty(keySet)) {
             strTemp.append(" and  a.identity_id in ( ");
             for (String identityId : keySet) {
                 strTemp.append(" ?,");
@@ -969,7 +969,7 @@ public class OccupyDaoImpl implements OccupyDao {
         return list;
     }
 
-    private StringBuffer dealDataAndAttrOccupy(Map<String, Object> arguments, StringBuffer stb, List<Object> param, String tenantId,Set<String> keySet) {
+    private StringBuffer dealDataAndAttrOccupy(Map<String, Object> arguments, StringBuffer stb, List<Object> param, String tenantId, Set<String> keySet) {
 
         //拼接查询sql
         StringBuffer sql = new StringBuffer();
@@ -1050,20 +1050,20 @@ public class OccupyDaoImpl implements OccupyDao {
                                 StringBuffer temp = new StringBuffer();
                                 temp.append(" and ( ");
                                 for (Boolean b : value1) {
-                                    if(b){
-                                        trueFlag=true;
+                                    if (b) {
+                                        trueFlag = true;
                                         temp.append(" ( NOW() BETWEEN a.valid_start_time and a.valid_end_time) or");
-                                    }else {
-                                        falseFlag=true;
+                                    } else {
+                                        falseFlag = true;
                                         temp.append(" ( NOW() NOT BETWEEN a.valid_start_time and a.valid_end_time) or");
                                     }
-                                    if(trueFlag&&falseFlag){
+                                    if (trueFlag && falseFlag) {
                                         break;
                                     }
                                 }
-                                if(trueFlag&&falseFlag){
+                                if (trueFlag && falseFlag) {
 
-                                }else {
+                                } else {
                                     temp.replace(temp.length() - 2, temp.length(), ")");
                                     stb.append(temp);
                                 }
@@ -1107,6 +1107,47 @@ public class OccupyDaoImpl implements OccupyDao {
                                 stb.replace(stb.length() - 1, stb.length(), ")");
                             } else {
                                 stb.append("and a.create_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+
+                    if ("dataSource".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "like")) {
+                                stb.append("and a.data_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and a.data_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and a.data_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+                    if ("createDataSource".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "like")) {
+                                stb.append("and a.create_data_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and a.create_data_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and a.create_data_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                                 param.add(soe.getValue());
                             }
                         }
@@ -1166,25 +1207,43 @@ public class OccupyDaoImpl implements OccupyDao {
                                 String key = (String) value.get("key");
                                 if (collect.containsKey(key)) {
                                     HashMap<String, Object> val = (HashMap<String, Object>) value.get("value");
-                                    for (Map.Entry<String, Object> soe : val.entrySet()) {
-                                        if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
-                                            char aliasNew = (char) (aliasOld + 1);
-                                            sql.append(" LEFT JOIN dynamic_value ").append(aliasNew).append(" ON ").append(aliasNew).append(".entity_id = ").append(" a.id ");
-                                            stb.append(" and (").append(aliasNew).append(".value = ? and ").append(aliasNew).append(".attr_id=? )");
-                                            aliasOld = aliasNew;
-                                            param.add("%" + soe.getValue() + "%");
-                                            param.add(collect.get(key));
-                                        } else {
-                                            char aliasNew = (char) (aliasOld + 1);
+                                    if (!CollectionUtils.isEmpty(val)) {
+                                        for (Map.Entry<String, Object> soe : val.entrySet()) {
+                                            if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
+                                                char aliasNew = (char) (aliasOld + 1);
+                                                sql.append(" LEFT JOIN dynamic_value ").append(aliasNew).append(" ON ").append(aliasNew).append(".entity_id = ").append(" a.id ");
+                                                stb.append(" and (").append(aliasNew).append(".value = ? and ").append(aliasNew).append(".attr_id=? )");
+                                                aliasOld = aliasNew;
+                                                param.add("%" + soe.getValue() + "%");
+                                                param.add(collect.get(key));
+                                            } else {
+                                                char aliasNew = (char) (aliasOld + 1);
 
-                                            sql.append(" LEFT JOIN dynamic_value ").append(aliasNew).append(" ON ").append(aliasNew).append(".entity_id = ").append(" a.id ");
-                                            stb.append(" and (").append(aliasNew).append(".value = ? and ").append(aliasNew).append(".attr_id=? )");
-                                            aliasOld = aliasNew;
-                                            param.add(soe.getValue());
-                                            param.add(collect.get(key));
+                                                sql.append(" LEFT JOIN dynamic_value ").append(aliasNew).append(" ON ").append(aliasNew).append(".entity_id = ").append(" a.id ");
+                                                stb.append(" and (").append(aliasNew).append(".value = ? and ").append(aliasNew).append(".attr_id=? )");
+                                                aliasOld = aliasNew;
+                                                param.add(soe.getValue());
+                                                param.add(collect.get(key));
+                                            }
+                                        }
+
+                                    } else {
+                                        HashMap<String, Object> timeVal = (HashMap<String, Object>) value.get("timestampValue");
+                                        if (!CollectionUtils.isEmpty(timeVal)) {
+                                            for (Map.Entry<String, Object> soe : timeVal.entrySet()) {
+                                                if ("gt".equals(soe.getKey()) || "lt".equals(soe.getKey())
+                                                        || "gte".equals(soe.getKey()) || "lte".equals(soe.getKey())) {
+                                                    char aliasNew = (char) (aliasOld + 1);
+                                                    sql.append(" LEFT JOIN dynamic_value ").append(aliasNew).append(" ON ").append(aliasNew).append(".entity_id = ").append(" a.id ");
+                                                    stb.append(" and (").append(aliasNew).append(".value").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? and ").append(aliasNew).append(".attr_id=? )");
+                                                    aliasOld = aliasNew;
+                                                    param.add(soe.getValue());
+                                                    param.add(collect.get(key));
+
+                                                }
+                                            }
                                         }
                                     }
-
                                 }
 
 
@@ -1359,7 +1418,7 @@ public class OccupyDaoImpl implements OccupyDao {
                         }
                     }
                     if ("active".equals(str.getKey())) {
-                        activeFlag=false;
+                        activeFlag = false;
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
                             if ("eq".equals(soe.getKey())) {
@@ -1376,20 +1435,20 @@ public class OccupyDaoImpl implements OccupyDao {
                                 StringBuffer temp = new StringBuffer();
                                 temp.append(" and ( ");
                                 for (Boolean b : value1) {
-                                    if(b){
-                                        trueFlag=true;
+                                    if (b) {
+                                        trueFlag = true;
                                         temp.append(" ( NOW() BETWEEN a.valid_start_time and a.valid_end_time) or");
-                                    }else {
-                                        falseFlag=true;
+                                    } else {
+                                        falseFlag = true;
                                         temp.append(" ( NOW() NOT BETWEEN a.valid_start_time and a.valid_end_time) or");
                                     }
-                                    if(trueFlag&&falseFlag){
+                                    if (trueFlag && falseFlag) {
                                         break;
                                     }
                                 }
-                                if(trueFlag&&falseFlag){
+                                if (trueFlag && falseFlag) {
 
-                                }else {
+                                } else {
                                     temp.replace(temp.length() - 2, temp.length(), ")");
                                     stb.append(temp);
                                 }
@@ -1399,7 +1458,7 @@ public class OccupyDaoImpl implements OccupyDao {
                         }
                     }
                     if ("positionActive".equals(str.getKey())) {
-                        positionActiveFlag=false;
+                        positionActiveFlag = false;
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
                             if ("eq".equals(soe.getKey())) {
@@ -1416,20 +1475,20 @@ public class OccupyDaoImpl implements OccupyDao {
                                 StringBuffer temp = new StringBuffer();
                                 temp.append(" and ( ");
                                 for (Boolean b : value1) {
-                                    if(b){
-                                        trueFlag=true;
+                                    if (b) {
+                                        trueFlag = true;
                                         temp.append(" ( NOW() BETWEEN b.valid_start_time and b.valid_end_time) or");
-                                    }else {
-                                        falseFlag=true;
+                                    } else {
+                                        falseFlag = true;
                                         temp.append(" ( NOW() NOT BETWEEN b.valid_start_time and b.valid_end_time) or");
                                     }
-                                    if(trueFlag&&falseFlag){
+                                    if (trueFlag && falseFlag) {
                                         break;
                                     }
                                 }
-                                if(trueFlag&&falseFlag){
+                                if (trueFlag && falseFlag) {
 
-                                }else {
+                                } else {
                                     temp.replace(temp.length() - 2, temp.length(), ")");
                                     stb.append(temp);
                                 }
@@ -1482,7 +1541,7 @@ public class OccupyDaoImpl implements OccupyDao {
                             //判断是否是区间
                             if ("gt".equals(soe.getKey()) || "lt".equals(soe.getKey())
                                     || "gte".equals(soe.getKey()) || "lte".equals(soe.getKey())) {
-                                stb.append("and valid_start_time ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                stb.append("and b.valid_start_time ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                                 param.add(soe.getValue());
 
                             }
@@ -1494,7 +1553,7 @@ public class OccupyDaoImpl implements OccupyDao {
                             //判断是否是区间
                             if ("gt".equals(soe.getKey()) || "lt".equals(soe.getKey())
                                     || "gte".equals(soe.getKey()) || "lte".equals(soe.getKey())) {
-                                stb.append("and valid_end_time ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                stb.append("and b.valid_end_time ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                                 param.add(soe.getValue());
 
                             }
@@ -1511,22 +1570,40 @@ public class OccupyDaoImpl implements OccupyDao {
                                 String key = (String) value.get("key");
                                 if (collect.containsKey(key)) {
                                     HashMap<String, Object> val = (HashMap<String, Object>) value.get("value");
-                                    for (Map.Entry<String, Object> soe : val.entrySet()) {
-                                        if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
-                                            char aliasNew = (char) (aliasOld + 1);
-                                            sql.append(" LEFT JOIN dynamic_value ").append(aliasNew).append(" ON ").append(aliasNew).append(".entity_id = ").append(" b.id ");
-                                            stb.append(" and (").append(aliasNew).append(".value = ? and ").append(aliasNew).append(".attr_id=? )");
-                                            aliasOld = aliasNew;
-                                            param.add("%" + soe.getValue() + "%");
-                                            param.add(collect.get(key));
-                                        } else {
-                                            char aliasNew = (char) (aliasOld + 1);
+                                    if (!CollectionUtils.isEmpty(val)) {
+                                        for (Map.Entry<String, Object> soe : val.entrySet()) {
+                                            if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
+                                                char aliasNew = (char) (aliasOld + 1);
+                                                sql.append(" LEFT JOIN dynamic_value ").append(aliasNew).append(" ON ").append(aliasNew).append(".entity_id = ").append(" b.id ");
+                                                stb.append(" and (").append(aliasNew).append(".value = ? and ").append(aliasNew).append(".attr_id=? )");
+                                                aliasOld = aliasNew;
+                                                param.add("%" + soe.getValue() + "%");
+                                                param.add(collect.get(key));
+                                            } else {
+                                                char aliasNew = (char) (aliasOld + 1);
 
-                                            sql.append(" LEFT JOIN dynamic_value ").append(aliasNew).append(" ON ").append(aliasNew).append(".entity_id = ").append(" b.id ");
-                                            stb.append(" and (").append(aliasNew).append(".value = ? and ").append(aliasNew).append(".attr_id=? )");
-                                            aliasOld = aliasNew;
-                                            param.add(soe.getValue());
-                                            param.add(collect.get(key));
+                                                sql.append(" LEFT JOIN dynamic_value ").append(aliasNew).append(" ON ").append(aliasNew).append(".entity_id = ").append(" b.id ");
+                                                stb.append(" and (").append(aliasNew).append(".value = ? and ").append(aliasNew).append(".attr_id=? )");
+                                                aliasOld = aliasNew;
+                                                param.add(soe.getValue());
+                                                param.add(collect.get(key));
+                                            }
+                                        }
+                                    } else {
+                                        HashMap<String, Object> timeVal = (HashMap<String, Object>) value.get("timestampValue");
+                                        if (!CollectionUtils.isEmpty(timeVal)) {
+                                            for (Map.Entry<String, Object> soe : timeVal.entrySet()) {
+                                                if ("gt".equals(soe.getKey()) || "lt".equals(soe.getKey())
+                                                        || "gte".equals(soe.getKey()) || "lte".equals(soe.getKey())) {
+                                                    char aliasNew = (char) (aliasOld + 1);
+                                                    sql.append(" LEFT JOIN dynamic_value ").append(aliasNew).append(" ON ").append(aliasNew).append(".entity_id = ").append(" b.id ");
+                                                    stb.append(" and (").append(aliasNew).append(".value").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? and ").append(aliasNew).append(".attr_id=? )");
+                                                    aliasOld = aliasNew;
+                                                    param.add(soe.getValue());
+                                                    param.add(collect.get(key));
+
+                                                }
+                                            }
                                         }
                                     }
 
@@ -1547,10 +1624,10 @@ public class OccupyDaoImpl implements OccupyDao {
         } else {
             stb = buffer.append(stb);
         }
-        if(activeFlag){
+        if (activeFlag) {
             stb.append("  and ( NOW() BETWEEN a.valid_start_time and a.valid_end_time) ");
         }
-        if(positionActiveFlag){
+        if (positionActiveFlag) {
             stb.append("  and ( NOW() BETWEEN b.valid_start_time and b.valid_end_time) ");
         }
         return stb;

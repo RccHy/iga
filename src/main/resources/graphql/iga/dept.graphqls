@@ -90,6 +90,14 @@ type Person{
     attrsValues : [DynamicValue]
     #同步后状态 0 无变化 1 新增 2 修改 3 删除 4 失效
     syncState :Int
+    # 来源
+    source:String
+    # 数据来源
+    dataSource:String
+    # 创建来源
+    createSource:String
+    # 创建数据来源
+    createDataSource:String
 }
 
 
@@ -137,6 +145,14 @@ type Occupy{
     attrsValues : [DynamicValue]
     #同步后状态 0 无变化 1 新增 2 修改 3 删除 4 失效
     syncState :Int
+    # 来源
+    source:String
+    # 数据来源
+    dataSource:String
+    # 创建来源
+    createSource:String
+    # 创建数据来源
+    createDataSource:String
 
 }
 

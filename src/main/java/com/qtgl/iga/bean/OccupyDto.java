@@ -32,6 +32,8 @@ public class OccupyDto {
     private Integer index;
     private String source;
     private String dataSource;
+    private String createSource;
+    private String createDataSource;
     private LocalDateTime updateTime;
     private LocalDateTime createTime;
     private Integer delMark;

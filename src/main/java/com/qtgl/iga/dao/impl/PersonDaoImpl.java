@@ -1247,6 +1247,8 @@ public class PersonDaoImpl implements PersonDao {
                 "                 i.email, " +
                 "                 i.source, " +
                 "                 i.data_source AS dataSource, " +
+                "                 i.create_source AS createSource, " +
+                "                 i.create_data_source AS createDataSource, " +
                 "                 i.active, " +
                 "                 i.active_time AS activeTime, " +
                 "                 i.create_time AS createTime, " +
@@ -1397,7 +1399,7 @@ public class PersonDaoImpl implements PersonDao {
                     }
                     if ("active".equals(str.getKey())) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
-                        activeFlag= false;
+                        activeFlag = false;
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
                             if ("eq".equals(soe.getKey())) {
                                 if (Boolean.parseBoolean(soe.getValue().toString())) {
@@ -1413,20 +1415,20 @@ public class PersonDaoImpl implements PersonDao {
                                 StringBuffer temp = new StringBuffer();
                                 temp.append(" and ( ");
                                 for (Boolean b : value1) {
-                                    if(b){
-                                        trueFlag=true;
+                                    if (b) {
+                                        trueFlag = true;
                                         temp.append(" ( NOW() BETWEEN i.valid_start_time and i.valid_end_time) or");
-                                    }else {
-                                        falseFlag=true;
+                                    } else {
+                                        falseFlag = true;
                                         temp.append(" ( NOW() NOT BETWEEN i.valid_start_time and i.valid_end_time) or");
                                     }
-                                    if(trueFlag&&falseFlag){
+                                    if (trueFlag && falseFlag) {
                                         break;
                                     }
                                 }
-                                if(trueFlag&&falseFlag){
+                                if (trueFlag && falseFlag) {
 
-                                }else {
+                                } else {
                                     temp.replace(temp.length() - 2, temp.length(), ")");
                                     stb.append(temp);
                                 }
@@ -1525,6 +1527,46 @@ public class PersonDaoImpl implements PersonDao {
                             }
                         }
                     }
+                    if ("dataSource".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "like")) {
+                                stb.append("and i.data_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and i.data_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and i.data_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+                    if ("createDataSource".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "like")) {
+                                stb.append("and i.create_data_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and i.create_data_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and i.create_data_source ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
 
                     if ("extension".equals(str.getKey())) {
                         List<HashMap<String, Object>> values = (List<HashMap<String, Object>>) str.getValue();
@@ -1537,22 +1579,40 @@ public class PersonDaoImpl implements PersonDao {
                                 String key = (String) value.get("key");
                                 if (collect.containsKey(key)) {
                                     HashMap<String, Object> val = (HashMap<String, Object>) value.get("value");
-                                    for (Map.Entry<String, Object> soe : val.entrySet()) {
-                                        if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
-                                            char aliasNew = (char) (aliasOld + 1);
-                                            sql.append(" LEFT JOIN dynamic_value ").append(aliasNew).append(" ON ").append(aliasNew).append(".entity_id = ").append(" i.id ");
-                                            stb.append(" and (").append(aliasNew).append(".value = ? and ").append(aliasNew).append(".attr_id=? )");
-                                            aliasOld = aliasNew;
-                                            param.add("%" + soe.getValue() + "%");
-                                            param.add(collect.get(key));
-                                        } else {
-                                            char aliasNew = (char) (aliasOld + 1);
+                                    if (!CollectionUtils.isEmpty(val)) {
+                                        for (Map.Entry<String, Object> soe : val.entrySet()) {
+                                            if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
+                                                char aliasNew = (char) (aliasOld + 1);
+                                                sql.append(" LEFT JOIN dynamic_value ").append(aliasNew).append(" ON ").append(aliasNew).append(".entity_id = ").append(" i.id ");
+                                                stb.append(" and (").append(aliasNew).append(".value = ? and ").append(aliasNew).append(".attr_id=? )");
+                                                aliasOld = aliasNew;
+                                                param.add("%" + soe.getValue() + "%");
+                                                param.add(collect.get(key));
+                                            } else {
+                                                char aliasNew = (char) (aliasOld + 1);
 
-                                            sql.append(" LEFT JOIN dynamic_value ").append(aliasNew).append(" ON ").append(aliasNew).append(".entity_id = ").append(" i.id ");
-                                            stb.append(" and (").append(aliasNew).append(".value = ? and ").append(aliasNew).append(".attr_id=? )");
-                                            aliasOld = aliasNew;
-                                            param.add(soe.getValue());
-                                            param.add(collect.get(key));
+                                                sql.append(" LEFT JOIN dynamic_value ").append(aliasNew).append(" ON ").append(aliasNew).append(".entity_id = ").append(" i.id ");
+                                                stb.append(" and (").append(aliasNew).append(".value = ? and ").append(aliasNew).append(".attr_id=? )");
+                                                aliasOld = aliasNew;
+                                                param.add(soe.getValue());
+                                                param.add(collect.get(key));
+                                            }
+                                        }
+                                    } else {
+                                        HashMap<String, Object> timeVal = (HashMap<String, Object>) value.get("timestampValue");
+                                        if (!CollectionUtils.isEmpty(timeVal)) {
+                                            for (Map.Entry<String, Object> soe : timeVal.entrySet()) {
+                                                if ("gt".equals(soe.getKey()) || "lt".equals(soe.getKey())
+                                                        || "gte".equals(soe.getKey()) || "lte".equals(soe.getKey())) {
+                                                    char aliasNew = (char) (aliasOld + 1);
+                                                    sql.append(" LEFT JOIN dynamic_value ").append(aliasNew).append(" ON ").append(aliasNew).append(".entity_id = ").append(" i.id ");
+                                                    stb.append(" and (").append(aliasNew).append(".value").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? and ").append(aliasNew).append(".attr_id=? )");
+                                                    aliasOld = aliasNew;
+                                                    param.add(soe.getValue());
+                                                    param.add(collect.get(key));
+
+                                                }
+                                            }
                                         }
                                     }
 
@@ -1573,7 +1633,7 @@ public class PersonDaoImpl implements PersonDao {
         } else {
             stb = buffer.append(stb);
         }
-        if(activeFlag){
+        if (activeFlag) {
             stb.append("  and ( NOW() BETWEEN i.valid_start_time and i.valid_end_time) ");
         }
         return stb;

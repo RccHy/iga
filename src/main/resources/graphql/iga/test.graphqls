@@ -30,7 +30,7 @@ extend type Query {
     ):PreViewTask
 
     #查询测试同步任务上次同步具体变化数值
-#    testTaskLog(type:String):TaskResult
+    #    testTaskLog(type:String):TaskResult
 }
 
 
@@ -91,8 +91,8 @@ type IgaOccupy{
     openId:String
     #身份
     positions: [Occupy]
-#    #同步后状态 0 无变化 1 新增 2 修改 3 删除 4 失效
-#    syncState :Int
+    #    #同步后状态 0 无变化 1 新增 2 修改 3 删除 4 失效
+    #    syncState :Int
 }
 
 type User{
@@ -349,6 +349,7 @@ type UserType{
 input DynamicFilter{
     key:String
     value:stringFilter
+    timestampValue:timestampFilter
 }
 
 input IgaUserFilter{
@@ -361,6 +362,8 @@ input IgaUserFilter{
     email:stringFilter,
     source:stringFilter,
     createSource:stringFilter,
+    dataSource:stringFilter,
+    createDataSource:stringFilter,
     extension:[DynamicFilter]
 }
 
@@ -374,6 +377,8 @@ input IgaOccupyFilter{
     syncState:integerFilter,
     source:stringFilter,
     createSource:stringFilter,
+    dataSource:stringFilter,
+    createDataSource:stringFilter,
     personCardNo:stringFilter,
     positionCardNo:stringFilter,
     startTime:timestampFilter,
