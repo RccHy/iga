@@ -160,7 +160,9 @@ CREATE TABLE `dynamic_value` (
                                  KEY `entity_id_index` (`entity_id`) USING BTREE COMMENT '实体字段索引'
 );
 
-
+ALTER TABLE `iga`.`t_mgr_pre_view_task`
+    ADD COLUMN `statistics` varchar(255) NULL COMMENT '统计变更数量  没有变化/新增/删除/修改/无效' AFTER `update_time`,
+ADD COLUMN `reason` varchar(255) NULL COMMENT '详情(失败的原因)' AFTER `statistics`;
 
 
 

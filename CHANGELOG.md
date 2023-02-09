@@ -1,3 +1,23 @@
+### 20230209
+
+**数据库**
+- 执行iga/update/update.sql下 20221220的sql
+
+**new：**
+- 人员及人员身份测试同步及测试数据查询功能
+
+**bug fix**
+- 无
+  
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20230209
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20230209
+
+
 ### 20230113
 
 **数据库**

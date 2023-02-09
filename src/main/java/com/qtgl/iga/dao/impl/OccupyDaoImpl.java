@@ -1156,10 +1156,10 @@ public class OccupyDaoImpl implements OccupyDao {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
                             if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "like")) {
-                                stb.append("and a.card_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                stb.append("and a.user_code ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                                 param.add("%" + soe.getValue() + "%");
                             } else if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
-                                stb.append("and a.card_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                stb.append("and a.user_code ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
                                 ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
                                 for (String s : value1) {
                                     stb.append(" ? ,");
@@ -1167,7 +1167,7 @@ public class OccupyDaoImpl implements OccupyDao {
                                 }
                                 stb.replace(stb.length() - 1, stb.length(), ")");
                             } else {
-                                stb.append("and a.card_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                stb.append("and a.user_code ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                                 param.add(soe.getValue());
                             }
                         }
@@ -1519,10 +1519,10 @@ public class OccupyDaoImpl implements OccupyDao {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
                             if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "like")) {
-                                stb.append("and b.card_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                stb.append("and b.user_code ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                                 param.add("%" + soe.getValue() + "%");
                             } else if (Objects.equals(FilterCodeEnum.getDescByCode(soe.getKey()), "in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
-                                stb.append("and b.card_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                stb.append("and b.user_code ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
                                 ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
                                 for (String s : value1) {
                                     stb.append(" ? ,");
@@ -1530,7 +1530,7 @@ public class OccupyDaoImpl implements OccupyDao {
                                 }
                                 stb.replace(stb.length() - 1, stb.length(), ")");
                             } else {
-                                stb.append("and b.card_no ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                stb.append("and b.user_code ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
                                 param.add(soe.getValue());
                             }
                         }
