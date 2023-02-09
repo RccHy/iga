@@ -1212,7 +1212,7 @@ public class OccupyDaoImpl implements OccupyDao {
                                             if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
                                                 char aliasNew = (char) (aliasOld + 1);
                                                 sql.append(" LEFT JOIN dynamic_value ").append(aliasNew).append(" ON ").append(aliasNew).append(".entity_id = ").append(" a.id ");
-                                                stb.append(" and (").append(aliasNew).append(".value = ? and ").append(aliasNew).append(".attr_id=? )");
+                                                stb.append(" and (").append(aliasNew).append(".value like ? and ").append(aliasNew).append(".attr_id=? )");
                                                 aliasOld = aliasNew;
                                                 param.add("%" + soe.getValue() + "%");
                                                 param.add(collect.get(key));
@@ -1575,7 +1575,7 @@ public class OccupyDaoImpl implements OccupyDao {
                                             if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
                                                 char aliasNew = (char) (aliasOld + 1);
                                                 sql.append(" LEFT JOIN dynamic_value ").append(aliasNew).append(" ON ").append(aliasNew).append(".entity_id = ").append(" b.id ");
-                                                stb.append(" and (").append(aliasNew).append(".value = ? and ").append(aliasNew).append(".attr_id=? )");
+                                                stb.append(" and (").append(aliasNew).append(".value like ? and ").append(aliasNew).append(".attr_id=? )");
                                                 aliasOld = aliasNew;
                                                 param.add("%" + soe.getValue() + "%");
                                                 param.add(collect.get(key));
