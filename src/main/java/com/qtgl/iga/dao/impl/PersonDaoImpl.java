@@ -1071,6 +1071,8 @@ public class PersonDaoImpl implements PersonDao {
                 " i.cellphone, " +
                 " i.email, " +
                 " i.source, " +
+                " i.sex, " +
+                " i.birthday, " +
                 " i.data_source AS dataSource, " +
                 " i.active, " +
                 " i.active_time AS activeTime, " +
@@ -1246,6 +1248,8 @@ public class PersonDaoImpl implements PersonDao {
                 "                 i.cellphone, " +
                 "                 i.email, " +
                 "                 i.source, " +
+                "                 i.sex, " +
+                "                 i.birthday, " +
                 "                 i.data_source AS dataSource, " +
                 "                 i.create_source AS createSource, " +
                 "                 i.create_data_source AS createDataSource, " +

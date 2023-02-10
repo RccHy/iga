@@ -46,6 +46,8 @@ input InputPostType{
     createTime:Timestamp
     updateTime:Timestamp
     createUser:String
+    #是否身份岗
+    formal:Boolean
 }
 
 input PostTypeFilter{

@@ -1339,7 +1339,7 @@ public class PersonServiceImpl implements PersonService {
                                 if (k.equals("updateTime") || k.equals("ruleStatus") || k.equals("attrsValues") || k.equals("createSource") || k.equals("createDataSource")
                                         || k.equals("dynamic") || k.equals("password") || k.equals("freezeTime") || k.equals("validEndTime") || k.equals("validStartTime")
                                         || k.equals("upstreamType") || k.equals("delMark") || k.equals("createTime") || k.equals("activeTime") || k.equals("source")
-                                        || k.equals("dataSource") || k.equals("tenantId")) {
+                                        || k.equals("dataSource") || k.equals("tenantId")||k.equals("active")) {
                                     continue;
                                 }
 
