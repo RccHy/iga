@@ -31,6 +31,8 @@ type PostType{
     updateTime:Timestamp
     # 创建人员工号
     createUser:String
+    #是否身份岗
+    formal:Boolean
 }
 
 

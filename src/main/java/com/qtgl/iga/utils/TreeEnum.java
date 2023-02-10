@@ -42,6 +42,8 @@ public enum TreeEnum {
 
     END_TIME("endTime", "结束时间"),
 
+    FORMAL("formal", "是否身份岗"),
+
     BIRTHDAY("birthday", "生日");
 
     //INDEX("index", "排序");

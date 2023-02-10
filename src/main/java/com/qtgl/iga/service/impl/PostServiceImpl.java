@@ -550,7 +550,7 @@ public class PostServiceImpl implements PostService {
                                     ssoBean.setDataSource("PULL");
                                     ssoBean.setSource(pullBean.getSource());
                                     ssoBean.setUpdateTime(now);
-                                    ssoBean.setFormal(pullBean.getFormal());
+                                    //ssoBean.setFormal(pullBean.getFormal());
                                     ssoBean.setColor(pullBean.getColor());
                                     ssoBean.setIsRuled(pullBean.getIsRuled());
                                     ssoBean.setRuleStatus(pullBean.getRuleStatus());

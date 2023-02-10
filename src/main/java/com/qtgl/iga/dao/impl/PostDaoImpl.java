@@ -48,7 +48,7 @@ public class PostDaoImpl implements PostDao {
         //
         String sql = "select id, user_type as code , name, parent_code as parentCode , " +
                 " create_time as createTime," +
-                "source,data_source as dataSource,user_type_index as deptIndex,del_mark as delMark,update_time as updateTime,post_type as type,active,tags,user_type_index as 'index',active_time as activeTime from user_type where tenant_id = ? and client_id is null or client_id = ''  ";
+                "source,data_source as dataSource,user_type_index as deptIndex,del_mark as delMark,update_time as updateTime,post_type as type,active,tags,user_type_index as 'index',active_time as activeTime,formal from user_type where tenant_id = ? and client_id is null or client_id = ''  ";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, id);
         return getUserTypes(mapList);
@@ -180,7 +180,7 @@ public class PostDaoImpl implements PostDao {
     @Override
     public List<TreeBean> findRootData(String tenantId) {
         String sql = "select  user_type as code , name as name , parent_code as parentCode ,create_time as createTime, " +
-                " tags ,data_source as dataSource , description ,source,post_type as postType,user_type_index as deptIndex,del_mark as delMark ,active,user_type_index as 'index',active_time as activeTime  " +
+                " tags ,data_source as dataSource , description ,source,post_type as postType,user_type_index as deptIndex,del_mark as delMark ,active,user_type_index as 'index',active_time as activeTime,formal  " +
                 " from user_type where tenant_id=? and del_mark=0  and data_source!=? and client_id is null or client_id = '' ";
 
         //String sql = "select  user_type as code , name as name , parent_code as parentCode ,create_time as createTime, " +
@@ -211,7 +211,7 @@ public class PostDaoImpl implements PostDao {
     @Override
     public List<TreeBean> findPostType(String id) {
         String sql = "select  user_type as code , name as name , parent_code as parentCode , " +
-                " tags ,data_source as dataSource , description ,source,post_type as postType,user_type_index as deptIndex,active,user_type_index as 'index',active_time as activeTime  " +
+                " tags ,data_source as dataSource , description ,source,post_type as postType,user_type_index as deptIndex,active,user_type_index as 'index',active_time as activeTime,formal  " +
                 " from user_type where tenant_id=? and del_mark=0";
 
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, id);
@@ -522,6 +522,7 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(19, deleteList.get(i).getSource());
                             preparedStatement.setObject(20, 2);
                         }
+
                         @Override
                         public int getBatchSize() {
                             return deleteList.size();
@@ -555,6 +556,7 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(19, invalidList.get(i).getSource());
                             preparedStatement.setObject(20, 4);
                         }
+
                         @Override
                         public int getBatchSize() {
                             return deleteList.size();
@@ -570,7 +572,6 @@ public class PostDaoImpl implements PostDao {
                 if (!CollectionUtils.isEmpty(valueUpdate)) {
                     dynamicValues.addAll(valueUpdate);
                 }
-
 
 
                 if (!CollectionUtils.isEmpty(dynamicValues)) {
@@ -599,6 +600,7 @@ public class PostDaoImpl implements PostDao {
                             preparedStatement.setObject(11, attr.getIsSearch());
                             preparedStatement.setObject(12, attr.getAttrIndex());
                         }
+
                         @Override
                         public int getBatchSize() {
                             return dynamicValues.size();
@@ -634,13 +636,11 @@ public class PostDaoImpl implements PostDao {
     }
 
 
-
-
     @Override
     public List<TreeBean> findActiveDataByTenantId(String tenantId) {
         String sql = "select  user_type as code , name, parent_code as parentCode , " +
                 " create_time as createTime," +
-                "source,data_source as dataSource,user_type_index as deptIndex,del_mark as delMark,update_time as updateTime,post_type as type,active,active_time as activeTime from user_type where tenant_id = ? and " +
+                "source,data_source as dataSource,user_type_index as deptIndex,del_mark as delMark,update_time as updateTime,post_type as type,active,active_time as activeTime,formal from user_type where tenant_id = ? and " +
                 " active = true and del_mark = false and client_id is null or client_id = '' ";
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId);
         return getUserTypes(mapList);

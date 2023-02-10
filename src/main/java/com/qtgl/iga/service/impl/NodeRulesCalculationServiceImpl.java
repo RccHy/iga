@@ -679,12 +679,10 @@ public class NodeRulesCalculationServiceImpl {
                             dept.put("color", upstream.getColor());
                             dept.put("isRuled", false);
                             dept.put("source", upstream.getAppName() + "(" + upstream.getAppCode() + ")");
-                            if ("post".equals(type)) {
-                                if (("01".equals(dept.getString(TreeEnum.POST_TYPE.getCode())) || ("02".equals(dept.getString(TreeEnum.POST_TYPE.getCode()))))) {
-                                    dept.put("formal", true);
-                                } else {
-                                    dept.put("formal", false);
-                                }
+
+                            if ("post".equals(type) && StringUtils.isBlank(dept.getString(TreeEnum.FORMAL.getCode()))) {
+                                //如果是岗位  formal默认值赋值
+                                dept.put("formal", false);
                             }
                             //处理扩展字段
                             ConcurrentHashMap<String, String> map = null;

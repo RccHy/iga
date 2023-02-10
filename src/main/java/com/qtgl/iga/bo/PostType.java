@@ -56,4 +56,9 @@ public class PostType {
      * 排序
      */
     private Integer typeIndex;
+
+    /**
+     * 是否身份岗
+     */
+    private Boolean formal;
 }
