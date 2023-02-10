@@ -1,0 +1,387 @@
+extend type Query {
+    #查询模拟人员身份数据
+    igaOccupy(
+        filter:IgaOccupyFilter
+        offset:Int,
+        first:Int
+    ): IgaOccupyConnection
+
+    #查询模拟人员数据
+    igaUser(
+        filter:IgaUserFilter
+        offset:Int,
+        first:Int
+    ): PersonConnection
+
+    #查询模拟组织机构数据
+    igaDepartment(
+        offset:Int,
+        first:Int
+    ): DepartmentConnection
+
+    #查询模拟岗位数据
+    igaPost(
+        offset:Int,
+        first:Int
+    ): UserTypeConnection
+    # 最近一次模拟同步任务情况
+    lastPreViewTask(
+        type:String!
+    ):PreViewTask
+
+    #查询测试同步任务上次同步具体变化数值
+    #    testTaskLog(type:String):TaskResult
+}
+
+
+extend type Mutation {
+    #模拟人员同步任务
+    testUserTask: PreViewTask
+
+    #模拟身份同步任务
+    testOccupyTask: PreViewTask
+
+    #模拟组织机构同步任务
+    testDeptTask: PreViewTask
+
+    #模拟岗位同步任务
+    testPostTask: PreViewTask
+}
+
+
+#预览结果集###
+type PreViewTask{
+    #任务状态
+    status: String
+    #任务标识
+    taskId: String
+    #创建时间
+    createTime:Timestamp
+    # 修改时间
+    updateTime:Timestamp
+    #统计变更数量  没有变化/新增/删除/修改/无效
+    statistics:String
+    # 失败的原因
+    reason:String
+
+}
+
+
+type IgaOccupyConnection {
+    edges: [IgaOccupyEdge]
+    totalCount: Int
+    updateTime:Timestamp
+}
+
+type IgaOccupyEdge {
+    node: IgaOccupy
+}
+
+type IgaOccupy{
+    id: ID
+    #名称
+    name: String
+    #用户名
+    account: String
+    #人员证件类型
+    cardType: String
+    #人员证件号码   cardType 不为空 cardNo 必须有值
+    cardNo: String
+    #openid
+    openId:String
+    #身份
+    positions: [Occupy]
+    #    #同步后状态 0 无变化 1 新增 2 修改 3 删除 4 失效
+    #    syncState :Int
+}
+
+type User{
+    id: ID
+    #名称
+    name: String
+    #会根据应用账号主体配置返回userCode 或 openid
+    account: String
+    #用户标识 USER_CODE/ALL_USER_CODE/ACCOUNT_NO
+    accountFriendly: String
+    #accountNo 用户名
+    username: String
+    openid: String
+    #证件类型
+    cardType: String
+    #证件号码   cardType 不为空 cardNo 必须有值
+    cardNo: String
+    #租户
+    tenantId: String
+    #创建时间
+    createTime:Timestamp
+    #修改时间
+    timestamp: Timestamp
+    #邮箱
+    email: String
+    #手机号
+    phone: String
+    #
+    express: Boolean
+    #是否禁用
+    disabled: Boolean
+    #来源
+    source: String
+    #数据来源(机读)
+    dataSource: String
+    #性别
+    sex: String
+    #生日
+    birthday: Timestamp
+    #标签
+    tags: String
+    #是否有效
+    active: Boolean
+    #有效状态变更时间
+    activeTime: Timestamp
+    #描述
+    description: String
+    #组织机构岗位
+    positions: [Position]
+    #扩展字段
+    attrsValues : [DynamicValue]
+    #证件
+    certificates : [Certificate]
+    #租户
+    tenant:String
+    #创建来源
+    createSource: String
+    #创建数据来源(机读)
+    createDataSource: String
+}
+
+type Position{
+    id: ID
+    #组织机构
+    dept: Department
+    #岗位
+    post : UserType
+    #代码
+    code : String
+    #是否禁用
+    disabled: Boolean
+    #创建时间
+    createTime:Timestamp
+    #开始时间
+    startTime : Timestamp
+    #结束时间
+    endTime : Timestamp
+    #修改时间
+    timestamp : Timestamp
+    #描述
+    description : String
+    #标签
+    tags : String
+    #是否有效
+    active : Boolean
+    #有效状态变更时间
+    activeTime : Timestamp
+    #排序
+    index : Int
+    #身份证件号码
+    cardNo : String
+    #身份证件类型
+    cardType : String
+    #最终开始时间
+    validStartTime : Timestamp
+    #最终结束时间
+    validEndTime : Timestamp
+    orphan : Int
+
+    #来源
+    createSource: String
+    #数据来源(机读)
+    createDataSource: String
+    #更新来源
+    source: String
+    #更新数据来源(机读)
+    dataSource: String
+    #扩展字段
+    attrsValues : [DynamicValue]
+    #是否虚拟身份
+    isVirtual:Boolean
+}
+
+type Certificate{
+    #证件标识
+    id:String
+    #证件类型
+    cardType: String
+    #证件编号
+    cardNo: String
+    #创建时间
+    createTime: Timestamp
+    #修改时间
+    updateTime: Timestamp
+    #是否有效
+    active: Boolean
+    #有效状态变更时间
+    activeTime: Timestamp
+    #来源
+    source: String
+    #来源人
+    fromUser:User
+}
+
+
+type DepartmentConnection {
+    edges: [DepartmentEdge]
+    totalCount: Int
+    updateTime:Timestamp
+}
+
+type DepartmentEdge {
+    node: Department
+}
+
+type Department{
+    id: ID
+    #组织机构名称
+    name: String
+    #组织机构代码
+    code: String
+    #父级代码
+    parent: String
+    #标签
+    tags: String
+    #是否独立部门
+    independent: Boolean
+    @deprecated
+    #租户
+    tenantId: String
+    #修改时间
+    timestamp: Timestamp
+    #是否禁用
+    disabled: Boolean
+    #来源
+    source: String
+    #数据来源(机读)
+    dataSource: String
+    #描述
+    description: String
+    #组织机构树类型
+    treeType: String
+    #组织机构类型
+    type: String
+    #是否有效
+    active: Boolean
+    #有效状态变更时间
+    activeTime: Timestamp
+    #排序
+    index: Int
+    #创建时间
+    createTime: String
+    #租户
+    tenant: String
+    #扩展字段
+    attrsValues : [DynamicValue]
+    #英文名称
+    deptEnName:String
+    #简称
+    abbreviation:String
+    #关系类型
+    relationType:String @deprecated
+    jointOffice:[String] @deprecated
+    # 所有父级信息
+    ancestor:[Department]
+    #创建来源
+    createSource: String
+    #创建数据来源(机读)
+    createDataSource: String
+    #同步后状态 0 无变化 1 新增 2 修改 3 删除 4 失效
+    syncState :Int
+}
+
+type UserTypeConnection {
+    edges: [UserTypeEdge]
+    totalCount: Int
+    updateTime:Timestamp
+}
+type UserTypeEdge {
+    node: UserType
+}
+
+type UserType{
+    id: ID
+    #岗位名称
+    name: String
+    #岗位代码
+    code: String
+    #父级代码
+    parent: String
+    #标签
+    tags: String
+    @deprecated
+    #租户
+    tenantId: String
+    #修改时间
+    timestamp: Timestamp
+    #是否禁用
+    disabled: Boolean
+    #来源
+    source: String
+    #数据来源(机读)
+    dataSource: String
+    #描述
+    description: String
+    #是否有效
+    active: Boolean
+    #有效状态变更时间
+    activeTime: Timestamp
+    #排序
+    index: Int
+    #创建时间
+    createTime: String
+    #扩展字段
+    attrsValues : [DynamicValue]
+    #创建来源
+    createSource: String
+    #创建数据来源(机读)
+    createDataSource: String
+    #同步后状态 0 无变化 1 新增 2 修改 3 删除 4 失效
+    syncState :Int
+}
+
+input DynamicFilter{
+    key:String
+    value:stringFilter
+    timestampValue:timestampFilter
+}
+
+input IgaUserFilter{
+    name:stringFilter,
+    username:stringFilter,
+    phone:stringFilter,
+    cardNo:stringFilter,
+    syncState:integerFilter,
+    active:booleanFilter,
+    email:stringFilter,
+    source:stringFilter,
+    createSource:stringFilter,
+    dataSource:stringFilter,
+    createDataSource:stringFilter,
+    extension:[DynamicFilter]
+}
+
+input IgaOccupyFilter{
+    name:stringFilter,
+    username:stringFilter,
+    active:booleanFilter,
+    positionActive:booleanFilter,
+    dept:stringFilter,
+    post:stringFilter,
+    syncState:integerFilter,
+    source:stringFilter,
+    createSource:stringFilter,
+    dataSource:stringFilter,
+    createDataSource:stringFilter,
+    personCardNo:stringFilter,
+    positionCardNo:stringFilter,
+    startTime:timestampFilter,
+    endTime:timestampFilter,
+    extension:[DynamicFilter]
+}

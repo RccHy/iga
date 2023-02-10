@@ -415,7 +415,7 @@ public class ApiController {
             deptUpstreamType.setDescription(description);
             deptUpstreamType.setIsPage(false);
             //校验名称重复
-            List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(deptUpstreamType);
+            List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(deptUpstreamType,domainInfo.getId());
             if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
                 throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
             }
@@ -555,6 +555,29 @@ public class ApiController {
         }
         jsonObject.put("code", "SUCCESS");
         jsonObject.put("message", "触发成功");
+        return jsonObject;
+    }
+
+
+    @RequestMapping("/dealWithPerson")
+    @ResponseBody
+    public JSONObject dealWithPerson(){
+        JSONObject jsonObject = new JSONObject();
+
+        try {
+            DomainInfo domainInfo = CertifiedConnector.getDomain();
+            jsonObject = personService.dealWithPerson(domainInfo);
+        } catch (CustomException e) {
+            e.printStackTrace();
+            jsonObject.put("code", "FAILED");
+            jsonObject.put("message", e.getErrorMsg());
+        }catch (Exception e) {
+            e.printStackTrace();
+            jsonObject.put("code", "FAILED");
+            jsonObject.put("message", e.getMessage());
+        }
+
+
         return jsonObject;
     }
 

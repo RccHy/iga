@@ -1,9 +1,7 @@
 package com.qtgl.iga.dao;
 
-import com.qtgl.iga.bo.Certificate;
-import com.qtgl.iga.bo.DomainInfo;
-import com.qtgl.iga.bo.DynamicValue;
-import com.qtgl.iga.bo.Person;
+import com.alibaba.fastjson.JSONObject;
+import com.qtgl.iga.bo.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +14,8 @@ public interface PersonDao {
 
 
     Integer saveToSso(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, ArrayList<Certificate> certificates);
+
+    Integer saveToSsoTest(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, List<DynamicAttr> attrList, ArrayList<Certificate> certificates,List<DynamicValue> dynamicValues);
 
     Integer saveToTemp(List<Person> personList, DomainInfo domainInfo);
 
@@ -31,4 +31,14 @@ public interface PersonDao {
 
 
     List<Person> mergeCharacteristicPerson(String tenantId);
+
+    List<Person> getDelMarkPeople(String tenantId);
+
+    List<Person> findRepeatPerson(String tenantId, String dataSource);
+
+    List<Person> findPersonByDataSource(String tenantId, String dataSource);
+
+    JSONObject dealWithPeople(ArrayList<Person> resultPeople);
+
+    Map<String, Object> findTestPersons(Map<String, Object> arguments, Tenant domain);
 }

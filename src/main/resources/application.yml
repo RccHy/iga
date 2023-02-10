@@ -69,7 +69,7 @@ iga:
 
 logging:
   file:
-    name: iga.log
+    name: /logs/iga.log
 
 #management:
 #  server:

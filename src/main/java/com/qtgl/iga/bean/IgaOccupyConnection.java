@@ -6,16 +6,18 @@ import java.sql.Timestamp;
 import java.util.List;
 
 /**
- * <FileName> PersonConnection
+ * <FileName> IgaOccupyConnection
  * <Desc>
  *
  * @author 1
  */
 @Data
-public class PersonConnection {
+public class IgaOccupyConnection {
+
     private Integer totalCount;
 
-    private List<PersonEdge> edges;
+    private List<IgaOccupyEdge> edges;
 
     private Timestamp updateTime;
+
 }

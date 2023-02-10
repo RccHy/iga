@@ -43,6 +43,7 @@ import java.time.ZoneOffset;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -186,7 +187,22 @@ public class PersonServiceImpl implements PersonService {
         Map arguments = new ConcurrentHashMap();
         arguments.put("type", "person");
         arguments.put("status", 0);
-        dataProcessing(domain, tenant, cardTypeMap, dynamicAttrs, valueUpdateMap, valueInsertMap, finalDynamicCodes, finalValueMap, result, attrMap, attrReverseMap, arguments, currentTask);
+
+        List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
+        if (null == nodes || nodes.size() <= 0) {
+            log.error("无人员管理规则信息");
+            return null;
+            //throw new CustomException(ResultCode.FAILED, "无人员管理规则信息");
+        }
+        String nodeId = nodes.get(0).getId();
+        //
+        List<NodeRules> userRules = rulesDao.getByNodeAndType(nodeId, 1, null, 0);
+        if (null == userRules || userRules.size() == 0) {
+            log.error("无人员管理规则信息");
+            return null;
+            //throw new CustomException(ResultCode.FAILED, "无人员规则信息");
+        }
+        dataProcessing(nodes, userRules, domain, tenant, cardTypeMap, dynamicAttrs, valueUpdateMap, valueInsertMap, finalDynamicCodes, finalValueMap, result, attrMap, attrReverseMap, arguments, currentTask);
         // 验证监控规则
         List<Person> personFromSSOList = personDao.getAll(tenant.getId());
         log.info("--------------------开始验证人员监控规则");
@@ -269,24 +285,17 @@ public class PersonServiceImpl implements PersonService {
         return result;
     }
 
-    private List<Person> dataProcessing(DomainInfo domain, Tenant tenant, Map<String, CardType> cardTypeMap, List<DynamicAttr> dynamicAttrs, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, List<String> finalDynamicCodes, Map<String, List<DynamicValue>> finalValueMap, Map<String, List<Person>> result, Map<String, String> attrMap, Map<String, String> attrReverseMap, Map arguments, TaskLog currentTask) {
-        List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
-        if (null == nodes || nodes.size() <= 0) {
-            throw new CustomException(ResultCode.FAILED, "无人员管理规则信息");
-        }
-        String nodeId = nodes.get(0).getId();
-        //
-        List<NodeRules> userRules = rulesDao.getByNodeAndType(nodeId, 1, null, 0);
-
-
+    private List<Person> dataProcessing(List<Node> nodes, List<NodeRules> userRules, DomainInfo domain, Tenant tenant, Map<String, CardType> cardTypeMap, List<DynamicAttr> dynamicAttrs, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, List<String> finalDynamicCodes, Map<String, List<DynamicValue>> finalValueMap, Map<String, List<Person>> result, Map<String, String> attrMap, Map<String, String> attrReverseMap, Map arguments, TaskLog currentTask) {
         final LocalDateTime now = LocalDateTime.now();
-        if (null == userRules || userRules.size() == 0) {
-            throw new CustomException(ResultCode.FAILED, "无人员规则信息");
-        }
         List<Person> people = new ArrayList<>();
 
+        //获取sso 删除的人员数据
+        List<Person> personDelMarkFromSSOList = personDao.getDelMarkPeople(tenant.getId());
+        if (!CollectionUtils.isEmpty(personDelMarkFromSSOList)) {
+            people.addAll(personDelMarkFromSSOList);
+        }
 
-        // 获取 sso数据
+        // 获取 sso数据 (后续覆盖后覆盖前,)
         List<Person> personFromSSOList = personDao.getAll(tenant.getId());
         if (!CollectionUtils.isEmpty(personFromSSOList)) {
             people.addAll(personFromSSOList);
@@ -298,9 +307,15 @@ public class PersonServiceImpl implements PersonService {
             distinctPersonMap = distinctPerson.stream().filter(person -> !StringUtils.isBlank(person.getId())).collect(Collectors.toMap(Person::getId, person -> person, (v1, v2) -> v2));
             people.addAll(distinctPerson);
         }
+
+        //预置sso扩展字段原始值容器
+        Map<String, String> dynamicSSOValues = new ConcurrentHashMap<>();
+
         Map<String, Person> preViewPersonMap = people.stream().filter(person -> !StringUtils.isBlank(person.getId())).collect(Collectors.toMap(Person::getId, person -> person, (v1, v2) -> v2));
         //预置对比丢失的失效人员
         Map<String, Person> invalidPersonMap = people.stream().filter(person -> !StringUtils.isBlank(person.getId()) && null != person.getValidEndTime() && null != person.getValidStartTime() && now.isBefore(person.getValidEndTime()) && now.isAfter(person.getValidStartTime())).collect(Collectors.toMap(person -> (person.getId()), person -> person, (v1, v2) -> v2));
+        //预置没有变化的人员   未删除的人员
+        Map<String, Person> keepPersonMap = people.stream().filter(person -> !StringUtils.isBlank(person.getId()) && person.getDelMark() != 1).collect(Collectors.toMap(person -> (person.getId()), person -> person, (v1, v2) -> v2));
 
         //预存  sso 已有操作数据的原始备份   key  id ->  person
         Map<String, Person> backUpPersonMap = new ConcurrentHashMap<>();
@@ -401,6 +416,9 @@ public class PersonServiceImpl implements PersonService {
                     JSONObject personObj = JSON.parseObject(JSON.toJSONString(o));
                     if (null != personObj.getTimestamp(TreeEnum.UPDATE_TIME.getCode())) {
                         personObj.put(TreeEnum.UPDATE_TIME.getCode(), personObj.getTimestamp(TreeEnum.UPDATE_TIME.getCode()));
+                    }
+                    if (null != personObj.getTimestamp(TreeEnum.BIRTHDAY.getCode())) {
+                        personObj.put(TreeEnum.BIRTHDAY.getCode(), personObj.getTimestamp(TreeEnum.BIRTHDAY.getCode()));
                     }
                     Person personUpstream = personObj.toJavaObject(Person.class);
 
@@ -522,21 +540,24 @@ public class PersonServiceImpl implements PersonService {
                         //todo 性能待优化
                         // 用户名
                         Map<String, Person> personFromSSOMapByAccount = new ArrayList<>(preViewPersonMap.values()).stream().filter(person ->
-                                !StringUtils.isBlank(person.getAccountNo())).collect(Collectors.toMap(Person::getAccountNo, person -> person, (v1, v2) -> v2));
+                                !StringUtils.isBlank(person.getAccountNo())).sorted(Comparator.comparing(Person::getUpdateTime)).collect(Collectors.toMap(Person::getAccountNo, person -> person, (v1, v2) -> v2));
                         personFromSSOMapByAccount.forEach((key, personFromSSO) -> {
-                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap,fields,filedsMap);
+                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, filedsMap, dynamicSSOValues, keepPersonMap);
                         });
                         personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
                             calculateInsert(personFromSSOMapByAccount, result, key, val, domain, upstreamCountMap);
                         });
                     } else if (CARD_TYPE_NO.equals(personCharacteristic)) {
                         // 证件类型+证件号码
+                        // 覆盖逻辑调整
+                        log.info("---------------------------------start2:" + System.currentTimeMillis());
                         Map<String, Person> personFromSSOMapByCardTypeAndNo = new ArrayList<>(preViewPersonMap.values()).stream()
-                                .filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo()))
+                                .filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo())).sorted(Comparator.comparing(Person::getUpdateTime))
                                 .collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
+                        log.info("---------------------------------end2:" + System.currentTimeMillis());
 
                         personFromSSOMapByCardTypeAndNo.forEach((key, personFromSSO) -> {
-                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap,fields,filedsMap);
+                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, filedsMap, dynamicSSOValues, keepPersonMap);
                         });
                         personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
                             calculateInsert(personFromSSOMapByCardTypeAndNo, result, key, val, domain, upstreamCountMap);
@@ -544,11 +565,11 @@ public class PersonServiceImpl implements PersonService {
                     } else if (CARD_NO.equals(personCharacteristic)) {
                         // 证件号码
                         Map<String, Person> personFromSSOMapByCardNo = new ArrayList<>(preViewPersonMap.values()).stream()
-                                .filter(person -> !StringUtils.isBlank(person.getCardNo()))
+                                .filter(person -> !StringUtils.isBlank(person.getCardNo())).sorted(Comparator.comparing(Person::getUpdateTime))
                                 .collect(Collectors.toMap(Person::getCardNo, person -> person, (v1, v2) -> v2));
 
                         personFromSSOMapByCardNo.forEach((key, personFromSSO) -> {
-                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap,fields,filedsMap);
+                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, filedsMap, dynamicSSOValues, keepPersonMap);
                         });
                         personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
                             calculateInsert(personFromSSOMapByCardNo, result, key, val, domain, upstreamCountMap);
@@ -557,11 +578,11 @@ public class PersonServiceImpl implements PersonService {
                     } else if (EMAIL.equals(personCharacteristic)) {
                         // 邮箱
                         Map<String, Person> personFromSSOMapByEmail = new ArrayList<>(preViewPersonMap.values()).stream()
-                                .filter(person -> !StringUtils.isBlank(person.getEmail()))
+                                .filter(person -> !StringUtils.isBlank(person.getEmail())).sorted(Comparator.comparing(Person::getUpdateTime))
                                 .collect(Collectors.toMap(Person::getEmail, person -> person, (v1, v2) -> v2));
 
                         personFromSSOMapByEmail.forEach((key, personFromSSO) -> {
-                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap,fields,filedsMap);
+                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, filedsMap, dynamicSSOValues, keepPersonMap);
                         });
                         personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
                             calculateInsert(personFromSSOMapByEmail, result, key, val, domain, upstreamCountMap);
@@ -569,11 +590,11 @@ public class PersonServiceImpl implements PersonService {
                     } else if (CELLPHONE.equals(personCharacteristic)) {
                         // 手机号
                         Map<String, Person> personFromSSOMapByCellphone = new ArrayList<>(preViewPersonMap.values()).stream()
-                                .filter(person -> !StringUtils.isBlank(person.getCellphone()))
+                                .filter(person -> !StringUtils.isBlank(person.getCellphone())).sorted(Comparator.comparing(Person::getUpdateTime))
                                 .collect(Collectors.toMap(Person::getCellphone, person -> person, (v1, v2) -> v2));
 
                         personFromSSOMapByCellphone.forEach((key, personFromSSO) -> {
-                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap,fields,filedsMap);
+                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, filedsMap, dynamicSSOValues, keepPersonMap);
                         });
                         personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
                             calculateInsert(personFromSSOMapByCellphone, result, key, val, domain, upstreamCountMap);
@@ -667,6 +688,17 @@ public class PersonServiceImpl implements PersonService {
             }
         }
         // 处理result
+        if (!CollectionUtils.isEmpty(keepPersonMap)) {
+            if (result.containsKey("keep")) {
+                result.get("keep").addAll(new ArrayList<>(keepPersonMap.values()));
+            } else {
+                result.put("keep", new ArrayList<>(keepPersonMap.values()));
+            }
+
+        }
+        //处理扩展字段
+
+
         if (!CollectionUtils.isEmpty(tempResult)) {
             if (!CollectionUtils.isEmpty(tempResult.get("update"))) {
                 if (result.containsKey("update")) {
@@ -682,6 +714,14 @@ public class PersonServiceImpl implements PersonService {
                     result.get("invalid").addAll(new ArrayList<>(tempResult.get("invalid").values()));
                 } else {
                     result.put("invalid", new ArrayList<>(tempResult.get("invalid").values()));
+                }
+
+            }
+            if (!CollectionUtils.isEmpty(tempResult.get("delete"))) {
+                if (result.containsKey("delete")) {
+                    result.get("delete").addAll(new ArrayList<>(tempResult.get("delete").values()));
+                } else {
+                    result.put("delete", new ArrayList<>(tempResult.get("delete").values()));
                 }
 
             }
@@ -1215,114 +1255,129 @@ public class PersonServiceImpl implements PersonService {
         }
     }
 
-    private void calculate(Map<String, Person> personFromUpstream, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO, DomainInfo domainInfo, Map<String, String> attrMap, Map<String, List<DynamicValue>> valueMap, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, Upstream> upstreamMap, Map<String, Person> preViewPersonMap, ConcurrentHashMap<String, ConcurrentHashMap<String, List<Person>>> upstreamCountMap, String source, Map<String, Person> distinctPersonMap, Map<String, Person> invalidPersonMap, Map<String, Map<String, Person>> tempResult, Map<String, Person> backUpPersonMap,List<UpstreamTypeField> fields,Map<String, UpstreamTypeField> filedsMap) {
+    private void calculate(Map<String, Person> personFromUpstream, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO, DomainInfo domainInfo, Map<String, String> attrMap, Map<String, List<DynamicValue>> valueMap, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, Upstream> upstreamMap, Map<String, Person> preViewPersonMap, ConcurrentHashMap<String, ConcurrentHashMap<String, List<Person>>> upstreamCountMap, String source, Map<String, Person> distinctPersonMap, Map<String, Person> invalidPersonMap, Map<String, Map<String, Person>> tempResult, Map<String, Person> backUpPersonMap, List<UpstreamTypeField> fields, Map<String, UpstreamTypeField> filedsMap, Map<String, String> dynamicSSOValues, Map<String, Person> keepPersonMap) {
         // 对比出需要修改的person
         if (personFromUpstream.containsKey(key)) {
             //上游包含该数据则将该数据从失效map中移除
             invalidPersonMap.remove(personFromSSO.getId());
+            Person newPerson = personFromUpstream.get(key);
+
             if (!personFromUpstream.get(key).getUpdateTime().isBefore(personFromSSO.getUpdateTime())) {
 
-                //保证多源提供同一数据时,每次同步仅有一条操作记录
+
                 if (backUpPersonMap.containsKey(personFromSSO.getId())) {
                     personFromSSO = backUpPersonMap.get(personFromSSO.getId());
+                }
 
-                    //同时清空之前的对应操作
-                    //如果之前源头对比有操作,则将其移除以保证单条数据同步时仅有一次有效操作
-                    if (tempResult.containsKey("invalid")) {
-                        tempResult.get("invalid").remove(personFromSSO.getId());
-                    }
-                    if (tempResult.containsKey("update")) {
-                        tempResult.get("update").remove(personFromSSO.getId());
-                    }
+                //判断是否都为已删除的数据并且不是合重导致的删除(是则跳过)
+                if (1 == newPerson.getDelMark() && 1 == personFromSSO.getDelMark() && (CollectionUtils.isEmpty(distinctPersonMap) || (!CollectionUtils.isEmpty(distinctPersonMap) && !distinctPersonMap.containsKey(newPerson.getId())))) {
+                    log.error("人员上游: {}-> sso:{}上游和sso都为删除数据,同步跳过该数据", newPerson, personFromSSO);
 
                 } else {
+                    //保证多源提供同一数据时,每次同步仅有一条操作记录
+                    if (backUpPersonMap.containsKey(personFromSSO.getId())) {
+                        //personFromSSO = backUpPersonMap.get(personFromSSO.getId());
 
-                    //Person clone = (Person) personFromSSO.clone();
-                    backUpPersonMap.put(personFromSSO.getId(), personFromSSO);
-                }
-                Person newPerson = personFromUpstream.get(key);
-
-
-                //当前数据来源规则为启用再进行处理
-                if (newPerson.getRuleStatus()) {
-                    ////修改是否合法标识
-                    //boolean licitFlag = true;
-                    //修改标识
-                    boolean updateFlag = false;
-                    //del字段标识
-                    boolean delFlag = false;
-                    //失效标识
-                    boolean invalidFlag = false;
-                    //密码设置
-                    boolean passwordFlag = false;
-                    //恢复失效标识
-                    // boolean invalidRecoverFlag = true;
-                    //是否处理扩展字段标识
-                    boolean dyFlag = true;
-
-                    //使用sso的对象,将需要修改的值赋值
-                    if (!"PULL".equals(personFromSSO.getDataSource()) && !"INC_PULL".equals(personFromSSO.getDataSource())) {
-                        updateFlag = true;
-                    }
-                    //personFromSSO.setDataSource(newPerson.getDataSource());
-                    //personFromSSO.setSource(newPerson.getSource());
-                    //personFromSSO.setUpstreamType(newPerson.getUpstreamType());
-                    //规则启用标识传递
-                    //personFromSSO.setRuleStatus(newPerson.getRuleStatus());
-                    //处理sso数据的active为null的情况
-                    if (null == personFromSSO.getActive() || "".equals(personFromSSO.getActive())) {
-                        personFromSSO.setActive(1);
-                    }
-                    //List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(newPerson.getUpstreamType());
-                    //旧值对比覆盖
-                    Map<String, Map<String, Object>> oldValueMap = ClassCompareUtil.compareObject(personFromSSO, newPerson);
-                    if(!CollectionUtils.isEmpty(oldValueMap)){
-                        for (String k : oldValueMap.keySet()) {
-                            if(filedsMap.containsKey(k)){
-                                continue;
-                            }
-                            if(k.equals("updateTime")||k.equals("ruleStatus")||k.equals("attrsValues")||k.equals("createSource")||k.equals("createDataSource")
-                                    ||k.equals("dynamic")||k.equals("password")||k.equals("freezeTime")||k.equals("validEndTime")||k.equals("validStartTime")
-                                    ||k.equals("upstreamType")||k.equals("delMark")||k.equals("createTime")||k.equals("activeTime")||k.equals("source")
-                                    ||k.equals("dataSource")||k.equals("tenantId")){
-                                continue;
-                            }
-
-                            ClassCompareUtil.setValue(newPerson, personFromSSO.getClass(), k, oldValueMap.get(k).get("newValue"), oldValueMap.get(k).get("oldValue"));
-
+                        //同时清空之前的对应操作
+                        //如果之前源头对比有操作,则将其移除以保证单条数据同步时仅有一次有效操作
+                        if (tempResult.containsKey("invalid")) {
+                            tempResult.get("invalid").remove(personFromSSO.getId());
                         }
+                        if (tempResult.containsKey("update")) {
+                            log.info("人员同步中获取的{}->{},被后续数据覆盖", personFromSSO.getId(), personFromSSO);
+                            tempResult.get("update").remove(personFromSSO.getId());
+                        }
+                        if (tempResult.containsKey("delete")) {
+                            tempResult.get("delete").remove(personFromSSO.getId());
+                        }
+
+                    } else {
+
+                        //Person clone = (Person) personFromSSO.clone();
+                        backUpPersonMap.put(personFromSSO.getId(), personFromSSO);
                     }
-                    // 如果字段上游不提供，则不进行更新
-                    //    字段值没有发生改变，不进行更新
-                    if (null != fields && fields.size() > 0) {
-                        for (UpstreamTypeField field : fields) {
-                            String sourceField = field.getSourceField();
-                            Object newValue = ClassCompareUtil.getGetMethod(newPerson, sourceField);
-                            Object oldValue = ClassCompareUtil.getGetMethod(personFromSSO, sourceField);
-                            //对于密码字段不处理
-                            if (sourceField.equalsIgnoreCase("password")) {
-                                if (null == oldValue && null != newValue) {
-                                    //todo加密方式调整
-                                    String password = getPasswordByConfig(pwdConfig, newValue);
-                                    //String password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(((String) newValue).getBytes()).toCharArray()));
-                                    //personFromSSO.setPassword(password);
-                                    newPerson.setPassword(password);
-                                    if (result.containsKey("password")) {
-                                        result.get("password").add(newPerson);
-                                    } else {
-                                        ArrayList<Person> people = new ArrayList<>();
-                                        people.add(newPerson);
-                                        result.put("password", people);
-                                    }
+
+
+                    //当前数据来源规则为启用再进行处理
+                    if (newPerson.getRuleStatus()) {
+                        ////修改是否合法标识
+                        //boolean licitFlag = true;
+                        //修改标识
+                        boolean updateFlag = false;
+                        //del字段标识
+                        boolean delFlag = false;
+                        //失效标识
+                        boolean invalidFlag = false;
+                        //密码设置
+                        boolean passwordFlag = false;
+                        //恢复失效标识
+                        // boolean invalidRecoverFlag = true;
+                        //是否处理扩展字段标识
+                        boolean dyFlag = true;
+
+                        //使用sso的对象,将需要修改的值赋值
+                        if (!"PULL".equals(personFromSSO.getDataSource()) && !"INC_PULL".equals(personFromSSO.getDataSource())) {
+                            updateFlag = true;
+                        }
+                        //personFromSSO.setDataSource(newPerson.getDataSource());
+                        //personFromSSO.setSource(newPerson.getSource());
+                        //personFromSSO.setUpstreamType(newPerson.getUpstreamType());
+                        //规则启用标识传递
+                        //personFromSSO.setRuleStatus(newPerson.getRuleStatus());
+                        //处理sso数据的active为null的情况
+                        if (null == personFromSSO.getActive() || "".equals(personFromSSO.getActive())) {
+                            personFromSSO.setActive(1);
+                        }
+                        //List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(newPerson.getUpstreamType());
+                        //旧值对比覆盖
+                        Map<String, Map<String, Object>> oldValueMap = ClassCompareUtil.compareObject(personFromSSO, newPerson);
+                        if (!CollectionUtils.isEmpty(oldValueMap)) {
+                            for (String k : oldValueMap.keySet()) {
+                                if (filedsMap.containsKey(k)) {
+                                    continue;
                                 }
-                                continue;
+                                if (k.equals("updateTime") || k.equals("ruleStatus") || k.equals("attrsValues") || k.equals("createSource") || k.equals("createDataSource")
+                                        || k.equals("dynamic") || k.equals("password") || k.equals("freezeTime") || k.equals("validEndTime") || k.equals("validStartTime")
+                                        || k.equals("upstreamType") || k.equals("delMark") || k.equals("createTime") || k.equals("activeTime") || k.equals("source")
+                                        || k.equals("dataSource") || k.equals("tenantId")) {
+                                    continue;
+                                }
+
+                                ClassCompareUtil.setValue(newPerson, personFromSSO.getClass(), k, oldValueMap.get(k).get("newValue"), oldValueMap.get(k).get("oldValue"));
+
                             }
-                            if (null == oldValue && null == newValue) {
-                                continue;
-                            }
-                            if (null != oldValue && oldValue.equals(newValue)) {
-                                continue;
-                            }
+                        }
+                        // 如果字段上游不提供，则不进行更新
+                        //    字段值没有发生改变，不进行更新
+                        if (null != fields && fields.size() > 0) {
+                            for (UpstreamTypeField field : fields) {
+                                String sourceField = field.getSourceField();
+                                Object newValue = ClassCompareUtil.getGetMethod(newPerson, sourceField);
+                                Object oldValue = ClassCompareUtil.getGetMethod(personFromSSO, sourceField);
+                                //对于密码字段不处理
+                                if (sourceField.equalsIgnoreCase("password")) {
+                                    if (null == oldValue && null != newValue) {
+                                        //todo加密方式调整
+                                        String password = getPasswordByConfig(pwdConfig, newValue);
+                                        //String password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(((String) newValue).getBytes()).toCharArray()));
+                                        //personFromSSO.setPassword(password);
+                                        newPerson.setPassword(password);
+                                        if (result.containsKey("password")) {
+                                            result.get("password").add(newPerson);
+                                        } else {
+                                            ArrayList<Person> people = new ArrayList<>();
+                                            people.add(newPerson);
+                                            result.put("password", people);
+                                        }
+                                    }
+                                    continue;
+                                }
+                                if (null == oldValue && null == newValue) {
+                                    continue;
+                                }
+                                if (null != oldValue && oldValue.equals(newValue)) {
+                                    continue;
+                                }
 //                        if (sourceField.equals("delMark") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
 //                            delFlag = true;
 //                            log.info("人员信息{}从删除恢复", personFromSSOList.getId());
@@ -1343,115 +1398,65 @@ public class PersonServiceImpl implements PersonService {
 //                        }
 //                    }
 
-                            //合重删除特殊处理
-                            if (sourceField.equals("delMark") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
-                                if (!CollectionUtils.isEmpty(distinctPersonMap) && distinctPersonMap.containsKey(newPerson.getId())) {
-                                    //临时赋值
-                                    newPerson.setDelMark(0);
+                                //合重删除特殊处理
+                                if (sourceField.equals("delMark") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
+                                    if (!CollectionUtils.isEmpty(distinctPersonMap) && distinctPersonMap.containsKey(newPerson.getId())) {
+                                        //临时赋值
+                                        newPerson.setDelMark(0);
+                                        continue;
+                                    }
+                                }
+                                if (sourceField.equalsIgnoreCase("delMark") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
+                                    delFlag = true;
+                                    log.info("人员信息{}删除", newPerson.getId());
                                     continue;
                                 }
-                            }
-                            if (sourceField.equalsIgnoreCase("delMark") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
-                                delFlag = true;
-                                log.info("人员信息{}删除", newPerson.getId());
-                                continue;
-                            }
 
-                            updateFlag = true;
-                            if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
-                                invalidFlag = true;
-                                log.info("人员信息{}失效", newPerson.getId());
-                                // continue;
-                            }
-                            if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
+                                updateFlag = true;
+                                if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
+                                    invalidFlag = true;
+                                    log.info("人员信息{}失效", newPerson.getId());
+                                    // continue;
+                                }
+                                if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
 
-                                log.info("人员信息{}从失效恢复", newPerson.getId());
-                                continue;
-                            }
-                            if (sourceField.equalsIgnoreCase("password") && null != newValue) {
-                                //   if (StringUtils.isBlank((String) oldValue) && !StringUtils.isBlank((String) newValue)) {
-                                //加密方式调整
-                                String password = getPasswordByConfig(pwdConfig, newValue);
+                                    log.info("人员信息{}从失效恢复", newPerson.getId());
+                                    continue;
+                                }
+                                if (sourceField.equalsIgnoreCase("password") && null != newValue) {
+                                    //   if (StringUtils.isBlank((String) oldValue) && !StringUtils.isBlank((String) newValue)) {
+                                    //加密方式调整
+                                    String password = getPasswordByConfig(pwdConfig, newValue);
 
-                                //String password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(((String) newValue).getBytes()).toCharArray()));
-                                passwordFlag = true;
-                                newPerson.setPassword(password);
-                                continue;
-                                // }
-                            }
+                                    //String password = "{MD5}" + Base64.encodeBase64String(Hex.decodeHex(DigestUtils.md5DigestAsHex(((String) newValue).getBytes()).toCharArray()));
+                                    passwordFlag = true;
+                                    newPerson.setPassword(password);
+                                    continue;
+                                    // }
+                                }
                   /*  if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
                         invalidRecoverFlag = false;
                     }*/
 
-                            //ClassCompareUtil.setValue(personFromSSO, personFromSSO.getClass(), sourceField, oldValue, newValue);
-                            log.info("人员信息更新{}:字段{}：{} -> {}", newPerson.getId(), sourceField, oldValue, newValue);
+                                //ClassCompareUtil.setValue(personFromSSO, personFromSSO.getClass(), sourceField, oldValue, newValue);
+                                log.info("人员信息更新{}:字段{}：{} -> {}", newPerson.getId(), sourceField, oldValue, newValue);
 
-                        }
-                    }
-
-                    //if (licitFlag) {
-                    if (delFlag) {
-                        if ((null == personFromSSO.getRuleStatus() || personFromSSO.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
-                            //personFromSSO.setDelMark(1);
-                            //personFromSSO.setUpdateTime(newPerson.getUpdateTime());
-                            //personFromSSO.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
-                            //personFromSSO.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
-                            newPerson.setDelMark(1);
-                            newPerson.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
-                            newPerson.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
-                            //处理合重数据
-                            if (!CollectionUtils.isEmpty(distinctPersonMap)) {
-                                if (distinctPersonMap.containsKey(newPerson.getId())) {
-                                    if (result.containsKey("merge")) {
-                                        result.get("merge").add(newPerson);
-                                    } else {
-                                        ArrayList<Person> people = new ArrayList<>();
-                                        people.add(newPerson);
-                                        result.put("merge", people);
-                                    }
-                                }
-                            }
-                            if (result.containsKey("delete")) {
-                                result.get("delete").add(newPerson);
-                            } else {
-                                ArrayList<Person> people = new ArrayList<>();
-                                people.add(newPerson);
-                                result.put("delete", people);
-                            }
-                            //处理人员预览数据
-                            //preViewPersonMap.remove(personFromSSO.getId());
-
-                            log.info("人员信息删除{}", newPerson.getId());
-                        } else {
-                            log.info("人员对比后应删除{},但检测到对应权威源已无效或规则未启用,跳过该数据", newPerson.getId());
-                        }
-                    }
-                    if (updateFlag && personFromSSO.getDelMark() != 1) {
-                        //personFromSSO.setSource(newPerson.getSource());
-                        //personFromSSO.setUpdateTime(newPerson.getUpdateTime());
-                        // 需要设置人员密码
-                        if (passwordFlag) {
-                            if (result.containsKey("password")) {
-                                result.get("password").add(newPerson);
-                            } else {
-                                ArrayList<Person> people = new ArrayList<>();
-                                people.add(newPerson);
-                                result.put("password", people);
                             }
                         }
-                        //失效
-                        if (invalidFlag) {
+
+                        //if (licitFlag) {
+                        if (delFlag) {
                             if ((null == personFromSSO.getRuleStatus() || personFromSSO.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
-                                //personFromSSO.setActive(0);
-                                //personFromSSO.setActiveTime(newPerson.getUpdateTime());
+                                //personFromSSO.setDelMark(1);
+                                //personFromSSO.setUpdateTime(newPerson.getUpdateTime());
                                 //personFromSSO.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
                                 //personFromSSO.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
-                                newPerson.setActive(0);
+                                newPerson.setDelMark(1);
                                 newPerson.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
                                 newPerson.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
+                                //处理合重数据
                                 if (!CollectionUtils.isEmpty(distinctPersonMap)) {
                                     if (distinctPersonMap.containsKey(newPerson.getId())) {
-                                        newPerson.setDelMark(1);
                                         if (result.containsKey("merge")) {
                                             result.get("merge").add(newPerson);
                                         } else {
@@ -1461,140 +1466,158 @@ public class PersonServiceImpl implements PersonService {
                                         }
                                     }
                                 }
-                                //if (result.containsKey("invalid")) {
-                                //    result.get("invalid").add(personFromSSO);
+                                //if (result.containsKey("delete")) {
+                                //    result.get("delete").add(newPerson);
                                 //} else {
-                                //    result.put("invalid", new ArrayList<Person>() {{
-                                //        this.add(personFromSSO);
-                                //    }});
+                                //    ArrayList<Person> people = new ArrayList<>();
+                                //    people.add(newPerson);
+                                //    result.put("delete", people);
                                 //}
-
-                                if (tempResult.containsKey("invalid")) {
-                                    tempResult.get("invalid").put(newPerson.getId(), newPerson);
+                                if (tempResult.containsKey("delete")) {
+                                    tempResult.get("delete").put(newPerson.getId(), newPerson);
                                 } else {
                                     ConcurrentHashMap<String, Person> hashMap = new ConcurrentHashMap<>();
                                     hashMap.put(newPerson.getId(), newPerson);
-                                    tempResult.put("invalid", hashMap);
+                                    tempResult.put("delete", hashMap);
                                 }
-
                                 //处理人员预览数据
                                 //preViewPersonMap.remove(personFromSSO.getId());
-
-                                log.info("人员对比后置为失效{}", newPerson.getId());
+                                //处理keep人员 数据
+                                keepPersonMap.remove(personFromSSO.getId());
+                                log.info("人员信息删除{}", newPerson.getId());
                             } else {
-                                log.info("人员对比后应置为失效{},但检测到对应权威源已无效或规则未启用,跳过该数据", newPerson.getId());
-                            }
-                        } else {
-                            //if (!personFromSSO.getActive().equals(newPerson.getActive())) {
-                            //    //personFromSSO.setActive(newPerson.getActive());
-                            //    //personFromSSO.setActiveTime(newPerson.getUpdateTime());
-                            //}
-                            //if (personFromSSO.getActive() == 0 || personFromSSO.getDelMark() == 1) {
-                            //    personFromSSO.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
-                            //    personFromSSO.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
-                            //}
-                            if (newPerson.getActive() == 0 || newPerson.getDelMark() == 1) {
-                                newPerson.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
-                                newPerson.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
-                            }
-                            setValidTime(newPerson);
-
-
-                            //if (result.containsKey("update")) {
-                            //    result.get("update").add(personFromSSO);
-                            //} else {
-                            //    result.put("update", new ArrayList<Person>() {{
-                            //        this.add(personFromSSO);
-                            //    }});
-                            //}
-                            if (dyFlag) {
-                                //上游的扩展字段
-                                Map<String, String> dynamic = newPerson.getDynamic();
-                                List<DynamicValue> dyValuesFromSSO = null;
-                                //数据库的扩展字段
-                                if (!CollectionUtils.isEmpty(valueMap)) {
-                                    dyValuesFromSSO = valueMap.get(newPerson.getId());
-                                }
-                                dynamicProcessing(valueUpdateMap, valueInsertMap, attrMap, newPerson, dynamic, dyValuesFromSSO);
-                                dyFlag = false;
+                                log.info("人员对比后应删除{},但检测到对应权威源已无效或规则未启用,跳过该数据", newPerson.getId());
                             }
                         }
-
-                    }
-
-                    // 对比后，权威源提供的"映射字段"数据和sso中没有差异。（active字段不提供）
-                    if (!updateFlag && personFromSSO.getDelMark() != 1) {
-
-                        if (!personFromSSO.getActive().equals(newPerson.getActive())) {
-                            //personFromSSO.setActive(newPerson.getActive());
-                            //personFromSSO.setActiveTime(newPerson.getUpdateTime());
+                        if (updateFlag && personFromSSO.getDelMark() != 1) {
+                            //if (updateFlag) {
+                            //personFromSSO.setSource(newPerson.getSource());
                             //personFromSSO.setUpdateTime(newPerson.getUpdateTime());
-                            newPerson.setActiveTime(newPerson.getUpdateTime());
-                            setValidTime(newPerson);
-                            if (dyFlag) {
-                                //上游的扩展字段
-                                Map<String, String> dynamic = newPerson.getDynamic();
-                                List<DynamicValue> dyValuesFromSSO = null;
-                                //数据库的扩展字段
-                                if (!CollectionUtils.isEmpty(valueMap)) {
-                                    dyValuesFromSSO = valueMap.get(newPerson.getId());
-                                }
-                                dynamicProcessing(valueUpdateMap, valueInsertMap, attrMap, newPerson, dynamic, dyValuesFromSSO);
-                                dyFlag = false;
-                            }
-
-
-                        }
-
-                    }
-                    //}
-                    //防止重复将数据放入
-                    if (!dyFlag) {
-                        log.info("人员对比后需要修改(标识字段无差异)  sso:{} -> 上游{}", personFromSSO, newPerson);
-                        setValidTime(newPerson);
-                        if (!CollectionUtils.isEmpty(distinctPersonMap)) {
-                            if (distinctPersonMap.containsKey(newPerson.getId())) {
-                                personFromSSO.setDelMark(1);
-                                if (result.containsKey("merge")) {
-                                    result.get("merge").add(newPerson);
+                            // 需要设置人员密码
+                            if (passwordFlag) {
+                                if (result.containsKey("password")) {
+                                    result.get("password").add(newPerson);
                                 } else {
                                     ArrayList<Person> people = new ArrayList<>();
                                     people.add(newPerson);
-                                    result.put("merge", people);
+                                    result.put("password", people);
                                 }
                             }
+                            //失效
+                            if (invalidFlag) {
+                                if ((null == personFromSSO.getRuleStatus() || personFromSSO.getRuleStatus()) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(personFromSSO.getSource()))) {
+                                    //personFromSSO.setActive(0);
+                                    //personFromSSO.setActiveTime(newPerson.getUpdateTime());
+                                    //personFromSSO.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
+                                    //personFromSSO.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
+                                    newPerson.setActive(0);
+                                    newPerson.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
+                                    newPerson.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
+                                    if (!CollectionUtils.isEmpty(distinctPersonMap)) {
+                                        if (distinctPersonMap.containsKey(newPerson.getId())) {
+                                            newPerson.setDelMark(1);
+                                            if (result.containsKey("merge")) {
+                                                result.get("merge").add(newPerson);
+                                            } else {
+                                                ArrayList<Person> people = new ArrayList<>();
+                                                people.add(newPerson);
+                                                result.put("merge", people);
+                                            }
+                                        }
+                                    }
+                                    //if (result.containsKey("invalid")) {
+                                    //    result.get("invalid").add(personFromSSO);
+                                    //} else {
+                                    //    result.put("invalid", new ArrayList<Person>() {{
+                                    //        this.add(personFromSSO);
+                                    //    }});
+                                    //}
+
+                                    if (tempResult.containsKey("invalid")) {
+                                        tempResult.get("invalid").put(newPerson.getId(), newPerson);
+                                    } else {
+                                        ConcurrentHashMap<String, Person> hashMap = new ConcurrentHashMap<>();
+                                        hashMap.put(newPerson.getId(), newPerson);
+                                        tempResult.put("invalid", hashMap);
+                                    }
+
+                                    //处理人员预览数据
+                                    //preViewPersonMap.remove(personFromSSO.getId());
+                                    //处理keep人员 数据
+                                    keepPersonMap.remove(personFromSSO.getId());
+                                    log.info("人员对比后置为失效{}", newPerson.getId());
+                                } else {
+                                    log.info("人员对比后应置为失效{},但检测到对应权威源已无效或规则未启用,跳过该数据", newPerson.getId());
+                                }
+                            } else {
+                                //if (!personFromSSO.getActive().equals(newPerson.getActive())) {
+                                //    //personFromSSO.setActive(newPerson.getActive());
+                                //    //personFromSSO.setActiveTime(newPerson.getUpdateTime());
+                                //}
+                                //if (personFromSSO.getActive() == 0 || personFromSSO.getDelMark() == 1) {
+                                //    personFromSSO.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
+                                //    personFromSSO.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
+                                //}
+                                if (newPerson.getActive() == 0 || newPerson.getDelMark() == 1) {
+                                    newPerson.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
+                                    newPerson.setValidEndTime(OccupyServiceImpl.DEFAULT_START_TIME);
+                                }
+                                setValidTime(newPerson);
+
+
+                                //if (result.containsKey("update")) {
+                                //    result.get("update").add(personFromSSO);
+                                //} else {
+                                //    result.put("update", new ArrayList<Person>() {{
+                                //        this.add(personFromSSO);
+                                //    }});
+                                //}
+                                if (dyFlag) {
+                                    //上游的扩展字段
+                                    Map<String, String> dynamic = newPerson.getDynamic();
+                                    List<DynamicValue> dyValuesFromSSO = null;
+                                    //数据库的扩展字段
+                                    if (!CollectionUtils.isEmpty(valueMap)) {
+                                        dyValuesFromSSO = valueMap.get(newPerson.getId());
+                                    }
+                                    dynamicProcessing(valueUpdateMap, valueInsertMap, attrMap, newPerson, dynamic, dyValuesFromSSO, dynamicSSOValues);
+                                    dyFlag = false;
+                                }
+                            }
+
                         }
-                        //if (result.containsKey("update")) {
-                        //    result.get("update").add(personFromSSO);
-                        //} else {
-                        //    ArrayList<Person> people = new ArrayList<>();
-                        //    people.add(personFromSSO);
-                        //    result.put("update", people);
+
+                        // 对比后，权威源提供的"映射字段"数据和sso中没有差异。（active字段不提供）
+                        if (!updateFlag && personFromSSO.getDelMark() != 1) {
+                            //if (!updateFlag) {
+
+                            if (!personFromSSO.getActive().equals(newPerson.getActive())) {
+                                //personFromSSO.setActive(newPerson.getActive());
+                                //personFromSSO.setActiveTime(newPerson.getUpdateTime());
+                                //personFromSSO.setUpdateTime(newPerson.getUpdateTime());
+                                newPerson.setActiveTime(newPerson.getUpdateTime());
+                                setValidTime(newPerson);
+                                if (dyFlag) {
+                                    //上游的扩展字段
+                                    Map<String, String> dynamic = newPerson.getDynamic();
+                                    List<DynamicValue> dyValuesFromSSO = null;
+                                    //数据库的扩展字段
+                                    if (!CollectionUtils.isEmpty(valueMap)) {
+                                        dyValuesFromSSO = valueMap.get(newPerson.getId());
+                                    }
+                                    dynamicProcessing(valueUpdateMap, valueInsertMap, attrMap, newPerson, dynamic, dyValuesFromSSO, dynamicSSOValues);
+                                    dyFlag = false;
+                                }
+
+
+                            }
+
+                        }
                         //}
-                        if (tempResult.containsKey("update")) {
-                            tempResult.get("update").put(newPerson.getId(), newPerson);
-                        } else {
-                            ConcurrentHashMap<String, Person> hashMap = new ConcurrentHashMap<>();
-                            hashMap.put(newPerson.getId(), newPerson);
-                            tempResult.put("update", hashMap);
-                        }
-
-                        //处理人员预览数据
-                        preViewPersonMap.put(newPerson.getId(), newPerson);
-
-                    }
-
-                    //处理扩展字段对比     修改标识为false则认为主体字段没有差异
-                    if (!updateFlag && dyFlag) {
-                        //上游的扩展字段
-                        Map<String, String> dynamic = newPerson.getDynamic();
-                        List<DynamicValue> dyValuesFromSSO = null;
-                        //数据库的扩展字段
-                        if (!CollectionUtils.isEmpty(valueMap)) {
-                            dyValuesFromSSO = valueMap.get(newPerson.getId());
-                        }
-                        Boolean valueFlag = dynamicProcessing(valueUpdateMap, valueInsertMap, attrMap, newPerson, dynamic, dyValuesFromSSO);
-                        if (valueFlag) {
+                        //防止重复将数据放入
+                        if (!dyFlag) {
+                            log.info("人员对比后需要修改(标识字段无差异)  sso:{} -> 上游{}", personFromSSO, newPerson);
+                            setValidTime(newPerson);
                             if (!CollectionUtils.isEmpty(distinctPersonMap)) {
                                 if (distinctPersonMap.containsKey(newPerson.getId())) {
                                     personFromSSO.setDelMark(1);
@@ -1607,7 +1630,13 @@ public class PersonServiceImpl implements PersonService {
                                     }
                                 }
                             }
-
+                            //if (result.containsKey("update")) {
+                            //    result.get("update").add(personFromSSO);
+                            //} else {
+                            //    ArrayList<Person> people = new ArrayList<>();
+                            //    people.add(personFromSSO);
+                            //    result.put("update", people);
+                            //}
                             if (tempResult.containsKey("update")) {
                                 tempResult.get("update").put(newPerson.getId(), newPerson);
                             } else {
@@ -1615,15 +1644,58 @@ public class PersonServiceImpl implements PersonService {
                                 hashMap.put(newPerson.getId(), newPerson);
                                 tempResult.put("update", hashMap);
                             }
+                            //处理keep人员 数据
+                            keepPersonMap.remove(personFromSSO.getId());
+
                             //处理人员预览数据
                             preViewPersonMap.put(newPerson.getId(), newPerson);
 
                         }
 
-                    }
+                        //处理扩展字段对比     修改标识为false则认为主体字段没有差异
+                        if (!updateFlag && dyFlag) {
+                            //上游的扩展字段
+                            Map<String, String> dynamic = newPerson.getDynamic();
+                            List<DynamicValue> dyValuesFromSSO = null;
+                            //数据库的扩展字段
+                            if (!CollectionUtils.isEmpty(valueMap)) {
+                                dyValuesFromSSO = valueMap.get(newPerson.getId());
+                            }
+                            Boolean valueFlag = dynamicProcessing(valueUpdateMap, valueInsertMap, attrMap, newPerson, dynamic, dyValuesFromSSO, dynamicSSOValues);
+                            if (valueFlag) {
+                                if (!CollectionUtils.isEmpty(distinctPersonMap)) {
+                                    if (distinctPersonMap.containsKey(newPerson.getId())) {
+                                        personFromSSO.setDelMark(1);
+                                        if (result.containsKey("merge")) {
+                                            result.get("merge").add(newPerson);
+                                        } else {
+                                            ArrayList<Person> people = new ArrayList<>();
+                                            people.add(newPerson);
+                                            result.put("merge", people);
+                                        }
+                                    }
+                                }
+                                setValidTime(newPerson);
+                                log.info("人员{}对比后主体字段无差异,扩展字段有区别,对比为修改{}", newPerson.getId(), newPerson);
+                                if (tempResult.containsKey("update")) {
+                                    tempResult.get("update").put(newPerson.getId(), newPerson);
+                                } else {
+                                    ConcurrentHashMap<String, Person> hashMap = new ConcurrentHashMap<>();
+                                    hashMap.put(newPerson.getId(), newPerson);
+                                    tempResult.put("update", hashMap);
+                                }
+                                //处理keep人员 数据
+                                keepPersonMap.remove(personFromSSO.getId());
+                                //处理人员预览数据
+                                preViewPersonMap.put(newPerson.getId(), newPerson);
 
-                } else {
-                    log.debug("人员{},对应规则未启用,本次跳过该数据", newPerson);
+                            }
+
+                        }
+
+                    } else {
+                        log.debug("人员{},对应规则未启用,本次跳过该数据", newPerson);
+                    }
                 }
 
             }
@@ -1886,10 +1958,10 @@ public class PersonServiceImpl implements PersonService {
         Map<String, DynamicValue> valueInsertMap = new ConcurrentHashMap<>();
 
         if (!CollectionUtils.isEmpty(dynamicAttrs)) {
-            dynamicCodes = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getCode()).collect(Collectors.toList());
+            dynamicCodes = dynamicAttrs.stream().map(DynamicAttr::getCode).collect(Collectors.toList());
 
             //获取扩展value
-            List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getId()).collect(Collectors.toList());
+            List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr::getId).collect(Collectors.toList());
 
             dynamicValues = dynamicValueDao.findAllByAttrId(attrIds, tenant.getId());
         }
@@ -1909,9 +1981,22 @@ public class PersonServiceImpl implements PersonService {
         Map<String, String> attrMap = new ConcurrentHashMap<>();
         Map<String, String> attrReverseMap = new ConcurrentHashMap<>();
         log.info("----------------- upstream Person start:{}", System.currentTimeMillis());
-        List<Person> personList = null;
+        List<Person> personList;
         try {
-            personList = dataProcessing(domain, tenant, cardTypeMap, dynamicAttrs, valueUpdateMap, valueInsertMap, finalDynamicCodes, finalValueMap, result, attrMap, attrReverseMap, arguments, null);
+            List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
+            if (null == nodes || nodes.size() <= 0) {
+                log.error("无人员管理规则信息");
+
+                throw new CustomException(ResultCode.FAILED, "无人员管理规则信息");
+            }
+            String nodeId = nodes.get(0).getId();
+            //
+            List<NodeRules> userRules = rulesDao.getByNodeAndType(nodeId, 1, null, 0);
+            if (null == userRules || userRules.size() == 0) {
+                log.error("无人员管理规则信息");
+                throw new CustomException(ResultCode.FAILED, "无人员规则信息");
+            }
+            personList = dataProcessing(nodes, userRules, domain, tenant, cardTypeMap, dynamicAttrs, valueUpdateMap, valueInsertMap, finalDynamicCodes, finalValueMap, result, attrMap, attrReverseMap, arguments, null);
         } catch (Exception e) {
             e.printStackTrace();
             throw new CustomException(ResultCode.FAILED, e.getMessage());
@@ -1941,16 +2026,15 @@ public class PersonServiceImpl implements PersonService {
     }
 
     /**
-     *
      * @param valueUpdateMap  扩展字段修改map
      * @param valueInsertMap  扩展字段新增map
-     * @param attrMap   扩展字段  id 与code  对应map
-     * @param ssoBean   sso对象
-     * @param dynamic   上游扩展字段
-     * @param dyValuesFromSSO  sso扩展字段值
+     * @param attrMap         扩展字段  id 与code  对应map
+     * @param ssoBean         sso对象
+     * @param dynamic         上游扩展字段
+     * @param dyValuesFromSSO sso扩展字段值
      * @return
      */
-    private Boolean dynamicProcessing(Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, String> attrMap, Person ssoBean, Map<String, String> dynamic, List<DynamicValue> dyValuesFromSSO) {
+    private Boolean dynamicProcessing(Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, String> attrMap, Person ssoBean, Map<String, String> dynamic, List<DynamicValue> dyValuesFromSSO, Map<String, String> dynamicSSOValues) {
         Boolean valueFlag = false;
         //扩展字段处理结果集
         ArrayList<DynamicValue> dynValues = new ArrayList<>();
@@ -1961,14 +2045,28 @@ public class PersonServiceImpl implements PersonService {
                 if (collect.containsKey(str.getKey())) {
                     DynamicValue dynamicValue = collect.get(str.getKey());
                     if (null != o && !o.equals(dynamicValue.getValue())) {
+                        if (!dynamicSSOValues.containsKey(dynamicValue.getAttrId() + "-" + dynamicValue.getEntityId())) {
+                            dynamicSSOValues.put(dynamicValue.getAttrId() + "-" + dynamicValue.getEntityId(), dynamicValue.getValue());
+                        }
                         log.info("主体{}扩展字段不同{}->{},修改扩展字段", ssoBean.getName() + ":" + ssoBean.getAccountNo(), dynamicValue.getValue(), o);
                         dynamicValue.setValue(o);
                         //扩展字段预览展示
                         dynamicValue.setKey(dynamicValue.getAttrId());
                         dynamicValue.setCode(str.getValue());
-                        dynValues.add(dynamicValue);
+
                         valueUpdateMap.put(dynamicValue.getAttrId() + "-" + dynamicValue.getEntityId(), dynamicValue);
-                        valueFlag = true;
+                        if (dynamicSSOValues.containsKey(dynamicValue.getAttrId() + "-" + dynamicValue.getEntityId())) {
+                            if (o.equals(dynamicSSOValues.get(dynamicValue.getAttrId() + "-" + dynamicValue.getEntityId()))) {
+                                valueUpdateMap.remove(dynamicValue.getAttrId() + "-" + dynamicValue.getEntityId());
+                                dynamicValue.setValue(dynamicSSOValues.get(dynamicValue.getAttrId() + "-" + dynamicValue.getEntityId()));
+                                valueFlag = false;
+                            } else {
+                                valueFlag = true;
+                            }
+                        } else {
+                            valueFlag = true;
+                        }
+                        dynValues.add(dynamicValue);
                     } else {
                         //相同则直接放入person
                         //扩展字段预览展示
@@ -2065,6 +2163,300 @@ public class PersonServiceImpl implements PersonService {
         }
 
         return null;
+    }
+
+    @Override
+    public PreViewTask testUserTask(DomainInfo domain, PreViewTask viewTask) {
+
+        if (null == viewTask) {
+            viewTask = new PreViewTask();
+            viewTask.setTaskId(UUID.randomUUID().toString());
+            viewTask.setStatus("doing");
+            viewTask.setDomain(domain.getId());
+            viewTask.setType("user");
+        }
+
+        viewTask = preViewTaskService.saveTask(viewTask);
+
+
+        if (PreViewPersonThreadPool.executorServiceMap.containsKey(domain.getDomainName())) {
+            ExecutorService executorService = PreViewPersonThreadPool.executorServiceMap.get(domain.getDomainName());
+            PreViewTask finalViewTask = viewTask;
+            try {
+                executorService.execute(() -> {
+                    dealTask(domain, finalViewTask);
+                });
+            } catch (RejectedExecutionException e) {
+                viewTask.setStatus("failed");
+                finalViewTask.setReason("当前正在人员测试同步中,请稍后再试");
+                preViewTaskService.saveTask(viewTask);
+                throw new CustomException(ResultCode.FAILED, "当前正在人员测试同步中,请稍后再试");
+            } catch (Exception e) {
+                viewTask.setStatus("failed");
+                finalViewTask.setReason(e.getMessage());
+                preViewTaskService.saveTask(viewTask);
+                throw new CustomException(ResultCode.FAILED, e.getMessage());
+            }
+        } else {
+            PreViewPersonThreadPool.builderExecutor(domain.getDomainName());
+            testUserTask(domain, viewTask);
+        }
+        return viewTask;
+    }
+
+    private void dealTask(DomainInfo domain, PreViewTask viewTask) {
+        //错误数据置空
+        TaskConfig.errorData.put(domain.getId(), "");
+        personErrorData = new ConcurrentHashMap<>();
+        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        if (null == tenant) {
+            throw new CustomException(ResultCode.FAILED, "租户不存在");
+        }
+        // 所有证件类型
+        List<CardType> cardTypes = cardTypeDao.findAllUser(tenant.getId());
+        Map<String, CardType> cardTypeMap = cardTypes.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
+        //获取密码加密方式
+        pwdConfig = configService.getPasswordConfigByTenantIdAndStatusAndPluginNameAndDelMarkIsFalse(tenant.getId(), "ENABLED", "CommonPlugin");
+
+        //获取扩展字段列表
+        List<String> dynamicCodes = new ArrayList<>();
+
+        List<DynamicValue> dynamicValues = new ArrayList<>();
+
+        List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
+        log.info("获取到当前租户{}的映射字段集为{}", tenant.getId(), dynamicAttrs);
+        ////增量日志容器
+        //List<IncrementalTask> incrementalTasks = new ArrayList<>();
+
+        //扩展字段修改容器
+        Map<String, DynamicValue> valueUpdateMap = new ConcurrentHashMap<>();
+        List<DynamicValue> valueUpdate = new ArrayList<>();
+        //扩展字段新增容器
+        Map<String, DynamicValue> valueInsertMap = new ConcurrentHashMap<>();
+        ArrayList<DynamicValue> valueInsert = new ArrayList<>();
+
+        if (!CollectionUtils.isEmpty(dynamicAttrs)) {
+            dynamicCodes = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getCode()).collect(Collectors.toList());
+            ////获取扩展value
+            //List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getId()).collect(Collectors.toList());
+
+            dynamicValues = dynamicValueDao.findAllAttrByType(tenant.getId(), TYPE);
+        }
+
+        //扩展字段值分组
+        Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(dynamicValues)) {
+            valueMap = dynamicValues.stream().filter(dynamicValue -> !StringUtils.isBlank(dynamicValue.getEntityId())).collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
+        }
+        List<String> finalDynamicCodes = dynamicCodes;
+        Map<String, List<DynamicValue>> finalValueMap = valueMap;
+
+        // 存储最终需要操作的数据
+        Map<String, List<Person>> result = new HashMap<>();
+        //扩展字段id与code对应map
+        Map<String, String> attrMap = new ConcurrentHashMap<>();
+        Map<String, String> attrReverseMap = new ConcurrentHashMap<>();
+
+        // 获取规则
+        Map arguments = new ConcurrentHashMap();
+        arguments.put("type", "person");
+        arguments.put("status", 0);
+
+        List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
+        if (null == nodes || nodes.size() <= 0) {
+            log.error("无人员管理规则信息");
+            return;
+            //throw new CustomException(ResultCode.FAILED, "无人员管理规则信息");
+        }
+        String nodeId = nodes.get(0).getId();
+        //
+        List<NodeRules> userRules = rulesDao.getByNodeAndType(nodeId, 1, null, 0);
+        if (null == userRules || userRules.size() == 0) {
+            log.error("无人员管理规则信息");
+            return;
+            //throw new CustomException(ResultCode.FAILED, "无人员规则信息");
+        }
+        dataProcessing(nodes, userRules, domain, tenant, cardTypeMap, dynamicAttrs, valueUpdateMap, valueInsertMap, finalDynamicCodes, finalValueMap, result, attrMap, attrReverseMap, arguments, null);
+
+        if (!CollectionUtils.isEmpty(personErrorData.get(domain.getId()))) {
+            TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(personErrorData.get(domain.getId())));
+        }
+        //处理特征表
+        ArrayList<Certificate> certificates = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(result) && !CollectionUtils.isEmpty(result.get("merge"))) {
+            //获取被合重的特征
+            List<Certificate> allCard = personDao.getAllCard(tenant.getId());
+            Map<String, List<Certificate>> cardMap = null;
+            if (!CollectionUtils.isEmpty(allCard)) {
+                cardMap = allCard.stream().collect(Collectors.groupingBy(Certificate::getFromIdentityId));
+            }
+            if (!CollectionUtils.isEmpty(cardMap)) {
+                final LocalDateTime now = LocalDateTime.now();
+                for (Person person : result.get("merge")) {
+                    if (cardMap.containsKey(person.getId())) {
+                        List<Certificate> oldCertificates = cardMap.get(person.getId());
+                        for (Certificate oldCertificate : oldCertificates) {
+                            if (ACCOUNT_NO.equals(oldCertificate.getCardType())) {
+                                if (StringUtils.isNotBlank(person.getAccountNo()) && !oldCertificate.getCardNo().equals(person.getAccountNo())) {
+                                    oldCertificate.setCardNo(person.getAccountNo());
+                                    oldCertificate.setUpdateTime(now);
+                                    certificates.add(oldCertificate);
+                                }
+
+                            } else if (CARD_TYPE_NO.equals(oldCertificate.getCardType())) {
+                                //证件类型+证件号码
+                                if (StringUtils.isNotBlank(person.getCardNo()) && StringUtils.isNotBlank(person.getCardType()) && (!oldCertificate.getCardNo().equals(person.getCardNo()) || !oldCertificate.getCardType().equals(person.getCardType()))) {
+                                    oldCertificate.setCardNo(person.getCardNo());
+                                    oldCertificate.setCardType(person.getCardType());
+                                    oldCertificate.setUpdateTime(now);
+                                    certificates.add(oldCertificate);
+                                }
+
+                            } else if (CARD_NO.equals(oldCertificate.getCardType())) {
+                                //仅证件号码
+                                if (StringUtils.isNotBlank(person.getCardNo()) && !oldCertificate.getCardNo().equals(person.getCardNo())) {
+                                    oldCertificate.setCardNo(person.getCardNo());
+                                    oldCertificate.setUpdateTime(now);
+                                    certificates.add(oldCertificate);
+                                }
+
+                            } else if (EMAIL.equals(oldCertificate.getCardType())) {
+                                //邮箱
+                                if (StringUtils.isNotBlank(person.getEmail()) && !oldCertificate.getCardNo().equals(person.getEmail())) {
+                                    oldCertificate.setCardNo(person.getEmail());
+                                    oldCertificate.setUpdateTime(now);
+                                    certificates.add(oldCertificate);
+                                }
+
+                            } else if (CELLPHONE.equals(oldCertificate.getCardType())) {
+                                //手机号
+                                if (StringUtils.isNotBlank(person.getCellphone()) && !oldCertificate.getCardNo().equals(person.getCellphone())) {
+                                    oldCertificate.setCardNo(person.getCellphone());
+                                    oldCertificate.setUpdateTime(now);
+                                    certificates.add(oldCertificate);
+                                }
+
+                            }
+                        }
+
+                    }
+                }
+            }
+        }
+        if (!CollectionUtils.isEmpty(valueInsertMap)) {
+            valueInsert = new ArrayList<>(valueInsertMap.values());
+        }
+        if (!CollectionUtils.isEmpty(valueUpdateMap)) {
+            valueUpdate = new ArrayList<>(valueUpdateMap.values());
+        }
+        personDao.saveToSsoTest(result, tenant.getId(), valueUpdate, valueInsert, dynamicAttrs, certificates, dynamicValues);
+        if (null != viewTask) {
+            viewTask.setStatus("done");
+            //没有变化/新增/删除/修改/无效
+            Integer keep = result.containsKey("keep") ? result.get("keep").size() : 0;
+            Integer insert = (result.containsKey("insert") ? result.get("insert").size() : 0);
+            Integer delete = result.containsKey("delete") ? result.get("delete").size() : 0;
+            Integer update = (result.containsKey("update") ? result.get("update").size() : 0);
+            Integer invalid = result.containsKey("invalid") ? result.get("invalid").size() : 0;
+            String statistics = keep + "/" + insert + "/" + delete + "/" + update + "/" + invalid;
+            viewTask.setStatistics(statistics);
+            viewTask.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+            preViewTaskService.saveTask(viewTask);
+            log.info("人员刷新完毕,任务id为:{}", viewTask.getTaskId());
+        }
+    }
+
+    @Override
+    public JSONObject dealWithPerson(DomainInfo domain) {
+        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        if (null == tenant) {
+            throw new CustomException(ResultCode.FAILED, "租户不存在");
+        }
+        //最终结果集
+        ArrayList<Person> resultPeople = new ArrayList<>();
+        //存放重复标识的map
+        ConcurrentHashMap<String, List<Person>> peopleMap = new ConcurrentHashMap<>();
+        //获取 有重复 用户名 证件类型 及 证件类型号码  的标识
+        List<Person> people = personDao.findRepeatPerson(tenant.getId(), "PULL");
+        if (!CollectionUtils.isEmpty(people)) {
+            for (Person person : people) {
+                if (StringUtils.isBlank(person.getAccountNo()) && StringUtils.isBlank(person.getCardType()) && StringUtils.isBlank(person.getCardNo())) {
+                    continue;
+                }
+                peopleMap.put(person.getAccountNo() + ":" + person.getCardType() + ":" + person.getCardNo(), new ArrayList<>());
+            }
+        }
+        //获取当前租户所有PULL source的人员
+        List<Person> repeatPeople = personDao.findPersonByDataSource(tenant.getId(), "PULL");
+        //去除更新时间最新的人员
+        if (!CollectionUtils.isEmpty(repeatPeople)) {
+            for (Person repeatPerson : repeatPeople) {
+                if (peopleMap.containsKey(repeatPerson.getAccountNo() + ":" + repeatPerson.getCardType() + ":" + repeatPerson.getCardNo())) {
+                    peopleMap.get(repeatPerson.getAccountNo() + ":" + repeatPerson.getCardType() + ":" + repeatPerson.getCardNo()).add(repeatPerson);
+                }
+            }
+        }
+        if (!CollectionUtils.isEmpty(peopleMap)) {
+            for (String key : peopleMap.keySet()) {
+                List<Person> values = peopleMap.get(key);
+                values.remove(values.size() - 1);
+                if (!CollectionUtils.isEmpty(values)) {
+                    resultPeople.addAll(values);
+                }
+            }
+        }
+        //删除人员,人员身份 及其对应中间表信息
+        return personDao.dealWithPeople(resultPeople);
+    }
+
+    @Override
+    public PersonConnection igaUser(Map<String, Object> arguments, DomainInfo domain) {
+        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        Map<String, Object> testPersons = personDao.findTestPersons(arguments, tenant);
+        List<Person> list = (List<Person>) testPersons.get("list");
+        Integer count = (Integer) testPersons.get("count");
+        PersonConnection personConnection = new PersonConnection();
+        if (!CollectionUtils.isEmpty(list)) {
+            List<DynamicValue> dynamicValues = new ArrayList<>();
+
+            List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByTypeIGA(TYPE, tenant.getId());
+
+            if (!CollectionUtils.isEmpty(dynamicAttrs)) {
+
+                //获取扩展value
+                List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr::getId).collect(Collectors.toList());
+
+                dynamicValues = dynamicValueDao.findAllByAttrIdIGA(attrIds, tenant.getId());
+            }
+            //扩展字段值分组
+            Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
+            if (!CollectionUtils.isEmpty(dynamicValues)) {
+                valueMap = dynamicValues.stream().filter(dynamicValue -> !StringUtils.isBlank(dynamicValue.getEntityId())).collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
+            }
+            Map<String, List<DynamicValue>> finalValueMap = valueMap;
+
+            ArrayList<PersonEdge> personEdges = new ArrayList<>();
+            for (Person person : list) {
+                PersonEdge personEdge = new PersonEdge();
+                personEdge.setNode(person);
+                //处理扩展字段值
+                if (!CollectionUtils.isEmpty(finalValueMap.get(person.getId()))) {
+                    List<DynamicValue> dynValues = finalValueMap.get(person.getId());
+                    person.setAttrsValues(dynValues);
+                }
+                personEdges.add(personEdge);
+            }
+            personConnection.setEdges(personEdges);
+        }
+        personConnection.setTotalCount(count);
+
+        //查询上次同步的时间
+        PreViewTask person = preViewTaskService.findByTypeAndUpdateTime("user", domain.getId());
+        if (null != person) {
+            personConnection.setUpdateTime(person.getUpdateTime());
+        }
+
+        return personConnection;
     }
 
 }

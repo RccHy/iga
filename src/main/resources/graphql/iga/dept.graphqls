@@ -56,6 +56,7 @@ type Dept{
 type PersonConnection{
     edges: [PersonEdge]
     totalCount: Int
+    updateTime:Timestamp
 }
 
 type PersonEdge{
@@ -87,7 +88,16 @@ type Person{
     delMark:Int
     #扩展字段
     attrsValues : [DynamicValue]
-
+    #同步后状态 0 无变化 1 新增 2 修改 3 删除 4 失效
+    syncState :Int
+    # 来源
+    source:String
+    # 数据来源
+    dataSource:String
+    # 创建来源
+    createSource:String
+    # 创建数据来源
+    createDataSource:String
 }
 
 
@@ -119,13 +129,30 @@ type Occupy{
     startTime:Timestamp
     #有效期结束时间
     endTime:Timestamp
+    #最终有效期开始时间
+    validStartTime:Timestamp
+    #最终有效期结束时间
+    validEndTime:Timestamp
+    #描述
+    description: String
     #是否有效
     active:Int
     #是否删除
     delMark:Int
     #排序
     index:Int
-
+    #扩展字段
+    attrsValues : [DynamicValue]
+    #同步后状态 0 无变化 1 新增 2 修改 3 删除 4 失效
+    syncState :Int
+    # 来源
+    source:String
+    # 数据来源
+    dataSource:String
+    # 创建来源
+    createSource:String
+    # 创建数据来源
+    createDataSource:String
 
 }
 
@@ -157,18 +184,6 @@ input OccupyFilter{
     positionStartTime:timestampFilter
     deptCode:stringFilter
     postCode:stringFilter
-}
-
-#预览结果集###
-type PreViewTask{
-    #任务状态
-    status: String
-    #任务标识
-    taskId: String
-    #创建时间
-    createTime:Timestamp
-    # 修改时间
-    updateTime:Timestamp
 }
 
 

@@ -2,6 +2,7 @@ package com.qtgl.iga.controller;
 
 import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bo.DomainInfo;
+import com.qtgl.iga.bo.Person;
 import com.qtgl.iga.bo.TaskLog;
 import com.qtgl.iga.config.TaskThreadPool;
 import com.qtgl.iga.service.*;
@@ -96,10 +97,12 @@ public class HelloController {
                 taskLog.setPersonNo(postNo);
                 taskLogService.save(taskLog, domainInfo.getId(), "update");
 
+               */
+
 
 
                 //=============人员数据同步至sso=============
-                Map<String, List<Person>> personResult = personService.buildPerson(domainInfo, lastTaskLog);
+                Map<String, List<Person>> personResult = personService.buildPerson(domainInfo, lastTaskLog,null);
                 String personNo = (personResult.containsKey("insert") ? String.valueOf(personResult.get("insert").size()) : "0") + "/"
                         + (personResult.containsKey("delete") ? String.valueOf(personResult.get("delete").size()) : "0") + "/"
                         + (personResult.containsKey("update") ? String.valueOf(personResult.get("update").size()) : "0");
@@ -107,7 +110,7 @@ public class HelloController {
                 taskLog.setPersonNo(personNo);
                 taskLogService.save(taskLog, domainInfo.getId(), "update");
 
-*/
+
                 //人员身份同步至sso
                 final Map<String, List<OccupyDto>> occupyResult = occupyService.buildOccupy(domainInfo, lastTaskLog,null);
                 String occupyNo = (occupyResult.containsKey("insert") ? String.valueOf(occupyResult.get("insert").size()) : "0") + "/"

@@ -42,6 +42,8 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
     DeptTreeTypeDao deptTreeTypeDao;
     @Resource
     NodeRulesService nodeRulesService;
+    @Autowired
+    TaskLogDao taskLogDao;
 
     public static Logger logger = LoggerFactory.getLogger(UpstreamTypeServiceImpl.class);
 
@@ -107,7 +109,7 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
             throw new CustomException(ResultCode.FAILED, "请选择或先添加权威源");
         }
         //校验名称重复
-        List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType);
+        List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType,domain);
         if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
             throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
         }
@@ -116,13 +118,23 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
 
     @Override
     public UpstreamType updateUpstreamType(UpstreamType upstreamType) throws Exception {
-        //查看是否有关联node_rules
-        List<NodeRules> nodeRules = nodeRulesDao.findNodeRulesByUpStreamTypeId(upstreamType.getId(), null);
-        if (null != nodeRules && nodeRules.size() > 0) {
-            throw new CustomException(ResultCode.FAILED, "有绑定的node规则,请查看后再操作");
+        ////查看是否有关联node_rules
+        //List<NodeRules> nodeRules = nodeRulesDao.findNodeRulesByUpStreamTypeId(upstreamType.getId(), null);
+        //if (null != nodeRules && nodeRules.size() > 0) {
+        //    throw new CustomException(ResultCode.FAILED, "有绑定的node规则,请查看后再操作");
+        //}
+        //查询是否在同步中
+
+        List<TaskLog> logList = taskLogDao.findByStatus(upstreamType.getDomain());
+        if (null != logList && logList.size() > 0) {
+            if ("doing".equals(logList.get(0).getStatus())) {
+                throw new CustomException(ResultCode.FAILED, "数据正在同步,修改权威源类型配置失败,请稍后再试");
+
+            }
+
         }
         //校验名称重复
-        List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType);
+        List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType,upstreamType.getDomain());
         if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
             throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
         }

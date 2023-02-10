@@ -32,6 +32,8 @@ public class OccupyDto {
     private Integer index;
     private String source;
     private String dataSource;
+    private String createSource;
+    private String createDataSource;
     private LocalDateTime updateTime;
     private LocalDateTime createTime;
     private Integer delMark;
@@ -67,7 +69,10 @@ public class OccupyDto {
 
     //扩展字段值
     private List<DynamicValue> attrsValues;
-
+    /**
+     * 同步后状态 0 无变化 1 新增 2 修改 3 删除 4 失效
+     */
+    private Integer syncState;
 
 
 }
