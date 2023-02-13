@@ -20,12 +20,10 @@ public class TaskThreadPool {
     /**
      * 静态方法
      */
-    public static void builderExecutor(String domain) {
-        //httpApiThreadPool = Executors.newSingleThreadExecutor();
-        taskThreadPool = new ThreadPoolExecutor(1, 1,
+    public static ExecutorService builderExecutor(String domain) {
+       return new ThreadPoolExecutor(1, 1,
                 0L, TimeUnit.MILLISECONDS,
                 new ArrayBlockingQueue<Runnable>(1, true));
-        executorServiceMap.put(domain, taskThreadPool);
     }
 
 }
