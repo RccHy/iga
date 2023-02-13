@@ -111,7 +111,7 @@ public class OccupyDaoImpl implements OccupyDao {
                             "               VALUES (?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
                     // 对 list 分批执行，每批次50000条,不足50000按足量执行
-                    int batchSize = 50000;
+                    int batchSize = 5000;
                     int batchCount = (list.size() + batchSize - 1) / batchSize;
                     for (int i = 0; i < batchCount; i++) {
                         int fromIndex = i * batchSize;
@@ -147,9 +147,11 @@ public class OccupyDaoImpl implements OccupyDao {
 
                             @Override
                             public int getBatchSize() {
+                                log.info("END from:" + fromIndex + "to:" + toIndex);
                                 return subList.size();
                             }
-                        });
+                        }
+                        );
                         log.info("insert:" + Arrays.toString(ints));
 
                         String sql2 = "INSERT INTO identity_user (id, identity_id, user_id) VALUES (?, ?, ?)";
@@ -189,7 +191,7 @@ public class OccupyDaoImpl implements OccupyDao {
 
 
                     // 对 list 分批执行，每批次50000条
-                    int batchSize = 50000;
+                    int batchSize = 5000;
                     int batchCount = (list.size() + batchSize - 1) / batchSize;
                     for (int i = 0; i < batchCount; i++) {
                         int fromIndex = i * batchSize;
@@ -236,7 +238,7 @@ public class OccupyDaoImpl implements OccupyDao {
                     String sql = "UPDATE `user` SET  del_mark = 1, update_time = ?, data_source=?,active=0,valid_start_time=?,valid_end_time=? " +
                             " WHERE id = ? and update_time <= ?  ";
                     // 对 list 分批执行，每批次50000条
-                    int batchSize = 50000;
+                    int batchSize = 5000;
                     int batchCount = (list.size() + batchSize - 1) / batchSize;
                     for (int i = 0; i < batchCount; i++) {
                         int fromIndex = i * batchSize;
