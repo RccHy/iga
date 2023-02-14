@@ -108,51 +108,57 @@ public class PersonDaoImpl implements PersonDao {
             try {
                 if (personMap.containsKey("insert")) {
                     final List<Person> list = personMap.get("insert");
-
-
                     String str = "insert into identity (id, `name`, account_no,open_id,  del_mark, create_time, update_time, tenant_id, card_type, card_no, cellphone, email, data_source, tags,  `active`, active_time,`source`,valid_start_time,valid_end_time,freeze_time," +
-                            "create_data_source,create_source,birthday,sex)" +
-                            " values  (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                            "create_data_source,create_source,birthday)" +
+                            " values  (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
+                    // 对 list 分批执行，每批次5000条,不足5000按足量执行
+                    int batchSize = 5000;
+                    int batchCount = (list.size() + batchSize - 1) / batchSize;
+                    for (int i = 0; i < batchCount; i++) {
+                        int fromIndex = i * batchSize;
+                        int toIndex = Math.min((i + 1) * batchSize, list.size());
+                        log.info("from:" + fromIndex + "to:" + toIndex);
+                        List<Person> subList = list.subList(fromIndex, toIndex);
+                        int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
+                            @Override
+                            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                                preparedStatement.setObject(1, subList.get(i).getId());
+                                preparedStatement.setObject(2, subList.get(i).getName());
+                                preparedStatement.setObject(3, subList.get(i).getAccountNo());
+                                preparedStatement.setObject(4, subList.get(i).getOpenId());
+                                preparedStatement.setObject(5, subList.get(i).getDelMark());
+                                preparedStatement.setObject(6, subList.get(i).getCreateTime());
+                                preparedStatement.setObject(7, subList.get(i).getUpdateTime());
+                                preparedStatement.setObject(8, tenantId);
+                                preparedStatement.setObject(9, subList.get(i).getCardType());
+                                preparedStatement.setObject(10, subList.get(i).getCardNo());
+                                preparedStatement.setObject(11, subList.get(i).getCellphone());
+                                preparedStatement.setObject(12, subList.get(i).getEmail());
+                                preparedStatement.setObject(13, subList.get(i).getDataSource());
+                                preparedStatement.setObject(14, subList.get(i).getTags());
+                                preparedStatement.setObject(15, subList.get(i).getActive());
+                                preparedStatement.setObject(16, subList.get(i).getActiveTime());
+                                preparedStatement.setObject(17, subList.get(i).getSource());
+                                preparedStatement.setObject(18, subList.get(i).getValidStartTime());
+                                preparedStatement.setObject(19, subList.get(i).getValidEndTime());
+                                preparedStatement.setObject(20, subList.get(i).getFreezeTime());
+                                preparedStatement.setObject(21, subList.get(i).getDataSource());
+                                preparedStatement.setObject(22, subList.get(i).getSource());
+                                preparedStatement.setObject(23, subList.get(i).getBirthday());
+                            }
 
-                    int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
-                        @Override
-                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, list.get(i).getId());
-                            preparedStatement.setObject(2, list.get(i).getName());
-                            preparedStatement.setObject(3, list.get(i).getAccountNo());
-                            preparedStatement.setObject(4, list.get(i).getOpenId());
-                            preparedStatement.setObject(5, list.get(i).getDelMark());
-                            preparedStatement.setObject(6, list.get(i).getCreateTime());
-                            preparedStatement.setObject(7, list.get(i).getUpdateTime());
-                            preparedStatement.setObject(8, tenantId);
-                            preparedStatement.setObject(9, list.get(i).getCardType());
-                            preparedStatement.setObject(10, list.get(i).getCardNo());
-                            preparedStatement.setObject(11, list.get(i).getCellphone());
-                            preparedStatement.setObject(12, list.get(i).getEmail());
-                            preparedStatement.setObject(13, list.get(i).getDataSource());
-                            preparedStatement.setObject(14, list.get(i).getTags());
-                            preparedStatement.setObject(15, list.get(i).getActive());
-                            preparedStatement.setObject(16, list.get(i).getActiveTime());
-                            preparedStatement.setObject(17, list.get(i).getSource());
-                            preparedStatement.setObject(18, list.get(i).getValidStartTime());
-                            preparedStatement.setObject(19, list.get(i).getValidEndTime());
-                            preparedStatement.setObject(20, list.get(i).getFreezeTime());
-                            preparedStatement.setObject(21, list.get(i).getDataSource());
-                            preparedStatement.setObject(22, list.get(i).getSource());
-                            preparedStatement.setObject(23, list.get(i).getBirthday());
-                            preparedStatement.setObject(24, list.get(i).getSex());
-                        }
+                            @Override
+                            public int getBatchSize() {
+                                return subList.size();
+                            }
+                        });
+                    }
 
-                        @Override
-                        public int getBatchSize() {
-                            return list.size();
-                        }
-                    });
                 }
                 if (personMap.containsKey("update") || personMap.containsKey("invalid")) {
                     String str = "UPDATE identity set  `name`= ?, account_no=?,  del_mark=?, update_time=?, tenant_id=?,  cellphone=?, email=?,  tags=?,  `active`=?, active_time=? ,`source`= ?,data_source=?,valid_start_time=?,valid_end_time=? ," +
-                            " card_type =? ,card_no=?,birthday=?,sex=? where id=? and update_time<= ? ";
+                            " card_type =? ,card_no=?,birthday=? where id=? and update_time<= ? ";
                     List<Person> list = new ArrayList<>();
                     List<Person> update = personMap.get("update");
                     List<Person> invalid = personMap.get("invalid");
@@ -162,37 +168,46 @@ public class PersonDaoImpl implements PersonDao {
                     if (null != update) {
                         list.addAll(update);
                     }
+                    // 对 list 分批执行，每批次5000条,不足5000按足量执行
+                    int batchSize = 5000;
+                    int batchCount = (list.size() + batchSize - 1) / batchSize;
+                    for (int i = 0; i < batchCount; i++) {
+                        int fromIndex = i * batchSize;
+                        int toIndex = Math.min((i + 1) * batchSize, list.size());
+                        log.info("from:" + fromIndex + "to:" + toIndex);
+                        List<Person> subList = list.subList(fromIndex, toIndex);
 
-                    int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
-                        @Override
-                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, list.get(i).getName());
-                            preparedStatement.setObject(2, list.get(i).getAccountNo());
-                            preparedStatement.setObject(3, list.get(i).getDelMark() == null ? 0 : list.get(i).getDelMark());
-                            preparedStatement.setObject(4, list.get(i).getUpdateTime());
-                            preparedStatement.setObject(5, tenantId);
-                            preparedStatement.setObject(6, list.get(i).getCellphone());
-                            preparedStatement.setObject(7, list.get(i).getEmail());
-                            preparedStatement.setObject(8, list.get(i).getTags());
-                            preparedStatement.setObject(9, list.get(i).getActive());
-                            preparedStatement.setObject(10, list.get(i).getActiveTime());
-                            preparedStatement.setObject(11, list.get(i).getSource());
-                            preparedStatement.setObject(12, list.get(i).getDataSource());
-                            preparedStatement.setObject(13, list.get(i).getValidStartTime());
-                            preparedStatement.setObject(14, list.get(i).getValidEndTime());
-                            preparedStatement.setObject(15, list.get(i).getCardType());
-                            preparedStatement.setObject(16, list.get(i).getCardNo());
-                            preparedStatement.setObject(17, list.get(i).getBirthday());
-                            preparedStatement.setObject(18, list.get(i).getSex());
-                            preparedStatement.setObject(19, list.get(i).getId());
-                            preparedStatement.setObject(20, list.get(i).getUpdateTime());
-                        }
+                        int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
+                            @Override
+                            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                                preparedStatement.setObject(1, subList.get(i).getName());
+                                preparedStatement.setObject(2, subList.get(i).getAccountNo());
+                                preparedStatement.setObject(3, subList.get(i).getDelMark() == null ? 0 : subList.get(i).getDelMark());
+                                preparedStatement.setObject(4, subList.get(i).getUpdateTime());
+                                preparedStatement.setObject(5, tenantId);
+                                preparedStatement.setObject(6, subList.get(i).getCellphone());
+                                preparedStatement.setObject(7, subList.get(i).getEmail());
+                                preparedStatement.setObject(8, subList.get(i).getTags());
+                                preparedStatement.setObject(9, subList.get(i).getActive());
+                                preparedStatement.setObject(10, subList.get(i).getActiveTime());
+                                preparedStatement.setObject(11, subList.get(i).getSource());
+                                preparedStatement.setObject(12, subList.get(i).getDataSource());
+                                preparedStatement.setObject(13, subList.get(i).getValidStartTime());
+                                preparedStatement.setObject(14, subList.get(i).getValidEndTime());
+                                preparedStatement.setObject(15, subList.get(i).getCardType());
+                                preparedStatement.setObject(16, subList.get(i).getCardNo());
+                                preparedStatement.setObject(17, subList.get(i).getBirthday());
+                                preparedStatement.setObject(18, subList.get(i).getId());
+                                preparedStatement.setObject(19, subList.get(i).getUpdateTime());
+                            }
 
-                        @Override
-                        public int getBatchSize() {
-                            return list.size();
-                        }
-                    });
+                            @Override
+                            public int getBatchSize() {
+                                return subList.size();
+                            }
+                        });
+
+                    }
 
                 }
                 if (personMap.containsKey("delete")) {
@@ -201,20 +216,29 @@ public class PersonDaoImpl implements PersonDao {
                     String str = "UPDATE identity set  del_mark= 1 , update_time=now() , data_source=?,active=0,valid_start_time=?,valid_end_time=? " +
                             " where id= ?  ";
 
-                    int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
-                        @Override
-                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, list.get(i).getDataSource());
-                            preparedStatement.setObject(2, OccupyServiceImpl.DEFAULT_START_TIME);
-                            preparedStatement.setObject(3, OccupyServiceImpl.DEFAULT_START_TIME);
-                            preparedStatement.setObject(4, list.get(i).getId());
-                        }
+                    // 对 list 分批执行，每批次5000条,不足5000按足量执行
+                    int batchSize = 5000;
+                    int batchCount = (list.size() + batchSize - 1) / batchSize;
+                    for (int i = 0; i < batchCount; i++) {
+                        int fromIndex = i * batchSize;
+                        int toIndex = Math.min((i + 1) * batchSize, list.size());
+                        log.info("from:" + fromIndex + "to:" + toIndex);
+                        List<Person> subList = list.subList(fromIndex, toIndex);
+                        int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
+                            @Override
+                            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                                preparedStatement.setObject(1, subList.get(i).getDataSource());
+                                preparedStatement.setObject(2, OccupyServiceImpl.DEFAULT_START_TIME);
+                                preparedStatement.setObject(3, OccupyServiceImpl.DEFAULT_START_TIME);
+                                preparedStatement.setObject(4, subList.get(i).getId());
+                            }
 
-                        @Override
-                        public int getBatchSize() {
-                            return list.size();
-                        }
-                    });
+                            @Override
+                            public int getBatchSize() {
+                                return subList.size();
+                            }
+                        });
+                    }
 
                     /*List<String> ids = personList.stream().map(Person::getId).collect(Collectors.toList());
                     // 查IdentityAccount关联表
@@ -230,80 +254,121 @@ public class PersonDaoImpl implements PersonDao {
 
                 if (personMap.containsKey("password")) {
                     final List<Person> list = personMap.get("password");
+                    // 对 list 分批执行，每批次5000条,不足5000按足量执行
+                    int batchSize = 5000;
+                    int batchCount = (list.size() + batchSize - 1) / batchSize;
+                    for (int i = 0; i < batchCount; i++) {
+                        int fromIndex = i * batchSize;
+                        int toIndex = Math.min((i + 1) * batchSize, list.size());
+                        log.info("from:" + fromIndex + "to:" + toIndex);
+                        List<Person> subList = list.subList(fromIndex, toIndex);
+                        String str = "INSERT INTO password(id,account_id,password,create_time,update_time,del_mark )" +
+                                " SELECT " +
+                                " uuid(),?,?,now(),now(),0 " +
+                                " FROM DUAL " +
+                                " WHERE NOT  EXISTS(select * from password where account_id=?)";
 
-                    String str = "INSERT INTO password(id,account_id,password,create_time,update_time,del_mark )" +
-                            " SELECT " +
-                            " uuid(),?,?,now(),now(),0 " +
-                            " FROM DUAL " +
-                            " WHERE NOT  EXISTS(select * from password where account_id=?)";
 
+                        int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
+                            @Override
+                            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                                preparedStatement.setObject(1, subList.get(i).getId());
+                                preparedStatement.setObject(2, subList.get(i).getPassword());
+                                preparedStatement.setObject(3, subList.get(i).getId());
+                            }
 
-                    int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
-                        @Override
-                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, list.get(i).getId());
-                            preparedStatement.setObject(2, list.get(i).getPassword());
-                            preparedStatement.setObject(3, list.get(i).getId());
-                        }
-
-                        @Override
-                        public int getBatchSize() {
-                            return list.size();
-                        }
-                    });
+                            @Override
+                            public int getBatchSize() {
+                                return subList.size();
+                            }
+                        });
+                    }
                 }
 
                 if (!CollectionUtils.isEmpty(valueInsert)) {
-                    String valueStr = "INSERT INTO dynamic_value (`id`, `attr_id`, `entity_id`, `value`, `tenant_id`) VALUES (?, ?, ?, ?, ?)";
-                    jdbcSSO.batchUpdate(valueStr, new BatchPreparedStatementSetter() {
-                        @Override
-                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, valueInsert.get(i).getId());
-                            preparedStatement.setObject(2, valueInsert.get(i).getAttrId());
-                            preparedStatement.setObject(3, valueInsert.get(i).getEntityId());
-                            preparedStatement.setObject(4, valueInsert.get(i).getValue());
-                            preparedStatement.setObject(5, tenantId);
-                        }
 
-                        @Override
-                        public int getBatchSize() {
-                            return valueInsert.size();
-                        }
-                    });
+                    String str = "INSERT INTO dynamic_value (`id`, `attr_id`, `entity_id`, `value`, `tenant_id`) VALUES (?, ?, ?, ?, ?)";
+                    // 对 valueInsert 分批执行，每批次5000条,不足5000按足量执行
+                    int batchSize = 5000;
+                    int batchCount = (valueInsert.size() + batchSize - 1) / batchSize;
+                    for (int i = 0; i < batchCount; i++) {
+                        int fromIndex = i * batchSize;
+                        int toIndex = Math.min((i + 1) * batchSize, valueInsert.size());
+                        log.info("from:" + fromIndex + "to:" + toIndex);
+                        List<DynamicValue> subList = valueInsert.subList(fromIndex, toIndex);
+
+                        int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
+                            @Override
+                            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                                preparedStatement.setObject(1, subList.get(i).getId());
+                                preparedStatement.setObject(2, subList.get(i).getAttrId());
+                                preparedStatement.setObject(3, subList.get(i).getEntityId());
+                                preparedStatement.setObject(4, subList.get(i).getValue());
+                                preparedStatement.setObject(5, tenantId);
+                            }
+
+                            @Override
+                            public int getBatchSize() {
+                                return subList.size();
+                            }
+                        });
+                    }
                 }
 
                 if (!CollectionUtils.isEmpty(valueUpdate)) {
                     String valueStr = "update dynamic_value set `value`=? where id= ?";
-                    jdbcSSO.batchUpdate(valueStr, new BatchPreparedStatementSetter() {
-                        @Override
-                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, valueUpdate.get(i).getValue());
-                            preparedStatement.setObject(2, valueUpdate.get(i).getId());
-                        }
+                    // 对 valueStr 分批执行，每批次5000条,不足5000按足量执行
+                    int batchSize = 5000;
+                    int batchCount = (valueUpdate.size() + batchSize - 1) / batchSize;
+                    for (int i = 0; i < batchCount; i++) {
+                        int fromIndex = i * batchSize;
+                        int toIndex = Math.min((i + 1) * batchSize, valueUpdate.size());
+                        log.info("from:" + fromIndex + "to:" + toIndex);
+                        List<DynamicValue> subList = valueUpdate.subList(fromIndex, toIndex);
 
-                        @Override
-                        public int getBatchSize() {
-                            return valueUpdate.size();
-                        }
-                    });
+                        int[] ints = jdbcSSO.batchUpdate(valueStr, new BatchPreparedStatementSetter() {
+                            @Override
+                            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                                preparedStatement.setObject(1, subList.get(i).getValue());
+                                preparedStatement.setObject(2, subList.get(i).getId());
+                            }
+
+                            @Override
+                            public int getBatchSize() {
+                                return subList.size();
+                            }
+                        });
+                    }
+
                 }
 
                 if (!CollectionUtils.isEmpty(certificates)) {
                     String certificateStr = "update certificate set card_type=? , card_no =? ,update_time=?  where id= ?";
-                    jdbcSSO.batchUpdate(certificateStr, new BatchPreparedStatementSetter() {
-                        @Override
-                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, certificates.get(i).getCardType());
-                            preparedStatement.setObject(2, certificates.get(i).getCardNo());
-                            preparedStatement.setObject(3, certificates.get(i).getUpdateTime());
-                            preparedStatement.setObject(4, certificates.get(i).getId());
-                        }
+                    // 对 certificateStr 分批执行，每批次5000条,不足5000按足量执行
+                    int batchSize = 5000;
+                    int batchCount = (certificates.size() + batchSize - 1) / batchSize;
+                    for (int i = 0; i < batchCount; i++) {
+                        int fromIndex = i * batchSize;
+                        int toIndex = Math.min((i + 1) * batchSize, certificates.size());
+                        log.info("from:" + fromIndex + "to:" + toIndex);
+                        List<Certificate> subList = certificates.subList(fromIndex, toIndex);
 
-                        @Override
-                        public int getBatchSize() {
-                            return certificates.size();
-                        }
-                    });
+                        int[] ints = jdbcSSO.batchUpdate(certificateStr, new BatchPreparedStatementSetter() {
+                            @Override
+                            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                                preparedStatement.setObject(1, subList.get(i).getCardType());
+                                preparedStatement.setObject(2, subList.get(i).getCardNo());
+                                preparedStatement.setObject(3, subList.get(i).getUpdateTime());
+                                preparedStatement.setObject(4, subList.get(i).getId());
+                            }
+
+                            @Override
+                            public int getBatchSize() {
+                                return subList.size();
+                            }
+                        });
+                    }
+
                 }
 
 
@@ -316,6 +381,9 @@ public class PersonDaoImpl implements PersonDao {
             }
         });
     }
+
+
+
 
 
     @Override
