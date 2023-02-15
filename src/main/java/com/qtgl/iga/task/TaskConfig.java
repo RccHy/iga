@@ -130,6 +130,7 @@ public class TaskConfig {
                     // 如果有编辑中的规则，则不进行数据同步
                     Map<String, Object> arguments = new HashMap<>();
                     arguments.put("status", 1);
+                    arguments.put("type", 1);
                     final List<NodeRules> nodeRules = nodeRulesService.findNodeRules(arguments, domainInfo.getId());
                     TaskLog taskLog = new TaskLog();
                     if (null != domain) {

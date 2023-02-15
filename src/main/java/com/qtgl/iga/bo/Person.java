@@ -11,7 +11,7 @@ import java.util.Map;
  * @author 1
  */
 @Data
-public class Person implements Serializable,Cloneable {
+public class Person implements Serializable, Cloneable {
 
     /**
      * 主键
@@ -30,11 +30,6 @@ public class Person implements Serializable,Cloneable {
      * 生日
      */
     private LocalDateTime birthday;
-    /**
-     * 头像
-     */
-    private String avatar;
-
     /**
      * 用户名
      */
@@ -137,15 +132,29 @@ public class Person implements Serializable,Cloneable {
      */
     private Integer syncState;
 
-
-
+    /**
+     * 头像url
+     */
+    private String avatarUrl;
+    /**
+     * 头像文件
+     */
+    private String avatar;
+    /**
+     * 头像hashcode
+     */
+    private Integer avatarHashCode;
+    /**
+     * 头像更新时间
+     */
+    private LocalDateTime avatarUpdateTime;
 
     @Override
-    public Object clone()  {
+    public Object clone() {
         Person person = null;
-        try{
+        try {
             person = (Person) super.clone();
-        }catch(CloneNotSupportedException e) {
+        } catch (CloneNotSupportedException e) {
             e.printStackTrace();
         }
         return person;

@@ -117,7 +117,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
     }
 
     @Override
-    public List<NodeRules> findNodeRules(Map<String, Object> arguments,String domain) {
+    public List<NodeRules> findNodeRules(Map<String, Object> arguments, String domain) {
         String sql = " SELECT " +
                 " r.id, " +
                 " r.node_id AS nodeId, " +
@@ -142,9 +142,14 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
         //存入参数
         List<Object> param = new ArrayList<>();
         Integer status = (Integer) arguments.get("status");
-
+        Integer type = (Integer) arguments.get("type");
         param.add(status);
         param.add(domain);
+        if (null != type) {
+            stb.append("AND r.type=? ");
+            param.add(type);
+
+        }
         dealData(arguments, stb, param);
 
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());

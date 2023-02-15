@@ -14,8 +14,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 
 @Slf4j
 @Component
@@ -72,6 +74,42 @@ public class FileUtil {
 
     }
 
+    public String putFile(File file, String fileName, DomainInfo domainInfo) {
+        try {
+            // 通过 fluent.Request 发送post请求，设置请求头为multipart/form-data，参数为operations 和 map
+            // operations 为json字符串，包含query和variables，其中variables中的file为null
+            // map 为json字符串，包含0: ["variables.file"]
+            // 0 为文件的索引，对应operations中的variables.file
+            // @a.txt 为文件路径
+
+            String operations = "{ \"query\": \"mutation ($file: Upload!) { upload(file: $file) { uri } }\", \"variables\": { \"file\": null } }";
+            String map = "{\"0\":[\"variables.file\"]}";
+
+            byte[] bytes = Files.readAllBytes(file.toPath());
+            MultipartEntityBuilder builder = MultipartEntityBuilder.create()
+                    .setMode(HttpMultipartMode.BROWSER_COMPATIBLE)
+                    .setCharset(Charset.forName("utf-8"));
+            builder.addTextBody("operations", operations, ContentType.MULTIPART_FORM_DATA);
+            builder.addTextBody("map", map, ContentType.MULTIPART_FORM_DATA);
+            builder.addBinaryBody("0", bytes, ContentType.MULTIPART_FORM_DATA, fileName);
+            fileUrl = UrlUtil.getUrl(fileUrl);
+            log.info("put file to fileAPI-V2:" + fileUrl + "?access_token=" + dataBusUtil.getToken(domainInfo.getDomainName()) + "&domain=" + domainInfo.getDomainName());
+            String content = Request.Post(fileUrl + "?access_token=" + dataBusUtil.getToken(domainInfo.getDomainName()) + "&domain=" + domainInfo.getDomainName())
+                    .body(builder.build())
+                    .execute().returnContent().asString();
+            if (null != content && null != JSONObject.parseObject(content).getJSONObject("data")) {
+                JSONObject object = JSONObject.parseObject(content).getJSONObject("data").getJSONObject("upload");
+                //String uri = url + object.getJSONArray("entities").getJSONObject(0).getString("uri");
+                //System.out.println(uri);
+                return object.getString("uri");
+            }
+        } catch (Exception ioException) {
+            ioException.printStackTrace();
+            log.error("put file error:{}", ioException);
+        }
+        return "";
+
+    }
 
     //private void getApiToken() {
     //    if (null == token) {
