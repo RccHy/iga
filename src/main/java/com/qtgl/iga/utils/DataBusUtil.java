@@ -279,7 +279,7 @@ public class DataBusUtil {
                     String enPattern = "\\$[a-zA-Z0-9_]+.[a-zA-Z0-9_]+";
                     Pattern enR = Pattern.compile(enPattern);
                     Matcher enM = enR.matcher(field.getTargetField());
-                    if (field.getTargetField().contains("=")) {
+                    if (field.getTargetField().startsWith("=")) {
                         List<String> groupList = new ArrayList<>();
                         while (m.find()) {
                             System.out.println("Found value: " + m.group(0));
@@ -304,7 +304,7 @@ public class DataBusUtil {
                             //}
                         }
                         // 表达式 最终需要进行运算
-                    } else if (!field.getTargetField().contains("=") && field.getTargetField().contains("$ENTITY")) {
+                    } else if (!field.getTargetField().startsWith("=") && field.getTargetField().contains("$ENTITY")) {
                         // 覆盖映射，查询后进行字段值覆盖
                         if (enM.find()) {
                             List<String> groupList = new ArrayList<>();
@@ -313,7 +313,7 @@ public class DataBusUtil {
                             groupList.add(enM.group(0).substring(1));
                             ignoreMap.put(field.getSourceField(), groupList);
                         }
-                    } else if (!field.getTargetField().contains("=") && field.getTargetField().contains("$")) {
+                    } else if (!field.getTargetField().startsWith("=") && field.getTargetField().contains("$")) {
                         // 简单映射，直接查询时候进行重命名
                         if (m.find()) {
                             System.out.println("Found value: " + m.group(0));
@@ -711,7 +711,7 @@ public class DataBusUtil {
                 Pattern enR = Pattern.compile(enPattern);
                 Matcher enM = enR.matcher(field.getTargetField());
                 // 表达式 最终需要进行运算
-                if (field.getTargetField().contains("=")) {
+                if (field.getTargetField().startsWith("=")) {
                     // 普通表达式
                     List<String> groupList = new ArrayList<>();
                     while (m.find()) {
@@ -735,7 +735,7 @@ public class DataBusUtil {
                     }
 
                     // 表达式 最终需要进行运算
-                } else if (!field.getTargetField().contains("=") && field.getTargetField().contains("$ENTITY")) {
+                } else if (!field.getTargetField().startsWith("=") && field.getTargetField().contains("$ENTITY")) {
                     // 覆盖映射，查询后进行字段值覆盖
                     if (enM.find()) {
                         List<String> groupList = new ArrayList<>();
@@ -744,7 +744,7 @@ public class DataBusUtil {
                         groupList.add(enM.group(0).substring(1));
                         ignoreMap.put(field.getSourceField(), groupList);
                     }
-                } else if (!field.getTargetField().contains("=") && field.getTargetField().contains("$")) {
+                } else if (!field.getTargetField().startsWith("=") && field.getTargetField().contains("$")) {
                     // 简单映射，直接查询时候进行重命名
                     if (m.find()) {
                         System.out.println("Found value: " + m.group(0));
