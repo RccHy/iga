@@ -1,14 +1,3 @@
--- 20230215
-CREATE TABLE `avatar`  (
-                           `id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '主键id',
-                           `avatar` blob NULL COMMENT '头像文件',
-                           `avatar_url` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '头像url',
-                           `avatar_hash_code` int(11) NULL DEFAULT NULL COMMENT '头像hashcode值',
-                           `avatar_update_time` datetime NULL DEFAULT NULL COMMENT '头像更新时间',
-                           `identity_id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '人员id',
-                           `tenant_id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '租户id',
-                           PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
 
 
 -- 20221220

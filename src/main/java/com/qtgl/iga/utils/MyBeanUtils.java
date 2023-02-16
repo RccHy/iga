@@ -17,6 +17,7 @@ public class MyBeanUtils extends org.apache.commons.beanutils.BeanUtils {
         ConvertUtils.register(new IntegerConverter(null), Integer.class);
         ConvertUtils.register(new DoubleConverter(null), Double.class);
         ConvertUtils.register(new BigDecimalConverter(null), BigDecimal.class);
+        ConvertUtils.register(new ByteConverter(null), Byte.class);
         BeanUtilsBean.getInstance().populate(bean, properties);
     }
 

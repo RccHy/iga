@@ -16,6 +16,7 @@ import org.springframework.util.CollectionUtils;
 import javax.annotation.Resource;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -77,6 +78,7 @@ public class AvatarDaoImpl implements AvatarDao {
 
         return txTemplate.execute(transactionStatus -> {
             try {
+                LocalDateTime now = LocalDateTime.now();
                 if (avatarResult.containsKey("insert")) {
                     final List<Avatar> list = avatarResult.get("insert");
                     String str = "INSERT INTO `avatar`(`id`, `avatar`, `avatar_url`, `avatar_hash_code`, `avatar_update_time`, `identity_id`, `tenant_id`) VALUES (?,?,?,?,?,?,?)";
@@ -96,7 +98,7 @@ public class AvatarDaoImpl implements AvatarDao {
                                 preparedStatement.setObject(2, subList.get(i).getAvatar());
                                 preparedStatement.setObject(3, subList.get(i).getAvatarUrl());
                                 preparedStatement.setObject(4, subList.get(i).getAvatarHashCode());
-                                preparedStatement.setObject(5, subList.get(i).getAvatarUpdateTime());
+                                preparedStatement.setObject(5, now);
                                 preparedStatement.setObject(6, subList.get(i).getIdentityId());
                                 preparedStatement.setObject(7, tenantId);
                             }
@@ -131,7 +133,7 @@ public class AvatarDaoImpl implements AvatarDao {
                                 preparedStatement.setObject(1, subList.get(i).getAvatar());
                                 preparedStatement.setObject(2, subList.get(i).getAvatarUrl());
                                 preparedStatement.setObject(3, subList.get(i).getAvatarHashCode());
-                                preparedStatement.setObject(4, subList.get(i).getAvatarUpdateTime());
+                                preparedStatement.setObject(4, now);
                                 preparedStatement.setObject(5, subList.get(i).getIdentityId());
                                 preparedStatement.setObject(6, subList.get(i).getId());
                                 preparedStatement.setObject(7, tenantId);
@@ -183,7 +185,7 @@ public class AvatarDaoImpl implements AvatarDao {
                 e.printStackTrace();
                 transactionStatus.setRollbackOnly();
                 // transactionStatus.rollbackToSavepoint(savepoint);
-                throw new CustomException(ResultCode.FAILED, "同步终止，头像同步异常！");
+                throw new CustomException(ResultCode.FAILED, "同步失败，头像同步异常！");
             }
         });
 

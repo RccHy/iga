@@ -265,6 +265,12 @@ public class DataBusUtil {
                 //query拼接所需查询的字段(简单映射的重命名以及表达式的处理(源字段查询))
                 Map<String, String> nodeMap = new ConcurrentHashMap<>();
                 for (UpstreamTypeField field : fields) {
+
+                    //如果为头像则跳过
+                    if ("avatar".equals(field.getSourceField())) {
+                        continue;
+                    }
+
                     //名称校验
                     String pattern = "\\$[a-zA-Z0-9_]+";
                     Pattern r = Pattern.compile(pattern);
@@ -691,6 +697,11 @@ public class DataBusUtil {
             //query拼接所需查询的字段(简单映射的重命名以及表达式的处理(源字段查询))
             Map<String, String> nodeMap = new ConcurrentHashMap<>();
             for (UpstreamTypeField field : fields) {
+
+                //如果为头像则跳过
+                if ("avatar".equals(field.getSourceField())) {
+                    continue;
+                }
                 //名称校验
                 String pattern = "\\$[a-zA-Z0-9_]+";
                 Pattern r = Pattern.compile(pattern);
