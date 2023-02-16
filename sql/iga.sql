@@ -74,7 +74,8 @@ create table t_mgr_post_type
     update_time timestamp   null comment '修改时间',
     create_user varchar(50) null comment '创建人工号',
     domain      varchar(50) null comment '租户外键',
-    type_index int null comment '排序'
+    type_index int null comment '排序',
+    formal tinyint(1) NULL COMMENT '是否身份岗'
 )
     comment '组织机构类别' charset = utf8;
 

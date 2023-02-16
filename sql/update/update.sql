@@ -1,4 +1,7 @@
 
+-- 20230216
+ALTER TABLE `t_mgr_post_type`
+    ADD COLUMN `formal` tinyint(1) NULL COMMENT '是否身份岗' AFTER `type_index`;
 
 -- 20221220
 

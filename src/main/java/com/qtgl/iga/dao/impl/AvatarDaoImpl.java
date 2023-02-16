@@ -2,10 +2,10 @@ package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bo.Avatar;
 import com.qtgl.iga.dao.AvatarDao;
-import com.qtgl.iga.utils.MyBeanUtils;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -61,11 +61,8 @@ public class AvatarDaoImpl implements AvatarDao {
         if (!CollectionUtils.isEmpty(maps)) {
             maps.forEach(map -> {
                 Avatar avatar = new Avatar();
-                try {
-                    MyBeanUtils.populate(avatar, map);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                BeanMap beanMap = BeanMap.create(avatar);
+                beanMap.putAll(map);
                 avatarList.add(avatar);
             });
 
