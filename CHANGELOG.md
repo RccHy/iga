@@ -1,3 +1,24 @@
+### 20230216
+
+**数据库**
+- 执行iga/update/update.sql下 20230216的sql
+
+**new：**
+- 岗位同步 formal字段的支持
+- 人员同步支持 sex 字段
+
+**bug fix**
+- 人员同步未提供active字段时  恢复逻辑异常bug fix
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20230216
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20230216
+
+
 ### 20230209
 
 **数据库**
