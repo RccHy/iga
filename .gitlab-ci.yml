@@ -62,7 +62,7 @@ deploy:prod:
   script:
     #  - kubectl -n ketanyun apply -f k8s-service.yaml
     #  - kubectl -n ketanyun apply -f k8s-deploy.yaml
-     - kubectl -n ketanyun  set image deployment/iga iga="docker.qtgl.com.cn/product/iga:${COMMIT_TIME}"
+     - kubectl -n ketanyun  set image sts/iga iga="docker.qtgl.com.cn/product/iga:${COMMIT_TIME}"
   # disable artifacts downloading from previous steps
   dependencies: [ ]
   environment:
