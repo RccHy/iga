@@ -139,7 +139,7 @@ public class Person implements Serializable, Cloneable {
     /**
      * 头像文件
      */
-    private String avatar;
+    private byte[] avatar;
     /**
      * 头像hashcode
      */

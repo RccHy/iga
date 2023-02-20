@@ -37,7 +37,6 @@ import org.springframework.util.DigestUtils;
 import javax.annotation.Resource;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -296,16 +295,228 @@ public class PersonServiceImpl implements PersonService {
 
         executorService.execute(() -> {
 
+            //key - value  特征->人员
+            Map<String, Person> personCardTypeConcurrentHashMap = new ConcurrentHashMap<>();
+            Map<String, Person> personCardNoConcurrentHashMap = new ConcurrentHashMap<>();
+            Map<String, Person> personEmailConcurrentHashMap = new ConcurrentHashMap<>();
+            Map<String, Person> personAccountConcurrentHashMap = new ConcurrentHashMap<>();
+            Map<String, Person> personPhoneConcurrentHashMap = new ConcurrentHashMap<>();
+
+            //获取上游人员及头像信息
+            for (NodeRules rules : userRules) {
+                // 通过规则获取数据
+                UpstreamType upstreamType = upstreamTypeDao.findById(rules.getUpstreamTypesId());
+                if (null == upstreamType) {
+                    log.error("人员对应拉取节点规则'{}'无有效权威源类型数据", rules);
+                    throw new CustomException(ResultCode.NO_UPSTREAM_TYPE, null, null, "人员", rules.getId());
+                }
+                ArrayList<Upstream> upstreams = upstreamDao.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
+                if (CollectionUtils.isEmpty(upstreams)) {
+                    log.error("人员对应拉取节点规则'{}'无权威源数据", rules.getId());
+                    throw new CustomException(ResultCode.NO_UPSTREAM, null, null, "人员", rules.getId());
+                }
+                //获取人员类型合重主体
+                String personCharacteristic = upstreamType.getPersonCharacteristic();
+                JSONArray dataByBus;
+                try {
+                    dataByBus = dataBusUtil.getAvatarDataByBus(upstreamType, domain.getDomainName(), 1);
+                } catch (CustomException e) {
+                    e.printStackTrace();
+                    if (new Long("1085").equals(e.getCode())) {
+                        throw new CustomException(ResultCode.INVOKE_URL_ERROR, "请求资源地址失败,请检查权威源:" + upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")" + "下的权威源类型:" + upstreamType.getDescription());
+                    } else {
+                        throw e;
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    log.error("人员治理中类型 : " + upstreamType.getUpstreamId() + "表达式异常");
+                    throw new CustomException(ResultCode.PERSON_ERROR, null, null, upstreamType.getDescription(), e.getMessage());
+                }
+                if (!CollectionUtils.isEmpty(dataByBus)) {
+                    for (Object o : dataByBus) {
+
+                        JSONObject personObj = JSON.parseObject(JSON.toJSONString(o));
+                        if (null != personObj.getTimestamp(TreeEnum.UPDATE_TIME.getCode())) {
+                            personObj.put(TreeEnum.UPDATE_TIME.getCode(), personObj.getTimestamp(TreeEnum.UPDATE_TIME.getCode()));
+                        }
+                        if (null != personObj.getTimestamp(TreeEnum.BIRTHDAY.getCode())) {
+                            personObj.put(TreeEnum.BIRTHDAY.getCode(), personObj.getTimestamp(TreeEnum.BIRTHDAY.getCode()));
+                        }
+                        Person personUpstream = personObj.toJavaObject(Person.class);
+
+
+                        if (null != personUpstream.getActive() && personUpstream.getActive() != 0 && personUpstream.getActive() != 1) {
+                            extracted(domain, personUpstream, "人员是否有效字段不合法");
+                            log.error("人员是否有效字段不合法:{}", personUpstream.getActive());
+                            continue;
+                        }
+                        if (null != personUpstream.getDelMark() && personUpstream.getDelMark() != 0 && personUpstream.getDelMark() != 1) {
+                            extracted(domain, personUpstream, "人员是否删除字段不合法");
+                            log.error("人员是否删除字段不合法:{}", personUpstream.getDelMark());
+                            continue;
+                        }
+                        // 人员标识 证件类型、证件号码   OR    用户名 accountNo  必提供一个
+                        if (StringUtils.isBlank(personUpstream.getCardNo()) && StringUtils.isBlank(personUpstream.getCardType())) {
+                            if (StringUtils.isBlank(personUpstream.getAccountNo())) {
+                                extracted(domain, personUpstream, "未提供标识信息:证件类型、证件号码或者用户名");
+                                log.error("{}未提供标识信息:证件类型、证件号码或者用户名", personUpstream.getName());
+                                continue;
+                            }
+
+                        }
+                        // 如果提供证件类型,提供的证件号码为空
+                        if (StringUtils.isBlank(personUpstream.getCardNo()) && !StringUtils.isBlank(personUpstream.getCardType())) {
+                            extracted(domain, personUpstream, "提供证件类型但对应的证件号码为空");
+                            log.error("{}-{}提供证件类型但对应的证件号码为空", personUpstream.getCardNo(), personUpstream.getAccountNo());
+                            continue;
+                        }
+                        if (!StringUtils.isBlank(personUpstream.getCardType()) && cardTypeMap.containsKey(personUpstream.getCardType())) {
+                            String cardTypeReg = cardTypeMap.get(personUpstream.getCardType()).getCardTypeReg();
+                            if (StringUtils.isNotBlank(cardTypeReg) && !Pattern.matches(cardTypeReg, personUpstream.getCardNo())) {
+                                extracted(domain, personUpstream, "证件号码不符合规则");
+                                log.error("证件号码不符合规则:{}", personUpstream.getCardNo());
+                                continue;
+                            }
+                        } else if (!StringUtils.isBlank(personUpstream.getCardType()) && !cardTypeMap.containsKey(personUpstream.getCardType())) {
+                            extracted(domain, personUpstream, "证件类型无效");
+                            log.error("证件类型无效:{}", personUpstream.getCardType());
+                            continue;
+                        }
+
+                        if (StringUtils.isBlank(personUpstream.getName())) {
+                            extracted(domain, personUpstream, "姓名为空");
+                            log.error("{}-{}姓名为空", personUpstream.getCardNo(), personUpstream.getAccountNo());
+                            continue;
+                        }
+
+                        //如果未提供del,赋予默认值未删除
+                        if (null == personUpstream.getDelMark()) {
+                            personUpstream.setDelMark(0);
+                        }
+                        //如果未提供active,赋予默认值有效
+                        if (null == personUpstream.getActive()) {
+                            personUpstream.setActive(1);
+                        }
+                        ////赋予activeTime默认值
+                        //personUpstream.setActiveTime(LocalDateTime.now());
+
+                        ////处理扩展字段
+                        //ConcurrentHashMap<String, String> map;
+                        //if (!CollectionUtils.isEmpty(finalDynamicCodes)) {
+                        //    map = new ConcurrentHashMap<>();
+                        //    for (String dynamicCode : finalDynamicCodes) {
+                        //        if (personObj.containsKey(dynamicCode)) {
+                        //            if (StringUtils.isNotBlank(personObj.getString(dynamicCode))) {
+                        //                map.put(dynamicCode, personObj.getString(dynamicCode));
+                        //            }
+                        //        }
+                        //    }
+                        //    log.info("处理{}的上游扩展字段值为{}", personObj, map);
+                        //    personUpstream.setDynamic(map);
+                        //}
+                        //personUpstream.setRuleStatus(rules.getActive());
+                        //personUpstreamList.add(personUpstream);
+                        //dealWithUpstreamDataByPersonCharacteristic(domain, personUpstream, personCharacteristic, personFromUpstreamByPersonCharacteristic, null, preViewPersonMap);
+
+                        //根据特征 放入容器
+                        switch (personCharacteristic) {
+                            case ACCOUNT_NO:
+                                if (personAccountConcurrentHashMap.containsKey(personUpstream.getAccountNo())) {
+                                    if (personUpstream.getActive() == 1) {
+                                        personAccountConcurrentHashMap.put(personUpstream.getAccountNo(), personUpstream);
+                                    }
+                                } else {
+                                    personAccountConcurrentHashMap.put(personUpstream.getAccountNo(), personUpstream);
+                                }
+                                break;
+                            case CARD_NO:
+                                if (personCardNoConcurrentHashMap.containsKey(personUpstream.getCardNo())) {
+                                    if (personUpstream.getActive() == 1) {
+                                        personCardNoConcurrentHashMap.put(personUpstream.getCardNo(), personUpstream);
+                                    }
+                                } else {
+                                    personCardNoConcurrentHashMap.put(personUpstream.getCardNo(), personUpstream);
+                                }
+                                break;
+                            case CARD_TYPE_NO:
+                                if (personCardTypeConcurrentHashMap.containsKey(personUpstream.getCardType() + "_" + personUpstream.getCardNo())) {
+                                    if (personUpstream.getActive() == 1) {
+                                        personCardTypeConcurrentHashMap.put(personUpstream.getCardType() + "_" + personUpstream.getCardNo(), personUpstream);
+                                    }
+                                } else {
+                                    personCardTypeConcurrentHashMap.put(personUpstream.getCardType() + "_" + personUpstream.getCardNo(), personUpstream);
+                                }
+                                break;
+                            case EMAIL:
+                                if (personEmailConcurrentHashMap.containsKey(personUpstream.getEmail())) {
+                                    if (personUpstream.getActive() == 1) {
+                                        personEmailConcurrentHashMap.put(personUpstream.getEmail(), personUpstream);
+                                    }
+                                } else {
+                                    personEmailConcurrentHashMap.put(personUpstream.getEmail(), personUpstream);
+                                }
+                                break;
+                            case CELLPHONE:
+                                if (personPhoneConcurrentHashMap.containsKey(personUpstream.getCellphone())) {
+                                    if (personUpstream.getActive() == 1) {
+                                        personPhoneConcurrentHashMap.put(personUpstream.getCellphone(), personUpstream);
+                                    }
+                                } else {
+                                    personPhoneConcurrentHashMap.put(personUpstream.getCellphone(), personUpstream);
+                                }
+                                break;
+                        }
+                    }
+                }
+
+            }
+
+
             log.info("---------------------开始处理头像");
             //处理 头像url
             List<Avatar> insertAvatars = avatarResult.get("insert");
             if (!CollectionUtils.isEmpty(insertAvatars)) {
                 ArrayList<Avatar> avatars = new ArrayList<>();
                 for (Avatar insertAvatar : insertAvatars) {
-                    if (StringUtils.isBlank(insertAvatar.getAvatarUrl()) && null != insertAvatar.getAvatar()) {
+                    switch (insertAvatar.getPersonCharacteristic()) {
+                        case ACCOUNT_NO:
+                            if (personAccountConcurrentHashMap.containsKey(insertAvatar.getAccountNo())) {
+                                Person person = personAccountConcurrentHashMap.get(insertAvatar.getAccountNo());
+                                insertAvatar.setAvatar(person.getAvatar());
+                            }
+                            break;
+                        case CARD_NO:
+                            if (personCardNoConcurrentHashMap.containsKey(insertAvatar.getCardNo())) {
+                                Person person = personCardNoConcurrentHashMap.get(insertAvatar.getCardNo());
+                                insertAvatar.setAvatar(person.getAvatar());
+                            }
+                            break;
+                        case CARD_TYPE_NO:
+                            if (personCardTypeConcurrentHashMap.containsKey(insertAvatar.getCardType() + "_" + insertAvatar.getCardNo())) {
+                                Person person = personCardTypeConcurrentHashMap.get(insertAvatar.getCardType() + "_" + insertAvatar.getCardNo());
+                                insertAvatar.setAvatar(person.getAvatar());
+                            }
+                            break;
+                        case EMAIL:
+                            if (personEmailConcurrentHashMap.containsKey(insertAvatar.getEmail())) {
+                                Person person = personEmailConcurrentHashMap.get(insertAvatar.getEmail());
+                                insertAvatar.setAvatar(person.getAvatar());
+                            }
+                            break;
+                        case CELLPHONE:
+                            if (personPhoneConcurrentHashMap.containsKey(insertAvatar.getCellphone())) {
+                                Person person = personPhoneConcurrentHashMap.get(insertAvatar.getCellphone());
+                                insertAvatar.setAvatar(person.getAvatar());
+                            }
+                            break;
+                    }
+
+
+                    if (null != insertAvatar.getAvatar()) {
                         String url = null;
                         try {
-                            url = fileUtil.putFile(insertAvatar.getAvatar(), insertAvatar.getIdentityId() + "头像", domain);
+                            url = fileUtil.putFile(insertAvatar.getAvatar(), insertAvatar.getIdentityId() + "_avatar", domain);
+                            url = dealWithUrl(url);
                         } catch (Exception e) {
                             e.printStackTrace();
                             log.error("----------------上传头像失败");
@@ -316,16 +527,48 @@ public class PersonServiceImpl implements PersonService {
                 }
                 avatarResult.put("insert", avatars);
             }
-
             List<Avatar> updateAvatars = avatarResult.get("update");
             if (!CollectionUtils.isEmpty(updateAvatars)) {
                 ArrayList<Avatar> avatars = new ArrayList<>();
                 for (Avatar updateAvatar : updateAvatars) {
-                    if (StringUtils.isBlank(updateAvatar.getAvatarUrl()) && null != updateAvatar.getAvatar()) {
+                    switch (updateAvatar.getPersonCharacteristic()) {
+                        case ACCOUNT_NO:
+                            if (personAccountConcurrentHashMap.containsKey(updateAvatar.getAccountNo())) {
+                                Person person = personAccountConcurrentHashMap.get(updateAvatar.getAccountNo());
+                                updateAvatar.setAvatar(person.getAvatar());
+                            }
+                            break;
+                        case CARD_NO:
+                            if (personCardNoConcurrentHashMap.containsKey(updateAvatar.getCardNo())) {
+                                Person person = personCardNoConcurrentHashMap.get(updateAvatar.getCardNo());
+                                updateAvatar.setAvatar(person.getAvatar());
+                            }
+                            break;
+                        case CARD_TYPE_NO:
+                            if (personCardTypeConcurrentHashMap.containsKey(updateAvatar.getCardType() + "_" + updateAvatar.getCardNo())) {
+                                Person person = personCardTypeConcurrentHashMap.get(updateAvatar.getCardType() + "_" + updateAvatar.getCardNo());
+                                updateAvatar.setAvatar(person.getAvatar());
+                            }
+                            break;
+                        case EMAIL:
+                            if (personEmailConcurrentHashMap.containsKey(updateAvatar.getEmail())) {
+                                Person person = personEmailConcurrentHashMap.get(updateAvatar.getEmail());
+                                updateAvatar.setAvatar(person.getAvatar());
+                            }
+                            break;
+                        case CELLPHONE:
+                            if (personPhoneConcurrentHashMap.containsKey(updateAvatar.getCellphone())) {
+                                Person person = personPhoneConcurrentHashMap.get(updateAvatar.getCellphone());
+                                updateAvatar.setAvatar(person.getAvatar());
+                            }
+                            break;
+                    }
+                    if (null != updateAvatar.getAvatar()) {
                         log.info("-----------------处理" + updateAvatar.getIdentityId());
                         String url = null;
                         try {
-                            url = fileUtil.putFile(updateAvatar.getAvatar(), updateAvatar.getIdentityId() + "头像", domain);
+                            url = fileUtil.putFile(updateAvatar.getAvatar(), updateAvatar.getIdentityId() + "_avatar", domain);
+                            url = dealWithUrl(url);
                         } catch (Exception e) {
                             e.printStackTrace();
                             log.error("----------------上传头像失败");
@@ -344,6 +587,12 @@ public class PersonServiceImpl implements PersonService {
 
 
         return result;
+    }
+
+    private String dealWithUrl(String url) {
+        JSONObject object = JSONObject.parseObject(url);
+        String uri = object.getJSONArray("entities").getJSONObject(0).getString("uri");
+        return uri;
     }
 
     private List<Person> dataProcessing(List<Node> nodes, List<NodeRules> userRules, DomainInfo domain, Tenant tenant, Map<String, CardType> cardTypeMap, List<DynamicAttr> dynamicAttrs, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, List<String> finalDynamicCodes, Map<String, List<DynamicValue>> finalValueMap, Map<String, List<Person>> result, Map<String, String> attrMap, Map<String, String> attrReverseMap, Map arguments, TaskLog currentTask, Map<String, List<Avatar>> avatarResult) {
@@ -616,10 +865,10 @@ public class PersonServiceImpl implements PersonService {
                         Map<String, Person> personFromSSOMapByAccount = new ArrayList<>(preViewPersonMap.values()).stream().filter(person ->
                                 !StringUtils.isBlank(person.getAccountNo())).sorted(Comparator.comparing(Person::getUpdateTime)).collect(Collectors.toMap(Person::getAccountNo, person -> person, (v1, v2) -> v2));
                         personFromSSOMapByAccount.forEach((key, personFromSSO) -> {
-                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, fieldsMap, dynamicSSOValues, keepPersonMap, finalAvatarMap, avatarTempResult);
+                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, fieldsMap, dynamicSSOValues, keepPersonMap, finalAvatarMap, avatarTempResult, personCharacteristic);
                         });
                         personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
-                            calculateInsert(personFromSSOMapByAccount, result, key, val, domain, upstreamCountMap, avatarResult);
+                            calculateInsert(personFromSSOMapByAccount, result, key, val, domain, upstreamCountMap, avatarResult, personCharacteristic);
                         });
                     } else if (CARD_TYPE_NO.equals(personCharacteristic)) {
                         // 证件类型+证件号码
@@ -631,10 +880,10 @@ public class PersonServiceImpl implements PersonService {
                         log.info("---------------------------------end2:" + System.currentTimeMillis());
 
                         personFromSSOMapByCardTypeAndNo.forEach((key, personFromSSO) -> {
-                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, fieldsMap, dynamicSSOValues, keepPersonMap, finalAvatarMap, avatarTempResult);
+                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, fieldsMap, dynamicSSOValues, keepPersonMap, finalAvatarMap, avatarTempResult, personCharacteristic);
                         });
                         personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
-                            calculateInsert(personFromSSOMapByCardTypeAndNo, result, key, val, domain, upstreamCountMap, avatarResult);
+                            calculateInsert(personFromSSOMapByCardTypeAndNo, result, key, val, domain, upstreamCountMap, avatarResult, personCharacteristic);
                         });
                     } else if (CARD_NO.equals(personCharacteristic)) {
                         // 证件号码
@@ -643,10 +892,10 @@ public class PersonServiceImpl implements PersonService {
                                 .collect(Collectors.toMap(Person::getCardNo, person -> person, (v1, v2) -> v2));
 
                         personFromSSOMapByCardNo.forEach((key, personFromSSO) -> {
-                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, fieldsMap, dynamicSSOValues, keepPersonMap, finalAvatarMap, avatarTempResult);
+                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, fieldsMap, dynamicSSOValues, keepPersonMap, finalAvatarMap, avatarTempResult, personCharacteristic);
                         });
                         personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
-                            calculateInsert(personFromSSOMapByCardNo, result, key, val, domain, upstreamCountMap, avatarResult);
+                            calculateInsert(personFromSSOMapByCardNo, result, key, val, domain, upstreamCountMap, avatarResult, personCharacteristic);
                         });
 
                     } else if (EMAIL.equals(personCharacteristic)) {
@@ -656,10 +905,10 @@ public class PersonServiceImpl implements PersonService {
                                 .collect(Collectors.toMap(Person::getEmail, person -> person, (v1, v2) -> v2));
 
                         personFromSSOMapByEmail.forEach((key, personFromSSO) -> {
-                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, fieldsMap, dynamicSSOValues, keepPersonMap, finalAvatarMap, avatarTempResult);
+                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, fieldsMap, dynamicSSOValues, keepPersonMap, finalAvatarMap, avatarTempResult, personCharacteristic);
                         });
                         personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
-                            calculateInsert(personFromSSOMapByEmail, result, key, val, domain, upstreamCountMap, avatarResult);
+                            calculateInsert(personFromSSOMapByEmail, result, key, val, domain, upstreamCountMap, avatarResult, personCharacteristic);
                         });
                     } else if (CELLPHONE.equals(personCharacteristic)) {
                         // 手机号
@@ -668,10 +917,10 @@ public class PersonServiceImpl implements PersonService {
                                 .collect(Collectors.toMap(Person::getCellphone, person -> person, (v1, v2) -> v2));
 
                         personFromSSOMapByCellphone.forEach((key, personFromSSO) -> {
-                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, fieldsMap, dynamicSSOValues, keepPersonMap, finalAvatarMap, avatarTempResult);
+                            calculate(personFromUpstreamByPersonCharacteristic, now, result, key, personFromSSO, domain, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, upstreamCountMap, source, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, fieldsMap, dynamicSSOValues, keepPersonMap, finalAvatarMap, avatarTempResult, personCharacteristic);
                         });
                         personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
-                            calculateInsert(personFromSSOMapByCellphone, result, key, val, domain, upstreamCountMap, avatarResult);
+                            calculateInsert(personFromSSOMapByCellphone, result, key, val, domain, upstreamCountMap, avatarResult, personCharacteristic);
                         });
                     }
 
@@ -1291,7 +1540,7 @@ public class PersonServiceImpl implements PersonService {
 //        }
 //    }
 
-    private void calculateInsert(Map<String, Person> personFromSSOMap, Map<String, List<Person>> result, String key, Person val, DomainInfo domainInfo, ConcurrentHashMap<String, ConcurrentHashMap<String, List<Person>>> upstreamCountMap, Map<String, List<Avatar>> avatarResult) {
+    private void calculateInsert(Map<String, Person> personFromSSOMap, Map<String, List<Person>> result, String key, Person val, DomainInfo domainInfo, ConcurrentHashMap<String, ConcurrentHashMap<String, List<Person>>> upstreamCountMap, Map<String, List<Avatar>> avatarResult, String personCharacteristic) {
         //sso没有并且未删除标记的数据才进行新增
         if (!personFromSSOMap.containsKey(key) && (val.getDelMark() == 0)) {
             if (val.getRuleStatus()) {
@@ -1339,8 +1588,15 @@ public class PersonServiceImpl implements PersonService {
                     //处理头像
                     if (null != val.getAvatar() || null != val.getAvatarUrl()) {
                         Avatar avatar = new Avatar();
+                        avatar.setCardNo(val.getCardNo());
+                        avatar.setCardType(val.getCardType());
+                        avatar.setCellphone(val.getCellphone());
+                        avatar.setEmail(val.getEmail());
+                        avatar.setAccountNo(val.getAccountNo());
+                        avatar.setPersonCharacteristic(personCharacteristic);
+
                         avatar.setId(UUID.randomUUID().toString());
-                        avatar.setAvatar(val.getAvatar().getBytes(StandardCharsets.UTF_8));
+                        //avatar.setAvatar(val.getAvatar().getBytes(StandardCharsets.UTF_8));
                         avatar.setAvatarUrl(val.getAvatarUrl());
                         avatar.setAvatarHashCode(val.getAvatarHashCode());
                         avatar.setAvatarUpdateTime(val.getAvatarUpdateTime());
@@ -1372,7 +1628,7 @@ public class PersonServiceImpl implements PersonService {
         }
     }
 
-    private void calculate(Map<String, Person> personFromUpstream, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO, DomainInfo domainInfo, Map<String, String> attrMap, Map<String, List<DynamicValue>> valueMap, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, Upstream> upstreamMap, Map<String, Person> preViewPersonMap, ConcurrentHashMap<String, ConcurrentHashMap<String, List<Person>>> upstreamCountMap, String source, Map<String, Person> distinctPersonMap, Map<String, Person> invalidPersonMap, Map<String, Map<String, Person>> tempResult, Map<String, Person> backUpPersonMap, List<UpstreamTypeField> fields, Map<String, UpstreamTypeField> filedsMap, Map<String, String> dynamicSSOValues, Map<String, Person> keepPersonMap, Map<String, Avatar> avatarMap, Map<String, Map<String, Avatar>> avatarTempResult) {
+    private void calculate(Map<String, Person> personFromUpstream, LocalDateTime now, Map<String, List<Person>> result, String key, Person personFromSSO, DomainInfo domainInfo, Map<String, String> attrMap, Map<String, List<DynamicValue>> valueMap, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, Upstream> upstreamMap, Map<String, Person> preViewPersonMap, ConcurrentHashMap<String, ConcurrentHashMap<String, List<Person>>> upstreamCountMap, String source, Map<String, Person> distinctPersonMap, Map<String, Person> invalidPersonMap, Map<String, Map<String, Person>> tempResult, Map<String, Person> backUpPersonMap, List<UpstreamTypeField> fields, Map<String, UpstreamTypeField> filedsMap, Map<String, String> dynamicSSOValues, Map<String, Person> keepPersonMap, Map<String, Avatar> avatarMap, Map<String, Map<String, Avatar>> avatarTempResult, String personCharacteristic) {
         // 对比出需要修改的person
         if (personFromUpstream.containsKey(key)) {
             //上游包含该数据则将该数据从失效map中移除
@@ -1827,8 +2083,15 @@ public class PersonServiceImpl implements PersonService {
                         if (null != newPerson.getAvatarUpdateTime()) {
                             if (avatarMap.containsKey(personFromSSO.getId())) {
                                 Avatar avatar = avatarMap.get(personFromSSO.getId());
+
+
                                 if (avatar.getAvatarUpdateTime().isBefore(newPerson.getAvatarUpdateTime())) {
-                                    //avatar.setAvatar(newPerson.getAvatar().getBytes(StandardCharsets.UTF_8));
+                                    avatar.setCardNo(newPerson.getCardNo());
+                                    avatar.setCardType(newPerson.getCardType());
+                                    avatar.setCellphone(newPerson.getCellphone());
+                                    avatar.setEmail(newPerson.getEmail());
+                                    avatar.setAccountNo(newPerson.getAccountNo());
+                                    avatar.setPersonCharacteristic(personCharacteristic);
                                     avatar.setAvatarUrl(newPerson.getAvatarUrl());
                                     if (avatarTempResult.containsKey("update")) {
                                         avatarTempResult.get("update").put(personFromSSO.getId(), avatar);
@@ -1840,6 +2103,12 @@ public class PersonServiceImpl implements PersonService {
                                 }
                             } else {
                                 Avatar avatar = new Avatar();
+                                avatar.setCardNo(newPerson.getCardNo());
+                                avatar.setCardType(newPerson.getCardType());
+                                avatar.setCellphone(newPerson.getCellphone());
+                                avatar.setEmail(newPerson.getEmail());
+                                avatar.setAccountNo(newPerson.getAccountNo());
+                                avatar.setPersonCharacteristic(personCharacteristic);
                                 avatar.setId(UUID.randomUUID().toString());
                                 //avatar.setAvatar(newPerson.getAvatar().getBytes(StandardCharsets.UTF_8));
                                 avatar.setAvatarUrl(newPerson.getAvatarUrl());
@@ -1857,19 +2126,34 @@ public class PersonServiceImpl implements PersonService {
                         } else if (null != newPerson.getAvatarHashCode()) {
                             if (avatarMap.containsKey(personFromSSO.getId())) {
                                 Avatar avatar = avatarMap.get(personFromSSO.getId());
-
-                                //avatar.setAvatar(newPerson.getAvatar().getBytes(StandardCharsets.UTF_8));
-                                avatar.setAvatarUrl(newPerson.getAvatarUrl());
-                                avatar.setAvatarHashCode(newPerson.getAvatarHashCode());
-                                if (avatarTempResult.containsKey("update")) {
-                                    avatarTempResult.get("update").put(personFromSSO.getId(), avatar);
-                                } else {
-                                    ConcurrentHashMap<String, Avatar> hashMap = new ConcurrentHashMap<>();
-                                    hashMap.put(personFromSSO.getId(), avatar);
-                                    avatarTempResult.put("update", hashMap);
+                                if (avatar.getAvatarHashCode().equals(newPerson.getAvatarHashCode())) {
+                                    avatar.setCardNo(newPerson.getCardNo());
+                                    avatar.setCardType(newPerson.getCardType());
+                                    avatar.setCellphone(newPerson.getCellphone());
+                                    avatar.setEmail(newPerson.getEmail());
+                                    avatar.setAccountNo(newPerson.getAccountNo());
+                                    avatar.setPersonCharacteristic(personCharacteristic);
+                                    //avatar.setAvatar(newPerson.getAvatar().getBytes(StandardCharsets.UTF_8));
+                                    avatar.setAvatarUrl(newPerson.getAvatarUrl());
+                                    avatar.setAvatarHashCode(newPerson.getAvatarHashCode());
+                                    if (avatarTempResult.containsKey("update")) {
+                                        avatarTempResult.get("update").put(personFromSSO.getId(), avatar);
+                                    } else {
+                                        ConcurrentHashMap<String, Avatar> hashMap = new ConcurrentHashMap<>();
+                                        hashMap.put(personFromSSO.getId(), avatar);
+                                        avatarTempResult.put("update", hashMap);
+                                    }
                                 }
+
                             } else {
                                 Avatar avatar = new Avatar();
+                                avatar.setCardNo(newPerson.getCardNo());
+                                avatar.setCardType(newPerson.getCardType());
+                                avatar.setCellphone(newPerson.getCellphone());
+                                avatar.setEmail(newPerson.getEmail());
+                                avatar.setAccountNo(newPerson.getAccountNo());
+                                avatar.setPersonCharacteristic(personCharacteristic);
+
                                 avatar.setId(UUID.randomUUID().toString());
                                 //avatar.setAvatar(newPerson.getAvatar().getBytes(StandardCharsets.UTF_8));
                                 avatar.setAvatarUrl(newPerson.getAvatarUrl());

@@ -6,7 +6,7 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Data
-public class Avatar implements Serializable,Cloneable{
+public class Avatar implements Serializable, Cloneable {
     /**
      * 主键id
      */
@@ -36,4 +36,30 @@ public class Avatar implements Serializable,Cloneable{
      * 租户id
      */
     private String tenantId;
+
+
+    /**
+     * 证件类型
+     */
+    private String cardType;
+    /**
+     * 证件号码
+     */
+    private String cardNo;
+    /**
+     * 邮箱
+     */
+    private String email;
+    /**
+     * 用户名
+     */
+    private String accountNo;
+    /**
+     * 电话
+     */
+    private String cellphone;
+    /**
+     * 人员特征
+     */
+    private String personCharacteristic;
 }
