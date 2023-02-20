@@ -1571,7 +1571,7 @@ public class DataBusUtil {
                     }
 
                     if (innerMap.containsKey("avatar")) {
-                        if (StringUtils.isNotBlank(innerMap.get("avatar").toString())) {
+                        if (null != innerMap.get("avatar") && StringUtils.isNotBlank(innerMap.get("avatar").toString())) {
                             byte[] avatars = Base64.getDecoder().decode(innerMap.get("avatar").toString());
                             innerMap.put("avatar", avatars);
                         } else {

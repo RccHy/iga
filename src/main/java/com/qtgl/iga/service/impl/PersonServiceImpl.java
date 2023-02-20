@@ -2126,7 +2126,7 @@ public class PersonServiceImpl implements PersonService {
                         } else if (null != newPerson.getAvatarHashCode()) {
                             if (avatarMap.containsKey(personFromSSO.getId())) {
                                 Avatar avatar = avatarMap.get(personFromSSO.getId());
-                                if (avatar.getAvatarHashCode().equals(newPerson.getAvatarHashCode())) {
+                                if (!avatar.getAvatarHashCode().equals(newPerson.getAvatarHashCode())) {
                                     avatar.setCardNo(newPerson.getCardNo());
                                     avatar.setCardType(newPerson.getCardType());
                                     avatar.setCellphone(newPerson.getCellphone());
