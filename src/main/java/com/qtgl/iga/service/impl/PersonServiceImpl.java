@@ -513,14 +513,13 @@ public class PersonServiceImpl implements PersonService {
 
 
                     if (null != insertAvatar.getAvatar()) {
-                        String url = null;
-                        try {
-                            url = fileUtil.putFile(insertAvatar.getAvatar(), insertAvatar.getIdentityId() + "_avatar", domain);
-                            url = dealWithUrl(url);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            log.error("----------------上传头像失败");
+                        Integer count = 0;
+                        String url = getUrl(domain, insertAvatar, count);
+                        if (url == null) {
+                            log.error("人员:{}头像上传三次失败,本次同步跳过该头像上传", insertAvatar.getIdentityId());
+                            continue;
                         }
+
                         insertAvatar.setAvatarUrl(url);
                     }
                     avatars.add(insertAvatar);
@@ -565,13 +564,11 @@ public class PersonServiceImpl implements PersonService {
                     }
                     if (null != updateAvatar.getAvatar()) {
                         log.info("-----------------处理" + updateAvatar.getIdentityId());
-                        String url = null;
-                        try {
-                            url = fileUtil.putFile(updateAvatar.getAvatar(), updateAvatar.getIdentityId() + "_avatar", domain);
-                            url = dealWithUrl(url);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            log.error("----------------上传头像失败");
+                        Integer count = 0;
+                        String url = getUrl(domain, updateAvatar, count);
+                        if (url == null) {
+                            log.error("人员:{}头像上传三次失败,本次同步跳过该头像上传", updateAvatar.getIdentityId());
+                            continue;
                         }
                         updateAvatar.setAvatarUrl(url);
                     }
@@ -587,6 +584,22 @@ public class PersonServiceImpl implements PersonService {
 
 
         return result;
+    }
+
+    private String getUrl(DomainInfo domain, Avatar insertAvatar, Integer count) {
+        String url = null;
+        try {
+            url = fileUtil.putFile(insertAvatar.getAvatar(), insertAvatar.getIdentityId() + "_avatar", domain);
+            url = dealWithUrl(url);
+        } catch (Exception e) {
+            e.printStackTrace();
+            //log.error("----------------上传头像失败");
+            if (count < 2) {
+                count++;
+                getUrl(domain, insertAvatar, count);
+            }
+        }
+        return url;
     }
 
     private String dealWithUrl(String url) {
