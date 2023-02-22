@@ -286,7 +286,7 @@ public class TaskConfig {
     public void upload(DomainInfo domainInfo, TaskLog taskLog) {
         try {
             String fileName = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()) + ".txt";
-            String utf8 = fileUtil.putFile(TaskConfig.errorData.get(domainInfo.getId()).getBytes("UTF8"), fileName, domainInfo);
+            String utf8 = fileUtil.putFileByGql(TaskConfig.errorData.get(domainInfo.getId()).getBytes("UTF8"), fileName, domainInfo);
 
             taskLog.setData(utf8);
             taskLogService.save(taskLog, domainInfo.getId(), "update");

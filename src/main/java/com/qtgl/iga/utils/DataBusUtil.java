@@ -122,12 +122,12 @@ public class DataBusUtil {
         //工具类过滤处理url
         String dealUrl = UrlUtil.getUrl(substring);
         //调用获取资源url
-        String dataUrl = invokeUrl(dealUrl, split);
+        String dataUrl = invokeUrl(dealUrl, split[2]);
         //请求获取资源
         String u = dataUrl + "/" + "?access_token=" + key + "&domain=" + serverName;
 
         //调用获取资源url
-        String dataMapUrl = invokeUrl(dealUrl, new String[]{"", "", "catalog"});
+        String dataMapUrl = invokeUrl(dealUrl, "catalog");
         //
         Map<String, Map<String, String>> dataMap = null;
         if (StringUtils.isNotBlank(dataMapUrl)) {
@@ -183,7 +183,7 @@ public class DataBusUtil {
         return accessToken;
     }
 
-    private String invokeUrl(String url, String[] split) throws Exception {
+    public String invokeUrl(String url, String serverName) throws Exception {
         JSONObject params = new JSONObject();
         String graphql = "query  services($filter :Filter){   " +
                 "  services(filter:$filter){" +
@@ -195,7 +195,7 @@ public class DataBusUtil {
         JSONObject variables = new JSONObject();
         JSONObject name = new JSONObject();
         JSONObject like = new JSONObject();
-        like.put("like", split[2]);
+        like.put("like", serverName);
         name.put("name", like);
         variables.put("filter", name);
         params.put("query", graphql);
@@ -214,18 +214,75 @@ public class DataBusUtil {
         JSONArray services = data.getJSONArray("services");
 
         if (services.size() <= 0) {
-            throw new CustomException(ResultCode.FAILED, "请求资源" + split[2] + "地址失败,请检查权威源类型");
+            throw new CustomException(ResultCode.FAILED, "请求资源" + serverName + "地址失败,请检查权威源类型");
         }
         JSONObject endpoints = services.getJSONObject(0);
         JSONArray endPoint = endpoints.getJSONArray("endpoints");
         if (endpoints.size() <= 0) {
-            throw new CustomException(ResultCode.INVOKE_URL_ERROR, "请求资源地址" + split[2] + "失败,请检查权威源类型");
+            throw new CustomException(ResultCode.INVOKE_URL_ERROR, "请求资源地址" + serverName + "失败,请检查权威源类型");
         }
         JSONObject jo = endPoint.getJSONObject(0);
 
         return jo.getString("endPoint");
 
     }
+
+    /**
+     * 传递域名及要发现的服务名称即可
+     */
+    public String invokeUrlByName(String serverName, String queryName) throws Exception {
+        //获取token
+        String key = getToken(serverName);
+
+        //根据url 获取请求地址
+        String substring = new StringBuffer(UrlUtil.getUrl(busUrl)).append("?access_token=").append(key)
+                .append("&domain=").append(serverName).toString();
+        //工具类过滤处理url
+        String url = UrlUtil.getUrl(substring);
+
+        JSONObject params = new JSONObject();
+        String graphql = "query  services($filter :Filter){   " +
+                "  services(filter:$filter){" +
+                "    endpoints{" +
+                "    endPoint" +
+                "    }" +
+                "  }" +
+                "}";
+        JSONObject variables = new JSONObject();
+        JSONObject name = new JSONObject();
+        JSONObject like = new JSONObject();
+        like.put("like", queryName);
+        name.put("name", like);
+        variables.put("filter", name);
+        params.put("query", graphql);
+        params.put("variables", variables);
+
+        url = UrlUtil.getUrl(url);
+        log.info("----------invokeUrl :{} ,params:{}", url, params);
+        String s = sendPostRequest(url, params);
+        if (null == s || s.contains("errors")) {
+            throw new CustomException(ResultCode.GET_DATA_ERROR, null, null, s);
+        }
+        JSONObject jsonObject = JSONArray.parseObject(s);
+
+        JSONObject data = jsonObject.getJSONObject("data");
+
+        JSONArray services = data.getJSONArray("services");
+
+        if (services.size() <= 0) {
+            throw new CustomException(ResultCode.FAILED, "请求资源" + serverName + "地址失败,请检查权威源类型");
+        }
+        JSONObject endpoints = services.getJSONObject(0);
+        JSONArray endPoint = endpoints.getJSONArray("endpoints");
+        if (endpoints.size() <= 0) {
+            throw new CustomException(ResultCode.INVOKE_URL_ERROR, "请求资源地址" + serverName + "失败,请检查权威源类型");
+        }
+        JSONObject jo = endPoint.getJSONObject(0);
+
+        return jo.getString("endPoint");
+
+    }
+
 
     private JSONArray invokeForData(String dataUrl, UpstreamType upstreamType, String domainName, Map<String, Map<String, String>> dataMapField) throws Exception {
         log.info("source url " + dataUrl);
@@ -652,12 +709,12 @@ public class DataBusUtil {
 
 
         //调用获取资源url
-        String dataUrl = invokeUrl(dealUrl, split);
+        String dataUrl = invokeUrl(dealUrl, split[2]);
         //请求获取资源
         String u = dataUrl + "/" + "?access_token=" + key + "&domain=" + domain.getDomainName();
 
         //调用获取资源url
-        String dataMapUrl = invokeUrl(dealUrl, new String[]{"", "", "catalog"});
+        String dataMapUrl = invokeUrl(dealUrl, "catalog");
         //
         Map<String, Map<String, String>> dataMap = null;
         if (StringUtils.isNotBlank(dataMapUrl)) {
@@ -1247,12 +1304,12 @@ public class DataBusUtil {
         //工具类过滤处理url
         String dealUrl = UrlUtil.getUrl(substring);
         //调用获取资源url
-        String dataUrl = invokeUrl(dealUrl, split);
+        String dataUrl = invokeUrl(dealUrl, split[2]);
         //请求获取资源
         String u = dataUrl + "/" + "?access_token=" + key + "&domain=" + serverName;
 
         //调用获取资源url
-        String dataMapUrl = invokeUrl(dealUrl, new String[]{"", "", "catalog"});
+        String dataMapUrl = invokeUrl(dealUrl, "catalog");
         //
         Map<String, Map<String, String>> dataMap = null;
         if (StringUtils.isNotBlank(dataMapUrl)) {

@@ -589,7 +589,7 @@ public class PersonServiceImpl implements PersonService {
     private String getUrl(DomainInfo domain, Avatar insertAvatar, Integer count) {
         String url = null;
         try {
-            url = fileUtil.putFile(insertAvatar.getAvatar(), insertAvatar.getIdentityId() + "_avatar", domain);
+            url = fileUtil.putFileByGql(insertAvatar.getAvatar(), insertAvatar.getIdentityId() + "_avatar", domain);
             url = dealWithUrl(url);
         } catch (Exception e) {
             e.printStackTrace();

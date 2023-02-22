@@ -75,6 +75,7 @@ public class FileUtil {
     }
 
     public String putFile(File file, String fileName, DomainInfo domainInfo) {
+        String fileGqlUrl = null;
         try {
             // 通过 fluent.Request 发送post请求，设置请求头为multipart/form-data，参数为operations 和 map
             // operations 为json字符串，包含query和variables，其中variables中的file为null
@@ -92,9 +93,10 @@ public class FileUtil {
             builder.addTextBody("operations", operations, ContentType.MULTIPART_FORM_DATA);
             builder.addTextBody("map", map, ContentType.MULTIPART_FORM_DATA);
             builder.addBinaryBody("0", bytes, ContentType.MULTIPART_FORM_DATA, fileName);
-            fileUrl = UrlUtil.getUrl(fileUrl);
-            log.info("put file to fileAPI-V2:" + fileUrl + "?access_token=" + dataBusUtil.getToken(domainInfo.getDomainName()) + "&domain=" + domainInfo.getDomainName());
-            String content = Request.Post(fileUrl + "?access_token=" + dataBusUtil.getToken(domainInfo.getDomainName()) + "&domain=" + domainInfo.getDomainName())
+            fileGqlUrl = dataBusUtil.invokeUrlByName(domainInfo.getDomainName(), "file_v2");
+            fileGqlUrl = UrlUtil.getUrl(fileGqlUrl);
+            log.info("put file to fileAPI-V2:" + fileGqlUrl + "?access_token=" + dataBusUtil.getToken(domainInfo.getDomainName()) + "&domain=" + domainInfo.getDomainName());
+            String content = Request.Post(fileGqlUrl + "?access_token=" + dataBusUtil.getToken(domainInfo.getDomainName()) + "&domain=" + domainInfo.getDomainName())
                     .body(builder.build())
                     .execute().returnContent().asString();
             if (null != content && null != JSONObject.parseObject(content).getJSONObject("data")) {
@@ -106,10 +108,53 @@ public class FileUtil {
         } catch (Exception ioException) {
             ioException.printStackTrace();
             log.error("put file error:{}", ioException);
+            throw new CustomException(ResultCode.FAILED, "上传文件失败,上传路径为:" + fileGqlUrl);
         }
         return "";
 
     }
+
+
+    public String putFileByGql(byte[] file, String fileName, DomainInfo domainInfo) {
+        String fileGqlUrl = null;
+        try {
+            // 通过 fluent.Request 发送post请求，设置请求头为multipart/form-data，参数为operations 和 map
+            // operations 为json字符串，包含query和variables，其中variables中的file为null
+            // map 为json字符串，包含0: ["variables.file"]
+            // 0 为文件的索引，对应operations中的variables.file
+            // @a.txt 为文件路径
+
+            String operations = "{ \"query\": \"mutation ($file: Upload!) { upload(file: $file) { uri } }\", \"variables\": { \"file\": null } }";
+            String map = "{\"0\":[\"variables.file\"]}";
+
+            MultipartEntityBuilder builder = MultipartEntityBuilder.create()
+                    .setMode(HttpMultipartMode.BROWSER_COMPATIBLE)
+                    .setCharset(Charset.forName("utf-8"));
+            builder.addTextBody("operations", operations, ContentType.MULTIPART_FORM_DATA);
+            builder.addTextBody("map", map, ContentType.MULTIPART_FORM_DATA);
+            builder.addBinaryBody("0", file, ContentType.MULTIPART_FORM_DATA, fileName);
+
+            fileGqlUrl = dataBusUtil.invokeUrlByName(domainInfo.getDomainName(), "file_v2");
+            fileGqlUrl = UrlUtil.getUrl(fileGqlUrl);
+            log.info("put file to fileAPI-V2:" + fileGqlUrl + "?access_token=" + dataBusUtil.getToken(domainInfo.getDomainName()) + "&domain=" + domainInfo.getDomainName());
+            String content = Request.Post(fileGqlUrl + "?access_token=" + dataBusUtil.getToken(domainInfo.getDomainName()) + "&domain=" + domainInfo.getDomainName())
+                    .body(builder.build())
+                    .execute().returnContent().asString();
+            if (null != content && null != JSONObject.parseObject(content).getJSONObject("data")) {
+                JSONObject object = JSONObject.parseObject(content).getJSONObject("data").getJSONObject("upload");
+                //String uri = url + object.getJSONArray("entities").getJSONObject(0).getString("uri");
+                //System.out.println(uri);
+                return object.getString("uri");
+            }
+        } catch (Exception ioException) {
+            ioException.printStackTrace();
+            log.error("put file error:{}", ioException);
+            throw new CustomException(ResultCode.FAILED, "上传文件失败,上传路径为:" + fileGqlUrl);
+        }
+        return "";
+
+    }
+
 
     //private void getApiToken() {
     //    if (null == token) {
