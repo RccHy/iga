@@ -17,10 +17,7 @@ import com.qtgl.iga.service.IncrementalTaskService;
 import com.qtgl.iga.service.PersonService;
 import com.qtgl.iga.service.PreViewTaskService;
 import com.qtgl.iga.task.TaskConfig;
-import com.qtgl.iga.utils.ClassCompareUtil;
-import com.qtgl.iga.utils.DataBusUtil;
-import com.qtgl.iga.utils.FileUtil;
-import com.qtgl.iga.utils.TreeEnum;
+import com.qtgl.iga.utils.*;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
 import lombok.extern.slf4j.Slf4j;
@@ -589,8 +586,10 @@ public class PersonServiceImpl implements PersonService {
     private String getUrl(DomainInfo domain, Avatar insertAvatar, Integer count) {
         String url = null;
         try {
-            url = fileUtil.putFileByGql(insertAvatar.getAvatar(), insertAvatar.getIdentityId() + "_avatar", domain);
-            url = dealWithUrl(url);
+
+            String suffix = SuffixUtil.getByteSuffix(insertAvatar.getAvatar());
+            url = fileUtil.putFileByGql(insertAvatar.getAvatar(), insertAvatar.getIdentityId() + "_avatar." + suffix, domain);
+            //url = dealWithUrl(url);
         } catch (Exception e) {
             e.printStackTrace();
             //log.error("----------------上传头像失败");
