@@ -2097,7 +2097,7 @@ public class PersonServiceImpl implements PersonService {
                                 Avatar avatar = avatarMap.get(personFromSSO.getId());
 
 
-                                if (avatar.getAvatarUpdateTime().isBefore(newPerson.getAvatarUpdateTime())) {
+                                if (newPerson.getAvatarUpdateTime().isBefore(avatar.getAvatarUpdateTime())) {
                                     avatar.setCardNo(newPerson.getCardNo());
                                     avatar.setCardType(newPerson.getCardType());
                                     avatar.setCellphone(newPerson.getCellphone());
@@ -2138,7 +2138,7 @@ public class PersonServiceImpl implements PersonService {
                         } else if (null != newPerson.getAvatarHashCode()) {
                             if (avatarMap.containsKey(personFromSSO.getId())) {
                                 Avatar avatar = avatarMap.get(personFromSSO.getId());
-                                if (!avatar.getAvatarHashCode().equals(newPerson.getAvatarHashCode())) {
+                                if (!newPerson.getAvatarHashCode().equals(avatar.getAvatarHashCode())) {
                                     avatar.setCardNo(newPerson.getCardNo());
                                     avatar.setCardType(newPerson.getCardType());
                                     avatar.setCellphone(newPerson.getCellphone());
