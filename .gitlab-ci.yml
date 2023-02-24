@@ -19,7 +19,7 @@ build:devel:
   before_script:
     - export COMMIT_TIME=$(date +%Y%m%d)
     - export ISO_8601=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-    - export JIB_FROM_IMAGE=oci.ketanyun.cn/open/openjdk:17-jdk
+    - export JIB_FROM_IMAGE=docker.qtgl.com.cn/openjdk:8-jre-alpine
     - export JIB_TO_IMAGE=docker.qtgl.com.cn/product/iga:latest
   script:
     - "mvn package  $MAVEN_CLI_OPTS -DJIB_TO_IMAGE=${JIB_TO_IMAGE} -Dcommit.time=${COMMIT_TIME}   -Djib.to.auth.username=${K8S_SECRET_JIB_TO_USER} -Djib.to.auth.password=${K8S_SECRET_JIB_TO_PASSWORD} -DJIB_FROM_IMAGE=${JIB_FROM_IMAGE} -Djib.from.auth.username=${K8S_SECRET_JIB_FROM_USER} -Djib.from.auth.password=${K8S_SECRET_JIB_FROM_PASSWORD} -DISO_8601=${ISO_8601}"
