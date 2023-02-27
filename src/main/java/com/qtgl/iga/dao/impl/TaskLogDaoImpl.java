@@ -7,6 +7,7 @@ import com.qtgl.iga.bo.TaskLog;
 import com.qtgl.iga.dao.TaskLogDao;
 import com.qtgl.iga.utils.FilterCodeEnum;
 import com.qtgl.iga.utils.MyBeanUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -18,6 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Repository
 @Component
+@Slf4j
 public class TaskLogDaoImpl implements TaskLogDao {
 
     @Resource(name = "jdbcIGA")
@@ -105,11 +107,16 @@ public class TaskLogDaoImpl implements TaskLogDao {
                 TaskLog taskLog = new TaskLog();
                 MyBeanUtils.populate(taskLog, map);
                 String data = taskLog.getData();
-                if (StringUtils.isNotBlank(data) && 0 == JSONObject.parseObject(data).getInteger("errno")) {
-                    JSONObject object = JSONObject.parseObject(data);
-                    String uri = object.getJSONArray("entities").getJSONObject(0).getString("name");
-                    taskLog.setData(uri);
+                try {
+                    if (StringUtils.isNotBlank(data) && 0 == JSONObject.parseObject(data).getInteger("errno")) {
+                        JSONObject object = JSONObject.parseObject(data);
+                        String uri = object.getJSONArray("entities").getJSONObject(0).getString("name");
+                        taskLog.setData(uri);
+                    }
+                } catch (Exception e) {
+
                 }
+
                 taskLogEdge.setNode(taskLog);
                 taskLogEdges.add(taskLogEdge);
             }
