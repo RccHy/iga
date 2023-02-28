@@ -41,7 +41,7 @@ public class TaskLogServiceImpl implements TaskLogService {
     @Override
     public Integer save(TaskLog taskLog, String domain, String type) {
         if(null!=taskLog.getStatus()&&taskLog.getStatus().equals("failed")){
-            meterRegistry.counter("iga_sync_error_task",Tags.of("dept", taskLog.getDeptNo(),
+            meterRegistry.counter("iga_sync_error_task",Tags.of("dept",  null!=taskLog.getDeptNo()?taskLog.getDeptNo():"",
                     "post", null!=taskLog.getPostNo()?taskLog.getPostNo():"",
                     "user",null!=taskLog.getPersonNo()?taskLog.getPersonNo():"",
                     "occupy",null!=taskLog.getOccupyNo()?taskLog.getOccupyNo():""));
