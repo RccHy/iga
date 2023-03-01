@@ -64,7 +64,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
     public Upstream saveUpstream(Upstream upstream, String domain) throws Exception {
         //判重
         Object[] param = new Object[]{upstream.getAppCode(), upstream.getAppName(), domain};
-        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_upstream where app_code =? or app_name = ? and domain=? ", param);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_upstream where (app_code =? or app_name = ?) and domain=? ", param);
         if (null != mapList && mapList.size() > 0) {
             throw new CustomException(ResultCode.REPEAT_UPSTREAM_ERROR, null, null, upstream.getAppCode(), upstream.getAppName());
         }
@@ -128,8 +128,8 @@ public class UpstreamDaoImpl implements UpstreamDao {
     @Transactional
     public Upstream updateUpstream(Upstream upstream) {
         //判重
-        Object[] param = new Object[]{upstream.getAppCode(), upstream.getAppName(), upstream.getId()};
-        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_upstream where (app_code = ? or app_name = ?) and id != ?  ", param);
+        Object[] param = new Object[]{upstream.getAppCode(), upstream.getAppName(), upstream.getId(), upstream.getDomain()};
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_upstream where (app_code = ? or app_name = ?) and id != ? and domain=?  ", param);
         if (null != mapList && mapList.size() > 0) {
             throw new CustomException(ResultCode.FAILED, "code 或 name 不能重复,修改失败");
         }
@@ -306,12 +306,37 @@ public class UpstreamDaoImpl implements UpstreamDao {
     public ArrayList<Upstream> findByDomainAndActiveIsFalse(String domain) {
         String sql = "select id,app_code as appCode,app_name as appName,data_code as dataCode," +
                 "create_time as createTime,create_user as createUser,active,color,domain ," +
-                "active_time as activeTime,update_time as updateTime from t_mgr_upstream where 1 = 1 and domain=? and active=false";
+                "active_time as activeTime,update_time as updateTime from t_mgr_upstream where 1 = 1 and id=? and active=false";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
         List<Object> param = new ArrayList<>();
         param.add(domain);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
+
+        ArrayList<Upstream> list = new ArrayList<>();
+        if (null != mapList && mapList.size() > 0) {
+            for (Map<String, Object> map : mapList) {
+                Upstream upstream = new Upstream();
+                BeanMap beanMap = BeanMap.create(upstream);
+                beanMap.putAll(map);
+                list.add(upstream);
+            }
+            return list;
+        }
+        return null;
+    }
+
+    @Override
+    public ArrayList<Upstream> findByOtherDomain(String domainId) {
+        String sql = "select id,app_code as appCode,app_name as appName,data_code as dataCode," +
+                "create_time as createTime,create_user as createUser,active,color,domain ," +
+                "active_time as activeTime,update_time as updateTime from t_mgr_upstream where 1 = 1 and id!=? ";
+        //拼接sql
+        StringBuffer stb = new StringBuffer(sql);
+        //存入参数
+        List<Object> param = new ArrayList<>();
+        param.add(domainId);
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
 
         ArrayList<Upstream> list = new ArrayList<>();

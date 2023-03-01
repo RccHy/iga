@@ -639,6 +639,35 @@ public class DataBusUtil {
         return totalCount;
     }
 
+    private Integer doQueryCount(UpstreamType upstreamType, GraphqlClient graphqlClient, GraphqlQuery query) {
+        Map<String, Object> result;
+        log.info("body " + query);
+        GraphqlResponse response = null;
+        try {
+            response = graphqlClient.doQuery(query);
+        } catch (IOException e) {
+            log.info("response :  ->" + e.getMessage());
+            e.printStackTrace();
+        }
+
+        //获取数据，数据为map类型
+        result = response.getData();
+        for (Map.Entry<String, Object> entry : result.entrySet()) {
+            log.debug("result  data --" + entry.getKey() + "------" + entry.getValue());
+        }
+
+        if (null == result || null == result.get("data")) {
+
+            throw new CustomException(ResultCode.GET_DATA_ERROR, null, null, upstreamType.getDescription(), result.get("errors").toString());
+
+        }
+        Map dataMap = (Map) result.get("data");
+        Map deptMap = (Map) dataMap.get(upstreamType.getSynType());
+        Integer totalCount = (Integer) deptMap.get("totalCount");
+
+        return totalCount;
+    }
+
 
     public Map<String, Map<String, String>> getDataMap(String url) throws Exception {
 
@@ -1293,7 +1322,7 @@ public class DataBusUtil {
     }
 
 
-    public JSONArray getAvatarDataByBus(UpstreamType upstreamType, String serverName, Integer step) throws Exception {
+    public JSONArray getAvatarDataByBus(UpstreamType upstreamType, String serverName, Integer offset, Integer first) throws Exception {
         //获取token
         String key = getToken(serverName);
         String[] split = upstreamType.getGraphqlUrl().split("/");
@@ -1317,10 +1346,81 @@ public class DataBusUtil {
             dataMap = getDataMap(dataMapUrl + "?access_token=" + key + "&domain=" + serverName);
         }
 
-        return invokeForAvatarData(UrlUtil.getUrl(u), upstreamType, serverName, dataMap, step);
+        return invokeForAvatarData(UrlUtil.getUrl(u), upstreamType, serverName, dataMap, offset, first);
     }
 
-    private JSONArray invokeForAvatarData(String dataUrl, UpstreamType upstreamType, String domainName, Map<String, Map<String, String>> dataMapField, Integer step) throws Exception {
+
+    public Integer getDataTotalCountByBus(UpstreamType upstreamType, String serverName) throws Exception {
+        //获取token
+        String key = getToken(serverName);
+        String[] split = upstreamType.getGraphqlUrl().split("/");
+
+        //根据url 获取请求地址
+        String substring = new StringBuffer(UrlUtil.getUrl(busUrl)).append("?access_token=").append(key)
+                .append("&domain=").append(serverName).toString();
+        //工具类过滤处理url
+        String dealUrl = UrlUtil.getUrl(substring);
+        //调用获取资源url
+        String dataUrl = invokeUrl(dealUrl, split[2]);
+        //请求获取资源
+        String u = dataUrl + "/" + "?access_token=" + key + "&domain=" + serverName;
+
+        //调用获取资源url
+        String dataMapUrl = invokeUrl(dealUrl, "catalog");
+        //
+        Map<String, Map<String, String>> dataMap = null;
+        if (StringUtils.isNotBlank(dataMapUrl)) {
+            log.info("无法内省 catalog 服务地址");
+            dataMap = getDataMap(dataMapUrl + "?access_token=" + key + "&domain=" + serverName);
+        }
+
+        return invokeForDataTotalCount(UrlUtil.getUrl(u), upstreamType);
+    }
+
+    private Integer invokeForDataTotalCount(String dataUrl, UpstreamType upstreamType) {
+
+        log.info("source url " + dataUrl);
+        //获取字段映射
+        List<UpstreamTypeField> fields = upstreamTypeService.findFields(upstreamType.getId());
+        Map<String, String> collect = fields.stream().collect(Collectors.toMap(UpstreamTypeField::getSourceField, UpstreamTypeField::getTargetField));
+        //如果映射字段不包含头像则不再拉取
+        if (!collect.containsKey("avatar")) {
+            return null;
+        }
+
+        typeFields.put(upstreamType.getId(), fields);
+        String[] type = upstreamType.getGraphqlUrl().split("/");
+        GraphqlClient graphqlClient = GraphqlClient.buildGraphqlClient(dataUrl);
+        String methodName = type[5];
+        if (upstreamType.getIsPage()) {
+            if ("query".equals(type[4])) {
+                GraphqlQuery query = new DefaultGraphqlQuery(upstreamType.getSynType() + ":" + methodName);
+                // 增量同步添加入参
+                if (null != upstreamType.getIsIncremental() && upstreamType.getIsIncremental()) {
+                    Timestamp timestamp = this.processTime(upstreamType);
+                    if (null != timestamp && collect.containsKey("updateTime")) {
+                        Map<String, Object> timeMap = new HashMap<>();
+                        timeMap.put("gt", timestamp);
+                        Map<String, Object> filterMap = new HashMap<>();
+                        String time = collect.get("updateTime");
+                        filterMap.put(time.substring(1), timeMap);
+                        query.getRequestParameter().addObjectParameter("filter", filterMap);
+                    }
+
+                }
+                query.addResultAttributes("totalCount");
+
+                Integer totalCount = doQueryCount(upstreamType, graphqlClient, query);
+                return totalCount;
+            }
+
+        }
+        return null;
+
+    }
+
+
+    private JSONArray invokeForAvatarData(String dataUrl, UpstreamType upstreamType, String domainName, Map<String, Map<String, String>> dataMapField, Integer offset, Integer first) throws Exception {
         log.info("source url " + dataUrl);
         //获取字段映射
         List<UpstreamTypeField> fields = upstreamTypeService.findFields(upstreamType.getId());
@@ -1334,7 +1434,6 @@ public class DataBusUtil {
         String[] type = upstreamType.getGraphqlUrl().split("/");
         GraphqlClient graphqlClient = GraphqlClient.buildGraphqlClient(dataUrl);
         String methodName = type[5];
-        Map<String, Object> result = null;
         JSONArray objects = new JSONArray();
         if (upstreamType.getIsPage()) {
             if ("query".equals(type[4])) {
@@ -1426,16 +1525,11 @@ public class DataBusUtil {
                 query.addResultAttributes(edges);
                 query.addResultAttributes("totalCount");
 
-                query.getRequestParameter().addObjectParameter("offset", 0);
-                query.getRequestParameter().addObjectParameter("first", step);
+                query.getRequestParameter().addObjectParameter("offset", offset);
+                query.getRequestParameter().addObjectParameter("first", first);
 
                 Integer totalCount = doQueryData(upstreamType, graphqlClient, objects, query);
-                double ceil = Math.ceil(totalCount / step);
-                for (int i = 1; i < ceil; i++) {
-                    query.getRequestParameter().addObjectParameter("offset", i * step);
-                    query.getRequestParameter().addObjectParameter("first", step);
-                    doQueryData(upstreamType, graphqlClient, objects, query);
-                }
+
 
                 log.info("类型:{},权威源类型:{},获取数据成功,总计:{}条", upstreamType.getSynType(), upstreamType.getId(), totalCount);
 

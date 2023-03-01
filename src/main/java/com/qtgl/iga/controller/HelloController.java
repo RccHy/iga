@@ -9,7 +9,6 @@ import com.qtgl.iga.service.*;
 import com.qtgl.iga.utils.DataBusUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
@@ -102,7 +101,7 @@ public class HelloController {
 
 
                 //=============人员数据同步至sso=============
-                Map<String, List<Person>> personResult = personService.buildPerson(domainInfo, lastTaskLog,null);
+                Map<String, List<Person>> personResult = personService.buildPerson(domainInfo, lastTaskLog,null,null);
                 String personNo = (personResult.containsKey("insert") ? String.valueOf(personResult.get("insert").size()) : "0") + "/"
                         + (personResult.containsKey("delete") ? String.valueOf(personResult.get("delete").size()) : "0") + "/"
                         + (personResult.containsKey("update") ? String.valueOf(personResult.get("update").size()) : "0");

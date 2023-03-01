@@ -186,7 +186,7 @@ public class TaskConfig {
 
 
                             //=============人员数据同步至sso=============
-                            Map<String, List<Person>> personResult = personService.buildPerson(domainInfo, lastTaskLog, taskLog);
+                            Map<String, List<Person>> personResult = personService.buildPerson(domainInfo, lastTaskLog, taskLog,null);
                             Integer countPerson = 0;
                             if (null == personResult) {
                                 log.error("无人员管理规则，不进行人员同步");

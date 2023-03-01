@@ -13,9 +13,9 @@ public interface PersonDao {
     List<Person> getAll(String tenantId);
 
 
-    Integer saveToSso(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, ArrayList<Certificate> certificates);
+    Integer saveToSso(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, List<Certificate> certificates);
 
-    Integer saveToSsoTest(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, List<DynamicAttr> attrList, ArrayList<Certificate> certificates,List<DynamicValue> dynamicValues);
+    Integer saveToSsoTest(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, List<DynamicAttr> attrList, List<Certificate> certificates,List<DynamicValue> dynamicValues);
 
     Integer saveToTemp(List<Person> personList, DomainInfo domainInfo);
 

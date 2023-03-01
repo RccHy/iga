@@ -102,7 +102,7 @@ public class PersonDaoImpl implements PersonDao {
 
 
     @Override
-    public Integer saveToSso(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, ArrayList<Certificate> certificates) {
+    public Integer saveToSso(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, List<Certificate> certificates) {
 
         return txTemplate.execute(transactionStatus -> {
             try {
@@ -387,7 +387,7 @@ public class PersonDaoImpl implements PersonDao {
 
 
     @Override
-    public Integer saveToSsoTest(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, List<DynamicAttr> attrList, ArrayList<Certificate> certificates, List<DynamicValue> dynamicValues) {
+    public Integer saveToSsoTest(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, List<DynamicAttr> attrList, List<Certificate> certificates, List<DynamicValue> dynamicValues) {
         // 删除租户下所有数据
         String deleteSql = "delete from identity where tenant_id = ? ";
         jdbcIGA.update(deleteSql, tenantId);

@@ -26,4 +26,6 @@ public interface UpstreamDao {
     void findByAppNameAndAppCode(String appName, String appCode, String domain);
 
     ArrayList<Upstream> findByDomainAndActiveIsFalse(String id);
+
+    ArrayList<Upstream> findByOtherDomain(String id);
 }
