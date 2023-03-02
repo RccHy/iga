@@ -12,7 +12,7 @@ import com.qtgl.iga.service.IncrementalTaskService;
 import com.qtgl.iga.task.TaskConfig;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
-import com.qtgl.iga.utils.TreeEnum;
+import com.qtgl.iga.utils.enums.TreeEnum;
 import com.qtgl.iga.utils.TreeUtil;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;

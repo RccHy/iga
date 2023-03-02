@@ -5,7 +5,7 @@ import com.qtgl.iga.bean.TaskLogConnection;
 import com.qtgl.iga.bean.TaskLogEdge;
 import com.qtgl.iga.bo.TaskLog;
 import com.qtgl.iga.dao.TaskLogDao;
-import com.qtgl.iga.utils.FilterCodeEnum;
+import com.qtgl.iga.utils.enums.FilterCodeEnum;
 import com.qtgl.iga.utils.MyBeanUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;

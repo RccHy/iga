@@ -19,6 +19,7 @@ import com.qtgl.iga.service.PreViewTaskService;
 import com.qtgl.iga.task.TaskConfig;
 import com.qtgl.iga.utils.*;
 import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.enums.TreeEnum;
 import com.qtgl.iga.utils.exception.CustomException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.DecoderException;

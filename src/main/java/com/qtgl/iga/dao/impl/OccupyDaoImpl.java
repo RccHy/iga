@@ -5,7 +5,7 @@ import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.DynamicAttrDao;
 import com.qtgl.iga.dao.OccupyDao;
-import com.qtgl.iga.utils.FilterCodeEnum;
+import com.qtgl.iga.utils.enums.FilterCodeEnum;
 import com.qtgl.iga.utils.MyBeanUtils;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;

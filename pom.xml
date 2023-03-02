@@ -18,7 +18,6 @@
     <description>身份治理</description>
 
 
-
     <properties>
         <java.version>1.8</java.version>
         <commit.time>${COMMIT_TIME}</commit.time>
@@ -105,6 +104,18 @@
             <artifactId>httpmime</artifactId>
             <version>4.5.2</version>
         </dependency>
+        <!-- webSocket -->
+        <dependency>
+            <groupId>org.java-websocket</groupId>
+            <artifactId>Java-WebSocket</artifactId>
+            <version>1.5.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+            <version>5.5.2</version>
+        </dependency>
 
 
         <dependency>
@@ -161,10 +172,10 @@
     <build>
         <finalName>iga</finalName>
         <plugins>
-<!--            <plugin>-->
-<!--                <groupId>org.springframework.boot</groupId>-->
-<!--                <artifactId>spring-boot-maven-plugin</artifactId>-->
-<!--            </plugin>-->
+            <!--            <plugin>-->
+            <!--                <groupId>org.springframework.boot</groupId>-->
+            <!--                <artifactId>spring-boot-maven-plugin</artifactId>-->
+            <!--            </plugin>-->
 
 
             <plugin>
@@ -188,13 +199,13 @@
                     <to>
                         <image>${JIB_TO_IMAGE}</image>
                     </to>
-<!--                    <container>-->
-<!--                        <filesModificationTime>-->
-<!--                            ${ISO_8601}-->
-<!--                        </filesModificationTime>-->
-                         <mainClass>com.qtgl.iga.IgaApplication</mainClass>
-<!--                        <appRoot>/usr/local/tomcat/webapps/iga</appRoot>-->
-<!--                    </container>-->
+                    <!--                    <container>-->
+                    <!--                        <filesModificationTime>-->
+                    <!--                            ${ISO_8601}-->
+                    <!--                        </filesModificationTime>-->
+                    <mainClass>com.qtgl.iga.IgaApplication</mainClass>
+                    <!--                        <appRoot>/usr/local/tomcat/webapps/iga</appRoot>-->
+                    <!--                    </container>-->
                 </configuration>
 
                 <executions>

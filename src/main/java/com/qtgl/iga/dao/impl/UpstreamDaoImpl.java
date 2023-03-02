@@ -3,7 +3,7 @@ package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.UpstreamDao;
-import com.qtgl.iga.utils.FilterCodeEnum;
+import com.qtgl.iga.utils.enums.FilterCodeEnum;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
 import org.springframework.cglib.beans.BeanMap;
