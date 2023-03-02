@@ -1,3 +1,25 @@
+### 20230302
+
+**数据库**
+- 无
+
+**new：**
+- 人员同步支持头像同步
+
+**bug fix**
+- 同步日志解析json异常 bug fix
+- 权威源校验租户异常 bug fix
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20230302
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20230302
+
+
+
 ### 20230216
 
 **数据库**
