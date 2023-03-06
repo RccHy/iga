@@ -1,0 +1,327 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  # name must match the spec fields below, and be in the form: <plural>.<group>
+  name: qusersources.ketanyun.cn
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: ketanyun.cn
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: qusersources
+    # singular name to be used as an alias on the CLI and for display
+    singular: qusersource
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: QUserSource
+    # shortNames allow shorter string to match your resource on the CLI
+    # shortNames:
+    # - qapp
+  # list of versions supported by this CustomResourceDefinition
+  versions:
+    - name: v1alpha1
+      # Each version can be enabled/disabled by Served flag.
+      served: true
+      # One and only one version must be marked as the storage version.
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            # 标准定义
+            spec:
+              type: object
+              required:
+                - name
+                - text
+                - tenant
+              properties:
+
+                types:
+                  type: object
+                  properties:
+                    # 《筛选器》
+                    _filter: &FILTER
+                      type: object
+                      required:
+                        - field
+                      # anyOf:
+                      #  - required:
+                      #    - value
+                      #    - values
+                      #    - experssion
+                      properties:
+                        field:
+                          type: string
+                        match:
+                          type: string
+                          enum:
+                            - eq
+                            - neq
+                            - in
+                            - nin
+                            - gt
+                            - gte
+                            - lt
+                            - lte
+                            - like
+                            - bt     # 等价于：gte & lte，202208新增
+                        value:
+                          x-kubernetes-int-or-string: true
+                        values:
+                          type: array
+                          items:
+                            x-kubernetes-int-or-string: true
+                        experssion:
+                          type: string
+                    # 《修饰符》(非空、数组）
+                    # 参考 https://graphql.org/learn/schema/ type-modifiers
+                    _modifiers: &MODIFIERS
+                      type: array
+                      items:
+                        type: string
+                        enmu:
+                          - NotNull
+                          - List
+
+                    # 《参数》: GraphQL 的 argument 概念
+                    _argument: &ARGUMENT
+                      type: object
+                      required:
+                        - name
+                        - value
+                      properties:
+                        # 字段数据类型，引用到 spec.canvas.data[].name
+                        type:
+                          type: string
+                        # 参数名
+                        name:
+                          type: string
+                        value:
+                          x-kubernetes-int-or-string: true
+                        defaultValue:
+                          x-kubernetes-int-or-string: true
+                        modifiers: *MODIFIERS
+
+                # 正式定义由此开始
+                # 权威源代码（机读），租户内唯一
+                name:
+                  type: string
+                # 权威源描述（人读）
+                text:
+                  type: string
+                # 展示颜色，可选
+                color:
+                  type: string
+
+                # 权威源类型定义列表
+                sources:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - kind
+                      - service
+                    properties:
+                      # 描述
+                      text:
+                        type: string
+                      # 权威源提供的数据类型
+                      kind:
+                        type: string
+                        enum:
+                          - user    # 人员
+                          - dept    # 部门
+                          - post    # 岗位
+                          - occupy  # 身份（三元组）
+                      # 治理模式
+                      mode:
+                        type: string
+                        enum:
+                          - pull
+                          - push
+                      # 治理策略
+                      strategies:
+                        type: object
+                        properties:
+                          # 增量模式
+                          incremental:
+                            type: boolean
+
+                      # 授权应用（仅推模式）
+                      app:
+                        type: object
+                        required:
+                          - name
+                        properties:
+                          # 应用标识（client_id）
+                          name:
+                            type: string
+                          # 应用名称
+                          text:
+                            type: string
+
+                      # 数据服务（仅拉模式）
+                      service:
+                        type: object
+                        required:
+                          - name
+                        properties:
+                          # 服务名，对应 QService 服务
+                          name:
+                            type: string
+
+                          # GraphQL操作
+                          operation:
+                            type: object
+                            properties:
+                              kind:
+                                type: string
+                                enum:
+                                  - query
+                              name:
+                                type: string
+                              # 该《数据操作》所需Filter
+                              # 参考：https://github.com/infoplus/canvas-docs/wiki/Filter
+                              filters:
+                                type: array
+                                items: *FILTER
+                              # 该《数据操作》所需参数
+                              arguments:
+                                type: array
+                                items: *ARGUMENT
+                              #《数据操作属性》
+                              attributes:
+                                type: object
+                                properties:
+                                  # 是否支持分页结构
+                                  pagination:
+                                    type: boolean
+
+                      # 人员主体，仅 kind 为 user 或 occupy 时需要，作为人员合重的依据
+                      principal:
+                        type: object
+                        required:
+                          - name
+                        properties:
+                          # 主体字段名
+                          name:
+                            type: string
+                            enum:
+                              # openid (occupy 特有，指通过 openid 找人)
+                              - OPENID
+                              # 用户名
+                              - USERNAME
+                              # 人员证件类型 + 人员证件号码
+                              - CARD_TYPE_NO
+                              # 人员证件号码
+                              - CARD_NO
+                              # 邮箱
+                              - EMAIL
+                              # 电话
+                              - CELLPHONE
+
+                      # 字段映射
+                      fields:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            # 身份提供的字段名，因 kind 而不同
+
+                            # 公共属性
+                            ## name：名称/姓名
+                            ## active：是否有效
+                            ## delMark：是否删除
+                            ## disabled：是否禁用
+                            ## tags：标签
+                            ## index：排序
+                            ## updateTime：更新时间戳，仅增量模式需要
+
+                            # 人员（kind: user)
+                            ## accountNo：用户名
+                            ## cardType：人员证件类型
+                            ## cardNo：人员证件号码
+                            ## sex：性别
+                            ## birthday：出生日期
+                            ## password：密码
+                            ## cellphone：电话
+                            ## email：邮箱
+                            ## avatar：头像文件
+                            ## avatarUrl ：头像
+                            ## avatarHashCode：头像hashcode
+                            ## avatarUpdateTime：头像更新时间
+
+                            # 部门（kind：dept）
+                            ## code：代码
+                            ## enName：英文名称
+                            ## parentCode：父级代码
+                            ## type：单位类型
+                            ## independent：是否独立部门
+                            ## abbreviation：简称
+
+                            # 岗位（kind：post）
+                            ## code：代码
+                            ## parentCode：父级代码
+                            ## type：岗位类型
+                            ## formal：是否身份岗
+
+                            # 三元组（kind：occupy）
+                            ## postCode：岗位代码
+                            ## deptCode：组织机构代码
+                            ## personCardType：人员证件类型
+                            ## personCardNo：人员证件号码
+                            ## identityCardType：身份证件类型
+                            ## identityCardNo：身份证件号码
+                            ## startTime：有效期开始日期
+                            ## endTime：有效期结束日期
+                            name:
+                              type: string
+
+                            # 转换表达式
+                            expression:
+                              type: object
+                              properties:
+                                # 表达式值
+                                value:
+                                  type: string
+
+                      # 对应的治理规则
+                      rule:
+                        type: object
+                        properties:
+                          # 规则类型，默认 include
+                          kind:
+                            type: string
+                            enum:
+                              - include
+                              - exclude
+                          # 是否启用，默认false
+                          enabled:
+                            type: boolean
+                          # 挂载点，仅 kind 为 dept/post 支持
+                          mount:
+                            type: object
+                            properties:
+                              # 挂载分类
+                              category:
+                                type: string
+                              # 挂载路径
+                              path:
+                                type: string
+
+
+
+                # 多租信息
+                tenant:
+                  type: object
+                  required:
+                    - multitenancy
+                  properties:
+                    # 租户编码
+                    name:
+                      type: string
+                    # 是否支持多租。为true时，租户必须为 "localhost"
+                    multitenancy:
+                      type: boolean

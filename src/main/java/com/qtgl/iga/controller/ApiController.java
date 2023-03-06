@@ -3,6 +3,10 @@ package com.qtgl.iga.controller;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.qtgl.iga.bean.QUserSource.Field;
+import com.qtgl.iga.bean.QUserSource.QUserSource;
+import com.qtgl.iga.bean.QUserSource.Rule;
+import com.qtgl.iga.bean.QUserSource.Sources;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.TenantDao;
 import com.qtgl.iga.dao.UpstreamDao;
@@ -28,10 +32,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.stream.Collectors;
 
 /**
  * @author rcc
@@ -188,143 +191,57 @@ public class ApiController {
 
     @PostMapping(value = "/bootstrap")
     @ResponseBody
-    public JSONObject postBootstrap(HttpServletRequest request) {
+    public void postBootstrap(HttpServletRequest request) {
         String resource = request.getParameter("resource");
         logger.info(resource);
-        //resource = "{\n" +
-        //        "  \"apiVersion\": \"apiextensions.k8s.io/v1\",\n" +
-        //        "  \"kind\": \"CustomResourceDefinition\",\n" +
-        //        "  \"metadata\": {\n" +
-        //        "    \"name\": \"qdatasource.ketanyun.cn\"\n" +
-        //        "  },\n" +
-        //        "  \"spec\": {\n" +
-        //        "    \"type\": \"object\",\n" +
-        //        "    \"required\": [\n" +
-        //        "      \"upstream\"\n" +
-        //        "    ],\n" +
-        //        "    \"upstream\": {\n" +
-        //        "      \"code\": \"0428\",\n" +
-        //        "      \"name\": \"LQZTEST\",\n" +
-        //        "      \"dataCode\": \" \",\n" +
-        //        "      \"color\": \" \",\n" +
-        //        "      \"tenant\": \"devel.ketanyun.cn\",\n" +
-        //        "      \"upstreamTypes\": {\n" +
-        //        "      \"dept\": [\n" +
-        //        "        {\n" +
-        //        "          \"treeType\": \"01\",\n" +
-        //        "          \"description\": \"0428测试部门\",\n" +
-        //        "          \"clientId\": \"gDGqfDGm8OrJAXCFDiuI\",\n" +
-        //        "          \"node\": {\n" +
-        //        "               \"code\": \" 01\",\n" +
-        //        "                 \"treeType\": \"01\"\n" +
-        //        "            }\n" +
-        //        "        }\n" +
-        //        "      ],\n" +
-        //        "		\"post\": [\n" +
-        //        "        {\n" +
-        //        "          \"description\": \"0428测试岗位\",\n" +
-        //        "          \"clientId\": \"gDGqfDGm8OrJAXCFDiuI\",\n" +
-        //        "          \"node\": {\n" +
-        //        "                \"code\": \" \" \n" +
-        //        "            }\n" +
-        //        "        }\n" +
-        //        "      ],\n" +
-        //        "		\"person\": [\n" +
-        //        "        {\n" +
-        //        "          \"description\": \"0428测试人员\",\n" +
-        //        "          \"clientId\": \"gDGqfDGm8OrJAXCFDiuI\" \n" +
-        //        "        }\n" +
-        //        "      ],\n" +
-        //        " 		\"occupy\": [\n" +
-        //        "        {\n" +
-        //        "          \"description\": \"0428测试人员身份\",\n" +
-        //        "          \"clientId\": \"gDGqfDGm8OrJAXCFDiuI\" \n" +
-        //        "        }\n" +
-        //        "      ]\n" +
-        //        "    }\n" +
-        //        "    }\n" +
-        //        "  }\n" +
-        //        "}"
-        ;
 
         JSONObject jsonObject = JSONObject.parseObject(resource);
         JSONObject result = new JSONObject();
-
         try {
-            //check(jsonObject);
-            JSONObject metadata = jsonObject.getJSONObject("metadata");
             JSONObject spec = jsonObject.getJSONObject("spec");
-            JSONObject upstreamJson = spec.getJSONObject("upstream");
-            JSONObject upstreamTypesJson = upstreamJson.getJSONObject("upstreamTypes");
+            JSONArray versions = spec.getJSONArray("versions");
+            QUserSource qUserSource = versions.getJSONObject(0).getJSONObject("schema")
+                    .getJSONObject("openAPIV3Schema").getJSONObject("spec").toJavaObject(QUserSource.class);
+            // 验证json格式是否合法
 
-            if (metadata == null || spec == null || null == upstreamJson || null == upstreamTypesJson) {
-                throw new CustomException(ResultCode.INVALID_PARAMETER, "INVALID_PARAMETER");
-            }
-
-            String tenant = upstreamJson.getString("tenant");
-            DomainInfo domainInfo = new DomainInfo();
+            String tenant = qUserSource.getTenant().getTenantName();
+            DomainInfo domainInfo = null;
             //检查租户
             if (StringUtils.isBlank(tenant)) {
-                throw new CustomException(ResultCode.INVALID_PARAMETER, "INVALID_PARAMETER");
+                logger.error("[bootstrap] 租户信息为空");
+                return;
             } else {
                 domainInfo = domainInfoService.getByDomainName(tenant);
                 if (domainInfo == null) {
-                    throw new CustomException(ResultCode.INVALID_PARAMETER, "INVALID_DOMAIN");
+                    logger.error("[bootstrap] 租户:{} 匹配不到", tenant);
+                    return;
                 }
             }
             //处理权威源
-            Upstream upstream = getUpstream(upstreamJson, domainInfo);
+            Upstream upstream = setUpstream(qUserSource, domainInfo);
             //判重
-            upstreamDao.findByAppNameAndAppCode(upstream.getAppName(), upstream.getAppCode(), domainInfo.getId());
+            List<Map<String, Object>> byAppNameAndAppCode = upstreamDao.findByAppNameAndAppCode(upstream.getAppName(), upstream.getAppCode(), domainInfo.getId());
+            if (null != byAppNameAndAppCode && byAppNameAndAppCode.size() > 0) {
+                logger.error("[bootstrap] 权威源名称或则代码重复");
+                return;
+            }
             //处理权威源类型及node
-            JSONArray deptJson = upstreamTypesJson.getJSONArray("dept");
-            JSONArray postJson = upstreamTypesJson.getJSONArray("post");
-            JSONArray personJson = upstreamTypesJson.getJSONArray("person");
-            JSONArray occupyJson = upstreamTypesJson.getJSONArray("occupy");
             List<UpstreamType> upstreamTypes = new ArrayList<>();
             List<Node> nodes = new ArrayList<>();
             List<NodeRules> nodeRulesList = new ArrayList<>();
+            List<NodeRulesRange> nodeRulesRangeList = new ArrayList<>();
+            List<UpstreamTypeField> fields = new ArrayList<>();
             long now = System.currentTimeMillis();
-            //组织机构
-            if (null != deptJson) {
-                dealUpstreamTypeAndNodes(deptJson, "dept", now, domainInfo, upstreamTypes, nodes, nodeRulesList, upstream);
+            for (Sources source : qUserSource.getSources()) {
+                dealUpstreamTypeAndNodes(source, now, domainInfo, upstreamTypes, fields, nodes, nodeRulesList, nodeRulesRangeList, upstream);
             }
-            if (null != postJson) {
-                dealUpstreamTypeAndNodes(postJson, "post", now, domainInfo, upstreamTypes, nodes, nodeRulesList, upstream);
-            }
-            if (null != personJson) {
-                dealUpstreamTypeAndNodes(personJson, "person", now, domainInfo, upstreamTypes, nodes, nodeRulesList, upstream);
-            }
-            if (null != occupyJson) {
-                dealUpstreamTypeAndNodes(occupyJson, "occupy", now, domainInfo, upstreamTypes, nodes, nodeRulesList, upstream);
-            }
-            //List<UpstreamType> upstreamTypes = getUpstreamTypes(upstream, upstreamTypesJson, domainInfo);
-
-            //UpstreamDto upstreamDto = new UpstreamDto(upstream);
             //权威源类型
             //upstreamDto.setUpstreamTypes(upstreamTypes);
-            upstreamService.saveUpstreamAndTypesAndRoleBing(upstream, upstreamTypes, nodes, nodeRulesList, domainInfo);
-
-            result.put("code", 200);
-            result.put("status", "success");
-            result.put("message", "添加成功");
-
-        } catch (CustomException e) {
-            e.printStackTrace();
-            result.put("code", 500);
-            result.put("status", "failed");
-            result.put("message", e.getErrorMsg());
-            logger.error(e + "");
-            return result;
+            upstreamService.saveUpstreamAndTypesAndRoleBing(upstream, upstreamTypes, nodes, nodeRulesList, nodeRulesRangeList, domainInfo);
         } catch (Exception e) {
             e.printStackTrace();
-            result.put("code", 500);
-            result.put("status", "failed");
-            result.put("message", e.getMessage());
             logger.error(e.getMessage());
-            return result;
         }
-        return result;
     }
 
     private List<UpstreamType> getUpstreamTypes(Upstream upstream, JSONObject upstreamTypesJson, DomainInfo domainInfo) {
@@ -364,17 +281,20 @@ public class ApiController {
         return null;
     }
 
-    private Upstream getUpstream(JSONObject upstreamJson, DomainInfo domainInfo) {
-        String appCode = upstreamJson.getString("code");
-        String appName = upstreamJson.getString("name");
-        String dataCode = upstreamJson.getString("dataCode");
-        String color = upstreamJson.getString("color");
+    private Upstream setUpstream(QUserSource qUserSource, DomainInfo domainInfo) {
+        // 机读
+        String appCode = qUserSource.getName();
+        // 人读
+        String appName = qUserSource.getText();
+        String color = qUserSource.getColor();
         //校验必填参数
         if (StringUtils.isBlank(appCode)) {
-            throw new CustomException(ResultCode.FAILED, "INVALID_PARAMETER");
+            logger.error("[bootstrap] source name is null");
+            throw new CustomException(ResultCode.FAILED, "[bootstrap] source name is null");
         }
         if (StringUtils.isBlank(appName)) {
-            throw new CustomException(ResultCode.FAILED, "INVALID_PARAMETER");
+            logger.error("[bootstrap] source text is null");
+            throw new CustomException(ResultCode.FAILED, "[bootstrap] source text is null");
         }
         Upstream upstream = new Upstream();
         String upstreamId = UUID.randomUUID().toString();
@@ -382,143 +302,144 @@ public class ApiController {
         upstream.setAppCode(appCode);
         upstream.setAppName(appName);
         upstream.setColor(color);
-        upstream.setDataCode(dataCode);
-        upstream.setCreateUser("IGA");
+        upstream.setCreateUser("installer");
         upstream.setActive(true);
         upstream.setDomain(domainInfo.getId());
 
         return upstream;
     }
 
-    private void dealUpstreamTypeAndNodes(JSONArray dataJson, String type, long now, DomainInfo domainInfo, List<UpstreamType> upstreamTypes, List<Node> nodes, List<NodeRules> nodeRulesList, Upstream upstream) {
-        for (int i = 0; i < dataJson.size(); i++) {
-            JSONObject jsonObject = dataJson.getJSONObject(i);
-            String description = jsonObject.getString("description");
-            //校验必填参数
-            if (StringUtils.isBlank(description)) {
-                throw new CustomException(ResultCode.FAILED, "INVALID_PARAMETER");
+    private void dealUpstreamTypeAndNodes(Sources source, long now, DomainInfo domainInfo, List<UpstreamType> upstreamTypes,
+                                          List<UpstreamTypeField> fields, List<Node> nodes, List<NodeRules> nodeRulesList, List<NodeRulesRange> nodeRulesRangeList, Upstream upstream) {
+        //校验必填参数
+
+
+        UpstreamType upstreamType = new UpstreamType();
+        String upstreamTypeId = UUID.randomUUID().toString();
+        upstreamType.setId(upstreamTypeId);
+        upstreamType.setUpstreamId(upstream.getId());
+        upstreamType.setDescription(source.getText() + source.getKind());
+        upstreamType.setSynType(source.getKind());
+        upstreamType.setActive(true);
+        // 如果定义了 app 信息则为推送模式 , 定义了service 则为拉取模式. 0拉取1推送
+        upstreamType.setSynWay(source.getMode().equals("pull") ? 0 : 1);
+        if (source.getMode().equals("push")) {
+            upstreamType.setServiceCode(source.getApp().getName());
+        }
+        upstreamType.setIsPage(true);
+        if (null != source.getService() && null != source.getService().getOperation()) {
+            String serviceName = source.getService().getName();
+            String operationName = source.getService().getOperation().getName();
+            // waring 缺少 graphqlUrl中所需的 "类型" 信息, 但是不影响解析.有方法信息即可执行
+            String graphqlUrl = "bus://%s/%s/query/%s";
+            upstreamType.setGraphqlUrl(String.format(graphqlUrl, serviceName, operationName, operationName));
+            if (null != source.getService().getOperation().getAttributes() &&
+                    source.getService().getOperation().getAttributes().containsKey("pagination")) {
+                Boolean pagination = (Boolean) source.getService().getOperation().getAttributes().get("pagination");
+                upstreamType.setIsPage(pagination);
             }
-            String clientId = jsonObject.getString("clientId");
-            //校验必填参数
-            if (StringUtils.isBlank(clientId)) {
-                throw new CustomException(ResultCode.FAILED, "INVALID_PARAMETER");
-            }
-            JSONObject nodeJson = jsonObject.getJSONObject("node");
-            UpstreamType deptUpstreamType = new UpstreamType();
-            String upstreamTypeId = UUID.randomUUID().toString();
-            deptUpstreamType.setId(upstreamTypeId);
-            deptUpstreamType.setUpstreamId(upstream.getId());
-            deptUpstreamType.setSynWay(0);
-            deptUpstreamType.setActive(true);
-            deptUpstreamType.setServiceCode(clientId);
-            deptUpstreamType.setSynType(type);
-            deptUpstreamType.setDescription(description);
-            deptUpstreamType.setIsPage(false);
-            //校验名称重复
-            List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(deptUpstreamType,domainInfo.getId());
-            if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
-                throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
-            }
-            if (null != nodeJson) {
-                String treeType = nodeJson.getString("treeType");
-                String code = nodeJson.getString("code");
-                //校验必填参数
-                if ("dept".equals(type)) {
-                    if (StringUtils.isBlank(treeType)) {
-                        throw new CustomException(ResultCode.FAILED, "INVALID_PARAMETER");
+            // todo  录取数据可定义 过滤条件
+        }
+
+        //  增量模式开关
+        if (null != source.getStrategies()) {
+            upstreamType.setIsIncremental(source.getStrategies().getIncremental());
+        }
+        // 如果kind 为person or occupy 时, 需要定义合重依据
+        if (source.getKind().equals("user") || source.getKind().equals("occupy")) {
+            upstreamType.setPersonCharacteristic(null != source.getPrincipal().getName() ? source.getPrincipal().getName() : "CARD_NO");
+        }
+
+        //校验名称重复
+        List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType, domainInfo.getId());
+        if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
+            log.error("[bootstrap] 权威源类型描述重复");
+            return;
+            //throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
+        }
+        // 构造字段
+        if (null != source.getFields() && source.getFields().size() > 0) {
+            // 去重,防止重复字段
+            Set<Field> fieldSet = new TreeSet<>(Comparator.comparing(Field::getName));
+            fieldSet.addAll(source.getFields());
+            new ArrayList<>(fieldSet).forEach(field -> {
+                        UpstreamTypeField upstreamTypeField = new UpstreamTypeField();
+                        upstreamTypeField.setId(UUID.randomUUID().toString());
+                        upstreamTypeField.setUpstreamTypeId(upstreamTypeId);
+                        upstreamTypeField.setSourceField(field.getName());
+                        upstreamTypeField.setTargetField(field.getExpression().getValue());
+                        upstreamTypeField.setCreateTime(new Timestamp(new java.util.Date().getTime()));
+                        upstreamTypeField.setUpdateTime(new Timestamp(new java.util.Date().getTime()));
+                        upstreamTypeField.setDomain(domainInfo.getId());
+                        fields.add(upstreamTypeField);
                     }
+            );
+        }
+
+        // 构造规则信息
+
+        //构造 node
+        Node node = new Node();
+        String nodeId = UUID.randomUUID().toString();
+        node.setId(nodeId);
+        node.setCreateTime(now);
+        node.setDomain(domainInfo.getId());
+        node.setNodeCode(" ");
+        node.setStatus(0);
+        node.setType(upstreamType.getSynType());
+        //构造 nodeRule
+        NodeRules nodeRules = new NodeRules();
+        nodeRules.setId(UUID.randomUUID().toString());
+        nodeRules.setNodeId(nodeId);
+        nodeRules.setType(0);
+        nodeRules.setActive(false);
+        if (null != source.getRule()) {
+            nodeRules.setActive(source.getRule().getEnabled());
+        }
+        nodeRules.setActiveTime(now);
+        nodeRules.setServiceKey(upstreamTypeId);
+        nodeRules.setStatus(0);
+        nodeRulesList.add(nodeRules);
+
+        if (source.getKind().equals("dept") || source.getKind().equals("post")) {
+
+            //  source 下 rule 可为空, 则默认挂载到 [dept]单位类型/根节点 or [post]身份岗/根节点
+            //  monut 可能为空, 为空则默认分配
+
+            // todo 定义类型,默认01
+            node.setDeptTreeType("01");
+            node.setNodeCode(" ");
+
+            // 构建rulesRange
+            NodeRulesRange nodeRulesRange = new NodeRulesRange();
+            nodeRulesRange.setId(UUID.randomUUID().toString());
+            nodeRulesRange.setNodeRulesId(nodeRules.getId());
+            //  规则类型 0 挂载 1 排除
+            nodeRulesRange.setType(0);
+            nodeRulesRange.setRange(0);
+            nodeRulesRange.setCreateTime(now);
+            nodeRulesRange.setStatus(0);
+            // source 下 rule 不为空时, 覆盖默认值
+            if (null != source.getRule()) {
+                Rule rule = source.getRule();
+                if (null != rule.getMount()) {
+                    String treeType = rule.getMount().getCategory();
+                    node.setDeptTreeType(treeType);
+                    // 挂载路径, 为空则是根节点
+                    String code = source.getRule().getMount().getPath();
+                    node.setNodeCode(null != code ? code : " ");
                 }
-                //处理node
-                Node node = new Node();
-                String nodeId = UUID.randomUUID().toString();
-                node.setId(nodeId);
-                node.setCreateTime(now);
-                node.setDomain(domainInfo.getId());
-                //node.setManual(node.getManual());
-                node.setNodeCode(StringUtils.isBlank(code) ? " " : code);
-                node.setStatus(0);
-                node.setType(deptUpstreamType.getSynType());
-                node.setDeptTreeType(treeType);
-                nodes.add(node);
-                NodeRules nodeRules = new NodeRules();
-                nodeRules.setId(UUID.randomUUID().toString());
-                nodeRules.setNodeId(nodeId);
-                nodeRules.setType(0);
-                nodeRules.setActive(true);
-                nodeRules.setActiveTime(now);
-                nodeRules.setServiceKey(upstreamTypeId);
-                nodeRules.setStatus(0);
-                nodeRulesList.add(nodeRules);
-            } else {
-                //人员身份和人员
-                //处理node
-                Node node = new Node();
-                String nodeId = UUID.randomUUID().toString();
-                node.setId(nodeId);
-                node.setCreateTime(now);
-                node.setDomain(domainInfo.getId());
-                //node.setManual(node.getManual());
-                node.setNodeCode(" ");
-                node.setStatus(0);
-                node.setType(deptUpstreamType.getSynType());
-                nodes.add(node);
-                NodeRules nodeRules = new NodeRules();
-                nodeRules.setId(UUID.randomUUID().toString());
-                nodeRules.setNodeId(nodeId);
-                nodeRules.setType(0);
-                nodeRules.setActive(true);
-                nodeRules.setActiveTime(now);
-                nodeRules.setServiceKey(upstreamTypeId);
-                nodeRules.setStatus(0);
-                nodeRulesList.add(nodeRules);
+                nodeRulesRange.setType(source.getRule().getKind().equals("exclude") ? 1 : 0);
             }
-            upstreamTypes.add(deptUpstreamType);
+            nodeRulesRangeList.add(nodeRulesRange);
+
         }
+        nodes.add(node);
+
+        upstreamTypes.add(upstreamType);
+
     }
 
-    private void check(JSONObject resource) {
-
-        JSONObject metadata = resource.getJSONObject("metadata");
-        JSONObject spec = resource.getJSONObject("spec");
-        JSONObject upstreamJson = spec.getJSONObject("upstream");
-
-        if (metadata == null || spec == null || null == upstreamJson) {
-            throw new CustomException(ResultCode.INVALID_PARAMETER, "INVALID_PARAMETER");
-        }
-
-        String tenant = upstreamJson.getString("tenant");
-        String appCode = upstreamJson.getString("code");
-        String appName = upstreamJson.getString("name");
-        String dataCode = upstreamJson.getString("dataCode");
-        String color = upstreamJson.getString("color");
-        JSONObject upstreamTypesJson = upstreamJson.getJSONObject("upstreamTypes");
-        JSONArray deptJson = upstreamTypesJson.getJSONArray("dept");
-        JSONArray postJson = upstreamTypesJson.getJSONArray("post");
-        JSONArray personJson = upstreamTypesJson.getJSONArray("person");
-        JSONArray occupyJson = upstreamTypesJson.getJSONArray("occupy");
-
-
-        if (StringUtils.isBlank(tenant)) {
-            throw new CustomException(ResultCode.INVALID_PARAMETER, "INVALID_PARAMETER");
-        } else {
-            DomainInfo domainInfo = domainInfoService.getByDomainName(tenant);
-            if (domainInfo == null) {
-                throw new CustomException(ResultCode.INVALID_PARAMETER, "INVALID_DOMAIN");
-            }
-        }
-        if (StringUtils.isBlank(appCode)) {
-            throw new CustomException(ResultCode.FAILED, "INVALID_PARAMETER");
-        }
-        if (StringUtils.isBlank(appName)) {
-            throw new CustomException(ResultCode.FAILED, "INVALID_PARAMETER");
-        }
-        //if (StringUtils.isBlank(appClientId)) {
-        //    throw new CustomException(ResultCode.FAILED, "INVALID_PARAMETER");
-        //}
-        //if (StringUtils.isBlank(deptTreeType)) {
-        //    throw new CustomException(ResultCode.FAILED, "INVALID_PARAMETER");
-        //}
-    }
 
     @RequestMapping("/invokeTask")
     @ResponseBody
@@ -561,7 +482,7 @@ public class ApiController {
 
     @RequestMapping("/dealWithPerson")
     @ResponseBody
-    public JSONObject dealWithPerson(){
+    public JSONObject dealWithPerson() {
         JSONObject jsonObject = new JSONObject();
 
         try {
@@ -571,7 +492,7 @@ public class ApiController {
             e.printStackTrace();
             jsonObject.put("code", "FAILED");
             jsonObject.put("message", e.getErrorMsg());
-        }catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             jsonObject.put("code", "FAILED");
             jsonObject.put("message", e.getMessage());

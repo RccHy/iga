@@ -204,7 +204,7 @@ public class UpstreamServiceImpl implements UpstreamService {
     }
 
     @Override
-    public void saveUpstreamAndTypesAndRoleBing(Upstream upstream, List<UpstreamType> upstreamTypes, List<Node> nodes, List<NodeRules> nodeRulesList, DomainInfo domainInfo) throws Exception {
+    public void saveUpstreamAndTypesAndRoleBing(Upstream upstream, List<UpstreamType> upstreamTypes, List<Node> nodes, List<NodeRules> nodeRulesList,List<NodeRulesRange> nodeRulesRanges, DomainInfo domainInfo) {
         //// 权威源
         ////判重
         //upstreamDao.findByAppNameAndAppCode(upstreamDto.getAppName(), upstreamDto.getAppCode(), domain);
@@ -249,12 +249,8 @@ public class UpstreamServiceImpl implements UpstreamService {
         occupyPermissions.add("editTriple");
         occupyPermissions.add("deleteTriple");
 
-
         if (!CollectionUtils.isEmpty(nodes) && !CollectionUtils.isEmpty(nodeRulesList)) {
             Map<String, List<NodeRules>> collect = nodeRulesList.stream().collect(Collectors.groupingBy(nodeRules -> nodeRules.getNodeId()));
-            if (CollectionUtils.isEmpty(upstreamTypes)) {
-                throw new CustomException(ResultCode.FAILED, "没有添加权威源权限");
-            }
             Map<String, UpstreamType> upstreamTypeMap = upstreamTypes.stream().collect(Collectors.toMap((upstreamType -> upstreamType.getId()), (upstreamType -> upstreamType)));
             for (Node node : nodes) {
                 if ("dept".equals(node.getType())) {
@@ -305,14 +301,10 @@ public class UpstreamServiceImpl implements UpstreamService {
                     }
                 }
             }
-
-
         }
-
-
         //处理规则
         //HashMap<String, Object> map = dealNodeByUpstreamType(upstreamTypesRes, domain, deptTreeType);
-        upstreamDao.saveUpstreamAndTypesAndNode(upstream, upstreamTypes, nodes, nodeRulesList, domainInfo);
+        upstreamDao.saveUpstreamAndTypesAndNode(upstream, upstreamTypes, nodes, nodeRulesList, nodeRulesRanges,domainInfo);
 
     }
 

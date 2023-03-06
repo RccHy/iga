@@ -24,5 +24,5 @@ public interface UpstreamService {
 
     UpstreamDto updateUpstreamAndTypes(UpstreamDto upstream) throws Exception;
 
-    void saveUpstreamAndTypesAndRoleBing(Upstream upstream, List<UpstreamType> upstreamTypes, List<Node> nodes, List<NodeRules> nodeRulesList, DomainInfo domainInfo) throws Exception;
+    void saveUpstreamAndTypesAndRoleBing(Upstream upstream, List<UpstreamType> upstreamTypes, List<Node> nodes, List<NodeRules> nodeRulesList,List<NodeRulesRange> nodeRulesRanges, DomainInfo domainInfo) throws Exception;
 }

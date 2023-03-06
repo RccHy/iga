@@ -1,13 +1,21 @@
 package com.qtgl.iga;
 
+import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.MonitorRules;
 import com.qtgl.iga.service.DomainInfoService;
 import com.qtgl.iga.service.MonitorRulesService;
+import com.qtgl.iga.utils.DataBusUtil;
+import com.qtgl.iga.utils.UrlUtil;
+import com.qtgl.iga.utils.webSocket.ReConnectWebSocketClient;
+import com.qtgl.iga.utils.webSocket.SubWebSocket;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Resource;
+import java.net.URI;
 import java.util.List;
 
 @Component
@@ -19,16 +27,21 @@ public class AutoUpRunner implements CommandLineRunner {
     @Autowired
     MonitorRulesService monitorRulesService;
 
+    @Autowired
+    SubWebSocket subWebSocket;
+
+
     @Override
     public void run(String... args) throws Exception {
         List<DomainInfo> all = domainInfoService.findAll();
-        if (null != all) {
+        if (null != all&&all.size()>0) {
             for (DomainInfo domainInfo : all) {
                 // 【对 2022-11月前版本增加，自动增加对没有设置限制规则的环境，  默认限制 50%删除 上限】
                 List<MonitorRules> monitorRules = monitorRulesService.findAll(domainInfo.getId(), null);
                 if (null == monitorRules || monitorRules.size() <= 0) {
                     monitorRulesService.initialization(domainInfo.getId());
                 }
+                subWebSocket.listening(domainInfo);
             }
         }
     }

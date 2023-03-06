@@ -1,5 +1,6 @@
 package com.qtgl.iga.bo;
 
+import lombok.Builder;
 import lombok.Data;
 
 import java.sql.Timestamp;

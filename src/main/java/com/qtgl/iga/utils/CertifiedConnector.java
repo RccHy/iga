@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.service.DeptRelationTypeService;
 import com.qtgl.iga.service.DomainInfoService;
+import com.qtgl.iga.utils.webSocket.SubWebSocket;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.oltu.oauth2.common.utils.OAuthUtils;
@@ -40,6 +41,8 @@ public class CertifiedConnector {
     DomainInfoService domainInfoService;
     @Autowired
     DeptRelationTypeService deptRelationTypeService;
+    @Autowired
+    SubWebSocket subWebSocket;
     @Value("${sso.introspect.url}")
     String url;
 
@@ -104,6 +107,8 @@ public class CertifiedConnector {
             byDomainName = new DomainInfo(domainName, null, new Timestamp(System.currentTimeMillis()), 0, certifiedConnector.clientId, certifiedConnector.clientSecret);
             try {
                 certifiedConnector.domainInfoService.install(byDomainName);
+                // 租户初始化完成后,开启监听
+                subWebSocket.listening(byDomainName);
                 //GraphQLService.setDomainGraphQLMap(certifiedConnector.runner.buildGraphql());
             } catch (Exception e) {
                 e.printStackTrace();

@@ -21,9 +21,9 @@ public interface UpstreamDao {
 
     ArrayList<Upstream> getUpstreams(String id, String domain);
 
-    Integer saveUpstreamAndTypesAndNode(Upstream upstream, List<UpstreamType> upstreamTypes, List<Node> nodes, List<NodeRules> nodeRulesList, DomainInfo domainInfo);
+    Integer saveUpstreamAndTypesAndNode(Upstream upstream, List<UpstreamType> upstreamTypes, List<Node> nodes, List<NodeRules> nodeRulesList, List<NodeRulesRange> nodeRulesRangeList, DomainInfo domainInfo);
 
-    void findByAppNameAndAppCode(String appName, String appCode, String domain);
+    List<Map<String, Object>> findByAppNameAndAppCode(String appName, String appCode, String domain);
 
     ArrayList<Upstream> findByDomainAndActiveIsFalse(String id);
 
