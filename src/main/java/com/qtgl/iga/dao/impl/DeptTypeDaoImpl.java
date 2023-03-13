@@ -19,7 +19,7 @@ import java.util.*;
 @Component
 public class DeptTypeDaoImpl implements DeptTypeDao {
 
-
+    //todo 超级租户处理  单位类型
     @Resource(name = "jdbcIGA")
     JdbcTemplate jdbcIGA;
 

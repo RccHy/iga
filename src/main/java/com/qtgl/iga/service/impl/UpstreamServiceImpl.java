@@ -1,6 +1,7 @@
 package com.qtgl.iga.service.impl;
 
 
+import com.qtgl.iga.AutoUpRunner;
 import com.qtgl.iga.bean.UpstreamDto;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.NodeRulesDao;
@@ -37,8 +38,38 @@ public class UpstreamServiceImpl implements UpstreamService {
     NodeRulesService nodeRulesService;
 
     @Override
-    public List<Upstream> findAll(Map<String, Object> arguments, String domain) {
-        return upstreamDao.findAll(arguments, domain);
+    public List<UpstreamDto> findAll(Map<String, Object> arguments, String domain) {
+        List<Upstream> upstreamList = upstreamDao.findAll(arguments, domain);
+        if (!CollectionUtils.isEmpty(upstreamList)) {
+            ArrayList<UpstreamDto> upstreamDtos = new ArrayList<>();
+            ArrayList<Upstream> upstreams = distinctSuperUpstream(upstreamList);
+            for (Upstream upstream : upstreams) {
+                UpstreamDto upstreamDto = new UpstreamDto(upstream);
+                if(!upstream.getDomain().equals(AutoUpRunner.superDomainId)){
+                    upstreamDto.setLocal(true);
+                }else {
+                    upstreamDto.setLocal(false);
+                }
+                upstreamDtos.add(upstreamDto);
+            }
+            return upstreamDtos;
+        }
+        return new ArrayList<>();
+    }
+
+    private ArrayList<Upstream> distinctSuperUpstream(List<Upstream> upstreamList) {
+        HashMap<String, Upstream> map = new HashMap<>();
+        for (Upstream upstream : upstreamList) {
+            if (map.containsKey(upstream.getAppName() + "_" + upstream.getAppCode())) {
+                if (!upstream.getDomain().equals(AutoUpRunner.superDomainId)) {
+                    map.put(upstream.getAppName() + "_" + upstream.getAppCode(), upstream);
+                }
+            } else {
+                map.put(upstream.getAppName() + "_" + upstream.getAppCode(), upstream);
+            }
+        }
+
+        return new ArrayList<>(map.values());
     }
 
     @Override
@@ -111,7 +142,7 @@ public class UpstreamServiceImpl implements UpstreamService {
             for (UpstreamType upstreamType : upstreamTypes) {
                 upstreamType.setUpstreamId(upstream.getId());
                 //校验名称重复
-                List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType,domain);
+                List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType, domain);
                 if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
                     throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
                 }
@@ -140,9 +171,15 @@ public class UpstreamServiceImpl implements UpstreamService {
         //查询权威源
         List<Upstream> upstreamList = upstreamDao.findAll(arguments, id);
         //查询权威源类型
-        if (null != upstreamList && upstreamList.size() > 0) {
+        if (!CollectionUtils.isEmpty(upstreamList)) {
+            upstreamList = distinctSuperUpstream(upstreamList);
             for (Upstream upstream : upstreamList) {
                 UpstreamDto upstreamDto = new UpstreamDto(upstream);
+                if(!upstream.getDomain().equals(AutoUpRunner.superDomainId)){
+                    upstreamDto.setLocal(true);
+                }else {
+                    upstreamDto.setLocal(false);
+                }
                 List<UpstreamType> byUpstreamId = upstreamTypeDao.findByUpstreamId(upstream.getId());
                 upstreamDto.setUpstreamTypes(byUpstreamId);
                 upstreamDtos.add(upstreamDto);
@@ -179,7 +216,7 @@ public class UpstreamServiceImpl implements UpstreamService {
             for (UpstreamType upstreamType : upstreamTypes) {
                 UpstreamType upstreamResult = null;
                 //校验名称重复
-                List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType,upstreamDto.getDomain());
+                List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType, upstreamDto.getDomain());
                 if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
                     throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
                 }
@@ -308,8 +345,40 @@ public class UpstreamServiceImpl implements UpstreamService {
 
     }
 
+    @Override
+    public ArrayList<Upstream> findByDomainAndActiveIsFalse(String domainId) {
+        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domainId);
+        if(!CollectionUtils.isEmpty(upstreams)){
+           return distinctSuperUpstream(upstreams);
+        }
+        return upstreams;
+    }
+
+    @Override
+    public ArrayList<Upstream> getUpstreams(String upstreamId, String domainId) {
+        ArrayList<Upstream> upstreams = upstreamDao.getUpstreams(upstreamId, domainId);
+        if(!CollectionUtils.isEmpty(upstreams)){
+            return  distinctSuperUpstream(upstreams);
+        }
+        return upstreams;
+    }
+
+    @Override
+    public ArrayList<Upstream> findByOtherUpstream(List<String> ids,String domain) {
+        ArrayList<Upstream> otherDomain = upstreamDao.findByOtherUpstream(ids,domain);
+        if(!CollectionUtils.isEmpty(otherDomain)){
+            return  distinctSuperUpstream(otherDomain);
+        }
+        return otherDomain;
+    }
+
+    @Override
+    public List<Upstream> findByUpstreamTypeIds(ArrayList<String> ids,String domainId) {
+        return upstreamDao.findByUpstreamTypeIds(ids,domainId);
+    }
+
     @Transactional
-    public HashMap<String, Object> dealNodeByUpstreamType(ArrayList<UpstreamType> list, String domain, String deptTreeType) throws Exception {
+    public HashMap<String, Object> dealNodeByUpstreamType(ArrayList<UpstreamType> list, String domain, String deptTreeType) {
         long now = System.currentTimeMillis();
         List<Node> nodes = new ArrayList<>();
         List<NodeRules> nodeRulesList = new ArrayList<>();

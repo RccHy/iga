@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class OccupyDaoImpl implements OccupyDao {
 
-
+    //todo 人员身份预览(已弃用) 超级租户处理
     @Resource(name = "jdbcSSO")
     JdbcTemplate jdbcSSO;
     @Resource(name = "jdbcIGA")

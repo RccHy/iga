@@ -41,7 +41,7 @@ public class UpstreamFetcher {
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
             //2。解析查询参数  进行查询
             try {
-                List<Upstream> all = upstreamService.findAll(arguments, domain.getId());
+                List<UpstreamDto> all = upstreamService.findAll(arguments, domain.getId());
                 return all;
             } catch (CustomException e) {
                 e.printStackTrace();

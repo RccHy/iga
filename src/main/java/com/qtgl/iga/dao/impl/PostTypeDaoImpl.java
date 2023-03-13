@@ -19,7 +19,7 @@ import java.util.*;
 @Component
 public class PostTypeDaoImpl implements PostTypeDao {
 
-
+    //todo 岗位类型 超级租户处理
     @Resource(name = "jdbcIGA")
     JdbcTemplate jdbcIGA;
 

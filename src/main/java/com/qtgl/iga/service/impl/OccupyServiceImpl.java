@@ -9,9 +9,7 @@ import com.qtgl.iga.config.PreViewOccupyThreadPool;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.dao.impl.DynamicAttrDaoImpl;
 import com.qtgl.iga.dao.impl.DynamicValueDaoImpl;
-import com.qtgl.iga.service.IncrementalTaskService;
-import com.qtgl.iga.service.OccupyService;
-import com.qtgl.iga.service.PreViewTaskService;
+import com.qtgl.iga.service.*;
 import com.qtgl.iga.task.TaskConfig;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
@@ -46,11 +44,11 @@ public class OccupyServiceImpl implements OccupyService {
     @Autowired
     NodeDao nodeDao;
     @Autowired
-    NodeRulesDao rulesDao;
+    NodeRulesService rulesService;
     @Autowired
     UpstreamTypeDao upstreamTypeDao;
     @Autowired
-    UpstreamDao upstreamDao;
+    UpstreamService upstreamService;
     @Autowired
     CardTypeDao cardTypeDao;
     @Autowired
@@ -104,7 +102,7 @@ public class OccupyServiceImpl implements OccupyService {
      * @return
      */
     @Override
-    public Map<String, List<OccupyDto>> buildOccupy(DomainInfo domain, TaskLog lastTaskLog, TaskLog currentTask) throws Exception {
+    public Map<String, List<OccupyDto>> buildOccupy(DomainInfo domain, TaskLog lastTaskLog, TaskLog currentTask, List<NodeRules> occupyRules) throws Exception {
         //错误数据容器初始化
         occupyErrorData = new ConcurrentHashMap<>();
 
@@ -112,13 +110,56 @@ public class OccupyServiceImpl implements OccupyService {
         if (null == tenant) {
             throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
-        // 所有证件类型
-        List<CardType> cardTypes = cardTypeDao.findAllUser(tenant.getId());
-        Map<String, CardType> userCardTypeMap = cardTypes.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
+
+        Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
+        // 获取规则  (不为sub则获取所有规则)
+        if (CollectionUtils.isEmpty(occupyRules)) {
+            // 获取规则
+            Map<String, Object> arguments = new ConcurrentHashMap<>();
+            arguments.put("type", "occupy");
+            arguments.put("status", 0);
+
+            List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
+            if (null == nodes || nodes.size() <= 0) {
+                log.error("无人员身份管理规则信息");
+                return null;
+            }
+            String nodeId = nodes.get(0).getId();
+            occupyRules = rulesService.getByNodeAndType(nodeId, 1, true, 0);
+            // 获取所有规则 字段，用于更新验证
+            if (null == occupyRules || occupyRules.size() == 0) {
+                log.error("无人员身份管理规则信息");
+                return null;
+            }
+
+            //获取该租户下的当前类型的无效权威源
+            ArrayList<Upstream> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
+            if (!CollectionUtils.isEmpty(upstreams)) {
+                upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
+            }
+        } else {
+            //根据规则获取排除的权威源  及补充规则
+            Set<String> strings = occupyRules.stream().collect(Collectors.groupingBy(NodeRules::getUpstreamTypesId)).keySet();
+
+            List<Upstream> upstreams = upstreamService.findByUpstreamTypeIds(new ArrayList<>(strings), domain.getId());
 
 
-        List<CardType> cardTypes2 = cardTypeDao.findAllFromIdentity(tenant.getId());
-        Map<String, CardType> identityCardTypeMap = cardTypes2.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
+            if (CollectionUtils.isEmpty(upstreams)) {
+                log.error("当前sub 任务提供的规则有误请确认:{}", occupyRules);
+                throw new CustomException(ResultCode.FAILED, "当前sub 任务提供的规则有误请确认");
+            }
+            List<String> ids = upstreams.stream().map(Upstream::getId).collect(Collectors.toList());
+
+            //根据权威源和类型获取需要执行的规则
+            occupyRules = rulesService.findNodeRulesByUpStreamIdAndType(ids, "occupy", domain.getId(), 0);
+            //获取除了该权威源以外的所有权威源(用于sub模式)
+            ArrayList<Upstream> otherDomains = upstreamService.findByOtherUpstream(ids, domain.getId());
+            if (!CollectionUtils.isEmpty(otherDomains)) {
+                upstreamMap = otherDomains.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
+            }
+        }
+
+
         // 存储最终需要操作的数据
         Map<String, List<OccupyDto>> result = new HashMap<>();
         //重复需要删除的sso身份数据
@@ -127,13 +168,6 @@ public class OccupyServiceImpl implements OccupyService {
         Map<String, OccupyDto> occupyDtoFromUpstream = new HashMap<>();
         //增量日志容器
         List<IncrementalTask> incrementalTasks = new ArrayList<>();
-        //获取扩展字段列表
-        List<String> dynamicCodes = new ArrayList<>();
-
-        List<DynamicValue> dynamicValues = new ArrayList<>();
-
-        List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
-        log.info("获取到当前租户{}的映射字段集为{}", tenant.getId(), dynamicAttrs);
 
         //扩展字段修改容器
         Map<String, DynamicValue> valueUpdateMap = new ConcurrentHashMap<>();
@@ -142,44 +176,8 @@ public class OccupyServiceImpl implements OccupyService {
         Map<String, DynamicValue> valueInsertMap = new ConcurrentHashMap<>();
         ArrayList<DynamicValue> valueInsert = new ArrayList<>();
 
-        if (!CollectionUtils.isEmpty(dynamicAttrs)) {
-            dynamicCodes = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getCode()).collect(Collectors.toList());
-            //获取扩展value
-            List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getId()).collect(Collectors.toList());
 
-            dynamicValues = dynamicValueDao.findAllByAttrId(attrIds, tenant.getId());
-        }
-
-        //扩展字段值分组
-        Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
-        if (!CollectionUtils.isEmpty(dynamicValues)) {
-            valueMap = dynamicValues.stream().filter(dynamicValue -> !StringUtils.isBlank(dynamicValue.getEntityId())).collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
-        }
-        List<String> finalDynamicCodes = dynamicCodes;
-        Map<String, List<DynamicValue>> finalValueMap = valueMap;
-
-        //扩展字段id与code对应map
-        Map<String, String> attrMap = new ConcurrentHashMap<>();
-        Map<String, String> attrReverseMap = new ConcurrentHashMap<>();
-
-        // 获取规则
-        Map arguments = new ConcurrentHashMap();
-        arguments.put("type", "occupy");
-        arguments.put("status", 0);
-
-        List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
-        if (null == nodes || nodes.size() <= 0) {
-            log.error("无人员身份管理规则信息");
-            return null;
-        }
-        String nodeId = nodes.get(0).getId();
-        List<NodeRules> occupyRules = rulesDao.getByNodeAndType(nodeId, 1, true, 0);
-        // 获取所有规则 字段，用于更新验证
-        if (null == occupyRules || occupyRules.size() == 0) {
-            log.error("无人员身份管理规则信息");
-            return null;
-        }
-        dataProcessing(nodes, occupyRules, domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream, incrementalTasks, currentTask, dynamicAttrs, valueUpdateMap, valueInsertMap, finalDynamicCodes, finalValueMap, attrMap, attrReverseMap);
+        dataProcessing(occupyRules, domain, tenant, result, deleteFromSSO, occupyDtoFromUpstream, incrementalTasks, currentTask, valueUpdateMap, valueInsertMap, upstreamMap);
 
         List<OccupyDto> occupiesFromSSO = occupyDao.findAll(tenant.getId(), null, null);
 
@@ -255,8 +253,50 @@ public class OccupyServiceImpl implements OccupyService {
         }
     }
 
-    private List<OccupyDto> dataProcessing(List<Node> nodes, List<NodeRules> occupyRules, DomainInfo domain, Tenant tenant, Map<String, CardType> userCardTypeMap, Map<String, CardType> identityCardTypeMap, Map arguments, Map<String, List<OccupyDto>> result, ArrayList<OccupyDto> deleteFromSSO, Map<String, OccupyDto> occupyDtoFromUpstream, List<IncrementalTask> incrementalTasks, TaskLog currentTask,
-                                           List<DynamicAttr> dynamicAttrs, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, List<String> finalDynamicCodes, Map<String, List<DynamicValue>> finalValueMap, Map<String, String> attrMap, Map<String, String> attrReverseMap) {
+    private List<OccupyDto> dataProcessing(List<NodeRules> occupyRules, DomainInfo domain, Tenant tenant, Map<String, List<OccupyDto>> result, ArrayList<OccupyDto> deleteFromSSO, Map<String, OccupyDto> occupyDtoFromUpstream, List<IncrementalTask> incrementalTasks, TaskLog currentTask,
+                                           Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, Upstream> upstreamMap) {
+
+        // 所有证件类型
+        List<CardType> cardTypes = cardTypeDao.findAllUser(tenant.getId());
+        Map<String, CardType> userCardTypeMap = cardTypes.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
+
+
+        //List<CardType> cardTypes2 = cardTypeDao.findAllFromIdentity(tenant.getId());
+        //Map<String, CardType> identityCardTypeMap = cardTypes2.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
+        //获取扩展字段列表
+        List<String> dynamicCodes = new ArrayList<>();
+
+        List<DynamicValue> dynamicValues = new ArrayList<>();
+
+        //扩展字段id与code对应map
+        Map<String, String> attrMap = new ConcurrentHashMap<>();
+        Map<String, String> attrReverseMap = new ConcurrentHashMap<>();
+
+        List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
+        log.info("获取到当前租户{}的映射字段集为{}", tenant.getId(), dynamicAttrs);
+        if (!CollectionUtils.isEmpty(dynamicAttrs)) {
+            dynamicCodes = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getCode()).collect(Collectors.toList());
+            //获取扩展value
+            List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getId()).collect(Collectors.toList());
+
+            dynamicValues = dynamicValueDao.findAllByAttrId(attrIds, tenant.getId());
+        }
+
+        //扩展字段值分组
+        Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(dynamicValues)) {
+            valueMap = dynamicValues.stream().filter(dynamicValue -> !StringUtils.isBlank(dynamicValue.getEntityId())).collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
+        }
+        List<String> finalDynamicCodes = dynamicCodes;
+        Map<String, List<DynamicValue>> finalValueMap = valueMap;
+        //扩展字段逻辑处理
+        if (!CollectionUtils.isEmpty(dynamicAttrs)) {
+            attrMap = dynamicAttrs.stream().collect(Collectors.toMap(DynamicAttr::getId, DynamicAttr::getCode));
+            attrReverseMap = dynamicAttrs.stream().collect(Collectors.toMap(DynamicAttr::getCode, DynamicAttr::getId));
+        }
+
+        Map<String, String> finalAttrMap = attrMap;
+        Map<String, String> finalAttrReverseMap = attrReverseMap;
 
 
         // 获取sso中所有人员，用于验证 身份信息是否合法
@@ -286,63 +326,13 @@ public class OccupyServiceImpl implements OccupyService {
         List<OccupyDto> occupiesFromSSO = occupyDao.findAll(tenant.getId(), null, null);
         log.info("数据库中人员身份数据获取完成:{}", occupiesFromSSO.size());
         //处理数据库重复身份数据
-        ConcurrentHashMap<String, OccupyDto> concurrentHashMap = new ConcurrentHashMap<>();
-        for (OccupyDto occupyDto : occupiesFromSSO) {
-            String key = occupyDto.getPersonId() + ":" + occupyDto.getDeptCode() + ":" + occupyDto.getPostCode();
-            //已有相同标识的身份
-            if (concurrentHashMap.containsKey(key)) {
-                OccupyDto occupyDtoFromMap = concurrentHashMap.get(key);
-                //当前身份有效
-                if (1 == occupyDto.getActive()) {
-                    //对比map中身份是否有效
-                    if (1 == occupyDtoFromMap.getActive()) {
-                        // 均有效则对比是否有工号 usercode
-                        if (StringUtils.isNotBlank(occupyDto.getIdentityCardNo())) {
-                            if (StringUtils.isNotBlank(occupyDtoFromMap.getIdentityCardNo())) {
-                                //均有工号则对比修改时间
-                                if (occupyDto.getUpdateTime().isAfter(occupyDtoFromMap.getUpdateTime())) {
-                                    //当前数据更新迟于map中
-                                    deleteFromSSO.add(occupyDtoFromMap);
-                                    concurrentHashMap.put(key, occupyDto);
-                                } else {
-                                    deleteFromSSO.add(occupyDtoFromMap);
-                                }
-                            } else {
-                                //map中身份无工号
-                                deleteFromSSO.add(occupyDtoFromMap);
-                                concurrentHashMap.put(key, occupyDto);
-                            }
-                        } else {
-                            //当前身份无工号
-                            deleteFromSSO.add(occupyDto);
-                        }
-                    } else {
-                        //map中身份无效
-                        deleteFromSSO.add(occupyDtoFromMap);
-                        concurrentHashMap.put(key, occupyDto);
-                    }
-                } else {
-                    //当前身份无效
-                    deleteFromSSO.add(occupyDto);
-                }
-            } else {
-                concurrentHashMap.put(key, occupyDto);
-            }
-        }
+        ConcurrentHashMap<String, OccupyDto> concurrentHashMap = dealWithSsoOccupy(deleteFromSSO, occupiesFromSSO);
         occupiesFromSSO = new ArrayList<>(concurrentHashMap.values());
         final Map<String, OccupyDto> occupiesFromSSOIdentityMap = occupiesFromSSO.stream().filter(occupyDto ->
                 StringUtils.isNotBlank(occupyDto.getIdentityCardType()) && StringUtils.isNotBlank(occupyDto.getIdentityCardNo()))
                 .collect(Collectors.toMap(occupyDto -> (occupyDto.getIdentityCardType() + ":" + occupyDto.getIdentityCardNo()), occupyDto -> occupyDto, (v1, v2) -> v2));
         log.info("数据库中人员身份数据经过重复过滤后:{}", occupiesFromSSOIdentityMap.size());
 
-        //扩展字段逻辑处理
-        if (!CollectionUtils.isEmpty(dynamicAttrs)) {
-            attrMap = dynamicAttrs.stream().collect(Collectors.toMap(DynamicAttr::getId, DynamicAttr::getCode));
-            attrReverseMap = dynamicAttrs.stream().collect(Collectors.toMap(DynamicAttr::getCode, DynamicAttr::getId));
-        }
-
-        Map<String, String> finalAttrMap = attrMap;
-        Map<String, String> finalAttrReverseMap = attrReverseMap;
 
         //获取租户下所有 "身份"权威源类型，根据类型的 人员匹配字段，定义的map，优化内存
 
@@ -379,12 +369,13 @@ public class OccupyServiceImpl implements OccupyService {
                 errorDataProcessing(domain);
                 throw new CustomException(ResultCode.NO_PERSON_CHARACTERISTIC, null, null, "人员身份", upstreamType.getId());
             }
-            ArrayList<Upstream> upstreams = upstreamDao.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
+            ArrayList<Upstream> upstreams = upstreamService.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
             if (CollectionUtils.isEmpty(upstreams)) {
                 log.error("人员身份对应拉取节点规则'{}'无权威源数据", rules.getId());
                 errorDataProcessing(domain);
                 throw new CustomException(ResultCode.NO_UPSTREAM, null, null, "人员身份", rules.getId());
             }
+            //根据身份主体 处理sso数据
             switch (findPersonKey) {
                 case "CARD_TYPE_NO":
                     if (null == personFromSSOMap) {
@@ -447,7 +438,7 @@ public class OccupyServiceImpl implements OccupyService {
 
 
             final LocalDateTime now = LocalDateTime.now();
-            JSONArray dataByBus = null;
+            JSONArray dataByBus;
             try {
                 dataByBus = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
             } catch (CustomException e) {
@@ -462,307 +453,24 @@ public class OccupyServiceImpl implements OccupyService {
                 throw new CustomException(ResultCode.OCCUPY_ERROR, null, null, upstreamType.getDescription(), e.getMessage());
             }
             List<OccupyDto> occupies = new ArrayList<>();
-            // TaskConfig.errorData.put(domain.getId(), JSON.toJSONString(JSON.toJSON(occupies)));
+
             ArrayList<OccupyDto> resultOccupies = new ArrayList<>();
             if (null != dataByBus) {
-                for (Object o : dataByBus) {
-                    JSONObject occupyObj = JSON.parseObject(JSON.toJSONString(o));
-                    if (null != occupyObj.getTimestamp(TreeEnum.UPDATE_TIME.getCode())) {
-                        occupyObj.put(TreeEnum.UPDATE_TIME.getCode(), occupyObj.getTimestamp(TreeEnum.UPDATE_TIME.getCode()));
+                getOccupy(domain, occupyDtoFromUpstream, userCardTypeMap, finalDynamicCodes, deptFromSSOMap, postFromSSOMap, personFromSSOMap, personFromSSOMapByAccount, personFromSSOMapByCardNo, personFromSSOMapByPhone, personFromSSOMapByEmail, personFromSSOMapByOpenid, mergePersonFromSSOMap, mergePersonFromSSOMapByAccount, mergePersonFromSSOMapByCardNo, mergePersonFromSSOMapByPhone, mergePersonFromSSOMapByEmail, rules, upstreamType, findPersonKey, upstreams, now, dataByBus, occupies, resultOccupies);
+                if (!CollectionUtils.isEmpty(occupyDtoFromUpstream)) {
+                    //权威源类型为增量则添加对应的增量同步日志
+                    if (null != currentTask && null != upstreamType.getIsIncremental() && upstreamType.getIsIncremental() && !CollectionUtils.isEmpty(resultOccupies)) {
+                        addIncrementalTask(domain, currentTask, upstreamType, resultOccupies);
                     }
-                    if (null != occupyObj.getTimestamp(TreeEnum.START_TIME.getCode())) {
-                        occupyObj.put(TreeEnum.START_TIME.getCode(), occupyObj.getTimestamp(TreeEnum.START_TIME.getCode()));
-                    }
-                    if (null != occupyObj.getTimestamp(TreeEnum.END_TIME.getCode())) {
-                        occupyObj.put(TreeEnum.END_TIME.getCode(), occupyObj.getTimestamp(TreeEnum.END_TIME.getCode()));
-                    }
-                    OccupyDto occupyDto = occupyObj.toJavaObject(OccupyDto.class);
-                    if (StringUtils.isBlank(occupyDto.getPostCode())) {
-                        log.error("人员身份信息岗位代码为空{}", occupyDto);
-                        extracted(domain, occupyDto, "人员身份信息岗位代码为空");
-                        continue;
-                    }
-                    if (StringUtils.isBlank(occupyDto.getDeptCode())) {
-                        log.error("人员身份部门代码为空{}", occupyDto);
-                        extracted(domain, occupyDto, "人员身份部门代码为空");
-                        continue;
-                    }
-                    if (null != occupyDto.getActive() && occupyDto.getActive() != 0 && occupyDto.getActive() != 1) {
-                        log.error("人员身份是否有效字段不合法{}", occupyDto.getActive());
-                        extracted(domain, occupyDto, "人员身份是否有效字段不合法");
-                        continue;
-                    }
-                    if (null != occupyDto.getDelMark() && occupyDto.getDelMark() != 0 && occupyDto.getDelMark() != 1) {
-                        log.error("人员身份是否删除字段不合法{}", occupyDto.getDelMark());
-                        extracted(domain, occupyDto, "人员身份是否删除字段不合法");
-                        continue;
-                    }
-
-                    //**************************************************************************************************************************
-                    //**************************************************************************************************************************
-                    // 20220922 删除【 old 人员标识 证件类型、证件号码   OR    用户名 accountNo  OR  身份标识  必提供一个】
-                      /*  if (StringUtils.isBlank(occupyDto.getPersonCardNo()) || StringUtils.isBlank(occupyDto.getPersonCardType())) {
-                            if (StringUtils.isBlank(occupyDto.getAccountNo())) {
-                                if (StringUtils.isBlank(occupyDto.getIdentityCardNo()) || StringUtils.isBlank(occupyDto.getIdentityCardType())) {
-                                    log.error("人员身份信息中人员标识为空{}", occupyDto);
-                                    extracted(domain, occupyDto, "人员身份信息中人员标识为空");
-                                    continue;
-                                } else {
-                                    if (identityCardTypeMap.containsKey(occupyDto.getIdentityCardType())) {
-                                        String cardTypeReg = identityCardTypeMap.get(occupyDto.getIdentityCardType()).getCardTypeReg();
-                                        if (StringUtils.isNotBlank(cardTypeReg) && !Pattern.matches(cardTypeReg, occupyDto.getIdentityCardNo())) {
-                                            log.error("人员身份信息中身份证件号码不符合规则{}", occupyDto);
-                                            extracted(domain, occupyDto, "人员身份信息中身份证件号码不符合规则");
-                                            continue;
-                                        }
-                                    } else {
-                                        log.error("人员身份信息中身份证件类型无效{}", occupyDto);
-                                        extracted(domain, occupyDto, "人员身份信息中身份证件类型无效");
-                                        continue;
-                                    }
-                                }
-
-                            }
-
-                        } else {
-                            if (userCardTypeMap.containsKey(occupyDto.getPersonCardType())) {
-                                String cardTypeReg = userCardTypeMap.get(occupyDto.getPersonCardType()).getCardTypeReg();
-                                if (StringUtils.isNotBlank(cardTypeReg) && !Pattern.matches(cardTypeReg, occupyDto.getPersonCardNo())) {
-                                    log.error("人员身份信息中人员证件号码不符合规则{}", occupyDto);
-                                    extracted(domain, occupyDto, "人员身份信息中人员证件号码不符合规则");
-                                    continue;
-                                }
-                            } else {
-                                log.error("人员身份信息中人员证件类型无效{}", occupyDto);
-                                extracted(domain, occupyDto, "人员身份信息中人员证件类型无效");
-                                continue;
-                            }
-                        }*/
-                    //**************************************************************************************************************************
-                    //**************************************************************************************************************************
-                    // 20220922 新增【权威源指定 匹配人员字段信息：CARD_TYPE_NO:证件类型+证件号码 CARD_NO:仅证件号码 ACCOUNT_NO:用户名 EMAIL:邮箱 CELLPHONE:手机号 OPENID:openid】
-
-                    String personKey = "";
-                    List<Person> persons = new ArrayList<>();
-                    //处理扩展字段
-                    ConcurrentHashMap<String, String> map = null;
-                    if (!CollectionUtils.isEmpty(finalDynamicCodes)) {
-                        map = new ConcurrentHashMap<>();
-                        for (String dynamicCode : finalDynamicCodes) {
-                            if (occupyObj.containsKey(dynamicCode)) {
-                                if (StringUtils.isNotBlank(occupyObj.getString(dynamicCode))) {
-                                    map.put(dynamicCode, occupyObj.getString(dynamicCode));
-                                }
-                            }
-                        }
-                        log.info("处理{}的上游扩展字段值为{}", occupyObj, map);
-                        occupyDto.setDynamic(map);
-                    }
-                    switch (findPersonKey) {
-                        case "CARD_TYPE_NO":
-                            if (StringUtils.isBlank(occupyDto.getPersonCardNo()) || StringUtils.isBlank(occupyDto.getPersonCardType())) {
-                                log.error("【通过证件类型+证件号码匹配人员】证件类型或号码不能为空{}", occupyDto);
-                                extracted(domain, occupyDto, "【通过证件类型+证件号码匹配人员】证件类型或号码不能为空");
-                                continue;
-                            }
-                            if (userCardTypeMap.containsKey(occupyDto.getPersonCardType())) {
-                                String cardTypeReg = userCardTypeMap.get(occupyDto.getPersonCardType()).getCardTypeReg();
-                                if (StringUtils.isNotBlank(cardTypeReg) && !Pattern.matches(cardTypeReg, occupyDto.getPersonCardNo())) {
-                                    log.error("【通过证件类型+证件号码匹配人员】人员身份信息中人员证件号码不符合规则{}", occupyDto);
-                                    extracted(domain, occupyDto, "【通过证件类型+证件号码匹配人员】人员身份信息中人员证件号码不符合规则");
-                                    continue;
-                                }
-                            } else {
-                                log.error("【通过证件类型+证件号码匹配人员】人员身份信息中人员证件类型无效{}", occupyDto);
-                                extracted(domain, occupyDto, "【通过证件类型+证件号码匹配人员】人员身份信息中人员证件类型无效");
-                                continue;
-                            }
-                            /*  去person Map 中 找人信息*/
-                            personKey = occupyDto.getPersonCardType() + ":" + occupyDto.getPersonCardNo();
-                            if (!personFromSSOMap.containsKey(personKey) && !mergePersonFromSSOMap.containsKey(personKey)) {
-                                log.error("【通过证件类型+证件号码匹配人员】人员身份无法找到对应对人员信息{}", personKey);
-                                extracted(domain, occupyDto, "【通过证件类型+证件号码匹配人员】人员身份无法找到对应对人员信息");
-                                continue;
-                            }
-
-                            if (personFromSSOMap.containsKey(personKey)) {
-                                persons = personFromSSOMap.get(personKey);
-                                if (mergePersonFromSSOMap.containsKey(personKey)) {
-                                    persons.addAll(mergePersonFromSSOMap.get(personKey));
-                                }
-                            } else {
-                                persons = mergePersonFromSSOMap.get(personKey);
-                            }
-
-                            if (persons.size() >= 0) {
-                                for (Person person : persons) {
-                                    createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
-                                    log.debug("【通过证件类型+证件号码匹配人员】人员身份通过人员类型+证件获取到人员信息{}", personKey);
-                                }
-                            }
-
-                            break;
-                        case "CARD_NO":
-                            if (StringUtils.isBlank(occupyDto.getPersonCardNo())) {
-                                log.error("【通过证件号码匹配人员】号码不能为空{}", occupyDto);
-                                extracted(domain, occupyDto, "【通过证件号码匹配人员】号码不能为空");
-                                continue;
-                            }
-                            /*  去person Map 中 找人信息*/
-                            personKey = occupyDto.getPersonCardNo();
-                            if (!personFromSSOMapByCardNo.containsKey(personKey) && !mergePersonFromSSOMapByCardNo.containsKey(personKey)) {
-                                log.error("【通过证件号码匹配人员】人员身份无法找到对应对人员信息{}", personKey);
-                                extracted(domain, occupyDto, "【通过证件号码匹配人员】人员身份无法找到对应对人员信息");
-                                continue;
-                            }
-
-                            if (personFromSSOMapByCardNo.containsKey(personKey)) {
-                                persons = personFromSSOMapByCardNo.get(personKey);
-                                if (mergePersonFromSSOMapByCardNo.containsKey(personKey)) {
-                                    persons.addAll(mergePersonFromSSOMapByCardNo.get(personKey));
-                                }
-                            } else {
-                                persons = mergePersonFromSSOMapByCardNo.get(personKey);
-                            }
-                            if (persons.size() >= 0) {
-                                for (Person person : persons) {
-                                    createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
-                                    log.debug("【通过证件号码匹配人员】人员身份找找到人员信息{}", personKey);
-                                }
-                            }
-                            ;
-                            break;
-                        case "USERNAME":
-                            if (StringUtils.isBlank(occupyDto.getAccountNo())) {
-                                log.error("【通过用户名码匹配人员】用户名不能为空{}", occupyDto);
-                                extracted(domain, occupyDto, "【通过用户名匹配人员】用户名不能为空");
-                                continue;
-                            }
-                            /*  去person Map 中 找人信息*/
-                            personKey = occupyDto.getAccountNo();
-                            if (!personFromSSOMapByAccount.containsKey(personKey) && !mergePersonFromSSOMapByAccount.containsKey(personKey)) {
-                                log.error("【通过用户名码匹配人员】人员身份无法找到对应对人员信息{}", personKey);
-                                extracted(domain, occupyDto, "【通过用户名码匹配人员】人员身份无法找到对应对人员信息");
-                                continue;
-                            }
-                            if (personFromSSOMapByAccount.containsKey(personKey)) {
-                                persons = personFromSSOMapByAccount.get(personKey);
-                                if (mergePersonFromSSOMapByAccount.containsKey(personKey)) {
-                                    persons.addAll(mergePersonFromSSOMapByAccount.get(personKey));
-                                }
-                            } else {
-                                persons = mergePersonFromSSOMapByAccount.get(personKey);
-                            }
-                            if (persons.size() >= 0) {
-                                for (Person person : persons) {
-                                    createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
-                                    log.debug("【通过用户名码匹配人员】人员身份找找到人员信息{}", personKey);
-                                }
-                            }
-                            ;
-                            break;
-                        case "EMAIL":
-                            if (StringUtils.isBlank(occupyDto.getEmail())) {
-                                log.error("【通过邮箱匹配人员】邮箱不能为空{}", occupyDto);
-                                extracted(domain, occupyDto, "【通过邮箱匹配人员】邮箱不能为空");
-                                continue;
-                            }
-                            /*  去person Map 中 找人信息*/
-                            personKey = occupyDto.getAccountNo();
-                            if (!personFromSSOMapByEmail.containsKey(personKey) && !mergePersonFromSSOMapByEmail.containsKey(personKey)) {
-                                log.error("【通过邮箱匹配人员】人员身份无法找到对应对人员信息{}", personKey);
-                                extracted(domain, occupyDto, "【通过邮箱匹配人员】人员身份无法找到对应对人员信息");
-                                continue;
-                            }
-                            if (personFromSSOMapByEmail.containsKey(personKey)) {
-                                persons = personFromSSOMapByEmail.get(personKey);
-                                if (mergePersonFromSSOMapByEmail.containsKey(personKey)) {
-                                    persons.addAll(mergePersonFromSSOMapByEmail.get(personKey));
-                                }
-                            } else {
-                                persons = mergePersonFromSSOMapByEmail.get(personKey);
-                            }
-                            if (persons.size() >= 0) {
-                                for (Person person : persons) {
-                                    createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
-                                    log.debug("【通过邮箱匹配人员】人员身份找找到人员信息{}", personKey);
-                                }
-                            }
-                            ;
-                            break;
-                        case "CELLPHONE":
-                            if (StringUtils.isBlank(occupyDto.getCellPhone())) {
-                                log.error("【通过电话匹配人员】电话不能为空{}", occupyDto);
-                                extracted(domain, occupyDto, "【通过电话匹配人员】电话不能为空");
-                                continue;
-                            }
-                            /*  去person Map 中 找人信息*/
-                            personKey = occupyDto.getAccountNo();
-                            if (!personFromSSOMapByPhone.containsKey(personKey) && !mergePersonFromSSOMapByPhone.containsKey(personKey)) {
-                                log.error("【通过电话匹配人员】人员身份无法找到对应对人员信息{}", personKey);
-                                extracted(domain, occupyDto, "【通过电话匹配人员】人员身份无法找到对应对人员信息");
-                                continue;
-                            }
-                            if (personFromSSOMapByPhone.containsKey(personKey)) {
-                                persons = personFromSSOMapByPhone.get(personKey);
-                                if (mergePersonFromSSOMapByPhone.containsKey(personKey)) {
-                                    persons.addAll(mergePersonFromSSOMapByPhone.get(personKey));
-                                }
-                            } else {
-                                persons = mergePersonFromSSOMapByPhone.get(personKey);
-                            }
-                            if (persons.size() >= 0) {
-                                for (Person person : persons) {
-                                    createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
-                                    log.debug("【通过电话匹配人员】人员身份找找到人员信息{}", personKey);
-                                }
-                            }
-                            ;
-                            break;
-                        case "OPENID":
-                            if (StringUtils.isBlank(occupyDto.getOpenId())) {
-                                log.error("【通过OPENID匹配人员】电话不能为空{}", occupyDto);
-                                extracted(domain, occupyDto, "【通过电话匹配人员】电话不能为空");
-                                continue;
-                            }
-                            /*  去person Map 中 找人信息*/
-                            personKey = occupyDto.getOpenId();
-                            if (!personFromSSOMapByOpenid.containsKey(personKey)) {
-                                log.error("【通过OPENID匹配人员】人员身份无法找到对应对人员信息{}", personKey);
-                                extracted(domain, occupyDto, "【通过OPENID匹配人员】人员身份无法找到对应对人员信息");
-                                continue;
-                            }
-                            persons = personFromSSOMapByOpenid.get(personKey);
-                            if (persons.size() >= 0) {
-                                for (Person person : persons) {
-                                    createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
-                                    log.debug("【通过OPENID匹配人员】人员身份找找到人员信息{}", personKey);
-                                }
-                            }
-                            break;
-                    }
-
-                }
-                //权威源类型为增量则添加对应的增量同步日志
-                if (null != currentTask && null != upstreamType.getIsIncremental() && upstreamType.getIsIncremental() && !CollectionUtils.isEmpty(resultOccupies)) {
-                    List<OccupyDto> collect1 = resultOccupies.stream().sorted(Comparator.comparing(OccupyDto::getUpdateTime).reversed()).collect(Collectors.toList());
-                    IncrementalTask incrementalTask = new IncrementalTask();
-                    incrementalTask.setId(UUID.randomUUID().toString());
-                    incrementalTask.setMainTaskId(currentTask.getId());
-                    incrementalTask.setType("occupy");
-                    log.info("类型:{},权威源类型:{},上游增量最大修改时间:{} -> {},当前时刻:{}", upstreamType.getSynType(), upstreamType.getId(), collect1.get(0).getUpdateTime(), collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
-                    long min = Math.min(collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
-                    incrementalTask.setTime(new Timestamp(min));
-                    incrementalTask.setUpstreamTypeId(collect1.get(0).getUpstreamType());
-                    //incrementalTasks.add(incrementalTask);
-                    incrementalTaskService.save(incrementalTask, domain);
+                } else {
+                    log.error("权威源类型:{}提供人员身份数据不符合规范,本次同步跳过该权威源类型", upstreamType.getId());
                 }
             }
 
         }
         log.info("所有人员身份数据获取完成:{}", occupyDtoFromUpstream.size());
-        List<OccupyDto> occupyDtos = new ArrayList<>();
-        if (null != occupyDtoFromUpstream && occupyDtoFromUpstream.size() > 0) {
+        if (!CollectionUtils.isEmpty(occupyDtoFromUpstream)) {
+            List<OccupyDto> occupyDtos = new ArrayList<>();
 
             if (!CollectionUtils.isEmpty(occupiesFromSSO)) {
                 occupyDtos.addAll(occupiesFromSSO);
@@ -771,70 +479,20 @@ public class OccupyServiceImpl implements OccupyService {
             //预置没有变化的人员   未删除的人员身份
             Map<String, OccupyDto> keepOccupyMap = occupyDtos.stream().filter(occupyDto -> !StringUtils.isBlank(occupyDto.getOccupyId()) && occupyDto.getDelMark() != 1).collect(Collectors.toMap(occupyDto -> (occupyDto.getOccupyId()), occupyDto -> occupyDto, (v1, v2) -> v2));
 
-            //获取该租户下的当前类型的无效权威源
-            ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
-            Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
-            if (!CollectionUtils.isEmpty(upstreams)) {
-                upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
-            }
+
             Map<String, OccupyDto> occupiesFromSSOMap = occupiesFromSSO.stream().
                     collect(Collectors.toMap(occupy -> (occupy.getPersonId() + ":" + occupy.getPostCode() + ":" + occupy.getDeptCode()), occupy -> occupy, (v1, v2) -> v2));
-            Map<String, Upstream> finalUpstreamMap = upstreamMap;
+
             //当前时刻
             LocalDateTime now = LocalDateTime.now();
             occupiesFromSSOMap.forEach((key, occupyFromSSO) -> {
-                calculate(occupyDtoFromUpstream, result, key, occupyFromSSO, finalUpstreamMap, preViewOccupyMap, now, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, keepOccupyMap);
+                calculate(occupyDtoFromUpstream, result, key, occupyFromSSO, upstreamMap, preViewOccupyMap, now, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, keepOccupyMap);
             });
             /**
              * 新增 上游提供start,end_time则使用作为最终有效期(如果当前时刻在最终有效期,且标识为状态为失效则为start_time-now()),否则为1970-2100
              */
             occupyDtoFromUpstream.forEach((key, val) -> {
-                if (!occupiesFromSSOMap.containsKey(key) && (occupyDtoFromUpstream.get(key).getDelMark() != 1)) {
-                    if (val.getRuleStatus()) {
-                        val.setOccupyId(UUID.randomUUID().toString());
-
-                        val.setValidStartTime(null != val.getStartTime() ? val.getStartTime() : DEFAULT_START_TIME);
-                        val.setValidEndTime(null != val.getEndTime() ? val.getEndTime() : DEFAULT_END_TIME);
-                        ////如果当前时刻在最终有效期内,其余情况不做处理
-                        //if (!now.isBefore(val.getValidStartTime()) && !now.isAfter(val.getValidEndTime())) {
-                        //    //当前标识位为无效(active=0 失效 或者 del_mark=1 删除  或者 判断为孤儿)
-                        //    if (!(val.getActive() == 1 && val.getDelMark() == 0 && val.getOrphan() == 0)) {
-                        //        val.setValidEndTime(now);
-                        //    }
-                        //}
-
-                        ArrayList<DynamicValue> dynamicValues = new ArrayList<>();
-                        Map<String, String> dynamic = val.getDynamic();
-                        if (!CollectionUtils.isEmpty(dynamic)) {
-                            for (Map.Entry<String, String> str : dynamic.entrySet()) {
-                                DynamicValue dynamicValue = new DynamicValue();
-                                dynamicValue.setId(UUID.randomUUID().toString());
-                                dynamicValue.setValue(str.getValue());
-                                dynamicValue.setEntityId(val.getOccupyId());
-                                dynamicValue.setTenantId(tenant.getId());
-                                dynamicValue.setAttrId(finalAttrReverseMap.get(str.getKey()));
-                                valueInsertMap.put(dynamicValue.getAttrId() + "-" + dynamicValue.getEntityId(), dynamicValue);
-                                //扩展字段预览展示
-                                dynamicValue.setKey(dynamicValue.getAttrId());
-                                dynamicValue.setCode(str.getValue());
-                                dynamicValues.add(dynamicValue);
-                            }
-                        }
-                        val.setAttrsValues(dynamicValues);
-
-                        checkValidTime(val, now, false);
-                        if (result.containsKey("insert")) {
-                            result.get("insert").add(val);
-                        } else {
-                            result.put("insert", new ArrayList<OccupyDto>() {{
-                                this.add(val);
-                            }});
-                        }
-                        log.debug("人员身份对比后新增{}", val);
-                    } else {
-                        log.debug("人员身份{},对应规则未启用,本次跳过该数据", val);
-                    }
-                }
+                calculateInsert(tenant, result, occupyDtoFromUpstream, valueInsertMap, finalAttrReverseMap, occupiesFromSSOMap, now, key, val);
             });
             //处理人员身份预览数据
             occupyDtos = new ArrayList<>(preViewOccupyMap.values());
@@ -850,6 +508,398 @@ public class OccupyServiceImpl implements OccupyService {
             errorDataProcessing(domain);
             throw new CustomException(ResultCode.FAILED, "上游提供人员身份数据不符合规范,数据同步失败");
         }
+    }
+
+    private void calculateInsert(Tenant tenant, Map<String, List<OccupyDto>> result, Map<String, OccupyDto> occupyDtoFromUpstream, Map<String, DynamicValue> valueInsertMap, Map<String, String> finalAttrReverseMap, Map<String, OccupyDto> occupiesFromSSOMap, LocalDateTime now, String key, OccupyDto val) {
+        if (!occupiesFromSSOMap.containsKey(key) && (occupyDtoFromUpstream.get(key).getDelMark() != 1)) {
+            if (val.getRuleStatus()) {
+                val.setOccupyId(UUID.randomUUID().toString());
+
+                val.setValidStartTime(null != val.getStartTime() ? val.getStartTime() : DEFAULT_START_TIME);
+                val.setValidEndTime(null != val.getEndTime() ? val.getEndTime() : DEFAULT_END_TIME);
+                ////如果当前时刻在最终有效期内,其余情况不做处理
+                //if (!now.isBefore(val.getValidStartTime()) && !now.isAfter(val.getValidEndTime())) {
+                //    //当前标识位为无效(active=0 失效 或者 del_mark=1 删除  或者 判断为孤儿)
+                //    if (!(val.getActive() == 1 && val.getDelMark() == 0 && val.getOrphan() == 0)) {
+                //        val.setValidEndTime(now);
+                //    }
+                //}
+
+                ArrayList<DynamicValue> dynamicValues = new ArrayList<>();
+                Map<String, String> dynamic = val.getDynamic();
+                if (!CollectionUtils.isEmpty(dynamic)) {
+                    for (Map.Entry<String, String> str : dynamic.entrySet()) {
+                        DynamicValue dynamicValue = new DynamicValue();
+                        dynamicValue.setId(UUID.randomUUID().toString());
+                        dynamicValue.setValue(str.getValue());
+                        dynamicValue.setEntityId(val.getOccupyId());
+                        dynamicValue.setTenantId(tenant.getId());
+                        dynamicValue.setAttrId(finalAttrReverseMap.get(str.getKey()));
+                        valueInsertMap.put(dynamicValue.getAttrId()
+                                + "-" + dynamicValue.getEntityId(), dynamicValue);
+                        //扩展字段预览展示
+                        dynamicValue.setKey(dynamicValue.getAttrId());
+                        dynamicValue.setCode(str.getValue());
+                        dynamicValues.add(dynamicValue);
+                    }
+                }
+                val.setAttrsValues(dynamicValues);
+
+                checkValidTime(val, now, false);
+                if (result.containsKey("insert")) {
+                    result.get("insert").add(val);
+                } else {
+                    result.put("insert", new ArrayList<OccupyDto>() {{
+                        this.add(val);
+                    }});
+                }
+                log.debug("人员身份对比后新增{}", val);
+            } else {
+                log.debug("人员身份{},对应规则未启用,本次跳过该数据", val);
+            }
+        }
+    }
+
+    private void addIncrementalTask(DomainInfo domain, TaskLog currentTask, UpstreamType upstreamType, ArrayList<OccupyDto> resultOccupies) {
+        List<OccupyDto> collect1 = resultOccupies.stream().sorted(Comparator.comparing(OccupyDto::getUpdateTime).reversed()).collect(Collectors.toList());
+        IncrementalTask incrementalTask = new IncrementalTask();
+        incrementalTask.setId(UUID.randomUUID().toString());
+        incrementalTask.setMainTaskId(currentTask.getId());
+        incrementalTask.setType("occupy");
+        log.info("类型:{},权威源类型:{},上游增量最大修改时间:{} -> {},当前时刻:{}", upstreamType.getSynType(), upstreamType.getId(), collect1.get(0).getUpdateTime(), collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
+        long min = Math.min(collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
+        incrementalTask.setTime(new Timestamp(min));
+        incrementalTask.setUpstreamTypeId(collect1.get(0).getUpstreamType());
+        //incrementalTasks.add(incrementalTask);
+        incrementalTaskService.save(incrementalTask, domain);
+    }
+
+    private void getOccupy(DomainInfo domain, Map<String, OccupyDto> occupyDtoFromUpstream, Map<String, CardType> userCardTypeMap, List<String> finalDynamicCodes, Map<String, TreeBean> deptFromSSOMap, Map<String, TreeBean> postFromSSOMap, Map<String, List<Person>> personFromSSOMap, Map<String, List<Person>> personFromSSOMapByAccount, Map<String, List<Person>> personFromSSOMapByCardNo, Map<String, List<Person>> personFromSSOMapByPhone, Map<String, List<Person>> personFromSSOMapByEmail, Map<String, List<Person>> personFromSSOMapByOpenid, Map<String, List<Person>> mergePersonFromSSOMap, Map<String, List<Person>> mergePersonFromSSOMapByAccount, Map<String, List<Person>> mergePersonFromSSOMapByCardNo, Map<String, List<Person>> mergePersonFromSSOMapByPhone, Map<String, List<Person>> mergePersonFromSSOMapByEmail, NodeRules rules, UpstreamType upstreamType, String findPersonKey, ArrayList<Upstream> upstreams, LocalDateTime now, JSONArray dataByBus, List<OccupyDto> occupies, ArrayList<OccupyDto> resultOccupies) {
+        for (Object o : dataByBus) {
+            JSONObject occupyObj = JSON.parseObject(JSON.toJSONString(o));
+            if (null != occupyObj.getTimestamp(TreeEnum.UPDATE_TIME.getCode())) {
+                occupyObj.put(TreeEnum.UPDATE_TIME.getCode(), occupyObj.getTimestamp(TreeEnum.UPDATE_TIME.getCode()));
+            }
+            if (null != occupyObj.getTimestamp(TreeEnum.START_TIME.getCode())) {
+                occupyObj.put(TreeEnum.START_TIME.getCode(), occupyObj.getTimestamp(TreeEnum.START_TIME.getCode()));
+            }
+            if (null != occupyObj.getTimestamp(TreeEnum.END_TIME.getCode())) {
+                occupyObj.put(TreeEnum.END_TIME.getCode(), occupyObj.getTimestamp(TreeEnum.END_TIME.getCode()));
+            }
+            OccupyDto occupyDto = occupyObj.toJavaObject(OccupyDto.class);
+            if (StringUtils.isBlank(occupyDto.getPostCode())) {
+                log.error("人员身份信息岗位代码为空{}", occupyDto);
+                extracted(domain, occupyDto, "人员身份信息岗位代码为空");
+                continue;
+            }
+            if (StringUtils.isBlank(occupyDto.getDeptCode())) {
+                log.error("人员身份部门代码为空{}", occupyDto);
+                extracted(domain, occupyDto, "人员身份部门代码为空");
+                continue;
+            }
+            if (null != occupyDto.getActive() && occupyDto.getActive() != 0 && occupyDto.getActive() != 1) {
+                log.error("人员身份是否有效字段不合法{}", occupyDto.getActive());
+                extracted(domain, occupyDto, "人员身份是否有效字段不合法");
+                continue;
+            }
+            if (null != occupyDto.getDelMark() && occupyDto.getDelMark() != 0 && occupyDto.getDelMark() != 1) {
+                log.error("人员身份是否删除字段不合法{}", occupyDto.getDelMark());
+                extracted(domain, occupyDto, "人员身份是否删除字段不合法");
+                continue;
+            }
+
+            //**************************************************************************************************************************
+            //**************************************************************************************************************************
+            // 20220922 删除【 old 人员标识 证件类型、证件号码   OR    用户名 accountNo  OR  身份标识  必提供一个】
+              /*  if (StringUtils.isBlank(occupyDto.getPersonCardNo()) || StringUtils.isBlank(occupyDto.getPersonCardType())) {
+                    if (StringUtils.isBlank(occupyDto.getAccountNo())) {
+                        if (StringUtils.isBlank(occupyDto.getIdentityCardNo()) || StringUtils.isBlank(occupyDto.getIdentityCardType())) {
+                            log.error("人员身份信息中人员标识为空{}", occupyDto);
+                            extracted(domain, occupyDto, "人员身份信息中人员标识为空");
+                            continue;
+                        } else {
+                            if (identityCardTypeMap.containsKey(occupyDto.getIdentityCardType())) {
+                                String cardTypeReg = identityCardTypeMap.get(occupyDto.getIdentityCardType()).getCardTypeReg();
+                                if (StringUtils.isNotBlank(cardTypeReg) && !Pattern.matches(cardTypeReg, occupyDto.getIdentityCardNo())) {
+                                    log.error("人员身份信息中身份证件号码不符合规则{}", occupyDto);
+                                    extracted(domain, occupyDto, "人员身份信息中身份证件号码不符合规则");
+                                    continue;
+                                }
+                            } else {
+                                log.error("人员身份信息中身份证件类型无效{}", occupyDto);
+                                extracted(domain, occupyDto, "人员身份信息中身份证件类型无效");
+                                continue;
+                            }
+                        }
+
+                    }
+
+                } else {
+                    if (userCardTypeMap.containsKey(occupyDto.getPersonCardType())) {
+                        String cardTypeReg = userCardTypeMap.get(occupyDto.getPersonCardType()).getCardTypeReg();
+                        if (StringUtils.isNotBlank(cardTypeReg) && !Pattern.matches(cardTypeReg, occupyDto.getPersonCardNo())) {
+                            log.error("人员身份信息中人员证件号码不符合规则{}", occupyDto);
+                            extracted(domain, occupyDto, "人员身份信息中人员证件号码不符合规则");
+                            continue;
+                        }
+                    } else {
+                        log.error("人员身份信息中人员证件类型无效{}", occupyDto);
+                        extracted(domain, occupyDto, "人员身份信息中人员证件类型无效");
+                        continue;
+                    }
+                }*/
+            //**************************************************************************************************************************
+            //**************************************************************************************************************************
+            // 20220922 新增【权威源指定 匹配人员字段信息：CARD_TYPE_NO:证件类型+证件号码 CARD_NO:仅证件号码 ACCOUNT_NO:用户名 EMAIL:邮箱 CELLPHONE:手机号 OPENID:openid】
+
+            String personKey = "";
+            List<Person> persons = new ArrayList<>();
+            //处理扩展字段
+            ConcurrentHashMap<String, String> map = null;
+            if (!CollectionUtils.isEmpty(finalDynamicCodes)) {
+                map = new ConcurrentHashMap<>();
+                for (String dynamicCode : finalDynamicCodes) {
+                    if (occupyObj.containsKey(dynamicCode)) {
+                        if (StringUtils.isNotBlank(occupyObj.getString(dynamicCode))) {
+                            map.put(dynamicCode, occupyObj.getString(dynamicCode));
+                        }
+                    }
+                }
+                log.info("处理{}的上游扩展字段值为{}", occupyObj, map);
+                occupyDto.setDynamic(map);
+            }
+            switch (findPersonKey) {
+                case "CARD_TYPE_NO":
+                    if (StringUtils.isBlank(occupyDto.getPersonCardNo()) || StringUtils.isBlank(occupyDto.getPersonCardType())) {
+                        log.error("【通过证件类型+证件号码匹配人员】证件类型或号码不能为空{}", occupyDto);
+                        extracted(domain, occupyDto, "【通过证件类型+证件号码匹配人员】证件类型或号码不能为空");
+                        continue;
+                    }
+                    if (userCardTypeMap.containsKey(occupyDto.getPersonCardType())) {
+                        String cardTypeReg = userCardTypeMap.get(occupyDto.getPersonCardType()).getCardTypeReg();
+                        if (StringUtils.isNotBlank(cardTypeReg) && !Pattern.matches(cardTypeReg, occupyDto.getPersonCardNo())) {
+                            log.error("【通过证件类型+证件号码匹配人员】人员身份信息中人员证件号码不符合规则{}", occupyDto);
+                            extracted(domain, occupyDto, "【通过证件类型+证件号码匹配人员】人员身份信息中人员证件号码不符合规则");
+                            continue;
+                        }
+                    } else {
+                        log.error("【通过证件类型+证件号码匹配人员】人员身份信息中人员证件类型无效{}", occupyDto);
+                        extracted(domain, occupyDto, "【通过证件类型+证件号码匹配人员】人员身份信息中人员证件类型无效");
+                        continue;
+                    }
+                    /*  去person Map 中 找人信息*/
+                    personKey = occupyDto.getPersonCardType() + ":" + occupyDto.getPersonCardNo();
+                    if (!personFromSSOMap.containsKey(personKey) && !mergePersonFromSSOMap.containsKey(personKey)) {
+                        log.error("【通过证件类型+证件号码匹配人员】人员身份无法找到对应对人员信息{}", personKey);
+                        extracted(domain, occupyDto, "【通过证件类型+证件号码匹配人员】人员身份无法找到对应对人员信息");
+                        continue;
+                    }
+
+                    if (personFromSSOMap.containsKey(personKey)) {
+                        persons = personFromSSOMap.get(personKey);
+                        if (mergePersonFromSSOMap.containsKey(personKey)) {
+                            persons.addAll(mergePersonFromSSOMap.get(personKey));
+                        }
+                    } else {
+                        persons = mergePersonFromSSOMap.get(personKey);
+                    }
+
+                    if (persons.size() >= 0) {
+                        for (Person person : persons) {
+                            createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
+                            log.debug("【通过证件类型+证件号码匹配人员】人员身份通过人员类型+证件获取到人员信息{}", personKey);
+                        }
+                    }
+
+                    break;
+                case "CARD_NO":
+                    if (StringUtils.isBlank(occupyDto.getPersonCardNo())) {
+                        log.error("【通过证件号码匹配人员】号码不能为空{}", occupyDto);
+                        extracted(domain, occupyDto, "【通过证件号码匹配人员】号码不能为空");
+                        continue;
+                    }
+                    /*  去person Map 中 找人信息*/
+                    personKey = occupyDto.getPersonCardNo();
+                    if (!personFromSSOMapByCardNo.containsKey(personKey) && !mergePersonFromSSOMapByCardNo.containsKey(personKey)) {
+                        log.error("【通过证件号码匹配人员】人员身份无法找到对应对人员信息{}", personKey);
+                        extracted(domain, occupyDto, "【通过证件号码匹配人员】人员身份无法找到对应对人员信息");
+                        continue;
+                    }
+
+                    if (personFromSSOMapByCardNo.containsKey(personKey)) {
+                        persons = personFromSSOMapByCardNo.get(personKey);
+                        if (mergePersonFromSSOMapByCardNo.containsKey(personKey)) {
+                            persons.addAll(mergePersonFromSSOMapByCardNo.get(personKey));
+                        }
+                    } else {
+                        persons = mergePersonFromSSOMapByCardNo.get(personKey);
+                    }
+                    if (persons.size() >= 0) {
+                        for (Person person : persons) {
+                            createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
+                            log.debug("【通过证件号码匹配人员】人员身份找找到人员信息{}", personKey);
+                        }
+                    }
+                    ;
+                    break;
+                case "USERNAME":
+                    if (StringUtils.isBlank(occupyDto.getAccountNo())) {
+                        log.error("【通过用户名码匹配人员】用户名不能为空{}", occupyDto);
+                        extracted(domain, occupyDto, "【通过用户名匹配人员】用户名不能为空");
+                        continue;
+                    }
+                    /*  去person Map 中 找人信息*/
+                    personKey = occupyDto.getAccountNo();
+                    if (!personFromSSOMapByAccount.containsKey(personKey) && !mergePersonFromSSOMapByAccount.containsKey(personKey)) {
+                        log.error("【通过用户名码匹配人员】人员身份无法找到对应对人员信息{}", personKey);
+                        extracted(domain, occupyDto, "【通过用户名码匹配人员】人员身份无法找到对应对人员信息");
+                        continue;
+                    }
+                    if (personFromSSOMapByAccount.containsKey(personKey)) {
+                        persons = personFromSSOMapByAccount.get(personKey);
+                        if (mergePersonFromSSOMapByAccount.containsKey(personKey)) {
+                            persons.addAll(mergePersonFromSSOMapByAccount.get(personKey));
+                        }
+                    } else {
+                        persons = mergePersonFromSSOMapByAccount.get(personKey);
+                    }
+                    if (persons.size() >= 0) {
+                        for (Person person : persons) {
+                            createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
+                            log.debug("【通过用户名码匹配人员】人员身份找找到人员信息{}", personKey);
+                        }
+                    }
+                    ;
+                    break;
+                case "EMAIL":
+                    if (StringUtils.isBlank(occupyDto.getEmail())) {
+                        log.error("【通过邮箱匹配人员】邮箱不能为空{}", occupyDto);
+                        extracted(domain, occupyDto, "【通过邮箱匹配人员】邮箱不能为空");
+                        continue;
+                    }
+                    /*  去person Map 中 找人信息*/
+                    personKey = occupyDto.getAccountNo();
+                    if (!personFromSSOMapByEmail.containsKey(personKey) && !mergePersonFromSSOMapByEmail.containsKey(personKey)) {
+                        log.error("【通过邮箱匹配人员】人员身份无法找到对应对人员信息{}", personKey);
+                        extracted(domain, occupyDto, "【通过邮箱匹配人员】人员身份无法找到对应对人员信息");
+                        continue;
+                    }
+                    if (personFromSSOMapByEmail.containsKey(personKey)) {
+                        persons = personFromSSOMapByEmail.get(personKey);
+                        if (mergePersonFromSSOMapByEmail.containsKey(personKey)) {
+                            persons.addAll(mergePersonFromSSOMapByEmail.get(personKey));
+                        }
+                    } else {
+                        persons = mergePersonFromSSOMapByEmail.get(personKey);
+                    }
+                    if (persons.size() >= 0) {
+                        for (Person person : persons) {
+                            createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
+                            log.debug("【通过邮箱匹配人员】人员身份找找到人员信息{}", personKey);
+                        }
+                    }
+                    ;
+                    break;
+                case "CELLPHONE":
+                    if (StringUtils.isBlank(occupyDto.getCellPhone())) {
+                        log.error("【通过电话匹配人员】电话不能为空{}", occupyDto);
+                        extracted(domain, occupyDto, "【通过电话匹配人员】电话不能为空");
+                        continue;
+                    }
+                    /*  去person Map 中 找人信息*/
+                    personKey = occupyDto.getAccountNo();
+                    if (!personFromSSOMapByPhone.containsKey(personKey) && !mergePersonFromSSOMapByPhone.containsKey(personKey)) {
+                        log.error("【通过电话匹配人员】人员身份无法找到对应对人员信息{}", personKey);
+                        extracted(domain, occupyDto, "【通过电话匹配人员】人员身份无法找到对应对人员信息");
+                        continue;
+                    }
+                    if (personFromSSOMapByPhone.containsKey(personKey)) {
+                        persons = personFromSSOMapByPhone.get(personKey);
+                        if (mergePersonFromSSOMapByPhone.containsKey(personKey)) {
+                            persons.addAll(mergePersonFromSSOMapByPhone.get(personKey));
+                        }
+                    } else {
+                        persons = mergePersonFromSSOMapByPhone.get(personKey);
+                    }
+                    if (persons.size() >= 0) {
+                        for (Person person : persons) {
+                            createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
+                            log.debug("【通过电话匹配人员】人员身份找找到人员信息{}", personKey);
+                        }
+                    }
+                    ;
+                    break;
+                case "OPENID":
+                    if (StringUtils.isBlank(occupyDto.getOpenId())) {
+                        log.error("【通过OPENID匹配人员】电话不能为空{}", occupyDto);
+                        extracted(domain, occupyDto, "【通过电话匹配人员】电话不能为空");
+                        continue;
+                    }
+                    /*  去person Map 中 找人信息*/
+                    personKey = occupyDto.getOpenId();
+                    if (!personFromSSOMapByOpenid.containsKey(personKey)) {
+                        log.error("【通过OPENID匹配人员】人员身份无法找到对应对人员信息{}", personKey);
+                        extracted(domain, occupyDto, "【通过OPENID匹配人员】人员身份无法找到对应对人员信息");
+                        continue;
+                    }
+                    persons = personFromSSOMapByOpenid.get(personKey);
+                    if (persons.size() >= 0) {
+                        for (Person person : persons) {
+                            createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
+                            log.debug("【通过OPENID匹配人员】人员身份找找到人员信息{}", personKey);
+                        }
+                    }
+                    break;
+            }
+
+        }
+    }
+
+    private ConcurrentHashMap<String, OccupyDto> dealWithSsoOccupy(ArrayList<OccupyDto> deleteFromSSO, List<OccupyDto> occupiesFromSSO) {
+        ConcurrentHashMap<String, OccupyDto> concurrentHashMap = new ConcurrentHashMap<>();
+        for (OccupyDto occupyDto : occupiesFromSSO) {
+            String key = occupyDto.getPersonId() + ":" + occupyDto.getDeptCode() + ":" + occupyDto.getPostCode();
+            //已有相同标识的身份
+            if (concurrentHashMap.containsKey(key)) {
+                OccupyDto occupyDtoFromMap = concurrentHashMap.get(key);
+                //当前身份有效
+                if (1 == occupyDto.getActive()) {
+                    //对比map中身份是否有效
+                    if (1 == occupyDtoFromMap.getActive()) {
+                        // 均有效则对比是否有工号 usercode
+                        if (StringUtils.isNotBlank(occupyDto.getIdentityCardNo())) {
+                            if (StringUtils.isNotBlank(occupyDtoFromMap.getIdentityCardNo())) {
+                                //均有工号则对比修改时间
+                                if (occupyDto.getUpdateTime().isAfter(occupyDtoFromMap.getUpdateTime())) {
+                                    //当前数据更新迟于map中
+                                    deleteFromSSO.add(occupyDtoFromMap);
+                                    concurrentHashMap.put(key, occupyDto);
+                                } else {
+                                    deleteFromSSO.add(occupyDtoFromMap);
+                                }
+                            } else {
+                                //map中身份无工号
+                                deleteFromSSO.add(occupyDtoFromMap);
+                                concurrentHashMap.put(key, occupyDto);
+                            }
+                        } else {
+                            //当前身份无工号
+                            deleteFromSSO.add(occupyDto);
+                        }
+                    } else {
+                        //map中身份无效
+                        deleteFromSSO.add(occupyDtoFromMap);
+                        concurrentHashMap.put(key, occupyDto);
+                    }
+                } else {
+                    //当前身份无效
+                    deleteFromSSO.add(occupyDto);
+                }
+            } else {
+                concurrentHashMap.put(key, occupyDto);
+            }
+        }
+        return concurrentHashMap;
     }
 
     private void createOccupyDto(DomainInfo domain, Map<String, OccupyDto> occupyDtoFromUpstream, Map<String, TreeBean> deptFromSSOMap,
@@ -1561,13 +1611,7 @@ public class OccupyServiceImpl implements OccupyService {
         if (null == tenant) {
             throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
-        // 所有证件类型
-        List<CardType> cardTypes = cardTypeDao.findAllUser(tenant.getId());
-        Map<String, CardType> userCardTypeMap = cardTypes.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
 
-
-        List<CardType> cardTypes2 = cardTypeDao.findAllFromIdentity(tenant.getId());
-        Map<String, CardType> identityCardTypeMap = cardTypes2.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
         // 存储最终需要操作的数据
         Map<String, List<OccupyDto>> result = new HashMap<>();
         //重复需要删除的sso身份数据
@@ -1575,10 +1619,6 @@ public class OccupyServiceImpl implements OccupyService {
         //上游数据,用于异常的数据展示
         Map<String, OccupyDto> occupyDtoFromUpstream = new HashMap<>();
 
-        //获取扩展字段列表
-        List<String> dynamicCodes = new ArrayList<>();
-
-        List<DynamicValue> dynamicValues = new ArrayList<>();
 
         List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
         log.info("获取到当前租户{}的映射字段集为{}", tenant.getId(), dynamicAttrs);
@@ -1588,27 +1628,7 @@ public class OccupyServiceImpl implements OccupyService {
         //扩展字段新增容器
         Map<String, DynamicValue> valueInsertMap = new ConcurrentHashMap<>();
 
-        if (!CollectionUtils.isEmpty(dynamicAttrs)) {
-            dynamicCodes = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getCode()).collect(Collectors.toList());
-            //获取扩展value
-            List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getId()).collect(Collectors.toList());
-
-            dynamicValues = dynamicValueDao.findAllByAttrId(attrIds, tenant.getId());
-        }
-
-        //扩展字段值分组
-        Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
-        if (!CollectionUtils.isEmpty(dynamicValues)) {
-            valueMap = dynamicValues.stream().filter(dynamicValue -> !StringUtils.isBlank(dynamicValue.getEntityId())).collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
-        }
-        List<String> finalDynamicCodes = dynamicCodes;
-        Map<String, List<DynamicValue>> finalValueMap = valueMap;
-
-        //扩展字段id与code对应map
-        Map<String, String> attrMap = new ConcurrentHashMap<>();
-        Map<String, String> attrReverseMap = new ConcurrentHashMap<>();
-
-        List<OccupyDto> occupyDtos = null;
+        List<OccupyDto> occupyDtos;
         try {
 
             List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
@@ -1617,14 +1637,19 @@ public class OccupyServiceImpl implements OccupyService {
                 throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
             }
             String nodeId = nodes.get(0).getId();
-            List<NodeRules> occupyRules = rulesDao.getByNodeAndType(nodeId, 1, true, 0);
+            List<NodeRules> occupyRules = rulesService.getByNodeAndType(nodeId, 1, true, 0);
             // 获取所有规则 字段，用于更新验证
             if (null == occupyRules || occupyRules.size() == 0) {
                 log.error("无人员身份管理规则信息");
                 throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
             }
-
-            occupyDtos = dataProcessing(nodes, occupyRules, domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream, null, null, dynamicAttrs, valueUpdateMap, valueInsertMap, finalDynamicCodes, finalValueMap, attrMap, attrReverseMap);
+            //获取该租户下的当前类型的无效权威源
+            ArrayList<Upstream> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
+            Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
+            if (!CollectionUtils.isEmpty(upstreams)) {
+                upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
+            }
+            occupyDtos = dataProcessing(occupyRules, domain, tenant, result, deleteFromSSO, occupyDtoFromUpstream, null, null, valueUpdateMap, valueInsertMap, upstreamMap);
         } catch (Exception e) {
             e.printStackTrace();
             throw new CustomException(ResultCode.FAILED, e.getMessage());
@@ -1799,13 +1824,7 @@ public class OccupyServiceImpl implements OccupyService {
         if (null == tenant) {
             throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
-        // 所有证件类型
-        List<CardType> cardTypes = cardTypeDao.findAllUser(tenant.getId());
-        Map<String, CardType> userCardTypeMap = cardTypes.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
 
-
-        List<CardType> cardTypes2 = cardTypeDao.findAllFromIdentity(tenant.getId());
-        Map<String, CardType> identityCardTypeMap = cardTypes2.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
         // 存储最终需要操作的数据
         Map<String, List<OccupyDto>> result = new HashMap<>();
         //重复需要删除的sso身份数据
@@ -1814,13 +1833,7 @@ public class OccupyServiceImpl implements OccupyService {
         Map<String, OccupyDto> occupyDtoFromUpstream = new HashMap<>();
         //增量日志容器
         List<IncrementalTask> incrementalTasks = new ArrayList<>();
-        //获取扩展字段列表
-        List<String> dynamicCodes = new ArrayList<>();
 
-        List<DynamicValue> dynamicValues = new ArrayList<>();
-
-        List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
-        log.info("获取到当前租户{}的映射字段集为{}", tenant.getId(), dynamicAttrs);
 
         //扩展字段修改容器
         Map<String, DynamicValue> valueUpdateMap = new ConcurrentHashMap<>();
@@ -1829,25 +1842,6 @@ public class OccupyServiceImpl implements OccupyService {
         Map<String, DynamicValue> valueInsertMap = new ConcurrentHashMap<>();
         ArrayList<DynamicValue> valueInsert = new ArrayList<>();
 
-        if (!CollectionUtils.isEmpty(dynamicAttrs)) {
-            dynamicCodes = dynamicAttrs.stream().map(DynamicAttr::getCode).collect(Collectors.toList());
-            ////获取扩展value
-            //List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr::getId).collect(Collectors.toList());
-
-            dynamicValues = dynamicValueDao.findAllAttrByType(tenant.getId(), TYPE);
-        }
-
-        //扩展字段值分组
-        Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
-        if (!CollectionUtils.isEmpty(dynamicValues)) {
-            valueMap = dynamicValues.stream().filter(dynamicValue -> !StringUtils.isBlank(dynamicValue.getEntityId())).collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
-        }
-        List<String> finalDynamicCodes = dynamicCodes;
-        Map<String, List<DynamicValue>> finalValueMap = valueMap;
-
-        //扩展字段id与code对应map
-        Map<String, String> attrMap = new ConcurrentHashMap<>();
-        Map<String, String> attrReverseMap = new ConcurrentHashMap<>();
 
         // 获取规则
         Map arguments = new ConcurrentHashMap();
@@ -1860,13 +1854,19 @@ public class OccupyServiceImpl implements OccupyService {
             return;
         }
         String nodeId = nodes.get(0).getId();
-        List<NodeRules> occupyRules = rulesDao.getByNodeAndType(nodeId, 1, true, 0);
+        List<NodeRules> occupyRules = rulesService.getByNodeAndType(nodeId, 1, true, 0);
         // 获取所有规则 字段，用于更新验证
         if (null == occupyRules || occupyRules.size() == 0) {
             log.error("无人员身份管理规则信息");
             return;
         }
-        dataProcessing(nodes, occupyRules, domain, tenant, userCardTypeMap, identityCardTypeMap, arguments, result, deleteFromSSO, occupyDtoFromUpstream, incrementalTasks, null, dynamicAttrs, valueUpdateMap, valueInsertMap, finalDynamicCodes, finalValueMap, attrMap, attrReverseMap);
+        //获取该租户下的当前类型的无效权威源
+        ArrayList<Upstream> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
+        Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(upstreams)) {
+            upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
+        }
+        dataProcessing(occupyRules, domain, tenant, result, deleteFromSSO, occupyDtoFromUpstream, incrementalTasks, null, valueUpdateMap, valueInsertMap, upstreamMap);
 
         //数据库重复身份删除
         if (!CollectionUtils.isEmpty(deleteFromSSO)) {
@@ -1883,6 +1883,12 @@ public class OccupyServiceImpl implements OccupyService {
         }
         if (!CollectionUtils.isEmpty(valueUpdateMap)) {
             valueUpdate = new ArrayList<>(valueUpdateMap.values());
+        }
+
+        List<DynamicValue> dynamicValues = new ArrayList<>();
+        List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
+        if (!CollectionUtils.isEmpty(dynamicAttrs)) {
+            dynamicValues = dynamicValueDao.findAllAttrByType(tenant.getId(), TYPE);
         }
         occupyDao.saveToSsoTest(result, tenant.getId(), valueUpdate, valueInsert, dynamicAttrs, dynamicValues);
 

@@ -1,27 +1,20 @@
 package com.qtgl.iga;
 
-import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.MonitorRules;
 import com.qtgl.iga.service.DomainInfoService;
 import com.qtgl.iga.service.MonitorRulesService;
-import com.qtgl.iga.utils.DataBusUtil;
-import com.qtgl.iga.utils.UrlUtil;
-import com.qtgl.iga.utils.webSocket.ReConnectWebSocketClient;
 import com.qtgl.iga.utils.webSocket.SubWebSocket;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
-import java.net.URI;
 import java.util.List;
 
 @Component
 public class AutoUpRunner implements CommandLineRunner {
 
-
+    public static String superDomainId= "";
     @Autowired
     DomainInfoService domainInfoService;
     @Autowired
@@ -44,5 +37,11 @@ public class AutoUpRunner implements CommandLineRunner {
                 subWebSocket.listening(domainInfo);
             }
         }
+        //获取超级租户id 放入全局变量
+        DomainInfo localhost = domainInfoService.getByDomainName("localhost");
+        if(null!=localhost){
+            superDomainId=localhost.getId();
+        }
+
     }
 }

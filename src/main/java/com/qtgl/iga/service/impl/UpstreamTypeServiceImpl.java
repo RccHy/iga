@@ -162,4 +162,9 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
 
     }
 
+    @Override
+    public List<UpstreamType> findByUpstreamIds(List<String> ids,String domain) {
+        return upstreamTypeDao.findByUpstreamIds(ids,domain);
+    }
+
 }

@@ -1,7 +1,6 @@
 package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bo.DeptRelationType;
-import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.dao.DeptRelationTypeDao;
 import com.qtgl.iga.utils.MyBeanUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -23,6 +22,7 @@ public class DeptRelationTypeDaoImpl implements DeptRelationTypeDao {
 
     @Override
     public List<DeptRelationType> findAll(String domain) {
+        //todo 超级租户处理  关联关系类型
         String sql = "select id,code,name,domain,relation_index as relationIndex from t_mgr_dept_relation_type where  domain=?";
         List<Map<String, Object>> listMaps = jdbcIGA.queryForList(sql, domain);
         List<DeptRelationType> deptRelationTypes = new ArrayList<>();

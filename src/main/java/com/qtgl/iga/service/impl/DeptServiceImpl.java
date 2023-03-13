@@ -9,6 +9,7 @@ import com.qtgl.iga.dao.impl.DynamicAttrDaoImpl;
 import com.qtgl.iga.dao.impl.DynamicValueDaoImpl;
 import com.qtgl.iga.service.DeptService;
 import com.qtgl.iga.service.NodeService;
+import com.qtgl.iga.service.UpstreamService;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
 import com.qtgl.iga.utils.enumerate.ResultCode;
@@ -61,7 +62,7 @@ public class DeptServiceImpl implements DeptService {
     @Autowired
     DynamicValueDaoImpl dynamicValueDao;
     @Autowired
-    UpstreamDao upstreamDao;
+    UpstreamService upstreamService;
     @Autowired
     IncrementalTaskDao incrementalTaskDao;
     @Autowired
@@ -147,7 +148,7 @@ public class DeptServiceImpl implements DeptService {
             valueMap = dynamicValues.stream().collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
         }
         //获取该租户下的当前类型的无效权威源
-        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
+        ArrayList<Upstream> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
         Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
         if (!CollectionUtils.isEmpty(upstreams)) {
             upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
@@ -275,7 +276,7 @@ public class DeptServiceImpl implements DeptService {
         }
         logger.info("获取到当前租户{}的映射字段集为{}", tenant.getId(), dynamicAttrs);
         //获取该租户下的当前类型的无效权威源
-        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
+        ArrayList<Upstream> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
         Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
         if (!CollectionUtils.isEmpty(upstreams)) {
             upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));

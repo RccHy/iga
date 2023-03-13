@@ -20,7 +20,7 @@ import java.util.UUID;
 @Component
 public class MonitorRulesDaoImpl implements MonitorRulesDao {
 
-
+    //todo 超级租户  监控规则
     @Resource(name = "jdbcIGA")
     JdbcTemplate jdbcIGA;
 

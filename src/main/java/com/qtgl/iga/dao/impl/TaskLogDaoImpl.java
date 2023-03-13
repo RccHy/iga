@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 @Slf4j
 public class TaskLogDaoImpl implements TaskLogDao {
-
+    //todo 超级租户处理  同步日志
     @Resource(name = "jdbcIGA")
     JdbcTemplate jdbcIGA;
 

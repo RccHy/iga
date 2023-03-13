@@ -1,5 +1,6 @@
 package com.qtgl.iga.dao.impl;
 
+import com.qtgl.iga.AutoUpRunner;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.dao.DomainInfoDao;
 import org.springframework.cglib.beans.BeanMap;
@@ -24,13 +25,17 @@ public class DomainInfoDaoImpl implements DomainInfoDao {
     @Override
     public Integer save(DomainInfo domainInfo) {
 
-       return jdbcIGA.update("INSERT INTO `t_mgr_domain_info`(`id`, `domain_id`," +
+        if ("localhost".equals(domainInfo.getDomainName())) {
+            AutoUpRunner.superDomainId = domainInfo.getId();
+        }
+
+        return jdbcIGA.update("INSERT INTO `t_mgr_domain_info`(`id`, `domain_id`," +
                         " `domain_name` ,`client_id` , `client_secret` , " +
                         "`status`, `create_time`,`create_user` ,`update_time` ) " +
                         " select ?, ?, ?, ?, ?, ?, ?, ?,? FROM DUAL WHERE NOT EXISTS " +
-                       "        (SELECT 1 FROM `t_mgr_domain_info` WHERE `domain_name`=? and `status`=0);",
+                        "        (SELECT 1 FROM `t_mgr_domain_info` WHERE `domain_name`=? and `status`=0);",
                 domainInfo.getId(), domainInfo.getDomainId(), domainInfo.getDomainName(), domainInfo.getClientId(), domainInfo.getClientSecret(), domainInfo.getStatus(), domainInfo.getCreateTime(), domainInfo.getCreateUser(), domainInfo.getUpdateTime()
-        , domainInfo.getDomainName());
+                , domainInfo.getDomainName());
     }
 
     @Override

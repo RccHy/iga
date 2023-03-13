@@ -16,6 +16,9 @@ import java.util.List;
 public class UpstreamDto extends Upstream {
     private List<UpstreamType> upstreamTypes;
 
+    //是否为当前租户的权威源
+    private Boolean local;
+
     public UpstreamDto(Upstream upstream) {
         this.setId(upstream.getId());
         this.setAppCode(upstream.getAppCode());

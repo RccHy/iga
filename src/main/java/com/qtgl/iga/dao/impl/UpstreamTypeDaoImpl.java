@@ -1,6 +1,7 @@
 package com.qtgl.iga.dao.impl;
 
 
+import com.qtgl.iga.AutoUpRunner;
 import com.qtgl.iga.bo.*;
 
 import com.qtgl.iga.dao.UpstreamTypeDao;
@@ -8,11 +9,13 @@ import com.qtgl.iga.utils.enums.FilterCodeEnum;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
 import com.qtgl.iga.vo.UpstreamTypeVo;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.sql.PreparedStatement;
@@ -31,11 +34,15 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
 
     @Override
     public List<UpstreamTypeVo> findAll(Map<String, Object> arguments, String domain) {
-        String sql = "select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_type_id as deptTypeId," +
-                "enable_prefix as enablePrefix,active,active_time as activeTime,root,create_time as createTime," +
-                "update_time as updateTime, graphql_url as graphqlUrl,service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId , is_page as isPage, syn_way as synWay, is_incremental as isIncremental,person_characteristic as personCharacteristic from  t_mgr_upstream_types where 1 = 1  and active = 1 and domain=? ";
         //拼接sql
-        StringBuffer stb = new StringBuffer(sql);
+        StringBuffer stb = new StringBuffer("select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_type_id as deptTypeId," +
+                "enable_prefix as enablePrefix,active,active_time as activeTime,root,create_time as createTime," +
+                "update_time as updateTime, graphql_url as graphqlUrl,service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId , is_page as isPage, syn_way as synWay, is_incremental as isIncremental,person_characteristic as personCharacteristic from  t_mgr_upstream_types where 1 = 1  and active = 1 and domain in (? ");
+        if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
+            stb.append(",").append(AutoUpRunner.superDomainId);
+        }
+        stb.append(" ) ");
+
         //存入参数
         List<Object> param = new ArrayList<>();
         param.add(domain);
@@ -221,7 +228,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
 
     @Override
     @Transactional
-    public UpstreamType deleteUpstreamType(String id, String domain) throws Exception {
+    public UpstreamType deleteUpstreamType(String id, String domain) {
         Object[] objects = new Object[2];
         objects[0] = id;
         objects[1] = domain;
@@ -533,7 +540,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
     }
 
     @Override
-    public List<UpstreamType> findByUpstreamIdAndDescription(UpstreamType upstreamTypeVo,String domain) {
+    public List<UpstreamType> findByUpstreamIdAndDescription(UpstreamType upstreamTypeVo, String domain) {
         String sql = "select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_type_id as deptTypeId," +
                 "enable_prefix as enablePrefix,active,active_time as activeTime,root,create_time as createTime," +
                 "update_time as updateTime, graphql_url as graphqlUrl,service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId , " +
@@ -557,6 +564,42 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
             }
             return typeList;
         }
+        return null;
+    }
+
+    @Override
+    public List<UpstreamType> findByUpstreamIds(List<String> ids, String domain) {
+
+        //拼接sql
+        StringBuffer stb = new StringBuffer("select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_type_id as deptTypeId,enable_prefix as enablePrefix,active,active_time asactiveTime,root,create_time as createTime,update_time as updateTime," +
+                " graphql_url as graphqlUrl,service_code as serviceCode,domain,syn_way as synWay,is_page as isPage ,is_incremental as isIncremental,person_characteristic as personCharacteristic from  t_mgr_upstream_types where  upstream_id in ( ");
+        //存入参数
+        List<Object> param = new ArrayList<>();
+        for (String id : ids) {
+            stb.append("?,");
+            param.add(id);
+        }
+        stb.replace(stb.length() - 1, stb.length(), " ) ");
+        stb.append(" and domain in (?");
+        param.add(domain);
+        if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
+            stb.append(",? ");
+            param.add(AutoUpRunner.superDomainId);
+        }
+        stb.append(" ) ");
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
+        ArrayList<UpstreamType> list = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(mapList)) {
+            for (Map<String, Object> map : mapList) {
+                UpstreamType upstreamType = new UpstreamType();
+                BeanMap beanMap = BeanMap.create(upstreamType);
+                beanMap.putAll(map);
+                list.add(upstreamType);
+            }
+            return list;
+        }
+
+
         return null;
     }
 

@@ -1,14 +1,15 @@
 package com.qtgl.iga.dao.impl;
 
+import com.qtgl.iga.AutoUpRunner;
 import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.NodeRules;
 import com.qtgl.iga.dao.NodeRulesDao;
 import com.qtgl.iga.utils.MyBeanUtils;
 import com.qtgl.iga.vo.NodeRulesVo;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
-
 
 import javax.annotation.Resource;
 import java.lang.reflect.InvocationTargetException;
@@ -116,6 +117,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
         return contains ? null : nodeDto;
     }
 
+    //todo 查询规则 超级租户处理
     @Override
     public List<NodeRules> findNodeRules(Map<String, Object> arguments, String domain) {
         String sql = " SELECT " +
@@ -397,6 +399,48 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
             }
             return list;
         }
+        return null;
+    }
+
+    @Override
+    public List<NodeRules> findNodeRulesByUpStreamTypeIdsAndType(List<String> ids, String type, String domain, Integer status) {
+
+        //拼接sql
+        StringBuffer stb = new StringBuffer("select r.id,r.node_id as nodeId,r.type as type,r.active as active," +
+                "r.create_time as createTime,r.service_key as serviceKey,r.upstream_types_id as upstreamTypesId,r.inherit_id as inheritId," +
+                "r.active_time as activeTime,r.update_time as updateTime,r.sort,r.status from t_mgr_node_rules r,t_mgr_node n where 1 = 1 and r.type = 1 and  r.node_id = n.id and n.type =? " +
+                "and r.status= ?  and r.upstream_types_id in ( ");
+        //存入参数
+        List<Object> param = new ArrayList<>();
+        param.add(type);
+        param.add(status);
+        for (String id : ids) {
+            stb.append("?,");
+            param.add(id);
+        }
+        stb.replace(stb.length() - 1, stb.length(), " ) ");
+        stb.append(" and n.domain in (?");
+        param.add(domain);
+        if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
+            stb.append(",? ");
+            param.add(AutoUpRunner.superDomainId);
+        }
+        stb.append(" ) ");
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
+        if (null != mapList && mapList.size() > 0) {
+            List<NodeRules> nodeRules = new ArrayList<>();
+            for (Map<String, Object> map : mapList) {
+                NodeRules nodeRule = new NodeRules();
+                try {
+                    MyBeanUtils.populate(nodeRule, map);
+                } catch (IllegalAccessException | InvocationTargetException e) {
+                    e.printStackTrace();
+                }
+                nodeRules.add(nodeRule);
+            }
+            return nodeRules;
+        }
+
         return null;
     }
 

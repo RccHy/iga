@@ -26,6 +26,7 @@ import java.util.*;
 @Repository
 public class NodeDaoImpl implements NodeDao {
 
+    //todo 超级租户  node规则
     @Resource(name = "jdbcIGA")
     JdbcTemplate jdbcIGA;
 

@@ -4,6 +4,7 @@ import com.qtgl.iga.bean.IgaOccupyConnection;
 import com.qtgl.iga.bean.OccupyConnection;
 import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bo.DomainInfo;
+import com.qtgl.iga.bo.NodeRules;
 import com.qtgl.iga.bo.PreViewTask;
 import com.qtgl.iga.bo.TaskLog;
 
@@ -12,7 +13,7 @@ import java.util.Map;
 
 public interface OccupyService {
 
-    Map<String, List<OccupyDto>> buildOccupy(DomainInfo domain, TaskLog lastTaskLog, TaskLog currentTask) throws Exception;
+    Map<String, List<OccupyDto>> buildOccupy(DomainInfo domain, TaskLog lastTaskLog, TaskLog currentTask, List<NodeRules> userRules) throws Exception;
 
     OccupyConnection findOccupies(Map<String, Object> arguments, DomainInfo domain) throws Exception;
 

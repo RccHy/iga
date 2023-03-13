@@ -20,7 +20,7 @@ import java.util.UUID;
 @Repository
 @Component
 public class PreViewTaskDaoImpl implements PreViewTaskDao {
-
+    //todo 预览任务(已弃用) 超级租户处理
     @Resource(name = "jdbcIGA")
     JdbcTemplate jdbcIGA;
 

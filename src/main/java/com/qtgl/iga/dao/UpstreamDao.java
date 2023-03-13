@@ -27,5 +27,7 @@ public interface UpstreamDao {
 
     ArrayList<Upstream> findByDomainAndActiveIsFalse(String id);
 
-    ArrayList<Upstream> findByOtherDomain(String id);
+    ArrayList<Upstream> findByOtherUpstream(List<String> ids,String domain);
+
+    List<Upstream> findByUpstreamTypeIds(ArrayList<String> ids, String domainId);
 }

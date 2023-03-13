@@ -1,11 +1,13 @@
 package com.qtgl.iga.dao.impl;
 
 
+import com.qtgl.iga.AutoUpRunner;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.UpstreamDao;
-import com.qtgl.iga.utils.enums.FilterCodeEnum;
 import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.enums.FilterCodeEnum;
 import com.qtgl.iga.utils.exception.CustomException;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.sql.PreparedStatement;
@@ -36,17 +39,23 @@ public class UpstreamDaoImpl implements UpstreamDao {
     public List<Upstream> findAll(Map<String, Object> arguments, String domain) {
         String sql = "select id,app_code as appCode,app_name as appName,data_code as dataCode," +
                 "create_time as createTime,create_user as createUser,active,color,domain ," +
-                "active_time as activeTime,update_time as updateTime from t_mgr_upstream where 1 = 1 and domain=? ";
-        //拼接sql
-        StringBuffer stb = new StringBuffer(sql);
+                "active_time as activeTime,update_time as updateTime from t_mgr_upstream where 1 = 1 and domain in (? ";
         //存入参数
         List<Object> param = new ArrayList<>();
         param.add(domain);
+        //拼接sql
+        StringBuffer stb = new StringBuffer(sql);
+        if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
+            stb.append(",? ");
+            param.add(AutoUpRunner.superDomainId);
+        }
+        stb.append(" ) ");
+
         dealData(arguments, stb, param);
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
 
         ArrayList<Upstream> list = new ArrayList<>();
-        if (null != mapList && mapList.size() > 0) {
+        if (!CollectionUtils.isEmpty(mapList)) {
             for (Map<String, Object> map : mapList) {
                 Upstream upstream = new Upstream();
                 BeanMap beanMap = BeanMap.create(upstream);
@@ -61,7 +70,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
 
     @Override
     @Transactional
-    public Upstream saveUpstream(Upstream upstream, String domain) throws Exception {
+    public Upstream saveUpstream(Upstream upstream, String domain) {
         //判重
         Object[] param = new Object[]{upstream.getAppCode(), upstream.getAppName(), domain};
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_upstream where (app_code =? or app_name = ?) and domain=? ", param);
@@ -107,13 +116,21 @@ public class UpstreamDaoImpl implements UpstreamDao {
     @Override
     public ArrayList<Upstream> getUpstreams(String id, String domain) {
         //查询权威源状态
-        Object[] objects = new Object[2];
-        objects[0] = id;
-        objects[1] = domain;
-        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select id,app_code as appCode,app_name as appName,data_code as dataCode,create_time as createTime,create_user as createUser,active,color,domain ,active_time as activeTime,update_time as updateTime from t_mgr_upstream  where id =? and domain=?  ", objects);
+        List<Object> param = new ArrayList<>();
+
+        StringBuffer sql = new StringBuffer("select id,app_code as appCode,app_name as appName,data_code as dataCode,create_time as createTime,create_user as createUser,active,color,domain ,active_time as activeTime,update_time as updateTime from t_mgr_upstream  where id =? and domain in (? ");
+        param.add(id);
+        param.add(domain);
+
+        if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
+            sql.append(",? ");
+            param.add(AutoUpRunner.superDomainId);
+        }
+        sql.append(") ");
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql.toString(), param.toArray());
 
         ArrayList<Upstream> upstreamList = new ArrayList<>();
-        if (null != mapList && mapList.size() > 0) {
+        if (!CollectionUtils.isEmpty(mapList)) {
             for (Map<String, Object> map : mapList) {
                 Upstream upstream = new Upstream();
                 BeanMap beanMap = BeanMap.create(upstream);
@@ -130,7 +147,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
         //判重
         Object[] param = new Object[]{upstream.getAppCode(), upstream.getAppName(), upstream.getId(), upstream.getDomain()};
         List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_upstream where (app_code = ? or app_name = ?) and id != ? and domain=?  ", param);
-        if (null != mapList && mapList.size() > 0) {
+        if (!CollectionUtils.isEmpty(mapList)) {
             throw new CustomException(ResultCode.FAILED, "code 或 name 不能重复,修改失败");
         }
 
@@ -161,7 +178,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
 
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id);
         Upstream upstream = new Upstream();
-        if (null != mapList && mapList.size() > 0) {
+        if (!CollectionUtils.isEmpty(mapList)) {
             for (Map<String, Object> map : mapList) {
 
                 BeanMap beanMap = BeanMap.create(upstream);
@@ -335,18 +352,22 @@ public class UpstreamDaoImpl implements UpstreamDao {
 
     @Override
     public ArrayList<Upstream> findByDomainAndActiveIsFalse(String domain) {
-        String sql = "select id,app_code as appCode,app_name as appName,data_code as dataCode," +
-                "create_time as createTime,create_user as createUser,active,color,domain ," +
-                "active_time as activeTime,update_time as updateTime from t_mgr_upstream where 1 = 1 and id=? and active=false";
         //拼接sql
-        StringBuffer stb = new StringBuffer(sql);
+        StringBuffer stb = new StringBuffer("select id,app_code as appCode,app_name as appName,data_code as dataCode," +
+                "create_time as createTime,create_user as createUser,active,color,domain ," +
+                "active_time as activeTime,update_time as updateTime from t_mgr_upstream where 1 = 1  and active=false and domain in (? ");
         //存入参数
         List<Object> param = new ArrayList<>();
         param.add(domain);
+        if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
+            stb.append(",? ");
+            param.add(AutoUpRunner.superDomainId);
+        }
+        stb.append(" ) ");
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
 
         ArrayList<Upstream> list = new ArrayList<>();
-        if (null != mapList && mapList.size() > 0) {
+        if (!CollectionUtils.isEmpty(mapList)) {
             for (Map<String, Object> map : mapList) {
                 Upstream upstream = new Upstream();
                 BeanMap beanMap = BeanMap.create(upstream);
@@ -359,19 +380,70 @@ public class UpstreamDaoImpl implements UpstreamDao {
     }
 
     @Override
-    public ArrayList<Upstream> findByOtherDomain(String domainId) {
-        String sql = "select id,app_code as appCode,app_name as appName,data_code as dataCode," +
-                "create_time as createTime,create_user as createUser,active,color,domain ," +
-                "active_time as activeTime,update_time as updateTime from t_mgr_upstream where 1 = 1 and id!=? ";
+    public ArrayList<Upstream> findByOtherUpstream(List<String> ids, String domainId) {
         //拼接sql
-        StringBuffer stb = new StringBuffer(sql);
+        StringBuffer stb = new StringBuffer("select id,app_code as appCode,app_name as appName,data_code as dataCode," +
+                "create_time as createTime,create_user as createUser,active,color,domain ," +
+                "active_time as activeTime,update_time as updateTime from t_mgr_upstream where 1 = 1 and id not in ( ");
         //存入参数
         List<Object> param = new ArrayList<>();
+        if (CollectionUtils.isEmpty(ids)) {
+            return null;
+        }
+        for (String id : ids) {
+            stb.append("?,");
+            param.add(id);
+        }
+        stb.replace(stb.length() - 1, stb.length(), " ) ");
+        stb.append(" and domain in (?");
         param.add(domainId);
+        if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
+            stb.append(",? ");
+            param.add(AutoUpRunner.superDomainId);
+        }
+        stb.append(" ) ");
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
 
         ArrayList<Upstream> list = new ArrayList<>();
-        if (null != mapList && mapList.size() > 0) {
+        if (!CollectionUtils.isEmpty(mapList)) {
+            for (Map<String, Object> map : mapList) {
+                Upstream upstream = new Upstream();
+                BeanMap beanMap = BeanMap.create(upstream);
+                beanMap.putAll(map);
+                list.add(upstream);
+            }
+            return list;
+        }
+        return null;
+    }
+
+    @Override
+    public List<Upstream> findByUpstreamTypeIds(ArrayList<String> ids, String domainId) {
+        //拼接sql
+        StringBuffer stb = new StringBuffer("select u.id,u.app_code as appCode,u.app_name as appName,u.data_code as dataCode," +
+                "u.create_time as createTime,u.create_user as createUser,u.active,u.color,u.domain ," +
+                "u.active_time as activeTime,u.update_time as updateTime from t_mgr_upstream u ,t_mgr_upstream_types t  where t.upstream_id =u.id and t.id in ( ");
+        //存入参数
+        List<Object> param = new ArrayList<>();
+        if (CollectionUtils.isEmpty(ids)) {
+            return null;
+        }
+        for (String id : ids) {
+            stb.append("?,");
+            param.add(id);
+        }
+        stb.replace(stb.length() - 1, stb.length(), " ) ");
+        stb.append(" and u.domain in (?");
+        param.add(domainId);
+        if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
+            stb.append(",? ");
+            param.add(AutoUpRunner.superDomainId);
+        }
+        stb.append(" ) ");
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
+
+        ArrayList<Upstream> list = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(mapList)) {
             for (Map<String, Object> map : mapList) {
                 Upstream upstream = new Upstream();
                 BeanMap beanMap = BeanMap.create(upstream);

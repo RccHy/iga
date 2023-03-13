@@ -12,12 +12,12 @@ import com.qtgl.iga.config.PreViewPersonThreadPool;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.dao.impl.DynamicAttrDaoImpl;
 import com.qtgl.iga.dao.impl.DynamicValueDaoImpl;
-import com.qtgl.iga.service.ConfigService;
-import com.qtgl.iga.service.IncrementalTaskService;
-import com.qtgl.iga.service.PersonService;
-import com.qtgl.iga.service.PreViewTaskService;
+import com.qtgl.iga.service.*;
 import com.qtgl.iga.task.TaskConfig;
-import com.qtgl.iga.utils.*;
+import com.qtgl.iga.utils.ClassCompareUtil;
+import com.qtgl.iga.utils.DataBusUtil;
+import com.qtgl.iga.utils.FileUtil;
+import com.qtgl.iga.utils.SuffixUtil;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.enums.TreeEnum;
 import com.qtgl.iga.utils.exception.CustomException;
@@ -60,11 +60,11 @@ public class PersonServiceImpl implements PersonService {
     @Autowired
     NodeDao nodeDao;
     @Autowired
-    NodeRulesDao rulesDao;
+    NodeRulesService rulesService;
     @Autowired
     UpstreamTypeDao upstreamTypeDao;
     @Autowired
-    UpstreamDao upstreamDao;
+    UpstreamService upstreamService;
     @Autowired
     DataBusUtil dataBusUtil;
     @Autowired
@@ -157,20 +157,33 @@ public class PersonServiceImpl implements PersonService {
                 return null;
             }
             String nodeId = nodes.get(0).getId();
-            //
-            userRules = rulesDao.getByNodeAndType(nodeId, 1, null, 0);
+            userRules = rulesService.getByNodeAndType(nodeId, 1, null, 0);
             if (null == userRules || userRules.size() == 0) {
                 log.error("无人员管理规则信息");
                 return null;
             }
             //获取该租户下的当前类型的无效有效权威源
-            ArrayList<Upstream> invalidUpstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
+            ArrayList<Upstream> invalidUpstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
             if (!CollectionUtils.isEmpty(invalidUpstreams)) {
                 upstreamMap = invalidUpstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
             }
         } else {
+            //根据规则获取排除的权威源  及补充规则
+            Set<String> strings = userRules.stream().collect(Collectors.groupingBy(NodeRules::getUpstreamTypesId)).keySet();
+
+            List<Upstream> upstreams = upstreamService.findByUpstreamTypeIds(new ArrayList<>(strings), domain.getId());
+
+
+            if (CollectionUtils.isEmpty(upstreams)) {
+                log.error("当前sub 任务提供的规则有误请确认:{}", userRules);
+                throw new CustomException(ResultCode.FAILED, "当前sub 任务提供的规则有误请确认");
+            }
+            List<String> ids = upstreams.stream().map(Upstream::getId).collect(Collectors.toList());
+
+            //根据权威源和类型获取需要执行的规则
+            userRules = rulesService.findNodeRulesByUpStreamIdAndType(ids, "person", domain.getId(), 0);
             //获取除了该租户以外的所有权威源(用于sub模式)
-            ArrayList<Upstream> otherDomains = upstreamDao.findByOtherDomain(domain.getId());
+            ArrayList<Upstream> otherDomains = upstreamService.findByOtherUpstream(new ArrayList<>(), domain.getId());
             if (!CollectionUtils.isEmpty(otherDomains)) {
                 upstreamMap = otherDomains.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
             }
@@ -338,7 +351,7 @@ public class PersonServiceImpl implements PersonService {
                         log.error("人员对应拉取节点规则'{}'无有效权威源类型数据", rules);
                         throw new CustomException(ResultCode.NO_UPSTREAM_TYPE, null, null, "人员", rules.getId());
                     }
-                    ArrayList<Upstream> upstreams = upstreamDao.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
+                    ArrayList<Upstream> upstreams = upstreamService.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
                     if (CollectionUtils.isEmpty(upstreams)) {
                         log.error("人员对应拉取节点规则'{}'无权威源数据", rules.getId());
                         throw new CustomException(ResultCode.NO_UPSTREAM, null, null, "人员", rules.getId());
@@ -592,7 +605,7 @@ public class PersonServiceImpl implements PersonService {
                 log.error("人员对应拉取节点规则'{}'无有效权威源类型数据", rules);
                 throw new CustomException(ResultCode.NO_UPSTREAM_TYPE, null, null, "人员", rules.getId());
             }
-            ArrayList<Upstream> upstreams = upstreamDao.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
+            ArrayList<Upstream> upstreams = upstreamService.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
             if (CollectionUtils.isEmpty(upstreams)) {
                 log.error("人员对应拉取节点规则'{}'无权威源数据", rules.getId());
                 throw new CustomException(ResultCode.NO_UPSTREAM, null, null, "人员", rules.getId());
@@ -2089,16 +2102,9 @@ public class PersonServiceImpl implements PersonService {
         if (null == tenant) {
             throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
-        // 所有证件类型
-        List<CardType> cardTypes = cardTypeDao.findAllUser(tenant.getId());
-        Map<String, CardType> cardTypeMap = cardTypes.stream().collect(Collectors.toMap(CardType::getCardTypeCode, CardType -> CardType));
         //获取密码加密方式
         pwdConfig = configService.getPasswordConfigByTenantIdAndStatusAndPluginNameAndDelMarkIsFalse(tenant.getId(), "ENABLED", "CommonPlugin");
 
-        //获取扩展字段列表
-        List<String> dynamicCodes = new ArrayList<>();
-
-        List<DynamicValue> dynamicValues = new ArrayList<>();
 
         List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
         log.info("获取到当前租户{}的映射字段集为{}", tenant.getId(), dynamicAttrs);
@@ -2108,32 +2114,12 @@ public class PersonServiceImpl implements PersonService {
         //扩展字段新增容器
         Map<String, DynamicValue> valueInsertMap = new ConcurrentHashMap<>();
 
-        if (!CollectionUtils.isEmpty(dynamicAttrs)) {
-            dynamicCodes = dynamicAttrs.stream().map(DynamicAttr::getCode).collect(Collectors.toList());
-
-            //获取扩展value
-            List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr::getId).collect(Collectors.toList());
-
-            dynamicValues = dynamicValueDao.findAllByAttrId(attrIds, tenant.getId());
-        }
-
-        //扩展字段值分组
-        Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
-        if (!CollectionUtils.isEmpty(dynamicValues)) {
-            valueMap = dynamicValues.stream().filter(dynamicValue -> !StringUtils.isBlank(dynamicValue.getEntityId())).collect(Collectors.groupingBy(DynamicValue::getEntityId));
-        }
-        List<String> finalDynamicCodes = dynamicCodes;
-        Map<String, List<DynamicValue>> finalValueMap = valueMap;
-
-
         // 存储最终需要操作的数据
         Map<String, List<Person>> result = new HashMap<>();
 
         // 存储最终需要操作的头像数据
         Map<String, List<Avatar>> avatarResult = new ConcurrentHashMap<>();
-        //扩展字段id与code对应map
-        Map<String, String> attrMap = new ConcurrentHashMap<>();
-        Map<String, String> attrReverseMap = new ConcurrentHashMap<>();
+
         log.info("----------------- upstream Person start:{}", System.currentTimeMillis());
         List<Person> personList;
         try {
@@ -2145,13 +2131,13 @@ public class PersonServiceImpl implements PersonService {
             }
             String nodeId = nodes.get(0).getId();
             //
-            List<NodeRules> userRules = rulesDao.getByNodeAndType(nodeId, 1, null, 0);
+            List<NodeRules> userRules = rulesService.getByNodeAndType(nodeId, 1, null, 0);
             if (null == userRules || userRules.size() == 0) {
                 log.error("无人员管理规则信息");
                 throw new CustomException(ResultCode.FAILED, "无人员规则信息");
             }
             //获取该租户下的当前类型的无效有效权威源
-            ArrayList<Upstream> invalidUpstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
+            ArrayList<Upstream> invalidUpstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
             Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
             if (!CollectionUtils.isEmpty(invalidUpstreams)) {
                 upstreamMap = invalidUpstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
@@ -2389,7 +2375,7 @@ public class PersonServiceImpl implements PersonService {
         }
         String nodeId = nodes.get(0).getId();
         //
-        List<NodeRules> userRules = rulesDao.getByNodeAndType(nodeId, 1, null, 0);
+        List<NodeRules> userRules = rulesService.getByNodeAndType(nodeId, 1, null, 0);
         if (null == userRules || userRules.size() == 0) {
             log.error("无人员管理规则信息");
             return;
@@ -2415,7 +2401,7 @@ public class PersonServiceImpl implements PersonService {
 
 
         //获取该租户下的当前类型的无效有效权威源
-        ArrayList<Upstream> invalidUpstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
+        ArrayList<Upstream> invalidUpstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
         Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
         if (!CollectionUtils.isEmpty(invalidUpstreams)) {
             upstreamMap = invalidUpstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));

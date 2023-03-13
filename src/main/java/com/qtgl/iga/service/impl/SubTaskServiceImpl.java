@@ -1,5 +1,6 @@
 package com.qtgl.iga.service.impl;
 
+import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.NodeRules;
 import com.qtgl.iga.bo.Person;
@@ -18,7 +19,7 @@ import java.util.UUID;
 @Slf4j
 public class SubTaskServiceImpl {
     @Resource
-    DeptServiceImpl deptService;
+    OccupyServiceImpl occupyService;
     @Resource
     PersonServiceImpl personService;
     @Resource
@@ -45,16 +46,17 @@ public class SubTaskServiceImpl {
                     break;
                 case "PERSON":
                     try {
-                        //租户,最后一次日志情况, 当前日志  记录为pub, 需要添加入参   当前规则
+                        //租户,最后一次日志情况, 当前日志  记录为sub, 需要添加入参   当前规则
                         Map<String, List<Person>> personResult = personService.buildPerson(domain, lastTaskLog, taskLog, nodeRules);
                         Integer insertPerson = (personResult.containsKey("insert") ? personResult.get("insert").size() : 0);
                         Integer deletePerson = personResult.containsKey("delete") ? personResult.get("delete").size() : 0;
                         Integer updatePerson = (personResult.containsKey("update") ? personResult.get("update").size() : 0);
                         Integer invalidPerson = personResult.containsKey("invalid") ? personResult.get("invalid").size() : 0;
                         String personNo = insertPerson + "/" + deletePerson + "/" + updatePerson + "/" + invalidPerson;
+                        taskLog.setStatus("done");
                         taskLog.setPersonNo(personNo);
                         taskLogService.save(taskLog, domain.getId(), "update");
-                        log.info(Thread.currentThread().getName() + ": 人员同步完成{}==={}", personNo, System.currentTimeMillis());
+                        log.info(Thread.currentThread().getName() + ": sub 人员同步完成{}==={}", personNo, System.currentTimeMillis());
 
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -62,7 +64,23 @@ public class SubTaskServiceImpl {
                     }
                     break;
                 case "OCCUPY":
-                    System.out.println(4);
+                    try {
+                        final Map<String, List<OccupyDto>> occupyResult = occupyService.buildOccupy(domain, lastTaskLog, taskLog, nodeRules);
+                        //租户,最后一次日志情况, 当前日志  记录为sub, 需要添加入参   当前规则
+                        Integer insertOccupy = (occupyResult.containsKey("insert") ? occupyResult.get("insert").size() : 0);
+                        Integer deleteOccupy = occupyResult.containsKey("delete") ? occupyResult.get("delete").size() : 0;
+                        Integer updateOccupy = (occupyResult.containsKey("update") ? occupyResult.get("update").size() : 0);
+                        Integer invalidOccupy = occupyResult.containsKey("invalid") ? occupyResult.get("invalid").size() : 0;
+                        String occupyNo = insertOccupy + "/" + deleteOccupy + "/" + updateOccupy + "/" + invalidOccupy;
+                        taskLog.setStatus("done");
+                        taskLog.setOccupyNo(occupyNo);
+                        taskLogService.save(taskLog, domain.getId(), "update");
+                        log.info(Thread.currentThread().getName() + ": sub 人员身份同步完成{}==={}", occupyNo, System.currentTimeMillis());
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+
+                    }
                     break;
             }
         }

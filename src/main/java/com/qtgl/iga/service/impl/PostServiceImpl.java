@@ -9,6 +9,7 @@ import com.qtgl.iga.dao.impl.DynamicAttrDaoImpl;
 import com.qtgl.iga.dao.impl.DynamicValueDaoImpl;
 import com.qtgl.iga.service.NodeService;
 import com.qtgl.iga.service.PostService;
+import com.qtgl.iga.service.UpstreamService;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
 import com.qtgl.iga.utils.enumerate.ResultCode;
@@ -53,7 +54,7 @@ public class PostServiceImpl implements PostService {
     @Autowired
     DynamicValueDaoImpl dynamicValueDao;
     @Autowired
-    UpstreamDao upstreamDao;
+    UpstreamService upstreamService;
     @Autowired
     NodeDao nodeDao;
     @Autowired
@@ -151,7 +152,7 @@ public class PostServiceImpl implements PostService {
         }
         mainTreeBeans.addAll(ssoBeans);
         //获取该租户下的当前类型的无效权威源
-        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
+        ArrayList<Upstream> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
         Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
         if (!CollectionUtils.isEmpty(upstreams)) {
             upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
@@ -312,7 +313,7 @@ public class PostServiceImpl implements PostService {
 
         mainTreeBeans.addAll(ssoBeans);
         //获取该租户下的当前类型的无效权威源
-        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domain.getId());
+        ArrayList<Upstream> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
         Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
         if (!CollectionUtils.isEmpty(upstreams)) {
             upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));

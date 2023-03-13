@@ -1,14 +1,13 @@
 package com.qtgl.iga.service.impl;
 
 
-import com.qtgl.iga.bo.Node;
-import com.qtgl.iga.bo.NodeRules;
-import com.qtgl.iga.bo.NodeRulesRange;
+import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.NodeDao;
 import com.qtgl.iga.dao.NodeRulesDao;
 import com.qtgl.iga.dao.NodeRulesRangeDao;
 import com.qtgl.iga.service.NodeRulesService;
 import com.qtgl.iga.service.NodeService;
+import com.qtgl.iga.service.UpstreamTypeService;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
 import com.qtgl.iga.vo.NodeRulesVo;
@@ -21,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -35,11 +35,13 @@ public class NodeRulesServiceImpl implements NodeRulesService {
     NodeService nodeService;
     @Resource
     NodeDao nodeDao;
+    @Resource
+    UpstreamTypeService upstreamTypeService;
 
 
     @Override
     public List<NodeRules> findNodeRules(Map<String, Object> arguments, String domain) {
-        return nodeRulesDao.findNodeRules(arguments,domain);
+        return nodeRulesDao.findNodeRules(arguments, domain);
     }
 
     @Override
@@ -163,6 +165,22 @@ public class NodeRulesServiceImpl implements NodeRulesService {
             deleteRules(nodeRule, domain);
         }
         return nodeRules;
+    }
+
+    @Override
+    public List<NodeRules> getByNodeAndType(String nodeId, int type, Boolean active, int status) {
+        return nodeRulesDao.getByNodeAndType(nodeId, type, active, status);
+    }
+
+    @Override
+    public List<NodeRules> findNodeRulesByUpStreamIdAndType(List<String> ids, String type, String domain, Integer status) {
+        List<UpstreamType> upstreamTypes = upstreamTypeService.findByUpstreamIds(ids, domain);
+        if (!CollectionUtils.isEmpty(upstreamTypes)) {
+            List<String> upstreamTypeIds = upstreamTypes.stream().map(UpstreamType::getId).collect(Collectors.toList());
+            return nodeRulesDao.findNodeRulesByUpStreamTypeIdsAndType(upstreamTypeIds, type, domain, status);
+        }
+
+        return null;
     }
 
     public NodeRules deleteRules(NodeRules rules, String domain) {

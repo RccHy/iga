@@ -15,7 +15,7 @@ public interface NodeRulesDao {
 
     NodeDto saveNodeRules(NodeDto nodeRules);
 
-    List<NodeRules> findNodeRules(Map<String, Object> arguments,String domain);
+    List<NodeRules> findNodeRules(Map<String, Object> arguments, String domain);
 
     NodeRules updateRules(NodeRules nodeRules);
 
@@ -36,4 +36,6 @@ public interface NodeRulesDao {
     List<NodeRules> findNodeRulesByServiceKey(String id, Integer status, Integer type);
 
     List<NodeRulesVo> findPullNodeRulesByNodeId(String id, Integer status);
+
+    List<NodeRules> findNodeRulesByUpStreamTypeIdsAndType(List<String> ids, String type, String domain, Integer status);
 }

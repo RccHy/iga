@@ -20,7 +20,7 @@ import java.util.*;
 @Component
 public class DeptTreeTypeDaoImpl implements DeptTreeTypeDao {
 
-
+    //todo 超级租户处理  组织机构类型
     @Resource(name = "jdbcIGA")
     JdbcTemplate jdbcIGA;
 

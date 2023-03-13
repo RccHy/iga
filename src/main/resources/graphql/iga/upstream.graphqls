@@ -50,6 +50,8 @@ type Upstream{
     color:String
     #权威源类型
     upstreamTypes:[UpstreamType]
+    #是否来自本租户
+    local:Boolean
 
 }
 

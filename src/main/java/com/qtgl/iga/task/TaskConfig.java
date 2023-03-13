@@ -211,12 +211,12 @@ public class TaskConfig {
                             }
 
                             //人员身份同步至sso
-                            final Map<String, List<OccupyDto>> occupyResult = occupyService.buildOccupy(domainInfo, lastTaskLog, taskLog);
+                            final Map<String, List<OccupyDto>> occupyResult = occupyService.buildOccupy(domainInfo, lastTaskLog, taskLog,null);
                             Integer countOccupy = 0;
                             if (null == occupyResult) {
                                 log.error("无身份管理规则，不进行身份同步");
                                 taskLog.setStatus("done");
-                                taskLog.setPersonNo("--/--/--/--");
+                                taskLog.setOccupyNo("--/--/--/--");
                             } else {
                                 //Integer recoverOccupy = occupyResult.containsKey("recover") ? deptResultMap.get("recover").size() : 0;
                                 Integer insertOccupy = (occupyResult.containsKey("insert") ? occupyResult.get("insert").size() : 0);
