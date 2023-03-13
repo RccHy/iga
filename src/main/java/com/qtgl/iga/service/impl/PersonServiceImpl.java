@@ -666,7 +666,7 @@ public class PersonServiceImpl implements PersonService {
         log.debug("人员处理结束:扩展字段处理需要修改{},需要新增{}", valueInsertMap, valueInsertMap);
         //处理 丢失 失效的数据
         if (!CollectionUtils.isEmpty(invalidPersonMap)) {
-            dealInvalidPerson(result, now, distinctPersonMap, preViewPersonMap, invalidPersonMap, upstreamMap);
+            dealInvalidPerson(result, now, distinctPersonMap, preViewPersonMap, invalidPersonMap, upstreamMap, keepPersonMap);
         }
         // 处理result
         if (!CollectionUtils.isEmpty(keepPersonMap)) {
@@ -876,7 +876,7 @@ public class PersonServiceImpl implements PersonService {
         }
     }
 
-    private void dealInvalidPerson(Map<String, List<Person>> result, LocalDateTime now, Map<String, Person> distinctPersonMap, Map<String, Person> preViewPersonMap, Map<String, Person> invalidPersonMap, Map<String, Upstream> upstreamMap) {
+    private void dealInvalidPerson(Map<String, List<Person>> result, LocalDateTime now, Map<String, Person> distinctPersonMap, Map<String, Person> preViewPersonMap, Map<String, Person> invalidPersonMap, Map<String, Upstream> upstreamMap, Map<String, Person> keepPersonMap) {
         ArrayList<Person> invalidPeople = new ArrayList<>(invalidPersonMap.values());
         for (Person invalidPerson : invalidPeople) {
 
@@ -908,6 +908,8 @@ public class PersonServiceImpl implements PersonService {
                             this.add(invalidPerson);
                         }});
                     }
+                    //处理keep 结果集
+                    keepPersonMap.remove(invalidPerson.getId());
                     //处理人员预览数据
                     preViewPersonMap.put(invalidPerson.getId(), invalidPerson);
 
