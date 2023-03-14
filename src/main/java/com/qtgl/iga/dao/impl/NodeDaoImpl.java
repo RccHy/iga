@@ -4,11 +4,12 @@ import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.Node;
 import com.qtgl.iga.bo.NodeRulesRange;
 import com.qtgl.iga.dao.NodeDao;
-import com.qtgl.iga.utils.enums.FilterCodeEnum;
 import com.qtgl.iga.utils.MyBeanUtils;
 import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.enums.FilterCodeEnum;
 import com.qtgl.iga.utils.exception.CustomException;
 import com.qtgl.iga.vo.NodeRulesVo;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -24,6 +25,7 @@ import java.util.*;
 
 
 @Repository
+@Slf4j
 public class NodeDaoImpl implements NodeDao {
 
     //todo 超级租户  node规则
@@ -132,7 +134,7 @@ public class NodeDaoImpl implements NodeDao {
         }
         dealData(arguments, stb, param);
 //        getChild(arguments,param,stb);
-        System.out.println(stb.toString());
+        log.info("sql:{}",stb.toString());
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
 
         for (Map<String, Object> map : mapList) {
@@ -162,7 +164,7 @@ public class NodeDaoImpl implements NodeDao {
     }
 
     @Override
-    public List<Node> findNodesPlus(Map<String, Object> arguments, String id) {
+    public List<Node> findNodesPlus(Map<String, Object> arguments, String domainId) {
         ArrayList<Node> nodes = new ArrayList<>();
 
         List<String> codes = (List<String>) arguments.get("codes");
@@ -174,7 +176,7 @@ public class NodeDaoImpl implements NodeDao {
                 "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType, status,type" +
                 " from t_mgr_node where domain= ? and status=? and type=? ";
         List<Object> param = new ArrayList<>();
-        param.add(id);
+        param.add(domainId);
         param.add(status);
         param.add(type);
         if (StringUtils.isNotBlank(treeType)) {

@@ -168,6 +168,11 @@ public class PersonServiceImpl implements PersonService {
                 upstreamMap = invalidUpstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
             }
         } else {
+
+            /*
+            通过rules 推到 对应的类型 ->对应的权威源, 获取权威源下当前类型的所有规则 放入本次同步一并跑
+                也就是说每次sub  至少跑一整个权威源所有对应的规则
+             */
             //根据规则获取排除的权威源  及补充规则
             Set<String> strings = userRules.stream().collect(Collectors.groupingBy(NodeRules::getUpstreamTypesId)).keySet();
 

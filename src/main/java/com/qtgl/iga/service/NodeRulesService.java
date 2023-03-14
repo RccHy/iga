@@ -1,6 +1,7 @@
 package com.qtgl.iga.service;
 
 
+import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.NodeRules;
 import com.qtgl.iga.vo.NodeRulesVo;
 
@@ -27,4 +28,16 @@ public interface NodeRulesService {
     List<NodeRules> getByNodeAndType(String nodeId, int type, Boolean active, int status);
 
     List<NodeRules> findNodeRulesByUpStreamIdAndType(List<String> ids, String type, String domain, Integer status);
+
+    NodeDto saveNodeRules(NodeDto save);
+
+    List<NodeRulesVo> findNodeRulesByNodeId(String id, Integer status);
+
+    Integer deleteNodeRules(String id);
+
+    Integer makeNodeRulesToHistory(String ruleId, Integer status);
+
+    List<NodeRules> findNodeRulesByServiceKey(String serviceKey, Integer status, Integer synWay);
+
+    List<NodeRules> findNodeRulesByUpStreamTypeId(String upstreamTypeId, Integer status);
 }

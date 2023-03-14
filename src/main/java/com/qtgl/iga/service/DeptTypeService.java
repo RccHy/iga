@@ -15,4 +15,6 @@ public interface DeptTypeService {
     DeptType saveDeptTypes(DeptType deptType, String domain) throws Exception;
 
     DeptType updateDeptTypes(DeptType deptType) throws Exception;
+
+    DeptType findById(String deptTypeId);
 }

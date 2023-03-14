@@ -385,6 +385,11 @@ public class UpstreamServiceImpl implements UpstreamService {
         return upstreamDao.findByUpstreamTypeIds(ids,domainId);
     }
 
+    @Override
+    public Upstream findById(String upstreamId) {
+        return upstreamDao.findById(upstreamId);
+    }
+
     @Transactional
     public HashMap<String, Object> dealNodeByUpstreamType(ArrayList<UpstreamType> list, String domain, String deptTreeType) {
         long now = System.currentTimeMillis();

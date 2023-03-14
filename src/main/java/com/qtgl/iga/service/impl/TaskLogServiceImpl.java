@@ -5,9 +5,7 @@ import com.qtgl.iga.bo.TaskLog;
 import com.qtgl.iga.dao.TaskLogDao;
 import com.qtgl.iga.service.TaskLogService;
 import com.qtgl.iga.utils.FileUtil;
-import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.Tags;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -94,5 +92,10 @@ public class TaskLogServiceImpl implements TaskLogService {
             }
         }
         return true;
+    }
+
+    @Override
+    public List<TaskLog> findByStatus(String domain) {
+        return taskLogDao.findByStatus(domain);
     }
 }

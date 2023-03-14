@@ -1,24 +1,25 @@
 package com.qtgl.iga.service.impl;
 
 
+import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.NodeRulesRange;
-import com.qtgl.iga.dao.NodeRulesDao;
+import com.qtgl.iga.bo.UpstreamTypeField;
+import com.qtgl.iga.dao.NodeRulesRangeDao;
 import com.qtgl.iga.service.NodeRulesRangeService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.Resource;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 @Service
 @Transactional
-
 public class NodeRulesRangeServiceImpl implements NodeRulesRangeService {
 
-
-    @Autowired
-    NodeRulesDao nodeRulesDao;
+    @Resource
+    NodeRulesRangeDao nodeRulesRangeDao;
 
 
     @Override
@@ -39,5 +40,35 @@ public class NodeRulesRangeServiceImpl implements NodeRulesRangeService {
     @Override
     public NodeRulesRange updateNodeRulesRange(NodeRulesRange nodeRules) {
         return null;
+    }
+
+    @Override
+    public NodeDto saveNodeRuleRange(NodeDto nodeRule) {
+        return nodeRulesRangeDao.saveNodeRuleRange(nodeRule);
+    }
+
+    @Override
+    public NodeRulesRange saveNodeRuleRange(NodeRulesRange nodeRulesRange) {
+        return nodeRulesRangeDao.saveNodeRuleRange(nodeRulesRange);
+    }
+
+    @Override
+    public List<NodeRulesRange> getByRulesId(String id, Integer status) {
+        return nodeRulesRangeDao.getByRulesId(id,status);
+    }
+
+    @Override
+    public Integer deleteNodeRulesRangeByRuleId(String ruleId) {
+        return nodeRulesRangeDao.deleteNodeRulesRangeByRuleId(ruleId);
+    }
+
+    @Override
+    public Integer makeNodeRulesRangesToHistory(String rulesRangeId, Integer status) {
+        return nodeRulesRangeDao.makeNodeRulesRangesToHistory(rulesRangeId,status);
+    }
+
+    @Override
+    public ArrayList<UpstreamTypeField> getByUpstreamTypeId(String upstreamTypeId) {
+        return nodeRulesRangeDao.getByUpstreamTypeId(upstreamTypeId);
     }
 }

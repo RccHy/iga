@@ -16,4 +16,6 @@ public interface DeptTreeTypeService {
     DeptTreeType saveDeptTreeType(DeptTreeType deptTreeType, String domain) throws Exception;
 
     DeptTreeType updateDeptTreeType(DeptTreeType deptTreeType) throws Exception;
+
+    DeptTreeType findById(String deptTreeTypeId);
 }

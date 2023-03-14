@@ -28,6 +28,8 @@ public class UpstreamTypeVo extends UpstreamType {
     private List<NodeRules> nodeRules;
 
     private Boolean hasRules;
+    //是否来源于本租户
+    private Boolean local;
 
 
 }

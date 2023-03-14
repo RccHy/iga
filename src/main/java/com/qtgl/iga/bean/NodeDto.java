@@ -23,7 +23,8 @@ public class NodeDto extends Node {
     private List<NodeRulesVo> nodeRules;
 
     private Boolean inherit;
-
+    //是否来自本租户
+    private Boolean local;
     public NodeDto() {
     }
 

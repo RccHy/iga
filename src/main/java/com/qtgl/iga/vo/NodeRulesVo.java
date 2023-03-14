@@ -16,6 +16,8 @@ public class NodeRulesVo extends NodeRules {
 
     //节点规则明细作用域
     private List<NodeRulesRange> nodeRulesRanges;
+    //是否来源于本租户
+    private Boolean local;
 
     public NodeRulesVo(NodeRules nodeRules) {
         this.setId(nodeRules.getId());

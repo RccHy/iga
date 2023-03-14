@@ -1,10 +1,13 @@
 package com.qtgl.iga.service.impl;
 
 
-import com.qtgl.iga.bo.*;
-import com.qtgl.iga.dao.NodeDao;
+import com.qtgl.iga.bean.NodeDto;
+import com.qtgl.iga.bo.Node;
+import com.qtgl.iga.bo.NodeRules;
+import com.qtgl.iga.bo.NodeRulesRange;
+import com.qtgl.iga.bo.UpstreamType;
 import com.qtgl.iga.dao.NodeRulesDao;
-import com.qtgl.iga.dao.NodeRulesRangeDao;
+import com.qtgl.iga.service.NodeRulesRangeService;
 import com.qtgl.iga.service.NodeRulesService;
 import com.qtgl.iga.service.NodeService;
 import com.qtgl.iga.service.UpstreamTypeService;
@@ -30,11 +33,9 @@ public class NodeRulesServiceImpl implements NodeRulesService {
     @Resource
     NodeRulesDao nodeRulesDao;
     @Resource
-    NodeRulesRangeDao nodeRulesRangeDao;
+    NodeRulesRangeService nodeRulesRangeService;
     @Resource
     NodeService nodeService;
-    @Resource
-    NodeDao nodeDao;
     @Resource
     UpstreamTypeService upstreamTypeService;
 
@@ -63,10 +64,10 @@ public class NodeRulesServiceImpl implements NodeRulesService {
             }
         }
         //查询是否有range需要删除
-        List<NodeRulesRange> ranges = nodeRulesRangeDao.getByRulesId((String) arguments.get("id"), null);
+        List<NodeRulesRange> ranges = nodeRulesRangeService.getByRulesId((String) arguments.get("id"), null);
         //删除range
         if (null != ranges && ranges.size() > 0) {
-            Integer i = nodeRulesRangeDao.deleteNodeRulesRangeByRuleId((String) arguments.get("id"));
+            Integer i = nodeRulesRangeService.deleteNodeRulesRangeByRuleId((String) arguments.get("id"));
             if (!(i > 0)) {
                 throw new CustomException(ResultCode.FAILED, "删除range失败");
             }
@@ -80,7 +81,7 @@ public class NodeRulesServiceImpl implements NodeRulesService {
             List<NodeRulesVo> nodeRulesByNodeId = nodeRulesDao.findNodeRulesByNodeId(nodeRules.getNodeId(), null);
             //node下没有对应的nodeRules则将node删除
             if (CollectionUtils.isEmpty(nodeRulesByNodeId)) {
-                nodeDao.deleteNodeById(nodeRules.getNodeId(), domain);
+                nodeService.deleteNodeById(nodeRules.getNodeId(), domain);
             }
         }
         if (flag > 0) {
@@ -115,9 +116,9 @@ public class NodeRulesServiceImpl implements NodeRulesService {
     }
 
     @Override
-    public NodeRulesVo updateRules(NodeRulesVo nodeRules) throws Exception {
+    public NodeRulesVo updateRules(NodeRulesVo nodeRules) {
         //清除所有range
-        Integer integer = nodeRulesRangeDao.deleteNodeRulesRangeByRuleId(nodeRules.getId());
+        Integer integer = nodeRulesRangeService.deleteNodeRulesRangeByRuleId(nodeRules.getId());
         if (!(integer > 0)) {
             throw new CustomException(ResultCode.FAILED, "删除range失败");
         }
@@ -126,7 +127,7 @@ public class NodeRulesServiceImpl implements NodeRulesService {
             //修改range
             for (NodeRulesRange rulesRange : nodeRules.getNodeRulesRanges()) {
                 NodeRulesRange nodeRulesRange;
-                nodeRulesRange = nodeRulesRangeDao.saveNodeRuleRange(rulesRange);
+                nodeRulesRange = nodeRulesRangeService.saveNodeRuleRange(rulesRange);
 
                 if (null == nodeRulesRange) {
                     throw new CustomException(ResultCode.FAILED, "操作节点作用域失败");
@@ -188,12 +189,42 @@ public class NodeRulesServiceImpl implements NodeRulesService {
         return nodeRulesDao.findNodeRulesByService(serviceName, domain, synType);
     }
 
+    @Override
+    public NodeDto saveNodeRules(NodeDto save) {
+        return nodeRulesDao.saveNodeRules(save);
+    }
+
+    @Override
+    public List<NodeRulesVo> findNodeRulesByNodeId(String id, Integer status) {
+        return nodeRulesDao.findNodeRulesByNodeId(id,status);
+    }
+
+    @Override
+    public Integer deleteNodeRules(String id) {
+        return nodeRulesDao.deleteNodeRules(id);
+    }
+
+    @Override
+    public Integer makeNodeRulesToHistory(String ruleId, Integer status) {
+        return nodeRulesDao.makeNodeRulesToHistory(ruleId,status);
+    }
+
+    @Override
+    public List<NodeRules> findNodeRulesByServiceKey(String serviceKey, Integer status, Integer synWay) {
+        return nodeRulesDao.findNodeRulesByServiceKey(serviceKey,status,synWay);
+    }
+
+    @Override
+    public List<NodeRules> findNodeRulesByUpStreamTypeId(String upstreamTypeId, Integer status) {
+        return nodeRulesDao.findNodeRulesByUpStreamTypeId(upstreamTypeId,status);
+    }
+
     public NodeRules deleteRules(NodeRules rules, String domain) {
         //查询是否有range需要删除
-        List<NodeRulesRange> ranges = nodeRulesRangeDao.getByRulesId(rules.getId(), null);
+        List<NodeRulesRange> ranges = nodeRulesRangeService.getByRulesId(rules.getId(), null);
         //删除range
         if (null != ranges && ranges.size() > 0) {
-            Integer i = nodeRulesRangeDao.deleteNodeRulesRangeByRuleId(rules.getId());
+            Integer i = nodeRulesRangeService.deleteNodeRulesRangeByRuleId(rules.getId());
             if (!(i > 0)) {
                 throw new CustomException(ResultCode.FAILED, "删除range失败");
             }
@@ -204,7 +235,7 @@ public class NodeRulesServiceImpl implements NodeRulesService {
         List<NodeRulesVo> nodeRulesByNodeId = nodeRulesDao.findNodeRulesByNodeId(rules.getNodeId(), null);
         //node下没有对应的nodeRules则将node删除
         if (CollectionUtils.isEmpty(nodeRulesByNodeId)) {
-            nodeDao.deleteNodeById(rules.getNodeId(), domain);
+            nodeService.deleteNodeById(rules.getNodeId(), domain);
         }
         //if (flag > 0) {
         //    return new NodeRulesVo();

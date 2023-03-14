@@ -33,7 +33,11 @@ public interface NodeService {
 
     Integer judgeEdit(Map<String, Object> arguments, DomainInfo domain, String type) throws Exception;
 
-    List<Node> nodeStatus(Map<String, Object> arguments, String id) throws Exception;
+    List<Node> nodeStatus(Map<String, Object> arguments, String domainId) throws Exception;
 
     void updateNodeAndRules(List<Node> nodes, List<TreeBean> beans);
+
+    List<Node> findByTreeTypeCode(String code, Integer status, String domain);
+
+    void deleteNodeById(String nodeId, String domain);
 }

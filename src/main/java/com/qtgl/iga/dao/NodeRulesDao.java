@@ -21,8 +21,9 @@ public interface NodeRulesDao {
 
     Integer deleteNodeRules(String id);
 
-    List<NodeRulesVo> findNodeRulesByNodeId(String id, Integer status);
-     List<NodeRules> findNodeRulesByService(String serviceName,String domain,String synType);
+    List<NodeRulesVo> findNodeRulesByNodeId(String nodeId, Integer status);
+
+    List<NodeRules> findNodeRulesByService(String serviceName, String domain, String synType);
 
     NodeRulesVo saveNodeRules(NodeRulesVo nodeRules);
 
@@ -34,7 +35,7 @@ public interface NodeRulesDao {
 
     Integer makeNodeRulesToHistory(String id, Integer status);
 
-    List<NodeRules> findNodeRulesByServiceKey(String id, Integer status, Integer type);
+    List<NodeRules> findNodeRulesByServiceKey(String serviceKey, Integer status, Integer type);
 
     List<NodeRulesVo> findPullNodeRulesByNodeId(String id, Integer status);
 

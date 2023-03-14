@@ -34,52 +34,30 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
 
 
     @Override
-    public List<UpstreamTypeVo> findAll(Map<String, Object> arguments, String domain) {
+    public List<UpstreamTypeVo> findAll(Map<String, Object> arguments, String domain, Boolean isLocal) {
         //拼接sql
         StringBuffer stb = new StringBuffer("select  id,upstream_id as upstreamId ,description,code,syn_type as synType,dept_type_id as deptTypeId," +
                 "enable_prefix as enablePrefix,active,active_time as activeTime,root,create_time as createTime," +
-                "update_time as updateTime, graphql_url as graphqlUrl,service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId , is_page as isPage, syn_way as synWay, is_incremental as isIncremental,person_characteristic as personCharacteristic from  t_mgr_upstream_types where 1 = 1  and active = 1 and domain in (? ");
-        if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
-            stb.append(",").append(AutoUpRunner.superDomainId);
-        }
-        stb.append(" ) ");
+                "update_time as updateTime, graphql_url as graphqlUrl,service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId , is_page as isPage, syn_way as synWay, is_incremental as isIncremental,person_characteristic as personCharacteristic from  t_mgr_upstream_types where 1 = 1  and active = 1 and domain =? ");
+
 
         //存入参数
         List<Object> param = new ArrayList<>();
+        if (!isLocal) {
+            param.add(AutoUpRunner.superDomainId);
+            stb.append(" and id not in (select upstream_type_id from t_mgr_domain_ignore where domain=?) ");
+        }
         param.add(domain);
         dealData(arguments, stb, param);
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
         ArrayList<UpstreamTypeVo> list = new ArrayList<>();
-        if (null != mapList && mapList.size() > 0) {
+        if (!CollectionUtils.isEmpty(mapList)) {
             for (Map<String, Object> map : mapList) {
                 //权威源类型赋值
                 UpstreamTypeVo upstreamTypeVo = new UpstreamTypeVo();
                 BeanMap beanMap = BeanMap.create(upstreamTypeVo);
                 beanMap.putAll(map);
-                //List<Map<String, Object>> filedList = jdbcIGA.queryForList("select id,upstream_type_id as upstreamTypeId,source_field as sourceField , target_field as targetField,create_time as createTime,update_time as updateTime,domain from t_mgr_upstream_types_field where upstream_type_id = ? ", upstreamTypeVo.getId());
-                //
-                ////映射字段
-                //ArrayList<UpstreamTypeField> upstreamTypeFields = getUpstreamTypeFields(filedList);
-                //upstreamTypeVo.setUpstreamTypeFields(upstreamTypeFields);
-                //
-                ////权威源查询
-                //
-                //Upstream upstream = getUpstream(upstreamTypeVo.getUpstreamId());
-                //upstreamTypeVo.setUpstream(upstream);
-                ////source赋值
-                //upstreamTypeVo.setSource(upstream.getAppName() + "(" + upstream.getAppCode() + ")");
-                //
-                ////组织机构类型查询
-                //DeptType deptType = getDeptType(upstreamTypeVo.getDeptTypeId());
-                //upstreamTypeVo.setDeptType(deptType);
-                //
-                ////组织机构类型树查询
-                //DeptTreeType byId = getDeptTreeType(upstreamTypeVo.getDeptTreeTypeId());
-                //upstreamTypeVo.setDeptTreeType(byId);
-                //
-                ////是否有nodeRules
-
-
+                upstreamTypeVo.setLocal(isLocal);
                 list.add(upstreamTypeVo);
             }
             return list;

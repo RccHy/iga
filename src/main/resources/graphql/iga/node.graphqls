@@ -57,6 +57,9 @@ type Node{
     #类型
     type:String
 
+    #是否来自本租户
+    local:Boolean
+
 }
 
 

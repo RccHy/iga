@@ -10,8 +10,8 @@ import java.util.Map;
 
 public interface UpstreamService {
 
-
     Upstream findByCodeAndDomain(String code, String domain);
+
     List<UpstreamDto> findAll(Map<String, Object> arguments, String domain);
 
     Upstream deleteUpstream(Map<String, Object> arguments, String domain) throws Exception;
@@ -37,6 +37,8 @@ public interface UpstreamService {
     ArrayList<Upstream> findByOtherUpstream(List<String> ids,String domain);
 
     List<Upstream> findByUpstreamTypeIds(ArrayList<String> upstreamTypeIds,String domainId);
+
+    Upstream findById(String upstreamId);
 
     Integer saveUpstreamTypesAndFields(List<UpstreamType> upstreamTypes, List<UpstreamType> updateUpstreamTypes, List<UpstreamTypeField> upstreamTypeFields, DomainInfo domainInfo);
 

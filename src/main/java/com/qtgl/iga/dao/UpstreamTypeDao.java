@@ -10,7 +10,7 @@ import java.util.Map;
 
 public interface UpstreamTypeDao {
 
-    List<UpstreamTypeVo> findAll(Map<String, Object> arguments, String domain);
+    List<UpstreamTypeVo> findAll(Map<String, Object> arguments, String domain,Boolean isLocal);
 
     UpstreamType saveUpstreamType(UpstreamType upstreamType, String domain);
 

@@ -1844,7 +1844,7 @@ public class OccupyServiceImpl implements OccupyService {
 
 
         // 获取规则
-        Map arguments = new ConcurrentHashMap();
+        Map<String,Object> arguments = new ConcurrentHashMap<>();
         arguments.put("type", "occupy");
         arguments.put("status", 0);
 

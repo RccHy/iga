@@ -1,24 +1,22 @@
 package com.qtgl.iga.service.impl;
 
+import com.qtgl.iga.AutoUpRunner;
 import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.NodeDao;
-import com.qtgl.iga.dao.NodeRulesDao;
-import com.qtgl.iga.dao.NodeRulesRangeDao;
-import com.qtgl.iga.dao.TaskLogDao;
-import com.qtgl.iga.service.NodeService;
+import com.qtgl.iga.service.*;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
 import com.qtgl.iga.vo.NodeRulesVo;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import javax.annotation.Resource;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,18 +28,20 @@ public class NodeServiceImpl implements NodeService {
 
     public static Logger logger = LoggerFactory.getLogger(NodeServiceImpl.class);
 
-    @Autowired
+    @Resource
     NodeDao nodeDao;
-    @Autowired
-    NodeRulesDao nodeRulesDao;
-    @Autowired
-    NodeRulesRangeDao nodeRulesRangeDao;
-    @Autowired
-    TaskLogDao taskLogDao;
+    @Resource
+    NodeRulesService nodeRulesService;
+    @Resource
+    NodeRulesRangeService nodeRulesRangeService;
+    @Resource
+    TaskLogService taskLogService;
+    @Resource
+    DomainIgnoreService domainIgnoreService;
 
 
     @Override
-    public NodeDto saveNode(NodeDto node, String domain) throws Exception {
+    public NodeDto saveNode(NodeDto node, String domain) {
         //删除原有数据
         if (null != node.getId()) {
             HashMap<String, Object> hashMap = new HashMap<>();
@@ -67,12 +67,12 @@ public class NodeServiceImpl implements NodeService {
         if (null != node.getNodeRules() && node.getNodeRules().size() > 0) {
 
             //添加节点规则明细
-            NodeDto nodeRule = nodeRulesDao.saveNodeRules(save);
+            NodeDto nodeRule = nodeRulesService.saveNodeRules(save);
             if (null == nodeRule) {
                 throw new CustomException(ResultCode.FAILED, "添加节点规则明细失败");
             }
             //添加节点规则明细作用域
-            NodeDto range = nodeRulesRangeDao.saveNodeRuleRange(nodeRule);
+            NodeDto range = nodeRulesRangeService.saveNodeRuleRange(nodeRule);
             if (null == range) {
                 throw new CustomException(ResultCode.FAILED, "添加节点规则明细作用域失败");
             }
@@ -106,15 +106,15 @@ public class NodeServiceImpl implements NodeService {
 
         NodeDto nodeDto = new NodeDto(nodes.get(0));
 
-        List<NodeRulesVo> rules = nodeRulesDao.findNodeRulesByNodeId((String) arguments.get("id"), (Integer) arguments.get("status"));
+        List<NodeRulesVo> rules = nodeRulesService.findNodeRulesByNodeId((String) arguments.get("id"), (Integer) arguments.get("status"));
 
         if (null != rules) {
 
 
             //删除range
             for (NodeRulesVo rule : rules) {
-                List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(rule.getId(), (Integer) arguments.get("status"));
-                flag = nodeRulesRangeDao.deleteNodeRulesRangeByRuleId(rule.getId());
+                List<NodeRulesRange> byRulesId = nodeRulesRangeService.getByRulesId(rule.getId(), (Integer) arguments.get("status"));
+                flag = nodeRulesRangeService.deleteNodeRulesRangeByRuleId(rule.getId());
                 if (flag >= 0) {
                     rule.setNodeRulesRanges(byRulesId);
                 } else {
@@ -124,7 +124,7 @@ public class NodeServiceImpl implements NodeService {
         }
         if (flag >= 0 && null != rules) {
             //删除rule
-            i = nodeRulesDao.deleteNodeRules((String) arguments.get("id"));
+            i = nodeRulesService.deleteNodeRules((String) arguments.get("id"));
             nodeDto.setNodeRules(rules);
         }
         if (i < 0 && null != rules) {
@@ -145,39 +145,104 @@ public class NodeServiceImpl implements NodeService {
     }
 
     @Override
-    public List<NodeDto> findNodes(Map<String, Object> arguments, String id) {
-        //标识是否含有继承
-        Boolean flag = false;
+    public List<NodeDto> findNodes(Map<String, Object> arguments, String domainId) {
+
         ArrayList<NodeDto> nodeDos = new ArrayList<>();
-        //获取node
-        List<Node> nodeList = nodeDao.findNodes(arguments, id);
-        //根据node查询对应规则
-        for (Node node : nodeList) {
-            NodeDto nodeDto = new NodeDto(node);
-            List<NodeRulesVo> nodeRulesByNodeId = nodeRulesDao.findNodeRulesByNodeId(node.getId(), null);
+        //获取当前租户的node
+        List<Node> nodeList = nodeDao.findNodes(arguments, domainId);
+        //查询是否有超级租户规则
+        Map<String, Node> superNodeMap = new ConcurrentHashMap<>();
 
-            if (null != nodeRulesByNodeId) {
-                //根据rules查询对应的range
-                for (NodeRulesVo nodeRulesVo : nodeRulesByNodeId) {
-                    if (null == nodeRulesVo.getInheritId()) {
-                        List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(nodeRulesVo.getId(), null);
-                        nodeRulesVo.setNodeRulesRanges(byRulesId);
-                    } else {
-                        flag = true;
-                    }
-
+        if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
+            List<Node> superNodeList = nodeDao.findNodes(arguments, AutoUpRunner.superDomainId);
+            if (!CollectionUtils.isEmpty(superNodeList)) {
+                superNodeMap = superNodeList.stream().collect(Collectors.toMap((node -> (StringUtils.isBlank(node.getNodeCode()) ? "*" : node.getNodeCode()) + "_" + (StringUtils.isBlank(node.getDeptTreeType()) ? "*" : node.getDeptTreeType())), (node -> node)));
+                if(CollectionUtils.isEmpty(nodeList)){
+                    dealWithNode(domainId, nodeDos, nodeList, superNodeMap,false);
                 }
-                nodeDto.setInherit(flag);
-                nodeDto.setNodeRules(nodeRulesByNodeId);
-
             }
-            nodeDos.add(nodeDto);
         }
-        if (null != nodeDos && nodeDos.size() > 0) {
+
+
+        if(!CollectionUtils.isEmpty(nodeList)){
+            //根据node查询对应规则
+            dealWithNode(domainId, nodeDos, nodeList, superNodeMap,true);
+        }
+        if (!CollectionUtils.isEmpty(nodeDos)) {
             return nodeDos;
         }
         return null;
 
+    }
+
+    private void dealWithNode(String domainId, ArrayList<NodeDto> nodeDos, List<Node> nodeList, Map<String, Node> superNodeMap,Boolean isLocal) {
+        //标识是否含有继承
+        Boolean flag = false;
+
+        for (Node node : nodeList) {
+            NodeDto nodeDto = new NodeDto(node);
+            nodeDto.setLocal(isLocal);
+
+            ArrayList<NodeRulesVo> nodeRulesVos = new ArrayList<>();
+            String key = (StringUtils.isBlank(node.getNodeCode()) ? "*" : node.getNodeCode()) + "_" + (StringUtils.isBlank(node.getDeptTreeType()) ? "*" : node.getDeptTreeType());
+            if (!CollectionUtils.isEmpty(superNodeMap) && superNodeMap.containsKey(key)) {
+                Node superNode = superNodeMap.get(key);
+                List<NodeRulesVo> superNodeRulesByNodeId = findSuperNodeRulesByNodeId(superNode.getId(), null, domainId);
+                if (null != superNodeRulesByNodeId) {
+                    //根据rules查询对应的range
+                    for (NodeRulesVo nodeRulesVo : superNodeRulesByNodeId) {
+                        nodeRulesVo.setLocal(false);
+                        if (StringUtils.isBlank(nodeRulesVo.getInheritId())) {
+                            List<NodeRulesRange> byRulesId = nodeRulesRangeService.getByRulesId(nodeRulesVo.getId(), null);
+                            nodeRulesVo.setNodeRulesRanges(byRulesId);
+                        } else {
+                            flag = true;
+                        }
+                        nodeRulesVos.add(nodeRulesVo);
+                    }
+                    nodeDto.setInherit(flag);
+                    nodeDto.setNodeRules(nodeRulesVos);
+                }
+            }
+
+            List<NodeRulesVo> nodeRulesByNodeId = nodeRulesService.findNodeRulesByNodeId(node.getId(), null);
+            if (null != nodeRulesByNodeId) {
+                //根据rules查询对应的range
+                for (NodeRulesVo nodeRulesVo : nodeRulesByNodeId) {
+                    nodeRulesVo.setLocal(true);
+                    if (null == nodeRulesVo.getInheritId()) {
+                        List<NodeRulesRange> byRulesId = nodeRulesRangeService.getByRulesId(nodeRulesVo.getId(), null);
+                        nodeRulesVo.setNodeRulesRanges(byRulesId);
+                    } else {
+                        flag = true;
+                    }
+                    nodeRulesVos.add(nodeRulesVo);
+                }
+                nodeDto.setInherit(flag);
+                nodeDto.setNodeRules(nodeRulesVos);
+
+            }
+            nodeDos.add(nodeDto);
+        }
+    }
+
+    private List<NodeRulesVo> findSuperNodeRulesByNodeId(String nodeId, Integer status, String domainId) {
+        List<NodeRulesVo> nodeRulesByNodeId = nodeRulesService.findNodeRulesByNodeId(nodeId, status);
+        if (!CollectionUtils.isEmpty(nodeRulesByNodeId)) {
+            //查找本租户是否有忽略的超级租户权威源类型
+            List<DomainIgnore> domainIgnores = domainIgnoreService.findByDomain(domainId);
+            if (!CollectionUtils.isEmpty(domainIgnores)) {
+                List<String> collect = domainIgnores.stream().map(DomainIgnore::getUpstreamTypeId).collect(Collectors.toList());
+                ArrayList<NodeRulesVo> list = new ArrayList<>();
+                for (NodeRulesVo nodeRulesVo : nodeRulesByNodeId) {
+                    if (!collect.contains(nodeRulesVo.getUpstreamTypesId())) {
+                        list.add(nodeRulesVo);
+                    }
+                }
+                return list;
+            }
+        }
+        return nodeRulesByNodeId;
     }
 
     @Override
@@ -186,36 +251,29 @@ public class NodeServiceImpl implements NodeService {
     }
 
     @Override
-    public List<NodeDto> findNodesPlus(Map<String, Object> arguments, String id) {
+    public List<NodeDto> findNodesPlus(Map<String, Object> arguments, String domainId) {
+
         //查询node
         ArrayList<NodeDto> nodeDos = new ArrayList<>();
         //获取node
-        List<Node> nodeList = nodeDao.findNodesPlus(arguments, id);
-        //根据node查询rules
-        if (null != nodeList && nodeList.size() > 0) {
-            for (Node node : nodeList) {
+        List<Node> nodeList = nodeDao.findNodesPlus(arguments, domainId);
 
-                NodeDto nodeDto = new NodeDto(node);
-                List<NodeRulesVo> nodeRulesByNodeId = nodeRulesDao.findNodeRulesByNodeId(node.getId(), null);
+        //查询是否有超级租户规则
+        Map<String, Node> superNodeMap = new ConcurrentHashMap<>();
 
-                if (null != nodeRulesByNodeId) {
-                    //根据rules查询对应的range
-                    ArrayList<NodeRulesVo> nodeRulesVos = new ArrayList<>();
-                    for (NodeRulesVo nodeRulesVo : nodeRulesByNodeId) {
-                        if (StringUtils.isBlank(nodeRulesVo.getInheritId())) {
-                            List<NodeRulesRange> byRulesId = nodeRulesRangeDao.getByRulesId(nodeRulesVo.getId(), null);
-                            nodeRulesVo.setNodeRulesRanges(byRulesId);
-                            nodeRulesVos.add(nodeRulesVo);
-                        } else {
-                            nodeRulesVos.add(null);
-                        }
-
-                    }
-                    nodeDto.setNodeRules(nodeRulesVos);
-
+        if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
+            List<Node> superNodeList = nodeDao.findNodesPlus(arguments, AutoUpRunner.superDomainId);
+            if (!CollectionUtils.isEmpty(superNodeList)) {
+                superNodeMap = superNodeList.stream().collect(Collectors.toMap((node -> (StringUtils.isBlank(node.getNodeCode()) ? "*" : node.getNodeCode()) + "_" + (StringUtils.isBlank(node.getDeptTreeType()) ? "*" : node.getDeptTreeType())), (node -> node)));
+                if(CollectionUtils.isEmpty(nodeList)){
+                    dealWithNode(domainId, nodeDos, nodeList, superNodeMap,false);
                 }
-                nodeDos.add(nodeDto);
             }
+
+        }
+        //根据node查询rules
+        if (!CollectionUtils.isEmpty(nodeList)) {
+            dealWithNode(domainId,nodeDos,nodeList,superNodeMap,true);
         }
 
 
@@ -258,7 +316,7 @@ public class NodeServiceImpl implements NodeService {
 
         }
         //查询是否在同步中
-        List<TaskLog> logList = taskLogDao.findByStatus(domain);
+        List<TaskLog> logList = taskLogService.findByStatus(domain);
         if (null != logList && logList.size() > 0) {
             if ("doing".equals(logList.get(0).getStatus())) {
                 throw new CustomException(ResultCode.FAILED, "数据正在同步,应用失败,请稍后再试");
@@ -314,23 +372,23 @@ public class NodeServiceImpl implements NodeService {
         List<Node> nodes = nodeDao.findNodesByStatusAndType(status, type, domain, version);
         if (null != nodes && nodes.size() > 0) {
             for (Node node : nodes) {
-                if(node.getStatus().equals(3)){
+                if (node.getStatus().equals(3)) {
                     continue;
                 }
-                List<NodeRulesVo> rules = nodeRulesDao.findNodeRulesByNodeId(node.getId(), null);
+                List<NodeRulesVo> rules = nodeRulesService.findNodeRulesByNodeId(node.getId(), null);
                 if (null != rules && rules.size() > 0) {
                     for (NodeRulesVo rule : rules) {
-                        List<NodeRulesRange> ranges = nodeRulesRangeDao.getByRulesId(rule.getId(), null);
+                        List<NodeRulesRange> ranges = nodeRulesRangeService.getByRulesId(rule.getId(), null);
                         if (null != ranges && ranges.size() > 0) {
                             for (NodeRulesRange range : ranges) {
-                                Integer rangeHistory = nodeRulesRangeDao.makeNodeRulesRangesToHistory(range.getId(), null == version ? 2 : 0);
+                                Integer rangeHistory = nodeRulesRangeService.makeNodeRulesRangesToHistory(range.getId(), null == version ? 2 : 0);
                                 if (rangeHistory < 0) {
                                     logger.error("应用失败 range {}", range);
                                     throw new CustomException(ResultCode.FAILED, "应用range失败");
                                 }
                             }
                         }
-                        Integer ruleHistory = nodeRulesDao.makeNodeRulesToHistory(rule.getId(), null == version ? 2 : 0);
+                        Integer ruleHistory = nodeRulesService.makeNodeRulesToHistory(rule.getId(), null == version ? 2 : 0);
                         if (ruleHistory < 0) {
                             logger.error("应用失败rule  {}", rule);
                             throw new CustomException(ResultCode.FAILED, "应用rule失败");
@@ -419,7 +477,7 @@ public class NodeServiceImpl implements NodeService {
                     if (null != node.getNodeRules()) {
                         for (NodeRulesVo nodeRule : node.getNodeRules()) {
                             String nodeRulesNewId = UUID.randomUUID().toString().replace("-", "");
-                            inheritMap.put(nodeRule.getId(),nodeRulesNewId);
+                            inheritMap.put(nodeRule.getId(), nodeRulesNewId);
                             nodeRule.setId(nodeRulesNewId);
                             nodeRule.setStatus(1);
                             if (null != nodeRule.getNodeRulesRanges()) {
@@ -431,7 +489,7 @@ public class NodeServiceImpl implements NodeService {
                         }
                         //继承规则inherit_id赋值
                         for (NodeRulesVo nodeRule : node.getNodeRules()) {
-                            if(null!=nodeRule.getInheritId()){
+                            if (null != nodeRule.getInheritId()) {
                                 String newInheritId = inheritMap.get(nodeRule.getInheritId());
                                 nodeRule.setInheritId(newInheritId);
                             }
@@ -467,18 +525,18 @@ public class NodeServiceImpl implements NodeService {
         ArrayList<Node> invalidNodes = new ArrayList<>();
         ArrayList<NodeRulesVo> invalidNodeRules = new ArrayList<>();
         ArrayList<NodeRulesRange> invalidNodeRulesRanges = new ArrayList<>();
-        if(!CollectionUtils.isEmpty(beans)&&!CollectionUtils.isEmpty(nodes)){
+        if (!CollectionUtils.isEmpty(beans) && !CollectionUtils.isEmpty(nodes)) {
             Map<String, TreeBean> collect = beans.stream().collect(Collectors.toMap(TreeBean::getCode, treeBean -> treeBean));
             for (Node node : nodes) {
-                if(!StringUtils.isBlank(node.getNodeCode())){
-                    if(!collect.containsKey(node.getNodeCode())){
+                if (!StringUtils.isBlank(node.getNodeCode())) {
+                    if (!collect.containsKey(node.getNodeCode())) {
                         invalidNodes.add(node);
-                        List<NodeRulesVo> nodeRulesVos = nodeRulesDao.findNodeRulesByNodeId(node.getId(), null);
-                        if(!CollectionUtils.isEmpty(nodeRulesVos)){
+                        List<NodeRulesVo> nodeRulesVos = nodeRulesService.findNodeRulesByNodeId(node.getId(), null);
+                        if (!CollectionUtils.isEmpty(nodeRulesVos)) {
                             invalidNodeRules.addAll(nodeRulesVos);
                             for (NodeRulesVo nodeRulesVo : nodeRulesVos) {
-                                List<NodeRulesRange> nodeRulesRanges = nodeRulesRangeDao.getByRulesId(nodeRulesVo.getId(), null);
-                                if(!CollectionUtils.isEmpty(nodeRulesRanges)){
+                                List<NodeRulesRange> nodeRulesRanges = nodeRulesRangeService.getByRulesId(nodeRulesVo.getId(), null);
+                                if (!CollectionUtils.isEmpty(nodeRulesRanges)) {
                                     invalidNodeRulesRanges.addAll(nodeRulesRanges);
                                 }
                             }
@@ -486,8 +544,18 @@ public class NodeServiceImpl implements NodeService {
                     }
                 }
             }
-            nodeDao.updateNodeAndRules(invalidNodes,invalidNodeRules,invalidNodeRulesRanges);
+            nodeDao.updateNodeAndRules(invalidNodes, invalidNodeRules, invalidNodeRulesRanges);
         }
+    }
+
+    @Override
+    public List<Node> findByTreeTypeCode(String code, Integer status, String domain) {
+        return nodeDao.findByTreeTypeCode(code, status, domain);
+    }
+
+    @Override
+    public void deleteNodeById(String nodeId, String domain) {
+        nodeDao.deleteNodeById(nodeId,domain);
     }
 
 }
