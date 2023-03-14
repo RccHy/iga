@@ -87,6 +87,7 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
         return upstreamTypeVos;
     }
 
+
     @Override
     public UpstreamType deleteUpstreamType(Map<String, Object> arguments, String domain) throws Exception {
         //查看是否有关联node_rules
@@ -142,6 +143,11 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
     }
 
     @Override
+    public UpstreamType findByCode(String code) {
+        return upstreamTypeDao.findByCode(code);
+    }
+
+    @Override
     public List<UpstreamTypeField> findFields(String url) {
         return upstreamTypeDao.findFields(url);
     }
@@ -163,8 +169,14 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
     }
 
     @Override
-    public List<UpstreamType> findByUpstreamIds(List<String> ids,String domain) {
-        return upstreamTypeDao.findByUpstreamIds(ids,domain);
+    public List<UpstreamType> findByUpstreamIds(List<String> ids, String domain) {
+        return upstreamTypeDao.findByUpstreamIds(ids, domain);
+    }
+
+    @Override
+    public void deleteUpstreamTypeByCods(List<String> codes, String domain) {
+        upstreamTypeDao.deleteUpstreamTypeByCods(codes, domain);
     }
 
 }
+

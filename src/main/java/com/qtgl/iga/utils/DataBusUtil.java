@@ -96,7 +96,7 @@ public class DataBusUtil {
     public static ConcurrentHashMap<String, List<UpstreamTypeField>> typeFields = new ConcurrentHashMap<>();
 
 
-    public static String sendPostRequest(String url, JSONObject params) {
+    public  String sendPostRequest(String url, JSONObject params) {
         url = UrlUtil.getUrl(url);
         log.info(" post url:" + url);
         String s = null;

@@ -25,6 +25,11 @@ public class UpstreamType implements Serializable {
     private String upstreamId;
 
     /**
+     * 机读代码
+     */
+    private String code;
+
+    /**
      * 描述
      */
     private String description;

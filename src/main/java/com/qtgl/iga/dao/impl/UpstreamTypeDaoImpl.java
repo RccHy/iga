@@ -13,6 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -35,7 +36,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
     @Override
     public List<UpstreamTypeVo> findAll(Map<String, Object> arguments, String domain) {
         //拼接sql
-        StringBuffer stb = new StringBuffer("select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_type_id as deptTypeId," +
+        StringBuffer stb = new StringBuffer("select  id,upstream_id as upstreamId ,description,code,syn_type as synType,dept_type_id as deptTypeId," +
                 "enable_prefix as enablePrefix,active,active_time as activeTime,root,create_time as createTime," +
                 "update_time as updateTime, graphql_url as graphqlUrl,service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId , is_page as isPage, syn_way as synWay, is_incremental as isIncremental,person_characteristic as personCharacteristic from  t_mgr_upstream_types where 1 = 1  and active = 1 and domain in (? ");
         if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
@@ -84,6 +85,29 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
             return list;
         }
 
+        return null;
+    }
+
+
+    @Override
+    public UpstreamType findByCode(String code){
+        String sql="select id,upstream_id as upstreamId ,description,code,syn_type as synType,dept_type_id as deptTypeId," +
+                "enable_prefix as enablePrefix,active,active_time as activeTime,root,create_time as createTime," +
+                "update_time as updateTime, graphql_url as graphqlUrl,service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId , is_page as isPage, syn_way as synWay, is_incremental as isIncremental,person_characteristic as personCharacteristic " +
+                "from  t_mgr_upstream_types where code=?";
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, code);
+        ArrayList<UpstreamType> list = new ArrayList<>();
+        if (null != mapList && mapList.size() > 0) {
+            for (Map<String, Object> map : mapList) {
+                //权威源类型赋值
+                UpstreamType upstreamTypeVo = new UpstreamType();
+                BeanMap beanMap = BeanMap.create(upstreamTypeVo);
+                beanMap.putAll(map);
+
+                list.add(upstreamTypeVo);
+            }
+            return list.get(0);
+        }
         return null;
     }
 
@@ -160,7 +184,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
     public UpstreamType saveUpstreamType(UpstreamType upStreamType, String domain) {
 
 
-        String sql = "insert into t_mgr_upstream_types  values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        String sql = "insert into t_mgr_upstream_types  values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         //生成主键和时间
         String id = UUID.randomUUID().toString().replace("-", "");
         upStreamType.setId(id);
@@ -172,22 +196,23 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
             preparedStatement.setObject(1, id);
             preparedStatement.setObject(2, upStreamType.getUpstreamId());
             preparedStatement.setObject(3, upStreamType.getDescription());
-            preparedStatement.setObject(4, upStreamType.getSynType());
-            preparedStatement.setObject(5, upStreamType.getDeptTypeId());
-            preparedStatement.setObject(6, upStreamType.getEnablePrefix());
-            preparedStatement.setObject(7, upStreamType.getActive());
-            preparedStatement.setObject(8, upStreamType.getActiveTime());
-            preparedStatement.setObject(9, upStreamType.getRoot());
-            preparedStatement.setObject(10, upStreamType.getCreateTime());
-            preparedStatement.setObject(11, null);
-            preparedStatement.setObject(12, upStreamType.getGraphqlUrl());
-            preparedStatement.setObject(13, upStreamType.getServiceCode());
-            preparedStatement.setObject(14, domain);
-            preparedStatement.setObject(15, upStreamType.getDeptTreeTypeId());
-            preparedStatement.setObject(16, upStreamType.getIsPage());
-            preparedStatement.setObject(17, upStreamType.getSynWay());
-            preparedStatement.setObject(18, upStreamType.getIsIncremental());
-            preparedStatement.setObject(19, upStreamType.getPersonCharacteristic());
+            preparedStatement.setObject(4, UUID.randomUUID().toString());
+            preparedStatement.setObject(5, upStreamType.getSynType());
+            preparedStatement.setObject(6, upStreamType.getDeptTypeId());
+            preparedStatement.setObject(7, upStreamType.getEnablePrefix());
+            preparedStatement.setObject(8, upStreamType.getActive());
+            preparedStatement.setObject(9, upStreamType.getActiveTime());
+            preparedStatement.setObject(10, upStreamType.getRoot());
+            preparedStatement.setObject(11, upStreamType.getCreateTime());
+            preparedStatement.setObject(12, null);
+            preparedStatement.setObject(13, upStreamType.getGraphqlUrl());
+            preparedStatement.setObject(14, upStreamType.getServiceCode());
+            preparedStatement.setObject(15, domain);
+            preparedStatement.setObject(16, upStreamType.getDeptTreeTypeId());
+            preparedStatement.setObject(17, upStreamType.getIsPage());
+            preparedStatement.setObject(18, upStreamType.getSynWay());
+            preparedStatement.setObject(19, upStreamType.getIsIncremental());
+            preparedStatement.setObject(20, upStreamType.getPersonCharacteristic());
         });
         if (null != upStreamType.getUpstreamTypeFields() && upStreamType.getUpstreamTypeFields().size() > 0) {
             saveUpstreamTypeField(upStreamType);
@@ -448,7 +473,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
     public List<UpstreamType> findByUpstreamId(String upId) {
         Object[] params = new Object[1];
         params[0] = upId;
-        String sql = "select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_type_id as deptTypeId,enable_prefix as enablePrefix,active,active_time asactiveTime,root,create_time as createTime,update_time as updateTime," +
+        String sql = "select  id,upstream_id as upstreamId ,description,code,syn_type as synType,dept_type_id as deptTypeId,enable_prefix as enablePrefix,active,active_time asactiveTime,root,create_time as createTime,update_time as updateTime," +
                 " graphql_url as graphqlUrl,service_code as serviceCode,domain,syn_way as synWay,is_page as isPage ,is_incremental as isIncremental,person_characteristic as personCharacteristic from  t_mgr_upstream_types where  upstream_id = ?";
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, params);
         ArrayList<UpstreamType> list = new ArrayList<>();
@@ -473,7 +498,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
 
     @Override
     public UpstreamType findById(String id) {
-        String sql = "select  id,upstream_id as upstreamId ,description,syn_type as synType,dept_type_id as deptTypeId," +
+        String sql = "select  id,upstream_id as upstreamId ,description,code,syn_type as synType,dept_type_id as deptTypeId," +
                 "enable_prefix as enablePrefix,active,active_time as activeTime,root,create_time as createTime," +
                 "update_time as updateTime, graphql_url as graphqlUrl,service_code as serviceCode,domain,dept_tree_type_id as deptTreeTypeId , " +
                 "is_page as isPage,syn_way as synWay,is_incremental as isIncremental,person_characteristic as personCharacteristic   from  t_mgr_upstream_types where id= ? and active=true  ";
@@ -601,6 +626,19 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
 
 
         return null;
+    }
+
+    @Override
+    public void deleteUpstreamTypeByCods(List<String> codes, String domain) {
+        StringBuffer sql=new StringBuffer("delete from t_mgr_upstream_types where code in ( ");
+        List<Object> args=new ArrayList<>();
+        for (String code : codes) {
+            sql.append("'"+code+"',");
+        }
+        sql.replace(sql.length() - 1, sql.length(), " ) ");
+        sql.append(" and domain = ? ");
+
+        jdbcIGA.update(sql.toString(), domain);
     }
 
 }

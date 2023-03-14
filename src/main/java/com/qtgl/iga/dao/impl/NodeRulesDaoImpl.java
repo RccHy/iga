@@ -172,6 +172,40 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
         return null;
     }
 
+
+    public List<NodeRules> findNodeRulesByService(String serviceName,String domain,String synType){
+    String sql="select tmnr.* " +
+            "from t_mgr_upstream_types ut " +
+            "left join t_mgr_upstream u on ut.upstream_id=u.id " +
+            "left join t_mgr_node_rules tmnr on ut.id = tmnr.upstream_types_id " +
+            " where graphql_url like ? " +
+            "  and ut.active = 1 " +
+            "  and u.active=1 " +
+            "  and syn_way = 1 " +
+            "   and domain in ? " +
+            "  and syn_type = ? ";
+        //存入参数
+        List<Object> param = new ArrayList<>();
+        param.add("bus://"+serviceName+"/%");
+        param.add(Arrays.asList(domain,"localhost"));
+        param.add(synType);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, param);
+        ArrayList<NodeRules> list = new ArrayList<>();
+        if (null != mapList && mapList.size() > 0) {
+            for (Map<String, Object> map : mapList) {
+                NodeRules nodeRules = new NodeRules();
+                try {
+                    MyBeanUtils.populate(nodeRules, map);
+                } catch (IllegalAccessException | InvocationTargetException e) {
+                    e.printStackTrace();
+                }
+                list.add(nodeRules);
+            }
+            return list;
+        }
+        return null;
+    }
+
     @Override
     public NodeRules updateRules(NodeRules nodeRules) {
 

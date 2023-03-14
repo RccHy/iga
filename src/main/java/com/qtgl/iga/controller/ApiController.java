@@ -25,10 +25,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import java.sql.Timestamp;
@@ -46,6 +43,7 @@ public class ApiController {
 
     public static Logger logger = LoggerFactory.getLogger(ApiController.class);
 
+    public static Long bootstrapStartTime = null;
     @Autowired
     DomainInfoService domainInfoService;
 
@@ -55,11 +53,10 @@ public class ApiController {
     @Value("${bus.url}")
     private String busUrl;
     @Autowired
-    private UpstreamService upstreamService;
+    UpstreamService upstreamService;
+
     @Autowired
-    UpstreamDao upstreamDao;
-    @Autowired
-    UpstreamTypeDaoImpl upstreamTypeDao;
+    UpstreamTypeService upstreamTypeService;
     @Autowired
     TenantDao tenantDao;
     @Autowired
@@ -78,6 +75,8 @@ public class ApiController {
     PersonService personService;
     @Autowired
     OccupyService occupyService;
+    @Autowired
+    NodeService nodeService;
 
 
     @PostMapping("/event")
@@ -191,20 +190,20 @@ public class ApiController {
 
     @PostMapping(value = "/bootstrap")
     @ResponseBody
-    public void postBootstrap(HttpServletRequest request) {
-        String resource = request.getParameter("resource");
+    public void postBootstrap(HttpServletRequest request,
+                              @RequestParam String resource,
+                              @RequestParam(required = false) String context) {
+
         logger.info(resource);
 
         JSONObject jsonObject = JSONObject.parseObject(resource);
-        JSONObject result = new JSONObject();
+
         try {
-            JSONObject spec = jsonObject.getJSONObject("spec");
-            JSONArray versions = spec.getJSONArray("versions");
-            QUserSource qUserSource = versions.getJSONObject(0).getJSONObject("schema")
-                    .getJSONObject("openAPIV3Schema").getJSONObject("spec").toJavaObject(QUserSource.class);
+            QUserSource qUserSource = jsonObject.getJSONObject("spec").toJavaObject(QUserSource.class);
+
             // 验证json格式是否合法
 
-            String tenant = qUserSource.getTenant().getTenantName();
+            String tenant = qUserSource.getTenant().getName();
             DomainInfo domainInfo = null;
             //检查租户
             if (StringUtils.isBlank(tenant)) {
@@ -219,29 +218,74 @@ public class ApiController {
             }
             //处理权威源
             Upstream upstream = setUpstream(qUserSource, domainInfo);
-            //判重
-            List<Map<String, Object>> byAppNameAndAppCode = upstreamDao.findByAppNameAndAppCode(upstream.getAppName(), upstream.getAppCode(), domainInfo.getId());
-            if (null != byAppNameAndAppCode && byAppNameAndAppCode.size() > 0) {
-                logger.error("[bootstrap] 权威源名称或则代码重复");
-                return;
+            // 检查是否需要更新,如果AppCode存在 则需要更新
+            Upstream byCodeAndDomain = upstreamService.findByCodeAndDomain(upstream.getAppCode(), domainInfo.getId());
+            boolean update = false;
+            if (null != byCodeAndDomain) {
+                logger.info("[bootstrap] {}-{}权威源已存在", upstream.getAppCode(), domainInfo.getDomainName());
+                upstream.setId(byCodeAndDomain.getId());
+                update = true;
             }
+            // 权威源处理完成,保存权威源
+            if (update) {
+                upstreamService.updateUpstream(upstream);
+                log.info("[bootstrap] {}-{}更新权威源完成", upstream.getAppCode(), domainInfo.getDomainName());
+                upstreamService. delAboutNode(upstream, domainInfo);
+                log.info("[bootstrap] {}-{}删除权威源相关规则节点完成", upstream.getAppCode(), domainInfo.getDomainName());
+                // qUserSource.getSources 所有name集合
+                List<String> codes = qUserSource.getSources().stream().map(Sources::getName).collect(Collectors.toList());
+                // 删除权威源类型
+                upstreamTypeService.deleteUpstreamTypeByCods(codes, domainInfo.getId());
+
+            } else {
+                upstreamService.saveUpstream(upstream, domainInfo.getId());
+                log.info("[bootstrap] {}-{}新增权威源完成", upstream.getAppCode(), domainInfo.getDomainName());
+            }
+
             //处理权威源类型及node
             List<UpstreamType> upstreamTypes = new ArrayList<>();
+            List<UpstreamType> updateUpstreamTypes = new ArrayList<>();
+            List<UpstreamTypeField> fields = new ArrayList<>();
+
+
             List<Node> nodes = new ArrayList<>();
             List<NodeRules> nodeRulesList = new ArrayList<>();
             List<NodeRulesRange> nodeRulesRangeList = new ArrayList<>();
-            List<UpstreamTypeField> fields = new ArrayList<>();
+
             long now = System.currentTimeMillis();
             for (Sources source : qUserSource.getSources()) {
-                dealUpstreamTypeAndNodes(source, now, domainInfo, upstreamTypes, fields, nodes, nodeRulesList, nodeRulesRangeList, upstream);
+                dealUpstreamTypeAndNodes(source, now, domainInfo, upstreamTypes, updateUpstreamTypes, fields, nodes, nodeRulesList, nodeRulesRangeList, upstream);
             }
-            //权威源类型
-            //upstreamDto.setUpstreamTypes(upstreamTypes);
-            upstreamService.saveUpstreamAndTypesAndRoleBing(upstream, upstreamTypes, nodes, nodeRulesList, nodeRulesRangeList, domainInfo);
+            // 权威源类型处理完成,保存权威源类型
+            Integer statusCode = upstreamService.saveUpstreamTypesAndFields(upstreamTypes, updateUpstreamTypes, fields, domainInfo);
+            if (statusCode != -1) {
+                log.info("[bootstrap] {}-{}保存权威源类型完成", upstream.getAppCode(), domainInfo.getDomainName());
+                // 保存node 信息
+                statusCode = upstreamService.saveUpstreamAboutNodes(nodes, nodeRulesList, nodeRulesRangeList, domainInfo);
+                log.info("[bootstrap] {}-{}保存权威源相关规则节点完成", upstream.getAppCode(), domainInfo.getDomainName());
+                // todo 推送才需要 rolebinding
+                if (statusCode != -1&&false) {
+                    upstreamService.saveRoleBing(upstreamTypes, nodes, nodeRulesList, domainInfo);
+                }else{
+                    log.error("[bootstrap] {}-{}保存权威源相关规则节点失败", upstream.getAppCode(), domainInfo.getDomainName());
+                }
+            }else {
+                log.error("[bootstrap] {}-{}保存权威源类型失败", upstream.getAppCode(), domainInfo.getDomainName());
+            }
+
+
         } catch (Exception e) {
             e.printStackTrace();
             logger.error(e.getMessage());
         }
+    }
+
+    @PutMapping(value = "/bootstrap")
+    @ResponseBody
+    public void putBootstrap(HttpServletRequest request,
+                             @RequestParam String resource,
+                             @RequestParam(required = false) String context) {
+        postBootstrap(request, resource, context);
     }
 
     private List<UpstreamType> getUpstreamTypes(Upstream upstream, JSONObject upstreamTypesJson, DomainInfo domainInfo) {
@@ -297,8 +341,6 @@ public class ApiController {
             throw new CustomException(ResultCode.FAILED, "[bootstrap] source text is null");
         }
         Upstream upstream = new Upstream();
-        String upstreamId = UUID.randomUUID().toString();
-        upstream.setId(upstreamId);
         upstream.setAppCode(appCode);
         upstream.setAppName(appName);
         upstream.setColor(color);
@@ -309,23 +351,27 @@ public class ApiController {
         return upstream;
     }
 
-    private void dealUpstreamTypeAndNodes(Sources source, long now, DomainInfo domainInfo, List<UpstreamType> upstreamTypes,
+    private void dealUpstreamTypeAndNodes(Sources source, long now, DomainInfo domainInfo, List<UpstreamType> upstreamTypes, List<UpstreamType> updateUpstreamTypes,
                                           List<UpstreamTypeField> fields, List<Node> nodes, List<NodeRules> nodeRulesList, List<NodeRulesRange> nodeRulesRangeList, Upstream upstream) {
-        //校验必填参数
+        //todo 参数检查
 
-
+        log.info("[bootstrap] {}-{}-{}开始处理权威源类型及node",  domainInfo.getDomainName(),upstream.getAppCode(), source.getText());
         UpstreamType upstreamType = new UpstreamType();
-        String upstreamTypeId = UUID.randomUUID().toString();
-        upstreamType.setId(upstreamTypeId);
+        upstreamType.setId(UUID.randomUUID().toString());
+        upstreamType.setCode(source.getName());
         upstreamType.setUpstreamId(upstream.getId());
-        upstreamType.setDescription(source.getText() + source.getKind());
-        upstreamType.setSynType(source.getKind());
+        upstreamType.setSynType(source.getKind().equals("user")?"person":source.getKind());
         upstreamType.setActive(true);
         // 如果定义了 app 信息则为推送模式 , 定义了service 则为拉取模式. 0拉取1推送
-        upstreamType.setSynWay(source.getMode().equals("pull") ? 0 : 1);
+        upstreamType.setSynWay(source.getMode().equals("pull") ? 1 : 0);
         if (source.getMode().equals("push")) {
             upstreamType.setServiceCode(source.getApp().getName());
         }
+        String mode="拉取";
+        if(source.getMode().equals("push")){
+            mode="推送";
+        }
+        upstreamType.setDescription(StringUtils.isNotBlank(source.getText())?source.getText(): source.getKind()+mode);
         upstreamType.setIsPage(true);
         if (null != source.getService() && null != source.getService().getOperation()) {
             String serviceName = source.getService().getName();
@@ -349,14 +395,15 @@ public class ApiController {
         if (source.getKind().equals("user") || source.getKind().equals("occupy")) {
             upstreamType.setPersonCharacteristic(null != source.getPrincipal().getName() ? source.getPrincipal().getName() : "CARD_NO");
         }
-
-        //校验名称重复
-        List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType, domainInfo.getId());
-        if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
-            log.error("[bootstrap] 权威源类型描述重复");
-            return;
-            //throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
+        // 判断upstreamType 是否需要更新,
+        UpstreamType byUpstreamAndTypeAndDesc = upstreamTypeService.findByCode(source.getName());
+        if (null != byUpstreamAndTypeAndDesc) {
+            upstreamType.setId(byUpstreamAndTypeAndDesc.getId());
+            updateUpstreamTypes.add(upstreamType);
+        } else {
+            upstreamTypes.add(upstreamType);
         }
+
         // 构造字段
         if (null != source.getFields() && source.getFields().size() > 0) {
             // 去重,防止重复字段
@@ -365,7 +412,7 @@ public class ApiController {
             new ArrayList<>(fieldSet).forEach(field -> {
                         UpstreamTypeField upstreamTypeField = new UpstreamTypeField();
                         upstreamTypeField.setId(UUID.randomUUID().toString());
-                        upstreamTypeField.setUpstreamTypeId(upstreamTypeId);
+                        upstreamTypeField.setUpstreamTypeId(upstreamType.getId());
                         upstreamTypeField.setSourceField(field.getName());
                         upstreamTypeField.setTargetField(field.getExpression().getValue());
                         upstreamTypeField.setCreateTime(new Timestamp(new java.util.Date().getTime()));
@@ -380,32 +427,36 @@ public class ApiController {
 
         //构造 node
         Node node = new Node();
-        String nodeId = UUID.randomUUID().toString();
-        node.setId(nodeId);
+        node.setId(UUID.randomUUID().toString());
         node.setCreateTime(now);
         node.setDomain(domainInfo.getId());
         node.setNodeCode(" ");
         node.setStatus(0);
         node.setType(upstreamType.getSynType());
+
+        String nodeRulesId = UUID.randomUUID().toString();
         //构造 nodeRule
         NodeRules nodeRules = new NodeRules();
-        nodeRules.setId(UUID.randomUUID().toString());
-        nodeRules.setNodeId(nodeId);
+        nodeRules.setId(nodeRulesId);
+        nodeRules.setNodeId(node.getId());
         nodeRules.setType(0);
         nodeRules.setActive(false);
         if (null != source.getRule()) {
             nodeRules.setActive(source.getRule().getEnabled());
         }
         nodeRules.setActiveTime(now);
-        nodeRules.setServiceKey(upstreamTypeId);
+        // 如果是推送服务,则需要定义serviceKey, 拉取服务则定义upstreamType
+        if (source.getMode().equals("push")) {
+            nodeRules.setServiceKey(upstreamType.getId());
+        } else {
+            nodeRules.setUpstreamTypesId(upstreamType.getId());
+        }
         nodeRules.setStatus(0);
         nodeRulesList.add(nodeRules);
 
         if (source.getKind().equals("dept") || source.getKind().equals("post")) {
-
             //  source 下 rule 可为空, 则默认挂载到 [dept]单位类型/根节点 or [post]身份岗/根节点
             //  monut 可能为空, 为空则默认分配
-
             // todo 定义类型,默认01
             node.setDeptTreeType("01");
             node.setNodeCode(" ");
@@ -413,7 +464,7 @@ public class ApiController {
             // 构建rulesRange
             NodeRulesRange nodeRulesRange = new NodeRulesRange();
             nodeRulesRange.setId(UUID.randomUUID().toString());
-            nodeRulesRange.setNodeRulesId(nodeRules.getId());
+            nodeRulesRange.setNodeRulesId(nodeRulesId);
             //  规则类型 0 挂载 1 排除
             nodeRulesRange.setType(0);
             nodeRulesRange.setRange(0);
@@ -432,11 +483,10 @@ public class ApiController {
                 nodeRulesRange.setType(source.getRule().getKind().equals("exclude") ? 1 : 0);
             }
             nodeRulesRangeList.add(nodeRulesRange);
-
         }
         nodes.add(node);
 
-        upstreamTypes.add(upstreamType);
+        log.info("[bootstrap] {}-{}-{}开始处理权威源类型及node",  domainInfo.getDomainName(),upstream.getAppCode(), source.getText());
 
     }
 

@@ -289,6 +289,7 @@ public class DeptServiceImpl implements DeptService {
             if (!CollectionUtils.isEmpty(nodes)) {
                 nodesMap = nodes.stream().collect(Collectors.groupingBy(Node::getNodeCode));
             }
+            // 提前获取来自API的数据, 以防有规则信息 是挂载在 API节点上
             List<TreeBean> ssoApiBeans = deptDao.findBySourceAndTreeType("API", deptType.getCode(), tenant.getId());
 
             if (null != ssoApiBeans && ssoApiBeans.size() > 0) {

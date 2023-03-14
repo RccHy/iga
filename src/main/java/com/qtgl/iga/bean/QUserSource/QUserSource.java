@@ -1,6 +1,5 @@
 
 package com.qtgl.iga.bean.QUserSource;
-import com.qtgl.iga.bo.Tenant;
 
 import java.util.List;
 

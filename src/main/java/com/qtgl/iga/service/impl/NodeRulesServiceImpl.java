@@ -160,7 +160,7 @@ public class NodeRulesServiceImpl implements NodeRulesService {
     }
 
     @Override
-    public List<NodeRules> deleteBatchRules(List<NodeRules> nodeRules, String domain) throws Exception {
+    public List<NodeRules> deleteBatchRules(List<NodeRules> nodeRules, String domain)  {
         for (NodeRules nodeRule : nodeRules) {
             deleteRules(nodeRule, domain);
         }
@@ -181,6 +181,11 @@ public class NodeRulesServiceImpl implements NodeRulesService {
         }
 
         return null;
+    }
+
+    @Override
+    public List<NodeRules> findNodeRulesByService(String serviceName, String domain, String synType) {
+        return nodeRulesDao.findNodeRulesByService(serviceName, domain, synType);
     }
 
     public NodeRules deleteRules(NodeRules rules, String domain) {

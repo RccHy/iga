@@ -22,6 +22,7 @@ public interface NodeRulesDao {
     Integer deleteNodeRules(String id);
 
     List<NodeRulesVo> findNodeRulesByNodeId(String id, Integer status);
+     List<NodeRules> findNodeRulesByService(String serviceName,String domain,String synType);
 
     NodeRulesVo saveNodeRules(NodeRulesVo nodeRules);
 

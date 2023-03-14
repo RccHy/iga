@@ -23,7 +23,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional
+
 public class UpstreamServiceImpl implements UpstreamService {
 
     @Autowired
@@ -73,6 +73,12 @@ public class UpstreamServiceImpl implements UpstreamService {
     }
 
     @Override
+    public Upstream findByCodeAndDomain(String code, String domain) {
+        return upstreamDao.findByCodeAndDomain(code, domain);
+    }
+
+    @Override
+    @Transactional
     public Upstream deleteUpstream(Map<String, Object> arguments, String domain) throws Exception {
 
         //查看是否有关联node_rules
@@ -116,14 +122,21 @@ public class UpstreamServiceImpl implements UpstreamService {
     }
 
     @Override
+    @Transactional
     public Upstream saveUpstream(Upstream upstream, String domain) throws Exception {
         return upstreamDao.saveUpstream(upstream, domain);
     }
 
     @Override
+    @Transactional
     public Upstream updateUpstream(Upstream upstream) throws Exception {
 
         return upstreamDao.updateUpstream(upstream);
+    }
+
+    @Override
+    public Integer delAboutNode(Upstream upstream, DomainInfo domainInfo) throws Exception {
+        return upstreamDao.delAboutNode(upstream, domainInfo);
     }
 
     @Override
@@ -142,7 +155,7 @@ public class UpstreamServiceImpl implements UpstreamService {
             for (UpstreamType upstreamType : upstreamTypes) {
                 upstreamType.setUpstreamId(upstream.getId());
                 //校验名称重复
-                List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType, domain);
+                List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType,domain);
                 if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
                     throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
                 }
@@ -191,6 +204,7 @@ public class UpstreamServiceImpl implements UpstreamService {
     }
 
     @Override
+    @Transactional
     public UpstreamDto updateUpstreamAndTypes(UpstreamDto upstreamDto) throws Exception {
 
 
@@ -216,7 +230,7 @@ public class UpstreamServiceImpl implements UpstreamService {
             for (UpstreamType upstreamType : upstreamTypes) {
                 UpstreamType upstreamResult = null;
                 //校验名称重复
-                List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType, upstreamDto.getDomain());
+                List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType,upstreamDto.getDomain());
                 if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
                     throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
                 }
@@ -240,30 +254,25 @@ public class UpstreamServiceImpl implements UpstreamService {
 
     }
 
+
     @Override
-    public void saveUpstreamAndTypesAndRoleBing(Upstream upstream, List<UpstreamType> upstreamTypes, List<Node> nodes, List<NodeRules> nodeRulesList,List<NodeRulesRange> nodeRulesRanges, DomainInfo domainInfo) {
-        //// 权威源
-        ////判重
-        //upstreamDao.findByAppNameAndAppCode(upstreamDto.getAppName(), upstreamDto.getAppCode(), domain);
-        //
-        //String upstreamId = UUID.randomUUID().toString();
-        //upstreamDto.setId(upstreamId);
-        //// 处理权威源类型
-        //ArrayList<UpstreamType> upstreamTypesRes = new ArrayList<>();
-        //List<UpstreamType> upstreamTypes = upstreamDto.getUpstreamTypes();
-        //if (null != upstreamTypes) {
-        //    for (UpstreamType upstreamType : upstreamTypes) {
-        //        upstreamType.setUpstreamId(upstreamId);
-        //        //校验名称重复
-        //        List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType);
-        //        if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
-        //            throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
-        //        }
-        //        upstreamType.setId(UUID.randomUUID().toString());
-        //        upstreamTypesRes.add(upstreamType);
-        //    }
-        //}
-        //upstreamDto.setUpstreamTypes(upstreamTypesRes);
+    @Transactional
+
+    public Integer saveUpstreamTypesAndFields(List<UpstreamType> upstreamTypes, List<UpstreamType> updateUpstreamTypes, List<UpstreamTypeField> upstreamTypeFields, DomainInfo domainInfo) {
+        return upstreamDao.saveUpstreamTypesAndFields(upstreamTypes, updateUpstreamTypes, upstreamTypeFields, domainInfo);
+
+    }
+
+    @Override
+    @Transactional
+    public Integer saveUpstreamAboutNodes(List<Node> nodes, List<NodeRules> nodeRulesList, List<NodeRulesRange> nodeRulesRanges, DomainInfo domainInfo) {
+        return upstreamDao.saveUpstreamAbountNodes(nodes, nodeRulesList, nodeRulesRanges, domainInfo);
+    }
+
+    @Override
+    @Transactional
+    public void saveRoleBing(List<UpstreamType> upstreamTypes, List<Node> nodes, List<NodeRules> nodeRulesList, DomainInfo domainInfo) {
+
         //添加roleBing
         ArrayList<String> deptPermissions = new ArrayList<>();
         deptPermissions.add("departments");
@@ -339,11 +348,10 @@ public class UpstreamServiceImpl implements UpstreamService {
                 }
             }
         }
-        //处理规则
-        //HashMap<String, Object> map = dealNodeByUpstreamType(upstreamTypesRes, domain, deptTreeType);
-        upstreamDao.saveUpstreamAndTypesAndNode(upstream, upstreamTypes, nodes, nodeRulesList, nodeRulesRanges,domainInfo);
+
 
     }
+
 
     @Override
     public ArrayList<Upstream> findByDomainAndActiveIsFalse(String domainId) {

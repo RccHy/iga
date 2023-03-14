@@ -22,6 +22,8 @@ public interface UpstreamTypeDao {
 
     UpstreamType findById(String id);
 
+    UpstreamType findByCode(String code);
+
     List<UpstreamTypeField> findFields(String upstreamId);
 
     Integer deleteByUpstreamId(String id, String domain);
@@ -29,4 +31,5 @@ public interface UpstreamTypeDao {
     List<UpstreamType> findByUpstreamIdAndDescription(UpstreamType upstreamType,String domain);
 
     List<UpstreamType> findByUpstreamIds(List<String> ids,String domain);
+    void deleteUpstreamTypeByCods(List<String> codes,String domain);
 }

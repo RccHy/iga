@@ -5,6 +5,8 @@ import java.util.List;
 
 public class Sources {
 
+
+    private String name;
     private String text;
     private String kind;
     private String mode;
@@ -79,5 +81,13 @@ public class Sources {
 
     public void setPrincipal(Principal principal) {
         this.principal = principal;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 }

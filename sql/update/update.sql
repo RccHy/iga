@@ -3,6 +3,10 @@
 alter table t_mgr_domain_info
     add unique (domain_name);
 
+alter table t_mgr_upstream_types add code varchar(50) null comment '机读代码' AFTER `description`;
+update t_mgr_upstream_types set code=UUID() where description is not null and code is null;
+
+
 
 
 

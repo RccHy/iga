@@ -22,6 +22,8 @@ public interface NodeRulesService {
 
     List<NodeRules> deleteBatchRules(List<NodeRules> nodeRules, String domain) throws Exception;
 
+    List<NodeRules>  findNodeRulesByService(String serviceName, String domain, String synType);
+
     List<NodeRules> getByNodeAndType(String nodeId, int type, Boolean active, int status);
 
     List<NodeRules> findNodeRulesByUpStreamIdAndType(List<String> ids, String type, String domain, Integer status);

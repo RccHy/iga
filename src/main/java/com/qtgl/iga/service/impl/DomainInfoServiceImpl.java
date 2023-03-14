@@ -30,6 +30,8 @@ public class DomainInfoServiceImpl implements DomainInfoService {
     MonitorRulesDao monitorRulesDao;
     @Autowired
     DeptRelationTypeDao deptRelationTypeDao;
+    @Autowired
+    CardTypeDao cardTypeDao;
 
     @Override
     public List<DomainInfo> findAll() {
@@ -74,6 +76,8 @@ public class DomainInfoServiceImpl implements DomainInfoService {
                 postTypeDao.initialization(domainInfo.getId());
                 //  监控规则
                 monitorRulesDao.initialization(domainInfo.getId());
+                // 人员证件类型
+
             }
         }
 

@@ -5,6 +5,7 @@ import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.NodeRules;
 import com.qtgl.iga.bo.Person;
 import com.qtgl.iga.bo.TaskLog;
+import com.qtgl.iga.service.SubTaskService;
 import com.qtgl.iga.service.TaskLogService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,14 +18,14 @@ import java.util.UUID;
 
 @Service
 @Slf4j
-public class SubTaskServiceImpl {
+public class SubTaskServiceImpl implements SubTaskService {
     @Resource
     OccupyServiceImpl occupyService;
     @Resource
     PersonServiceImpl personService;
     @Resource
     TaskLogService taskLogService;
-
+    @Override
     public void subTask(String type, DomainInfo domain, List<NodeRules> nodeRules) {
 
         if (!CollectionUtils.isEmpty(nodeRules)) {
