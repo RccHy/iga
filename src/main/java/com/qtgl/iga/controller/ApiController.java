@@ -362,13 +362,28 @@ public class ApiController {
         upstreamType.setUpstreamId(upstream.getId());
         upstreamType.setSynType(source.getKind().equals("user")?"person":source.getKind());
         upstreamType.setActive(true);
-        // 如果定义了 app 信息则为推送模式 , 定义了service 则为拉取模式. 0拉取1推送
-        upstreamType.setSynWay(source.getMode().equals("pull") ? 1 : 0);
-        if (source.getMode().equals("push")) {
+        // 如果定义了 app 信息则为推送模式 , 定义了service 则为拉取模式. 1拉取 0推送 2自定义json
+        switch (source.getMode()) {
+            case "push":
+                upstreamType.setSynWay(0);
+                break;
+            case "pull":
+                upstreamType.setSynWay(1);
+                break;
+            case "builtin":
+                upstreamType.setSynWay(2);
+                break;
+            default:
+                break;
+        }
+        if ("push".equals(source.getMode())) {
             upstreamType.setServiceCode(source.getApp().getName());
         }
+        if ("builtin".equals(source.getMode())) {
+            upstreamType.setBuiltinData(source.getData().getValue());
+        }
         String mode="拉取";
-        if(source.getMode().equals("push")){
+        if("push".equals(source.getMode())){
             mode="推送";
         }
         upstreamType.setDescription(StringUtils.isNotBlank(source.getText())?source.getText(): source.getKind()+mode);
@@ -392,7 +407,7 @@ public class ApiController {
             upstreamType.setIsIncremental(source.getStrategies().getIncremental());
         }
         // 如果kind 为person or occupy 时, 需要定义合重依据
-        if (source.getKind().equals("user") || source.getKind().equals("occupy")) {
+        if ("user".equals(source.getKind()) || "occupy".equals(source.getKind())) {
             upstreamType.setPersonCharacteristic(null != source.getPrincipal().getName() ? source.getPrincipal().getName() : "CARD_NO");
         }
         // 判断upstreamType 是否需要更新,
@@ -450,6 +465,7 @@ public class ApiController {
             nodeRules.setServiceKey(upstreamType.getId());
         } else {
             nodeRules.setUpstreamTypesId(upstreamType.getId());
+            nodeRules.setType(1);
         }
         nodeRules.setStatus(0);
         nodeRulesList.add(nodeRules);
@@ -479,8 +495,10 @@ public class ApiController {
                     // 挂载路径, 为空则是根节点
                     String code = source.getRule().getMount().getPath();
                     node.setNodeCode(null != code ? code : " ");
+                    nodeRulesRange.setNode("=*");
                 }
                 nodeRulesRange.setType(source.getRule().getKind().equals("exclude") ? 1 : 0);
+
             }
             nodeRulesRangeList.add(nodeRulesRange);
         }

@@ -118,4 +118,7 @@ public class UpstreamType implements Serializable {
      */
     private String personCharacteristic;
 
+
+    private String builtinData;
+
 }

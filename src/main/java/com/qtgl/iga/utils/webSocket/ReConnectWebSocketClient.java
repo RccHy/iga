@@ -145,7 +145,7 @@ public class ReConnectWebSocketClient {
                         log.info("[{}]ReConnectWebSocketClient [onOpen]连接成功{}", key, getRemoteSocketAddress());
                         JSONObject jsonObject=new JSONObject();
                         jsonObject.put("query", "subscription {" +
-                                "  sub(topics:\"user.created user.updated user.deleted user.position.created user.position.updated user.position.deleted\t\"){" +
+                                "  sub(topics:\"usersource.cdc\"){" +
                                 "    id clientid services type openid data subject " +
                                 "  } }");
                         send(jsonObject.toString());

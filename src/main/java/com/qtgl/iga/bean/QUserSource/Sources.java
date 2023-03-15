@@ -11,6 +11,8 @@ public class Sources {
     private String kind;
     private String mode;
     private Strategies strategies;
+
+    private Data data;
     private Service service;
     private Principal principal;
     private App app;
@@ -89,5 +91,13 @@ public class Sources {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public Data getData() {
+        return data;
+    }
+
+    public void setData(Data data) {
+        this.data = data;
     }
 }

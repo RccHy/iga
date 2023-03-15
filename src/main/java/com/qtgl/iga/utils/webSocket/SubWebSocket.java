@@ -53,28 +53,24 @@ public class SubWebSocket {
                             // todo 字符串消息处理
                             System.out.println("字符串消息:" + msg);
                             JSONObject msgJson = JSONObject.parseObject(msg);
-                            // 判断是否是 用户 or 身份变动消息, 如果是,则触发同步任务\
+                            // 判断是否是 身份权威源数据发生变化 消息, 如果是,则触发同步任务\
                             String type = msgJson.getJSONObject("sub").getString("type");
                             // 获取发送消息的服务
                             String[] services = (String[]) msgJson.getJSONObject("sub").getJSONArray("services").toArray();
                             List<NodeRules> nodeRules = new ArrayList<>();
-                            if (type.contains("user")) {
-                                if (type.contains("position")) {
-                                    // 查找对应服务 有哪些规则
-                                    for (String service : services) {
-                                        nodeRules.addAll(nodeRulesService.findNodeRulesByService(service, domainInfo.getDomainName(), "occupy"));
-                                    }
-                                    // 身份变更
-                                    subTaskService.subTask("OCCUPY", domainInfo, nodeRules);
-                                } else {
-                                    // 查找对应服务 有哪些规则
-                                    for (String service : services) {
-                                        nodeRules.addAll(nodeRulesService.findNodeRulesByService(service, domainInfo.getDomainName(), "person"));
-                                    }
-                                    // 用户变更
-                                    subTaskService.subTask("PERSON", domainInfo, nodeRules);
+                            if ("usersource.cdc".equals(type)) {
+                                // 查找对应服务 有哪些规则
+                                for (String service : services) {
+                                    nodeRules.addAll(nodeRulesService.findNodeRulesByService(service, domainInfo.getDomainName(), "person"));
                                 }
-
+                                // 用户变更
+                                subTaskService.subTask("PERSON", domainInfo, nodeRules);
+                                // 查找对应服务 有哪些规则
+                                for (String service : services) {
+                                    nodeRules.addAll(nodeRulesService.findNodeRulesByService(service, domainInfo.getDomainName(), "occupy"));
+                                }
+                                // 身份变更
+                                subTaskService.subTask("OCCUPY", domainInfo, nodeRules);
                             }
                         },
                         msgByte -> {

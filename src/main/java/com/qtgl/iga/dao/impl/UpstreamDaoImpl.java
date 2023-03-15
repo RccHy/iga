@@ -249,8 +249,8 @@ public class UpstreamDaoImpl implements UpstreamDao {
             //添加权威源类型
             if (null != upstreamTypes && upstreamTypes.size() > 0) {
                 String upstreamTypeSql = "INSERT INTO t_mgr_upstream_types (id, upstream_id, code,description, syn_type, dept_type_id, enable_prefix, active, active_time, root, create_time, update_time, graphql_url, service_code, " +
-                        "domain, dept_tree_type_id, is_page, syn_way, is_incremental, person_characteristic) VALUES " +
-                        "                    (?, ?, ?, ?, ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                        "domain, dept_tree_type_id, is_page, syn_way, is_incremental, person_characteristic,builtin_data) VALUES " +
+                        "                    (?, ?, ?, ?, ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)";
                 jdbcIGA.batchUpdate(upstreamTypeSql, new BatchPreparedStatementSetter() {
                     @Override
                     public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
@@ -274,6 +274,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
                         preparedStatement.setObject(18, upstreamTypes.get(i).getSynWay());
                         preparedStatement.setObject(19, upstreamTypes.get(i).getIsIncremental());
                         preparedStatement.setObject(20, upstreamTypes.get(i).getPersonCharacteristic());
+                        preparedStatement.setObject(21, upstreamTypes.get(i).getBuiltinData());
                     }
 
                     @Override
@@ -286,7 +287,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
             if (null != updateUpstreamTypes && updateUpstreamTypes.size() > 0) {
                 String updateUpstreamTypeSql = "UPDATE t_mgr_upstream_types SET " +
                         "upstream_id = ?, description = ?, syn_type = ?, dept_type_id = ?, enable_prefix = ?, active = ?, active_time = ?, root = ?, " +
-                        " update_time = now(), graphql_url = ?, service_code = ?, domain = ?, dept_tree_type_id = ?, is_page = ?, syn_way = ?, is_incremental = ?, person_characteristic = ? WHERE id = ?;";
+                        " update_time = now(), graphql_url = ?, service_code = ?, domain = ?, dept_tree_type_id = ?, is_page = ?, syn_way = ?, is_incremental = ?, person_characteristic = ?,builtin_data =? WHERE id = ?;";
                 jdbcIGA.batchUpdate(updateUpstreamTypeSql, new BatchPreparedStatementSetter() {
                     @Override
                     public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
@@ -306,7 +307,8 @@ public class UpstreamDaoImpl implements UpstreamDao {
                         preparedStatement.setObject(14, updateUpstreamTypes.get(i).getSynWay());
                         preparedStatement.setObject(15, updateUpstreamTypes.get(i).getIsIncremental());
                         preparedStatement.setObject(16, updateUpstreamTypes.get(i).getPersonCharacteristic());
-                        preparedStatement.setObject(17, updateUpstreamTypes.get(i).getId());
+                        preparedStatement.setObject(17, updateUpstreamTypes.get(i).getBuiltinData());
+                        preparedStatement.setObject(18, updateUpstreamTypes.get(i).getId());
                     }
                     @Override
                     public int getBatchSize() {

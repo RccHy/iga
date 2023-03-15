@@ -616,7 +616,13 @@ public class NodeRulesCalculationServiceImpl {
                         LocalDateTime timestamp = LocalDateTime.now();
                         try {
                             //todo builtin处理
-                            upstreamTree = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
+                            if(2==upstreamType.getSynWay()){
+                                // 直接从数据库中获取
+                                upstreamTree =JSONArray.parseArray(upstreamType.getBuiltinData());
+                            }else{
+                                upstreamTree = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
+                            }
+
                         } catch (CustomException e) {
                             e.setData(mainTree);
                             if (new Long("1085").equals(e.getCode())) {

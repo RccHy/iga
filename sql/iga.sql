@@ -45,6 +45,9 @@ create table t_mgr_domain_info
 )
     comment '租户注册表' charset = utf8;
 
+alter table t_mgr_domain_info add unique (domain_name);
+
+
 create table t_mgr_node
 (
     id             varchar(50)  not null
@@ -144,9 +147,11 @@ create table t_mgr_upstream_types
     domain            varchar(50)      null comment '租户外键',
     dept_tree_type_id varchar(50)      null comment '属组织机构类别树外键',
     is_page           bit              not null comment '是否分页,0为不支持',
-    syn_way           int(1)           null comment ' 拉取1/推送0',
-    `is_incremental` bit NULL DEFAULT NULL COMMENT '\r\n是否增量  0为不是增量',
-    `person_characteristic` varchar(50) null comment '[人特征，人员类型合重方式以及身份匹配人方式] CARD_TYPE_NO:证件类型+证件号码 CARD_NO:仅证件号码 USERNAME:用户名 EMAIL:邮箱 CELLPHONE:手机号 OPENID:openid(仅身份类型匹配人)'
+    syn_way           int(1)           null comment ' 拉取1/推送0/自定义2',
+    `is_incremental` bit NULL DEFAULT NULL COMMENT '是否增量  0为不是增量',
+    `person_characteristic` varchar(50) null comment '[人特征，人员类型合重方式以及身份匹配人方式] CARD_TYPE_NO:证件类型+证件号码 CARD_NO:仅证件号码 USERNAME:用户名 EMAIL:邮箱 CELLPHONE:手机号 OPENID:openid(仅身份类型匹配人)',
+    `code` varchar(50) NULL DEFAULT NULL COMMENT '机读代码',
+    `builtin_data` longtext NULL DEFAULT NULL COMMENT '自定义数据 json格式'
 )
     comment '上游源类型注册表' charset = utf8;
 
