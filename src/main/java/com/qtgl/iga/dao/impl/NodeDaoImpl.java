@@ -134,7 +134,7 @@ public class NodeDaoImpl implements NodeDao {
         }
         dealData(arguments, stb, param);
 //        getChild(arguments,param,stb);
-        log.info("sql:{}",stb.toString());
+        log.info("sql:{}", stb.toString());
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
 
         for (Map<String, Object> map : mapList) {
@@ -237,7 +237,7 @@ public class NodeDaoImpl implements NodeDao {
     }
 
     @Override
-    public List<Node> findNodesByStatusAndType(Integer status, String type, String domain, Object version) {
+    public List<Node> findNodesByStatusAndType(Integer status, String type, String domain, Timestamp version) {
         ArrayList<Node> nodes = new ArrayList<>();
         String sql = "select id,manual," +
                 "node_code as nodeCode," +
@@ -257,19 +257,16 @@ public class NodeDaoImpl implements NodeDao {
         }
 
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, param.toArray());
-        if (null == mapList || mapList.size() == 0) {
-            return null;
-        }
-        for (Map<String, Object> map : mapList) {
-            try {
-                Node node = new Node();
-                MyBeanUtils.populate(node, map);
-                nodes.add(node);
-            } catch (Exception e) {
-                e.printStackTrace();
+        if (!CollectionUtils.isEmpty(mapList)) {
+            for (Map<String, Object> map : mapList) {
+                try {
+                    Node node = new Node();
+                    MyBeanUtils.populate(node, map);
+                    nodes.add(node);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
-        }
-        if (null != nodes && nodes.size() > 0) {
             return nodes;
         }
         return null;
@@ -430,6 +427,41 @@ public class NodeDaoImpl implements NodeDao {
             mapList = jdbcIGA.queryForList(sql, type, deptTreeTypeCode, status, domain);
         }
         return getNodes(nodes, mapList);
+    }
+
+    @Override
+    public List<Node> findNodes(String domainId, Integer status, String type) {
+        ArrayList<Node> nodes = new ArrayList<>();
+        //拼接sql
+        StringBuffer stb = new StringBuffer("select id,manual," +
+                "node_code as nodeCode," +
+                "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status,type" +
+                " from t_mgr_node where domain= ?    ");
+        //存入参数
+        List<Object> param = new ArrayList<>();
+        param.add(domainId);
+        if (null != type) {
+            stb.append(" and type =?  ");
+            param.add(type);
+        }
+        if (null != status) {
+            stb.append(" and status =?  ");
+            param.add(status);
+        }
+        log.info("sql:{}", stb.toString());
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
+
+        for (Map<String, Object> map : mapList) {
+            try {
+                Node node = new Node();
+                MyBeanUtils.populate(node, map);
+                nodes.add(node);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        return nodes;
     }
 
 

@@ -94,26 +94,26 @@ public class NodeServiceImpl implements NodeService {
     }
 
     @Override
-    public NodeDto deleteNode(Map<String, Object> arguments, String id) {
+    public NodeDto deleteNode(Map<String, Object> arguments, String domainId) {
         //根据id查询规则是否为禁用状态
         Integer i = 0;
         Integer flag = 0;
 
-        List<Node> nodes = nodeDao.findNodes(arguments, id);
-        if (null == nodes || nodes.size() <= 0) {
+        List<NodeDto> nodes = findNodes(arguments, domainId, false);
+        if (!CollectionUtils.isEmpty(nodes)) {
             return null;
         }
 
-        NodeDto nodeDto = new NodeDto(nodes.get(0));
-
-        List<NodeRulesVo> rules = nodeRulesService.findNodeRulesByNodeId((String) arguments.get("id"), (Integer) arguments.get("status"));
+        NodeDto nodeDto = nodes.get(0);
+        String id = (String) arguments.get("id");
+        Integer status = (Integer) arguments.get("status");
+        List<NodeRulesVo> rules = nodeRulesService.findNodeRulesByNodeId(id, status);
 
         if (null != rules) {
 
-
             //删除range
             for (NodeRulesVo rule : rules) {
-                List<NodeRulesRange> byRulesId = nodeRulesRangeService.getByRulesId(rule.getId(), (Integer) arguments.get("status"));
+                List<NodeRulesRange> byRulesId = nodeRulesRangeService.getByRulesId(rule.getId(), status);
                 flag = nodeRulesRangeService.deleteNodeRulesRangeByRuleId(rule.getId());
                 if (flag >= 0) {
                     rule.setNodeRulesRanges(byRulesId);
@@ -124,28 +124,32 @@ public class NodeServiceImpl implements NodeService {
         }
         if (flag >= 0 && null != rules) {
             //删除rule
-            i = nodeRulesService.deleteNodeRules((String) arguments.get("id"));
+            i = nodeRulesService.deleteNodeRules(id);
             nodeDto.setNodeRules(rules);
         }
         if (i < 0 && null != rules) {
             throw new CustomException(ResultCode.FAILED, "删除节点规则失败");
         }
         //如果节点规则明细为空,直接删除node并返回
-        if (i >= 0 || null == rules) {
-            //删除node
-            Integer integer = nodeDao.deleteNode(arguments, id);
-            if (integer >= 0) {
+        //删除node
+        Integer integer = nodeDao.deleteNode(arguments, domainId);
+        if (integer >= 0) {
 
-                return nodeDto;
-            }
+            return nodeDto;
         }
 
 
         return null;
     }
 
+    /**
+     * @param arguments 入参
+     * @param domainId  租户id
+     * @param flag      是否查询超级租户相关信息
+     * @return
+     */
     @Override
-    public List<NodeDto> findNodes(Map<String, Object> arguments, String domainId) {
+    public List<NodeDto> findNodes(Map<String, Object> arguments, String domainId, Boolean flag) {
 
         ArrayList<NodeDto> nodeDos = new ArrayList<>();
         //获取当前租户的node
@@ -153,20 +157,22 @@ public class NodeServiceImpl implements NodeService {
         //查询是否有超级租户规则
         Map<String, Node> superNodeMap = new ConcurrentHashMap<>();
 
-        if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
-            List<Node> superNodeList = nodeDao.findNodes(arguments, AutoUpRunner.superDomainId);
-            if (!CollectionUtils.isEmpty(superNodeList)) {
-                superNodeMap = superNodeList.stream().collect(Collectors.toMap((node -> (StringUtils.isBlank(node.getNodeCode()) ? "*" : node.getNodeCode()) + "_" + (StringUtils.isBlank(node.getDeptTreeType()) ? "*" : node.getDeptTreeType())), (node -> node)));
-                if(CollectionUtils.isEmpty(nodeList)){
-                    dealWithNode(domainId, nodeDos, nodeList, superNodeMap,false);
+        if (flag) {
+            if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
+                List<Node> superNodeList = nodeDao.findNodes(arguments, AutoUpRunner.superDomainId);
+                if (!CollectionUtils.isEmpty(superNodeList)) {
+                    superNodeMap = superNodeList.stream().collect(Collectors.toMap((node -> (StringUtils.isBlank(node.getNodeCode()) ? "*" : node.getNodeCode()) + "_" + (StringUtils.isBlank(node.getDeptTreeType()) ? "*" : node.getDeptTreeType())), (node -> node)));
+                    if (CollectionUtils.isEmpty(nodeList)) {
+                        dealWithNode(domainId, nodeDos, nodeList, superNodeMap, false);
+                    }
                 }
             }
         }
 
 
-        if(!CollectionUtils.isEmpty(nodeList)){
+        if (!CollectionUtils.isEmpty(nodeList)) {
             //根据node查询对应规则
-            dealWithNode(domainId, nodeDos, nodeList, superNodeMap,true);
+            dealWithNode(domainId, nodeDos, nodeList, superNodeMap, true);
         }
         if (!CollectionUtils.isEmpty(nodeDos)) {
             return nodeDos;
@@ -175,7 +181,7 @@ public class NodeServiceImpl implements NodeService {
 
     }
 
-    private void dealWithNode(String domainId, ArrayList<NodeDto> nodeDos, List<Node> nodeList, Map<String, Node> superNodeMap,Boolean isLocal) {
+    private void dealWithNode(String domainId, ArrayList<NodeDto> nodeDos, List<Node> nodeList, Map<String, Node> superNodeMap, Boolean isLocal) {
         //标识是否含有继承
         Boolean flag = false;
 
@@ -191,6 +197,7 @@ public class NodeServiceImpl implements NodeService {
                 if (null != superNodeRulesByNodeId) {
                     //根据rules查询对应的range
                     for (NodeRulesVo nodeRulesVo : superNodeRulesByNodeId) {
+                        nodeRulesVo.setNodeId(node.getId());
                         nodeRulesVo.setLocal(false);
                         if (StringUtils.isBlank(nodeRulesVo.getInheritId())) {
                             List<NodeRulesRange> byRulesId = nodeRulesRangeService.getByRulesId(nodeRulesVo.getId(), null);
@@ -265,15 +272,15 @@ public class NodeServiceImpl implements NodeService {
             List<Node> superNodeList = nodeDao.findNodesPlus(arguments, AutoUpRunner.superDomainId);
             if (!CollectionUtils.isEmpty(superNodeList)) {
                 superNodeMap = superNodeList.stream().collect(Collectors.toMap((node -> (StringUtils.isBlank(node.getNodeCode()) ? "*" : node.getNodeCode()) + "_" + (StringUtils.isBlank(node.getDeptTreeType()) ? "*" : node.getDeptTreeType())), (node -> node)));
-                if(CollectionUtils.isEmpty(nodeList)){
-                    dealWithNode(domainId, nodeDos, nodeList, superNodeMap,false);
+                if (CollectionUtils.isEmpty(nodeList)) {
+                    dealWithNode(domainId, nodeDos, nodeList, superNodeMap, false);
                 }
             }
 
         }
         //根据node查询rules
         if (!CollectionUtils.isEmpty(nodeList)) {
-            dealWithNode(domainId,nodeDos,nodeList,superNodeMap,true);
+            dealWithNode(domainId, nodeDos, nodeList, superNodeMap, true);
         }
 
 
@@ -295,7 +302,7 @@ public class NodeServiceImpl implements NodeService {
      * @return: com.qtgl.iga.bo.Node
      */
     @Override
-    public Node applyNode(Map<String, Object> arguments, String domain) throws Exception {
+    public Node applyNode(Map<String, Object> arguments, String domain) {
         //传入的版本数据类型转换为数据库对应类型
         Timestamp version = null;
         if (null != arguments.get("version")) {
@@ -303,13 +310,15 @@ public class NodeServiceImpl implements NodeService {
         }
         String type = (String) arguments.get("type");
         Boolean mark = (Boolean) arguments.get("mark");
-//        if (null == version) {
-//            throw new Exception("版本非法,请确认");
-//        }
+
+        //生产版本  用于回滚
+        List<Node> proNodes = new ArrayList<>();
+        //当前编辑中的规则
+        List<Node> editNodes = new ArrayList<>();
         //mark为true 则为回滚  false为应用
         if (mark) {
             //查询有无生产版本
-            List<Node> proNodes = nodeDao.findNodesByStatusAndType(0, type, domain, null);
+            proNodes = nodeDao.findNodesByStatusAndType(0, type, domain, null);
             if (null == proNodes) {
                 return null;
             }
@@ -317,26 +326,25 @@ public class NodeServiceImpl implements NodeService {
         }
         //查询是否在同步中
         List<TaskLog> logList = taskLogService.findByStatus(domain);
-        if (null != logList && logList.size() > 0) {
+        if (!CollectionUtils.isEmpty(logList)) {
             if ("doing".equals(logList.get(0).getStatus())) {
                 throw new CustomException(ResultCode.FAILED, "数据正在同步,应用失败,请稍后再试");
 
             }
-
         }
         if (null == version) {
             if (mark) {
                 //回滚查询生产版本
-                List<Node> nodes = nodeDao.findNodesByStatusAndType(0, type, domain, null);
-                if (null != nodes && nodes.size() > 0) {
-                    version = new Timestamp(nodes.get(0).getCreateTime());
+                //List<Node> nodes = nodeDao.findNodesByStatusAndType(0, type, domain, null);
+                if (!CollectionUtils.isEmpty(proNodes)) {
+                    version = new Timestamp(proNodes.get(0).getCreateTime());
                 }
             } else {
                 //应用查询编辑中版本
 
-                List<Node> nodes = nodeDao.findNodesByStatusAndType(1, type, domain, null);
-                if (null != nodes && nodes.size() > 0) {
-                    version = new Timestamp(nodes.get(0).getCreateTime());
+                editNodes = nodeDao.findNodesByStatusAndType(1, type, domain, null);
+                if (!CollectionUtils.isEmpty(editNodes)) {
+                    version = new Timestamp(editNodes.get(0).getCreateTime());
                 }
 
             }
@@ -344,9 +352,8 @@ public class NodeServiceImpl implements NodeService {
         if (mark) {
             //查询编辑中的node
             // 加 type查询
-            List<Node> nodes = nodeDao.findNodesByStatusAndType(1, type, domain, null);
-            if (null != nodes && nodes.size() > 0) {
-                for (Node node : nodes) {
+            if (!CollectionUtils.isEmpty(editNodes)) {
+                for (Node node : editNodes) {
                     HashMap<String, Object> map = new HashMap<>();
                     map.put("id", node.getId());
                     map.put("status", 1);
@@ -370,7 +377,7 @@ public class NodeServiceImpl implements NodeService {
     private Integer getInteger(Integer status, String type, String domain, Timestamp version) {
 
         List<Node> nodes = nodeDao.findNodesByStatusAndType(status, type, domain, version);
-        if (null != nodes && nodes.size() > 0) {
+        if (!CollectionUtils.isEmpty(nodes)) {
             for (Node node : nodes) {
                 if (node.getStatus().equals(3)) {
                     continue;
@@ -412,18 +419,17 @@ public class NodeServiceImpl implements NodeService {
      * @param arguments
      * @param domain
      * @return
-     * @throws Exception
      */
     @Override
-    public Node rollbackNode(Map<String, Object> arguments, String domain) throws Exception {
+    public Node rollbackNode(Map<String, Object> arguments, String domain) {
         Object version = arguments.get("version");
         if (null == version) {
             throw new CustomException(ResultCode.FAILED, "版本非法,请确认");
         }
         //  删除编辑中的node
         //查询编辑中的node
-        List<Node> nodes = nodeDao.findNodes(arguments, domain);
-        for (Node node : nodes) {
+        List<NodeDto> nodes = findNodes(arguments, domain, false);
+        for (NodeDto node : nodes) {
             HashMap<String, Object> map = new HashMap<>();
             map.put("id", node.getId());
             map.put("status", 1);
@@ -443,32 +449,22 @@ public class NodeServiceImpl implements NodeService {
      * @return: java.lang.Integer
      */
     @Override
-    public Integer judgeEdit(Map<String, Object> arguments, DomainInfo domain, String type) throws Exception {
+    public Integer judgeEdit(Map<String, Object> arguments, DomainInfo domain, String type) {
         List<NodeDto> nodeList = null;
         Integer status = (Integer) arguments.get("status");
         if (null == status) {
             throw new CustomException(ResultCode.FAILED, "状态不能为空");
         }
         if (1 == status) {
-            //判断同步任务状态
-//            ExecutorService executorService = TaskThreadPool.executorServiceMap.get(domain.getDomainName());
-//            executorService.shutdown();
-//            boolean terminated = executorService.isTerminated();
             //查看是否有治理中的规则
-            HashMap<String, Object> map = new HashMap<>();
-            map.put("status", 1);
-            map.put("type", type);
-            nodeList = findNodes(map, domain.getId());
+            nodeList = findNodesByStatusAndType(1, type, domain.getId(), null);
         }
         //   如果状态为编辑,并且没有治理中的数据
         if (null == nodeList && status == 1) {
             //复制,再返回
-            HashMap<String, Object> map = new HashMap<>();
-            map.put("status", 0);
-            map.put("type", type);
-            List<NodeDto> nodes = findNodes(map, domain.getId());
+            List<NodeDto> nodes = findNodesByStatusAndType(0, type, domain.getId(), null);
             //复制数据
-            if (null != nodes && nodes.size() > 0) {
+            if (!CollectionUtils.isEmpty(nodes)) {
                 ConcurrentHashMap<String, String> inheritMap = new ConcurrentHashMap<>();
                 for (NodeDto node : nodes) {
                     node.setId(null);
@@ -507,6 +503,52 @@ public class NodeServiceImpl implements NodeService {
     }
 
     @Override
+    public List<NodeDto> findNodesByStatusAndType(Integer status, String type, String domainId, Timestamp version) {
+        ArrayList<NodeDto> nodeDtos = new ArrayList<>();
+        List<Node> nodesByStatusAndType = nodeDao.findNodesByStatusAndType(status, type, domainId, version);
+        if (!CollectionUtils.isEmpty(nodesByStatusAndType)) {
+            dealWithNode(domainId, nodeDtos, nodesByStatusAndType, null, true);
+        }
+        return nodeDtos;
+    }
+
+    @Override
+    public List<Node> getByTreeType(String domainId, String code, Integer status, String type) {
+        return nodeDao.getByTreeType(domainId, code, status, type);
+    }
+
+    @Override
+    public List<NodeDto> findNodes(String domainId, Integer status, String type, Boolean flag) {
+        ArrayList<NodeDto> nodeDos = new ArrayList<>();
+        //获取当前租户的node
+        List<Node> nodeList = nodeDao.findNodes(domainId, status, type);
+        //查询是否有超级租户规则
+        Map<String, Node> superNodeMap = new ConcurrentHashMap<>();
+
+        if (flag) {
+            if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
+                List<Node> superNodeList = nodeDao.findNodes(AutoUpRunner.superDomainId, status, type);
+                if (!CollectionUtils.isEmpty(superNodeList)) {
+                    superNodeMap = superNodeList.stream().collect(Collectors.toMap((node -> (StringUtils.isBlank(node.getNodeCode()) ? "*" : node.getNodeCode()) + "_" + (StringUtils.isBlank(node.getDeptTreeType()) ? "*" : node.getDeptTreeType())), (node -> node)));
+                    if (CollectionUtils.isEmpty(nodeList)) {
+                        dealWithNode(domainId, nodeDos, nodeList, superNodeMap, false);
+                    }
+                }
+            }
+        }
+
+
+        if (!CollectionUtils.isEmpty(nodeList)) {
+            //根据node查询对应规则
+            dealWithNode(domainId, nodeDos, nodeList, superNodeMap, true);
+        }
+        if (!CollectionUtils.isEmpty(nodeDos)) {
+            return nodeDos;
+        }
+        return null;
+    }
+
+    @Override
     public List<Node> nodeStatus(Map<String, Object> arguments, String domain) {
         Integer status = (Integer) arguments.get("status");
         String type = (String) arguments.get("type");
@@ -520,7 +562,7 @@ public class NodeServiceImpl implements NodeService {
     }
 
     @Override
-    public void updateNodeAndRules(List<Node> nodes, List<TreeBean> beans) {
+    public void updateNodeAndRules(List<NodeDto> nodes, List<TreeBean> beans) {
         //运算完成的结果集中不包含node所指定的挂载节点,则该规则需置为无效
         ArrayList<Node> invalidNodes = new ArrayList<>();
         ArrayList<NodeRulesVo> invalidNodeRules = new ArrayList<>();
@@ -548,6 +590,8 @@ public class NodeServiceImpl implements NodeService {
         }
     }
 
+
+    //todo 超级租户逻辑待处理
     @Override
     public List<Node> findByTreeTypeCode(String code, Integer status, String domain) {
         return nodeDao.findByTreeTypeCode(code, status, domain);
@@ -555,7 +599,7 @@ public class NodeServiceImpl implements NodeService {
 
     @Override
     public void deleteNodeById(String nodeId, String domain) {
-        nodeDao.deleteNodeById(nodeId,domain);
+        nodeDao.deleteNodeById(nodeId, domain);
     }
 
 }

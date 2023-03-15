@@ -26,7 +26,9 @@ public interface UpstreamTypeService {
 
     HashMap<Object, Object> upstreamTypesData(Map<String, Object> arguments, String domainName) throws Exception;
 
-    List<UpstreamType> findByUpstreamIds(List<String> ids,String domain);
+    List<UpstreamType> findByUpstreamIds(List<String> ids, String domain);
 
-    void deleteUpstreamTypeByCods(List<String> codes,String domain);
+    void deleteUpstreamTypeByCods(List<String> codes, String domain);
+
+    UpstreamType findById(String upstreamTypeId);
 }

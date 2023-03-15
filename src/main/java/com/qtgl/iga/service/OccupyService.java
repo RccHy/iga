@@ -3,10 +3,7 @@ package com.qtgl.iga.service;
 import com.qtgl.iga.bean.IgaOccupyConnection;
 import com.qtgl.iga.bean.OccupyConnection;
 import com.qtgl.iga.bean.OccupyDto;
-import com.qtgl.iga.bo.DomainInfo;
-import com.qtgl.iga.bo.NodeRules;
-import com.qtgl.iga.bo.PreViewTask;
-import com.qtgl.iga.bo.TaskLog;
+import com.qtgl.iga.bo.*;
 
 import java.util.List;
 import java.util.Map;
@@ -26,4 +23,7 @@ public interface OccupyService {
 
     IgaOccupyConnection igaOccupy(Map<String, Object> arguments, DomainInfo domain);
 
+    void saveToSso(Map<String, List<OccupyDto>> octResult, String tenantId , List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert);
+
+    List<OccupyDto> findAll(String tenantId, String deptCode, String postCode);
 }

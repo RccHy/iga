@@ -1,27 +1,24 @@
 package com.qtgl.iga.service.impl;
 
 
+import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
-import com.qtgl.iga.dao.*;
-import com.qtgl.iga.dao.impl.DynamicAttrDaoImpl;
-import com.qtgl.iga.dao.impl.DynamicValueDaoImpl;
-import com.qtgl.iga.service.DeptService;
-import com.qtgl.iga.service.NodeService;
-import com.qtgl.iga.service.UpstreamService;
+import com.qtgl.iga.dao.DeptDao;
+import com.qtgl.iga.service.*;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -35,38 +32,27 @@ public class DeptServiceImpl implements DeptService {
     public static Logger logger = LoggerFactory.getLogger(DeptServiceImpl.class);
 
 
-    @Autowired
+    @Resource
     DeptDao deptDao;
-    @Autowired
-    DomainInfoDao domainInfoDao;
-    @Autowired
-    NodeDao nodeDao;
-    @Autowired
-    DeptTreeTypeDao deptTreeTypeDao;
-    @Autowired
-    TenantDao tenantDao;
-    @Autowired
+    @Resource
     NodeService nodeService;
-    @Autowired
+    @Resource
+    DeptTreeTypeService deptTreeTypeService;
+    @Resource
+    TenantService tenantService;
+    @Resource
     NodeRulesCalculationServiceImpl calculationService;
-    @Autowired
-    UpstreamTypeDao upstreamTypeDao;
-    @Autowired
-    OccupyDao occupyDao;
-    @Autowired
-    MonitorRulesDao monitorRulesDao;
-    @Autowired
-    NodeRulesCalculationServiceImpl rulesCalculationService;
-    @Autowired
-    DynamicAttrDaoImpl dynamicAttrDao;
-    @Autowired
-    DynamicValueDaoImpl dynamicValueDao;
-    @Autowired
+    @Resource
+    OccupyService occupyService;
+    @Resource
+    DynamicAttrService dynamicAttrService;
+    @Resource
+    DynamicValueService dynamicValueService;
+    @Resource
     UpstreamService upstreamService;
-    @Autowired
-    IncrementalTaskDao incrementalTaskDao;
-    @Autowired
-    UserLogDao userLogDao;
+
+    @Resource
+    UserLogService userLogService;
 
     @Value("${iga.hostname}")
     String hostname;
@@ -86,27 +72,21 @@ public class DeptServiceImpl implements DeptService {
     @Override
     public List<TreeBean> findDept(Map<String, Object> arguments, DomainInfo domain) throws Exception {
         Integer status = (Integer) arguments.get("status");
+        Boolean scenes = (Boolean) arguments.get("scenes");
         //是否需要复制规则
-        if ((Boolean) arguments.get("scenes")) {
+        if (scenes) {
             status = nodeService.judgeEdit(arguments, domain, TYPE);
             if (status == null) {
                 return null;
             }
         }
-        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        Tenant tenant = tenantService.findByDomainName(domain.getDomainName());
         if (null == tenant) {
             throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
         //通过tenantId查询ssoApis库中的数据
         List<TreeBean> beans = deptDao.findByTenantId(tenant.getId(), null, null);
-        if (null != beans && beans.size() > 0) {
-            //将null赋为""
-            for (TreeBean bean : beans) {
-                if (null == bean.getParentCode()) {
-                    bean.setParentCode("");
-                }
-            }
-        }
+
         //map做增量处理值传递
         Map<String, TreeBean> ssoBeansMap = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
         //轮训比对标记(是否有主键id)
@@ -115,65 +95,72 @@ public class DeptServiceImpl implements DeptService {
         List<TreeBean> mainTreeBeans = new ArrayList<>();
 
         // 获取租户下开启的部门类型
-        List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
+        List<DeptTreeType> deptTreeTypes = deptTreeTypeService.findAll(new HashMap<>(), domain.getId());
         final LocalDateTime now = LocalDateTime.now();
 
         //获取扩展字段列表
         List<String> dynamicCodes = new ArrayList<>();
 
-        List<DynamicValue> dynamicValues = new ArrayList<>();
-
-        List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
-
+        //扩展字段值分组
+        Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
+        //扩展字段修改容器
         List<DynamicValue> valueUpdate = new ArrayList<>();
 
         //扩展字段新增容器
         ArrayList<DynamicValue> valueInsert = new ArrayList<>();
 
-        ////扩展字段id与code对应map
-        //Map<String, String> attrMap = new ConcurrentHashMap<>();
-        //if (!CollectionUtils.isEmpty(dynamicAttrs)) {
-        //    attrMap = dynamicAttrs.stream().collect(Collectors.toMap(DynamicAttr::getCode, DynamicAttr::getId));
-        //}
-        if (!CollectionUtils.isEmpty(dynamicAttrs)) {
-            dynamicCodes = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getCode()).collect(Collectors.toList());
-            //获取扩展value
-            List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getId()).collect(Collectors.toList());
 
-            dynamicValues = dynamicValueDao.findAllByAttrId(attrIds, tenant.getId());
+        List<DynamicAttr> dynamicAttrs = dynamicAttrService.findAllByType(TYPE, tenant.getId());
+
+        if (!CollectionUtils.isEmpty(dynamicAttrs)) {
+            dynamicCodes = dynamicAttrs.stream().map(DynamicAttr::getCode).collect(Collectors.toList());
+            //获取扩展value
+            List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr::getId).collect(Collectors.toList());
+
+            List<DynamicValue> dynamicValues = dynamicValueService.findAllByAttrId(attrIds, tenant.getId());
+            if (!CollectionUtils.isEmpty(dynamicValues)) {
+                valueMap = dynamicValues.stream().collect(Collectors.groupingBy(DynamicValue::getEntityId));
+            }
         }
-        //扩展字段值分组
-        Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
-        if (!CollectionUtils.isEmpty(dynamicValues)) {
-            valueMap = dynamicValues.stream().collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
-        }
+
+
         //获取该租户下的当前类型的无效权威源
         ArrayList<Upstream> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
         Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
         if (!CollectionUtils.isEmpty(upstreams)) {
             upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
         }
+
+        //获取所有规则
+        List<NodeDto> nodes = nodeService.findNodes(domain.getId(), status, TYPE, true);
+        Map<String, List<NodeDto>> nodesMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(nodes)) {
+            nodesMap = nodes.stream().collect(Collectors.groupingBy(nodeDto -> nodeDto.getDeptTreeType()));
+        }
         for (DeptTreeType deptType : deptTreeTypes) {
 
             //获取当前组织机构树类型下所有的规则
-            List<Node> nodes = nodeDao.getByTreeType(domain.getId(), deptType.getCode(), status, TYPE);
-            Map<String, List<Node>> nodesMap = new ConcurrentHashMap<>();
-            if (!CollectionUtils.isEmpty(nodes)) {
-                nodesMap = nodes.stream().collect(Collectors.groupingBy(Node::getNodeCode));
+            if (!nodesMap.containsKey(deptType.getCode())) {
+                continue;
+            }
+            List<NodeDto> nodeDtos = nodesMap.get(deptType.getCode());
+            Map<String, List<NodeDto>> nodesMapByNodeCode = new ConcurrentHashMap<>();
+            if (!CollectionUtils.isEmpty(nodeDtos)) {
+                nodesMapByNodeCode = nodeDtos.stream().collect(Collectors.groupingBy(Node::getNodeCode));
             }
 
             List<TreeBean> ssoApiBeans = deptDao.findBySourceAndTreeType("API", deptType.getCode(), tenant.getId());
             if (null != ssoApiBeans && ssoApiBeans.size() > 0) {
                 mainTreeBeans.addAll(ssoApiBeans);
                 //重复性校验
-                rulesCalculationService.groupByCode(mainTreeBeans, status, domain);
+                calculationService.groupByCode(mainTreeBeans, status, domain);
                 for (TreeBean ssoApiBean : ssoApiBeans) {
-                    mainTreeBeans = calculationService.nodeRules(domain, deptType, ssoApiBean.getCode(), mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, result, nodesMap, null);
+                    mainTreeBeans = calculationService.nodeRules(domain, deptType, ssoApiBean.getCode(), mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, result, nodesMapByNodeCode, null);
                 }
             }
 
             // id 改为code
-            mainTreeBeans = calculationService.nodeRules(domain, deptType, "", mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, result, nodesMap, null);
+            mainTreeBeans = calculationService.nodeRules(domain, deptType, "", mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, result, nodesMapByNodeCode, null);
 
         }
         //同步到sso
@@ -187,8 +174,8 @@ public class DeptServiceImpl implements DeptService {
 //        }
         //code重复性校验
         calculationService.groupByCode(beans, status, domain);
-        //todo 无效规则筛选标记
-        List<Node> nodeList = nodeDao.findNodesByStatusAndType(status, TYPE, domain.getId(), null);
+        // 无效规则筛选标记
+        List<NodeDto> nodeList = nodeService.findNodesByStatusAndType(status, TYPE, domain.getId(), null);
         nodeService.updateNodeAndRules(nodeList, beans);
         return beans;
 
@@ -203,7 +190,7 @@ public class DeptServiceImpl implements DeptService {
      */
     @Override
     public List<TreeBean> findDeptByDomainName(String domainName, String treeType, Integer delMark) {
-        Tenant byDomainName = tenantDao.findByDomainName(domainName);
+        Tenant byDomainName = tenantService.findByDomainName(domainName);
 
         return deptDao.findByTenantId(byDomainName.getId(), treeType, delMark);
     }
@@ -218,20 +205,13 @@ public class DeptServiceImpl implements DeptService {
      */
     @Override
     public Map<TreeBean, String> buildDeptUpdateResult(DomainInfo domain, TaskLog lastTaskLog, TaskLog currentTask) throws Exception {
-        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        Tenant tenant = tenantService.findByDomainName(domain.getDomainName());
         if (null == tenant) {
             throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
         //通过tenantId查询ssoApis库中的数据
         List<TreeBean> beans = deptDao.findByTenantId(tenant.getId(), null, null);
-        if (null != beans && beans.size() > 0) {
-            //将null赋为""
-            for (TreeBean bean : beans) {
-                if (null == bean.getParentCode()) {
-                    bean.setParentCode("");
-                }
-            }
-        }
+
         //map做增量处理值传递
         Map<String, TreeBean> ssoBeansMap = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
         //轮训比对标记(是否有主键id)
@@ -240,14 +220,14 @@ public class DeptServiceImpl implements DeptService {
         List<TreeBean> mainTreeBeans = new ArrayList<>();
 
         // 获取租户下开启的部门类型
-        List<DeptTreeType> deptTreeTypes = deptTreeTypeDao.findAll(new HashMap<>(), domain.getId());
+        List<DeptTreeType> deptTreeTypes = deptTreeTypeService.findAll(new HashMap<>(), domain.getId());
         final LocalDateTime now = LocalDateTime.now();
         //获取扩展字段列表
         List<String> dynamicCodes = new ArrayList<>();
+        //扩展字段值分组
+        Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
 
-        List<DynamicValue> dynamicValues = new ArrayList<>();
-
-        List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
+        List<DynamicAttr> dynamicAttrs = dynamicAttrService.findAllByType(TYPE, tenant.getId());
 
         List<DynamicValue> valueUpdate = new ArrayList<>();
 
@@ -267,13 +247,13 @@ public class DeptServiceImpl implements DeptService {
             //获取扩展value
             List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getId()).collect(Collectors.toList());
 
-            dynamicValues = dynamicValueDao.findAllByAttrId(attrIds, tenant.getId());
+            List<DynamicValue> dynamicValues = dynamicValueService.findAllByAttrId(attrIds, tenant.getId());
+            if (!CollectionUtils.isEmpty(dynamicValues)) {
+                valueMap = dynamicValues.stream().collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
+            }
         }
-        //扩展字段值分组
-        Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
-        if (!CollectionUtils.isEmpty(dynamicValues)) {
-            valueMap = dynamicValues.stream().collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
-        }
+
+
         logger.info("获取到当前租户{}的映射字段集为{}", tenant.getId(), dynamicAttrs);
         //获取该租户下的当前类型的无效权威源
         ArrayList<Upstream> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
@@ -281,26 +261,39 @@ public class DeptServiceImpl implements DeptService {
         if (!CollectionUtils.isEmpty(upstreams)) {
             upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
         }
+
+        //获取所有规则
+        List<NodeDto> nodes = nodeService.findNodes(domain.getId(), 0, TYPE, true);
+
+        Map<String, List<NodeDto>> nodesMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(nodes)) {
+            nodesMap = nodes.stream().collect(Collectors.groupingBy(Node::getDeptTreeType));
+        }
         for (DeptTreeType deptType : deptTreeTypes) {
 
             //获取当前组织机构树类型下所有的规则
-            List<Node> nodes = nodeDao.getByTreeType(domain.getId(), deptType.getCode(), 0, TYPE);
-            Map<String, List<Node>> nodesMap = new ConcurrentHashMap<>();
-            if (!CollectionUtils.isEmpty(nodes)) {
-                nodesMap = nodes.stream().collect(Collectors.groupingBy(Node::getNodeCode));
+            //List<Node> nodes = nodeService.getByTreeType(domain.getId(), deptType.getCode(), 0, TYPE);
+            //获取当前组织机构树类型下所有的规则
+            if (!nodesMap.containsKey(deptType.getCode())) {
+                continue;
+            }
+            List<NodeDto> nodeDtos = nodesMap.get(deptType.getCode());
+            Map<String, List<NodeDto>> nodesMapByNodeCode = new ConcurrentHashMap<>();
+            if (!CollectionUtils.isEmpty(nodeDtos)) {
+                nodesMapByNodeCode = nodes.stream().collect(Collectors.groupingBy(Node::getNodeCode));
             }
             // 提前获取来自API的数据, 以防有规则信息 是挂载在 API节点上
             List<TreeBean> ssoApiBeans = deptDao.findBySourceAndTreeType("API", deptType.getCode(), tenant.getId());
 
             if (null != ssoApiBeans && ssoApiBeans.size() > 0) {
                 mainTreeBeans.addAll(ssoApiBeans);
-                rulesCalculationService.groupByCode(mainTreeBeans, 0, domain);
+                calculationService.groupByCode(mainTreeBeans, 0, domain);
                 for (TreeBean ssoApiBean : ssoApiBeans) {
-                    mainTreeBeans = calculationService.nodeRules(domain, deptType, ssoApiBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, result, nodesMap, currentTask);
+                    mainTreeBeans = calculationService.nodeRules(domain, deptType, ssoApiBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, result, nodesMapByNodeCode, currentTask);
                 }
             }
             //  id 改为code
-            mainTreeBeans = calculationService.nodeRules(domain, deptType, "", mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, result, nodesMap, currentTask);
+            mainTreeBeans = calculationService.nodeRules(domain, deptType, "", mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, result, nodesMapByNodeCode, currentTask);
 
         }
         //同步到sso
@@ -331,8 +324,8 @@ public class DeptServiceImpl implements DeptService {
             if (!CollectionUtils.isEmpty(occupyDtos)) {
                 Map<String, List<OccupyDto>> octResult = new HashMap<>();
                 octResult.put("update", occupyDtos);
-                occupyDao.saveToSso(octResult, tenant.getId(), null, null);
-                userLogDao.saveUserLog(occupyDtos, tenant.getId());
+                occupyService.saveToSso(octResult, tenant.getId(), null, null);
+                userLogService.saveUserLog(occupyDtos, tenant.getId());
                 logger.info("因组织机构变动 导致:{}条,身份有效期发生变化", occupyDtos.size());
             }
 
@@ -889,7 +882,7 @@ public class DeptServiceImpl implements DeptService {
     private ArrayList<OccupyDto> occupyProcessing(ArrayList<TreeBean> occupyMonitors, String tenantId) {
         ArrayList<OccupyDto> resultOccupies = new ArrayList<>();
         //包含失效,恢复,新增的组织机构数据
-        List<OccupyDto> occupyDtos = occupyDao.findAll(tenantId, null, null);
+        List<OccupyDto> occupyDtos = occupyService.findAll(tenantId, null, null);
         Map<String, List<OccupyDto>> collect = occupyDtos.stream().collect(Collectors.groupingBy(OccupyDto::getDeptCode));
         LocalDateTime now = LocalDateTime.now();
         for (TreeBean treeBean : occupyMonitors) {

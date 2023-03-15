@@ -7,22 +7,21 @@ import com.qtgl.iga.bean.*;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.config.PreViewOccupyThreadPool;
 import com.qtgl.iga.dao.*;
-import com.qtgl.iga.dao.impl.DynamicAttrDaoImpl;
-import com.qtgl.iga.dao.impl.DynamicValueDaoImpl;
 import com.qtgl.iga.service.*;
 import com.qtgl.iga.task.TaskConfig;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
-import com.qtgl.iga.utils.enums.TreeEnum;
 import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.enums.TreeEnum;
 import com.qtgl.iga.utils.exception.CustomException;
+import com.qtgl.iga.vo.NodeRulesVo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import javax.annotation.Resource;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -39,38 +38,41 @@ import java.util.stream.Collectors;
 public class OccupyServiceImpl implements OccupyService {
 
 
-    @Autowired
+    @Resource
     TenantDao tenantDao;
-    @Autowired
-    NodeDao nodeDao;
-    @Autowired
+    @Resource
+    NodeService nodeService;
+    @Resource
     NodeRulesService rulesService;
-    @Autowired
-    UpstreamTypeDao upstreamTypeDao;
-    @Autowired
+    @Resource
+    UpstreamTypeService upstreamTypeService;
+    @Resource
     UpstreamService upstreamService;
-    @Autowired
+    @Resource
     CardTypeDao cardTypeDao;
-    @Autowired
+    @Resource
     PersonDao personDao;
-    @Autowired
+    @Resource
     UserLogDao userLogDao;
-    @Autowired
+    @Resource
     DeptDao deptDao;
-    @Autowired
+    @Resource
     PostDao postDao;
-    @Autowired
+    @Resource
     OccupyDao occupyDao;
-    @Autowired
+    @Resource
     PreViewTaskService preViewTaskService;
-    @Autowired
+    @Resource
     IncrementalTaskService incrementalTaskService;
 
-    @Autowired
+    @Resource
     DataBusUtil dataBusUtil;
-    @Autowired
+    @Resource
     NodeRulesCalculationServiceImpl calculationService;
-
+    @Resource
+    DynamicAttrService dynamicAttrService;
+    @Resource
+    DynamicValueService dynamicValueService;
     public static ConcurrentHashMap<String, List<JSONObject>> occupyErrorData = null;
 
     public static LocalDateTime DEFAULT_START_TIME = LocalDateTime.of(1970, 1, 1, 0, 0, 0);
@@ -79,10 +81,7 @@ public class OccupyServiceImpl implements OccupyService {
     public static ConcurrentHashMap<String, Map<String, String>> occupyTypeFields = new ConcurrentHashMap<>();
     //类型
     private final String TYPE = "IDENTITY";
-    @Autowired
-    DynamicAttrDaoImpl dynamicAttrDao;
-    @Autowired
-    DynamicValueDaoImpl dynamicValueDao;
+
 
     /**
      * 1：根据规则获取所有的 人员身份数据
@@ -115,22 +114,22 @@ public class OccupyServiceImpl implements OccupyService {
         // 获取规则  (不为sub则获取所有规则)
         if (CollectionUtils.isEmpty(occupyRules)) {
             // 获取规则
-            Map<String, Object> arguments = new ConcurrentHashMap<>();
-            arguments.put("type", "occupy");
-            arguments.put("status", 0);
 
-            List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
+            occupyRules = new ArrayList<>();
+
+            List<NodeDto> nodes = nodeService.findNodes(domain.getId(), 0, "occupy", true);
             if (null == nodes || nodes.size() <= 0) {
                 log.error("无人员身份管理规则信息");
                 return null;
             }
-            String nodeId = nodes.get(0).getId();
-            occupyRules = rulesService.getByNodeAndType(nodeId, 1, true, 0);
+            List<NodeRulesVo> nodeRules = nodes.get(0).getNodeRules();
+            //occupyRules = rulesService.getByNodeAndType(nodeId, 1, true, 0);
             // 获取所有规则 字段，用于更新验证
-            if (null == occupyRules || occupyRules.size() == 0) {
+            if (null == nodeRules || nodeRules.size() == 0) {
                 log.error("无人员身份管理规则信息");
                 return null;
             }
+            occupyRules.addAll(nodeRules);
 
             //获取该租户下的当前类型的无效权威源
             ArrayList<Upstream> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
@@ -272,14 +271,14 @@ public class OccupyServiceImpl implements OccupyService {
         Map<String, String> attrMap = new ConcurrentHashMap<>();
         Map<String, String> attrReverseMap = new ConcurrentHashMap<>();
 
-        List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
+        List<DynamicAttr> dynamicAttrs = dynamicAttrService.findAllByType(TYPE, tenant.getId());
         log.info("获取到当前租户{}的映射字段集为{}", tenant.getId(), dynamicAttrs);
         if (!CollectionUtils.isEmpty(dynamicAttrs)) {
             dynamicCodes = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getCode()).collect(Collectors.toList());
             //获取扩展value
             List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getId()).collect(Collectors.toList());
 
-            dynamicValues = dynamicValueDao.findAllByAttrId(attrIds, tenant.getId());
+            dynamicValues = dynamicValueService.findAllByAttrId(attrIds, tenant.getId());
         }
 
         //扩展字段值分组
@@ -357,7 +356,10 @@ public class OccupyServiceImpl implements OccupyService {
 
         // 开始遍历规则
         for (NodeRules rules : occupyRules) {
-            UpstreamType upstreamType = upstreamTypeDao.findById(rules.getUpstreamTypesId());
+            if (1 != rules.getType()) {
+                continue;
+            }
+            UpstreamType upstreamType = upstreamTypeService.findById(rules.getUpstreamTypesId());
             String findPersonKey = upstreamType.getPersonCharacteristic();
             if (null == upstreamType) {
                 log.error("人员身份对应拉取节点规则'{}'无有效权威源类型数据", rules);
@@ -1474,7 +1476,7 @@ public class OccupyServiceImpl implements OccupyService {
         String upstreamTypeId = (String) arguments.get("upstreamTypeId");
         Integer offset = (Integer) arguments.get("offset");
         Integer first = (Integer) arguments.get("first");
-        UpstreamType upstreamType = upstreamTypeDao.findById(upstreamTypeId);
+        UpstreamType upstreamType = upstreamTypeService.findById(upstreamTypeId);
         if (null != upstreamType && upstreamType.getIsPage()) {
             Map dataMap = null;
             try {
@@ -1620,7 +1622,7 @@ public class OccupyServiceImpl implements OccupyService {
         Map<String, OccupyDto> occupyDtoFromUpstream = new HashMap<>();
 
 
-        List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
+        List<DynamicAttr> dynamicAttrs = dynamicAttrService.findAllByType(TYPE, tenant.getId());
         log.info("获取到当前租户{}的映射字段集为{}", tenant.getId(), dynamicAttrs);
 
         //扩展字段修改容器
@@ -1631,18 +1633,22 @@ public class OccupyServiceImpl implements OccupyService {
         List<OccupyDto> occupyDtos;
         try {
 
-            List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
-            if (null == nodes || nodes.size() <= 0) {
+
+            List<NodeDto> nodes = nodeService.findNodes(arguments, domain.getId(), true);
+            if (CollectionUtils.isEmpty(nodes)) {
                 log.error("无人员身份管理规则信息");
                 throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
             }
-            String nodeId = nodes.get(0).getId();
-            List<NodeRules> occupyRules = rulesService.getByNodeAndType(nodeId, 1, true, 0);
+            List<NodeRulesVo> nodeRules = nodes.get(0).getNodeRules();
+
+            //String nodeId = nodes.get(0).getId();
+            //List<NodeRules> occupyRules = rulesService.getByNodeAndType(nodeId, 1, true, 0);
             // 获取所有规则 字段，用于更新验证
-            if (null == occupyRules || occupyRules.size() == 0) {
+            if (CollectionUtils.isEmpty(nodeRules)) {
                 log.error("无人员身份管理规则信息");
                 throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
             }
+            List<NodeRules> occupyRules = new ArrayList<>(nodeRules);
             //获取该租户下的当前类型的无效权威源
             ArrayList<Upstream> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
             Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
@@ -1844,22 +1850,21 @@ public class OccupyServiceImpl implements OccupyService {
 
 
         // 获取规则
-        Map<String,Object> arguments = new ConcurrentHashMap<>();
-        arguments.put("type", "occupy");
-        arguments.put("status", 0);
+        List<NodeDto> nodes = nodeService.findNodes(domain.getId(), 0, "occupy", true);
+        if (CollectionUtils.isEmpty(nodes)) {
+            log.error("无人员身份管理规则信息");
+            throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
+        }
+        List<NodeRulesVo> nodeRules = nodes.get(0).getNodeRules();
 
-        List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
-        if (null == nodes || nodes.size() <= 0) {
-            log.error("无人员身份管理规则信息");
-            return;
-        }
-        String nodeId = nodes.get(0).getId();
-        List<NodeRules> occupyRules = rulesService.getByNodeAndType(nodeId, 1, true, 0);
+        //String nodeId = nodes.get(0).getId();
+        //List<NodeRules> occupyRules = rulesService.getByNodeAndType(nodeId, 1, true, 0);
         // 获取所有规则 字段，用于更新验证
-        if (null == occupyRules || occupyRules.size() == 0) {
+        if (CollectionUtils.isEmpty(nodeRules)) {
             log.error("无人员身份管理规则信息");
-            return;
+            throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
         }
+        List<NodeRules> occupyRules = new ArrayList<>(nodeRules);
         //获取该租户下的当前类型的无效权威源
         ArrayList<Upstream> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
         Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
@@ -1886,9 +1891,9 @@ public class OccupyServiceImpl implements OccupyService {
         }
 
         List<DynamicValue> dynamicValues = new ArrayList<>();
-        List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
+        List<DynamicAttr> dynamicAttrs = dynamicAttrService.findAllByType(TYPE, tenant.getId());
         if (!CollectionUtils.isEmpty(dynamicAttrs)) {
-            dynamicValues = dynamicValueDao.findAllAttrByType(tenant.getId(), TYPE);
+            dynamicValues = dynamicValueService.findAllAttrByType(tenant.getId(), TYPE);
         }
         occupyDao.saveToSsoTest(result, tenant.getId(), valueUpdate, valueInsert, dynamicAttrs, dynamicValues);
 
@@ -1925,14 +1930,14 @@ public class OccupyServiceImpl implements OccupyService {
             //查询 扩展字段
             List<DynamicValue> dynamicValues = new ArrayList<>();
 
-            List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByTypeIGA(TYPE, tenant.getId());
+            List<DynamicAttr> dynamicAttrs = dynamicAttrService.findAllByTypeIGA(TYPE, tenant.getId());
 
             if (!CollectionUtils.isEmpty(dynamicAttrs)) {
 
                 //获取扩展value
                 List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr::getId).collect(Collectors.toList());
 
-                dynamicValues = dynamicValueDao.findAllByAttrIdIGA(attrIds, tenant.getId());
+                dynamicValues = dynamicValueService.findAllByAttrIdIGA(attrIds, tenant.getId());
             }
             //扩展字段值分组
             Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
@@ -1974,5 +1979,15 @@ public class OccupyServiceImpl implements OccupyService {
 
 
         return igaOccupyConnection;
+    }
+
+    @Override
+    public void saveToSso(Map<String, List<OccupyDto>> octResult, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert) {
+        occupyDao.saveToSso(octResult, tenantId, null, null);
+    }
+
+    @Override
+    public List<OccupyDto> findAll(String tenantId, String deptCode, String postCode) {
+        return occupyDao.findAll(tenantId, deptCode, postCode);
     }
 }

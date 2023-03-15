@@ -50,24 +50,24 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
         ArrayList<UpstreamTypeVo> resultUpstreamTypeVos = new ArrayList<>();
 
         //查询当前租户的权威源类型
-        List<UpstreamTypeVo> upstreamTypeVos = upstreamTypeDao.findAll(arguments, domain,true);
+        List<UpstreamTypeVo> upstreamTypeVos = upstreamTypeDao.findAll(arguments, domain, true);
         //查询超级租户的权威源类型
-        if (!StringUtils.isBlank(AutoUpRunner.superDomainId)){
-            List<UpstreamTypeVo> superUpstreamTypeVos = upstreamTypeDao.findAll(arguments,domain,false);
-            if(!CollectionUtils.isEmpty(superUpstreamTypeVos)){
-                dealWithUpstreamTypes(resultUpstreamTypeVos, superUpstreamTypeVos,false);
+        if (!StringUtils.isBlank(AutoUpRunner.superDomainId)) {
+            List<UpstreamTypeVo> superUpstreamTypeVos = upstreamTypeDao.findAll(arguments, domain, false);
+            if (!CollectionUtils.isEmpty(superUpstreamTypeVos)) {
+                dealWithUpstreamTypes(resultUpstreamTypeVos, superUpstreamTypeVos, false);
 
             }
         }
 
         if (!CollectionUtils.isEmpty(upstreamTypeVos)) {
-            dealWithUpstreamTypes(resultUpstreamTypeVos, upstreamTypeVos,true);
+            dealWithUpstreamTypes(resultUpstreamTypeVos, upstreamTypeVos, true);
         }
 
         return resultUpstreamTypeVos;
     }
 
-    private void dealWithUpstreamTypes(ArrayList<UpstreamTypeVo> resultUpstreamTypeVos, List<UpstreamTypeVo> superUpstreamTypeVos,Boolean isLocal) {
+    private void dealWithUpstreamTypes(ArrayList<UpstreamTypeVo> resultUpstreamTypeVos, List<UpstreamTypeVo> superUpstreamTypeVos, Boolean isLocal) {
         for (UpstreamTypeVo upstreamTypeVo : superUpstreamTypeVos) {
             upstreamTypeVo.setLocal(isLocal);
             //映射字段
@@ -126,7 +126,7 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
             throw new CustomException(ResultCode.FAILED, "请选择或先添加权威源");
         }
         //校验名称重复
-        List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType,domain);
+        List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType, domain);
         if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
             throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
         }
@@ -151,7 +151,7 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
 
         }
         //校验名称重复
-        List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType,upstreamType.getDomain());
+        List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType, upstreamType.getDomain());
         if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
             throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
         }
@@ -192,6 +192,11 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
     @Override
     public void deleteUpstreamTypeByCods(List<String> codes, String domain) {
         upstreamTypeDao.deleteUpstreamTypeByCods(codes, domain);
+    }
+
+    @Override
+    public UpstreamType findById(String upstreamTypeId) {
+        return upstreamTypeDao.findById(upstreamTypeId);
     }
 
 }

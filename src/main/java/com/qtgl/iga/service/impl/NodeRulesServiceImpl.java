@@ -46,7 +46,7 @@ public class NodeRulesServiceImpl implements NodeRulesService {
     }
 
     @Override
-    public NodeRulesVo deleteRules(Map<String, Object> arguments, String domain) throws Exception {
+    public NodeRulesVo deleteRules(Map<String, Object> arguments, String domain) {
         //   查询删除规则拉取的数据子节点是否有规则
         List<String> codes = (List<String>) arguments.get("codes");
         String type = (String) arguments.get("type");
@@ -161,7 +161,7 @@ public class NodeRulesServiceImpl implements NodeRulesService {
     }
 
     @Override
-    public List<NodeRules> deleteBatchRules(List<NodeRules> nodeRules, String domain)  {
+    public List<NodeRules> deleteBatchRules(List<NodeRules> nodeRules, String domain) {
         for (NodeRules nodeRule : nodeRules) {
             deleteRules(nodeRule, domain);
         }
@@ -196,7 +196,7 @@ public class NodeRulesServiceImpl implements NodeRulesService {
 
     @Override
     public List<NodeRulesVo> findNodeRulesByNodeId(String id, Integer status) {
-        return nodeRulesDao.findNodeRulesByNodeId(id,status);
+        return nodeRulesDao.findNodeRulesByNodeId(id, status);
     }
 
     @Override
@@ -206,17 +206,17 @@ public class NodeRulesServiceImpl implements NodeRulesService {
 
     @Override
     public Integer makeNodeRulesToHistory(String ruleId, Integer status) {
-        return nodeRulesDao.makeNodeRulesToHistory(ruleId,status);
+        return nodeRulesDao.makeNodeRulesToHistory(ruleId, status);
     }
 
     @Override
     public List<NodeRules> findNodeRulesByServiceKey(String serviceKey, Integer status, Integer synWay) {
-        return nodeRulesDao.findNodeRulesByServiceKey(serviceKey,status,synWay);
+        return nodeRulesDao.findNodeRulesByServiceKey(serviceKey, status, synWay);
     }
 
     @Override
     public List<NodeRules> findNodeRulesByUpStreamTypeId(String upstreamTypeId, Integer status) {
-        return nodeRulesDao.findNodeRulesByUpStreamTypeId(upstreamTypeId,status);
+        return nodeRulesDao.findNodeRulesByUpStreamTypeId(upstreamTypeId, status);
     }
 
     public NodeRules deleteRules(NodeRules rules, String domain) {

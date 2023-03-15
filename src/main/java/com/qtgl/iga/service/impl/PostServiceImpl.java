@@ -1,28 +1,24 @@
 package com.qtgl.iga.service.impl;
 
 
+import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
-import com.qtgl.iga.dao.*;
-import com.qtgl.iga.dao.impl.DynamicAttrDaoImpl;
-import com.qtgl.iga.dao.impl.DynamicValueDaoImpl;
-import com.qtgl.iga.service.NodeService;
-import com.qtgl.iga.service.PostService;
-import com.qtgl.iga.service.UpstreamService;
+import com.qtgl.iga.dao.PostDao;
+import com.qtgl.iga.service.*;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -35,32 +31,24 @@ public class PostServiceImpl implements PostService {
     public static Logger logger = LoggerFactory.getLogger(PostServiceImpl.class);
 
 
-    @Autowired
+    @Resource
     NodeRulesCalculationServiceImpl calculationService;
-    @Autowired
+    @Resource
     PostDao postDao;
-    @Autowired
-    TenantDao tenantDao;
-    @Autowired
+    @Resource
+    TenantService tenantService;
+    @Resource
     NodeService nodeService;
-    @Autowired
-    UpstreamTypeDao upstreamTypeDao;
-    @Autowired
-    OccupyDao occupyDao;
-    @Autowired
-    MonitorRulesDao monitorRulesDao;
-    @Autowired
-    DynamicAttrDaoImpl dynamicAttrDao;
-    @Autowired
-    DynamicValueDaoImpl dynamicValueDao;
-    @Autowired
+    @Resource
+    OccupyService occupyService;
+    @Resource
+    DynamicAttrService dynamicAttrService;
+    @Resource
+    DynamicValueService dynamicValueService;
+    @Resource
     UpstreamService upstreamService;
-    @Autowired
-    NodeDao nodeDao;
-    @Autowired
-    IncrementalTaskDao incrementalTaskDao;
-    @Autowired
-    UserLogDao userLogDao;
+    @Resource
+    UserLogService userLogService;
 
     @Value("${iga.hostname}")
     String hostname;
@@ -72,7 +60,7 @@ public class PostServiceImpl implements PostService {
     @Transactional
     public Map<TreeBean, String> buildPostUpdateResult(DomainInfo domain, TaskLog lastTaskLog, TaskLog currentTask) throws Exception {
         //获取默认数据
-        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        Tenant tenant = tenantService.findByDomainName(domain.getDomainName());
         if (null == tenant) {
             throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
@@ -100,14 +88,6 @@ public class PostServiceImpl implements PostService {
         //通过tenantId查询ssoApis库中的数据
         List<TreeBean> beans = postDao.findByTenantId(tenant.getId());
 
-        //将null赋为""
-        if (null != beans && beans.size() > 0) {
-            for (TreeBean bean : beans) {
-                if (StringUtils.isBlank(bean.getParentCode())) {
-                    bean.setParentCode("");
-                }
-            }
-        }
         //map做增量处理值传递
         Map<String, TreeBean> ssoBeansMap = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
 
@@ -122,9 +102,7 @@ public class PostServiceImpl implements PostService {
         //获取扩展字段列表
         List<String> dynamicCodes = new ArrayList<>();
 
-        List<DynamicValue> dynamicValues = new ArrayList<>();
-
-        List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
+        List<DynamicAttr> dynamicAttrs = dynamicAttrService.findAllByType(TYPE, tenant.getId());
 
         List<DynamicValue> valueUpdate = new ArrayList<>();
 
@@ -132,7 +110,8 @@ public class PostServiceImpl implements PostService {
         //List<IncrementalTask> incrementalTasks = new ArrayList<>();
         //扩展字段新增容器
         ArrayList<DynamicValue> valueInsert = new ArrayList<>();
-
+        //扩展字段值分组
+        Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
         //扩展字段id与code对应map
         Map<String, String> attrMap = new ConcurrentHashMap<>();
         if (!CollectionUtils.isEmpty(dynamicAttrs)) {
@@ -143,13 +122,13 @@ public class PostServiceImpl implements PostService {
             //获取扩展value
             List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getId()).collect(Collectors.toList());
 
-            dynamicValues = dynamicValueDao.findAllByAttrId(attrIds, tenant.getId());
+            List<DynamicValue> dynamicValues = dynamicValueService.findAllByAttrId(attrIds, tenant.getId());
+            if (!CollectionUtils.isEmpty(dynamicValues)) {
+                valueMap = dynamicValues.stream().collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
+            }
         }
-        //扩展字段值分组
-        Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
-        if (!CollectionUtils.isEmpty(dynamicValues)) {
-            valueMap = dynamicValues.stream().collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
-        }
+
+
         mainTreeBeans.addAll(ssoBeans);
         //获取该租户下的当前类型的无效权威源
         ArrayList<Upstream> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
@@ -158,14 +137,14 @@ public class PostServiceImpl implements PostService {
             upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
         }
         //获取岗位治理下所有的运行中规则
-        List<Node> nodes = nodeDao.getByTreeType(domain.getId(), null, 0, TYPE);
-        Map<String, List<Node>> nodesMap = new ConcurrentHashMap<>();
+        List<NodeDto> nodes = nodeService.findNodes(domain.getId(), 0, TYPE, true);
+        Map<String, List<NodeDto>> nodesMapByNodeCode = new ConcurrentHashMap<>();
         if (!CollectionUtils.isEmpty(nodes)) {
-            nodesMap = nodes.stream().collect(Collectors.groupingBy(Node::getNodeCode));
+            nodesMapByNodeCode = nodes.stream().collect(Collectors.groupingBy(Node::getNodeCode));
         }
         for (TreeBean rootBean : rootBeans) {
 
-            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, result, nodesMap, currentTask);
+            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, result, nodesMapByNodeCode, currentTask);
 
         }
         // 判断重复(code)
@@ -205,8 +184,8 @@ public class PostServiceImpl implements PostService {
             if (!CollectionUtils.isEmpty(occupyDtos)) {
                 Map<String, List<OccupyDto>> octResult = new HashMap<>();
                 octResult.put("update", occupyDtos);
-                occupyDao.saveToSso(octResult, tenant.getId(), null, null);
-                userLogDao.saveUserLog(occupyDtos, tenant.getId());
+                occupyService.saveToSso(octResult, tenant.getId(), null, null);
+                userLogService.saveUserLog(occupyDtos, tenant.getId());
                 logger.info("因岗位变动 导致:{}条,身份有效期发生变化", occupyDtos.size());
             }
 
@@ -232,7 +211,7 @@ public class PostServiceImpl implements PostService {
             }
         }
         //获取默认数据
-        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        Tenant tenant = tenantService.findByDomainName(domain.getDomainName());
         if (null == tenant) {
             logger.error("请检查根树是否合法{}", domain.getId());
             throw new CustomException(ResultCode.FAILED, "租户不存在");
@@ -261,14 +240,6 @@ public class PostServiceImpl implements PostService {
         //通过tenantId查询ssoApis库中的数据
         List<TreeBean> beans = postDao.findByTenantId(tenant.getId());
 
-        //将null赋为""
-        if (null != beans && beans.size() > 0) {
-            for (TreeBean bean : beans) {
-                if (StringUtils.isBlank(bean.getParentCode())) {
-                    bean.setParentCode("");
-                }
-            }
-        }
         //map做增量处理值传递
         Map<String, TreeBean> ssoBeansMap = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
 
@@ -283,7 +254,7 @@ public class PostServiceImpl implements PostService {
 
         List<DynamicValue> dynamicValues = new ArrayList<>();
 
-        List<DynamicAttr> dynamicAttrs = dynamicAttrDao.findAllByType(TYPE, tenant.getId());
+        List<DynamicAttr> dynamicAttrs = dynamicAttrService.findAllByType(TYPE, tenant.getId());
 
         List<DynamicValue> valueUpdate = new ArrayList<>();
 
@@ -300,7 +271,7 @@ public class PostServiceImpl implements PostService {
             //获取扩展value
             List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getId()).collect(Collectors.toList());
 
-            dynamicValues = dynamicValueDao.findAllByAttrId(attrIds, tenant.getId());
+            dynamicValues = dynamicValueService.findAllByAttrId(attrIds, tenant.getId());
         }
         //扩展字段值分组
         Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
@@ -318,15 +289,15 @@ public class PostServiceImpl implements PostService {
         if (!CollectionUtils.isEmpty(upstreams)) {
             upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
         }
-        //获取岗位治理下所有的编辑中规则
-        List<Node> nodes = nodeDao.getByTreeType(domain.getId(), null, status, TYPE);
-        Map<String, List<Node>> nodesMap = new ConcurrentHashMap<>();
+        //获取岗位治理下所有的运行中规则
+        List<NodeDto> nodes = nodeService.findNodes(domain.getId(), 0, TYPE, true);
+        Map<String, List<NodeDto>> nodesMapByNodeCode = new ConcurrentHashMap<>();
         if (!CollectionUtils.isEmpty(nodes)) {
-            nodesMap = nodes.stream().collect(Collectors.groupingBy(Node::getNodeCode));
+            nodesMapByNodeCode = nodes.stream().collect(Collectors.groupingBy(Node::getNodeCode));
         }
         for (TreeBean rootBean : rootBeans) {
 
-            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, result, nodesMap, null);
+            mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, result, nodesMapByNodeCode, null);
 
         }
 
@@ -358,7 +329,7 @@ public class PostServiceImpl implements PostService {
 
         // 判断重复(code)
         calculationService.groupByCode(beans, status, domain);
-        List<Node> nodeList = nodeDao.findNodesByStatusAndType(status, TYPE, domain.getId(), null);
+        List<NodeDto> nodeList = nodeService.findNodesByStatusAndType(status, TYPE, domain.getId(), null);
         nodeService.updateNodeAndRules(nodeList, beans);
         return beans;
 
@@ -889,7 +860,7 @@ public class PostServiceImpl implements PostService {
     private ArrayList<OccupyDto> occupyProcessing(ArrayList<TreeBean> occupyMonitors, String tenantId) {
         ArrayList<OccupyDto> resultOccupies = new ArrayList<>();
         //包含失效,恢复,新增的岗位数据
-        List<OccupyDto> occupyDtos = occupyDao.findAll(tenantId, null, null);
+        List<OccupyDto> occupyDtos = occupyService.findAll(tenantId, null, null);
         Map<String, List<OccupyDto>> collect = occupyDtos.stream().collect(Collectors.groupingBy(OccupyDto::getDeptCode));
         LocalDateTime now = LocalDateTime.now();
         for (TreeBean treeBean : occupyMonitors) {

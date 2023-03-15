@@ -41,7 +41,7 @@ public class NodeDataFetcher {
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
             //2。解析查询参数+租户进行  进行查询
             try {
-                List<NodeDto> nodes = nodeService.findNodes(arguments, domain.getId());
+                List<NodeDto> nodes = nodeService.findNodes(arguments, domain.getId(), true);
                 return nodes;
             } catch (CustomException e) {
                 e.printStackTrace();

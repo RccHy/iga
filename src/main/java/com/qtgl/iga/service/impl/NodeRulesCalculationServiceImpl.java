@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.ErrorData;
+import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
@@ -12,10 +13,11 @@ import com.qtgl.iga.service.IncrementalTaskService;
 import com.qtgl.iga.task.TaskConfig;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
-import com.qtgl.iga.utils.enums.TreeEnum;
 import com.qtgl.iga.utils.TreeUtil;
 import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.enums.TreeEnum;
 import com.qtgl.iga.utils.exception.CustomException;
+import com.qtgl.iga.vo.NodeRulesVo;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import javax.annotation.Resource;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
@@ -44,11 +47,11 @@ import java.util.stream.Collectors;
 @Service
 //@Transactional
 public class NodeRulesCalculationServiceImpl {
-    @Autowired
+    @Resource
     NodeRulesDao rulesDao;
-    @Autowired
+    @Resource
     UpstreamDao upstreamDao;
-    @Autowired
+    @Resource
     DataBusUtil dataBusUtil;
     @Autowired
     UpstreamTypeDao upstreamTypeDao;
@@ -539,19 +542,19 @@ public class NodeRulesCalculationServiceImpl {
      */
     public List<TreeBean> nodeRules(DomainInfo domain, DeptTreeType treeType, String nodeCode, List<TreeBean> mainTree, Integer status, String type, List<String> dynamicCodes, Map<String, TreeBean> ssoBeansMap,
                                     List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamHashMap,
-                                    Map<TreeBean, String> result, Map<String, List<Node>> nodesMap, TaskLog currentTask) throws Exception {
+                                    Map<TreeBean, String> result, Map<String, List<NodeDto>> nodesMap, TaskLog currentTask) throws Exception {
         //获取根节点的规则
         //List<Node> nodes = nodeDao.getByCode(domain.getId(), treeType, nodeCode, status, type);
         //获取组织机构信息
         //DeptTreeType treeType = deptTreeTypeDao.findByCode(deptTreeType, domain.getId());
-        List<Node> nodes;
+        List<NodeDto> nodes;
         if (!CollectionUtils.isEmpty(nodesMap) && nodesMap.containsKey(nodeCode)) {
             nodes = nodesMap.get(nodeCode);
         } else {
             return mainTree;
         }
         if (!CollectionUtils.isEmpty(nodes)) {
-            for (Node node : nodes) {
+            for (NodeDto node : nodes) {
                 if (null == node) {
                     return mainTree;
                 }
@@ -559,7 +562,8 @@ public class NodeRulesCalculationServiceImpl {
                 String code = node.getNodeCode();
                 logger.info("开始'{}'节点规则运算", code);
                 //获取节点的[拉取] 规则，来获取部门树
-                List<NodeRules> nodeRules = rulesDao.getByNodeAndType(node.getId(), 1, null, status);
+                //List<NodeRules> nodeRules = rulesDao.getByNodeAndType(node.getId(), 1, null, status);
+                List<NodeRulesVo> nodeRules = node.getNodeRules();
 
                 //将主树进行 分组
                 Map<String, TreeBean> mainTreeMap = mainTree.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
@@ -572,7 +576,11 @@ public class NodeRulesCalculationServiceImpl {
                     Map<String, NodeRules> inheritNodeRules = nodeRules.stream().filter(rules -> StringUtils.isNotEmpty(rules.getInheritId()))
                             .collect(Collectors.toMap(NodeRules::getId, v -> v));
                     // 遍历结束后 要对数据确权
-                    for (NodeRules nodeRule : nodeRules) {
+                    for (NodeRulesVo nodeRule : nodeRules) {
+                        //跳过推送规则
+                        if (0 == nodeRule.getType()) {
+                            continue;
+                        }
                         //是否有规则过滤非继承数据打标识
                         if (null != mainTreeMap && StringUtils.isBlank(nodeRule.getInheritId())) {
                             TreeBean treeBean = mainTreeMap.get(code);
@@ -607,6 +615,7 @@ public class NodeRulesCalculationServiceImpl {
                         //   请求graphql查询，获得部门树
                         LocalDateTime timestamp = LocalDateTime.now();
                         try {
+                            //todo builtin处理
                             upstreamTree = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
                         } catch (CustomException e) {
                             e.setData(mainTree);
@@ -720,7 +729,8 @@ public class NodeRulesCalculationServiceImpl {
                         //对树进行 parent 分组
                         Map<String, List<TreeBean>> childrenMap = TreeUtil.groupChildren(upstreamDept);
                         //查询 树 运行  规则,
-                        List<NodeRulesRange> nodeRulesRanges = rangeDao.getByRulesId(nodeRule.getId(), null);
+                        //List<NodeRulesRange> nodeRulesRanges = rangeDao.getByRulesId(nodeRule.getId(), null);
+                        List<NodeRulesRange> nodeRulesRanges = nodeRule.getNodeRulesRanges();
                         mergeDeptMap = new ConcurrentHashMap<>();
                         logger.info("节点'{}'开始运行挂载", code);
                         //获取并检测 需要挂载的树， add 进入 待合并的树集合 mergeDept

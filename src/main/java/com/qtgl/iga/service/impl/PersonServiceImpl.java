@@ -4,6 +4,7 @@ package com.qtgl.iga.service.impl;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bean.PersonConnection;
 import com.qtgl.iga.bean.PersonEdge;
 import com.qtgl.iga.bo.*;
@@ -21,6 +22,7 @@ import com.qtgl.iga.utils.SuffixUtil;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.enums.TreeEnum;
 import com.qtgl.iga.utils.exception.CustomException;
+import com.qtgl.iga.vo.NodeRulesVo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base64;
@@ -53,12 +55,12 @@ import java.util.stream.Collectors;
 public class PersonServiceImpl implements PersonService {
 
 
-    @Autowired
+    @Resource
     CardTypeDao cardTypeDao;
-    @Autowired
-    TenantDao tenantDao;
-    @Autowired
-    NodeDao nodeDao;
+    @Resource
+    TenantService tenantService;
+    @Resource
+    NodeService nodeService;
     @Autowired
     NodeRulesService rulesService;
     @Autowired
@@ -139,7 +141,7 @@ public class PersonServiceImpl implements PersonService {
         //错误数据置空
         TaskConfig.errorData.put(domain.getId(), "");
         personErrorData = new ConcurrentHashMap<>();
-        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        Tenant tenant = tenantService.findByDomainName(domain.getDomainName());
         if (null == tenant) {
             throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
@@ -147,21 +149,20 @@ public class PersonServiceImpl implements PersonService {
         Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
         // 获取规则  (不为sub则获取所有规则)
         if (CollectionUtils.isEmpty(userRules)) {
-            Map<String, Object> arguments = new ConcurrentHashMap<>();
-            arguments.put("type", "person");
-            arguments.put("status", 0);
+            userRules = new ArrayList<>();
 
-            List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
-            if (null == nodes || nodes.size() <= 0) {
+            List<NodeDto> nodes = nodeService.findNodes(domain.getId(), 0, "person", true);
+            if (CollectionUtils.isEmpty(nodes)) {
                 log.error("无人员管理规则信息");
                 return null;
             }
-            String nodeId = nodes.get(0).getId();
-            userRules = rulesService.getByNodeAndType(nodeId, 1, null, 0);
-            if (null == userRules || userRules.size() == 0) {
+            List<NodeRulesVo> nodeRules = nodes.get(0).getNodeRules();
+            if (CollectionUtils.isEmpty(nodeRules)) {
                 log.error("无人员管理规则信息");
                 return null;
             }
+            userRules.addAll(nodeRules);
+
             //获取该租户下的当前类型的无效有效权威源
             ArrayList<Upstream> invalidUpstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
             if (!CollectionUtils.isEmpty(invalidUpstreams)) {
@@ -600,68 +601,70 @@ public class PersonServiceImpl implements PersonService {
         Map<String, Person> finalDistinctPersonMap = distinctPersonMap;
         Map<String, Avatar> finalAvatarMap = avatarMap;
         userRules.forEach(rules -> {
+            if (1 == rules.getType()) {
+                //根据人员主体合重的容器
+                Map<String, Person> personFromUpstreamByPersonCharacteristic = new ConcurrentHashMap<>();
 
-            //根据人员主体合重的容器
-            Map<String, Person> personFromUpstreamByPersonCharacteristic = new ConcurrentHashMap<>();
-
-            // 通过规则获取数据
-            UpstreamType upstreamType = upstreamTypeDao.findById(rules.getUpstreamTypesId());
-            if (null == upstreamType) {
-                log.error("人员对应拉取节点规则'{}'无有效权威源类型数据", rules);
-                throw new CustomException(ResultCode.NO_UPSTREAM_TYPE, null, null, "人员", rules.getId());
-            }
-            ArrayList<Upstream> upstreams = upstreamService.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
-            if (CollectionUtils.isEmpty(upstreams)) {
-                log.error("人员对应拉取节点规则'{}'无权威源数据", rules.getId());
-                throw new CustomException(ResultCode.NO_UPSTREAM, null, null, "人员", rules.getId());
-            }
-
-            String source = upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")";
-            JSONArray dataByBus;
-            try {
-                dataByBus = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
-            } catch (CustomException e) {
-                e.printStackTrace();
-                if (new Long("1085").equals(e.getCode())) {
-                    throw new CustomException(ResultCode.INVOKE_URL_ERROR, "请求资源地址失败,请检查权威源:" + upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")" + "下的权威源类型:" + upstreamType.getDescription());
-                } else {
-                    throw e;
+                // 通过规则获取数据
+                UpstreamType upstreamType = upstreamTypeDao.findById(rules.getUpstreamTypesId());
+                if (null == upstreamType) {
+                    log.error("人员对应拉取节点规则'{}'无有效权威源类型数据", rules);
+                    throw new CustomException(ResultCode.NO_UPSTREAM_TYPE, null, null, "人员", rules.getId());
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-                log.error("人员治理中类型 : " + upstreamType.getUpstreamId() + "表达式异常");
-                throw new CustomException(ResultCode.PERSON_ERROR, null, null, upstreamType.getDescription(), e.getMessage());
-            }
-            //获取人员类型合重主体
-            String personCharacteristic = upstreamType.getPersonCharacteristic();
-            //遍历权威源数据进行数据规范化
-            if (null != dataByBus) {
-                //校验上游数据并对关键字段赋默认值
-                getPersons(domain, cardTypeMap, finalDynamicCodes, now, rules, personFromUpstreamByPersonCharacteristic, upstreamType, source, dataByBus, personCharacteristic);
+                ArrayList<Upstream> upstreams = upstreamService.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
+                if (CollectionUtils.isEmpty(upstreams)) {
+                    log.error("人员对应拉取节点规则'{}'无权威源数据", rules.getId());
+                    throw new CustomException(ResultCode.NO_UPSTREAM, null, null, "人员", rules.getId());
+                }
 
-
-                if (!CollectionUtils.isEmpty(personFromUpstreamByPersonCharacteristic)) {
-                    //权威源类型为增量则添加对应的增量同步日志
-                    if (null != currentTask && null != upstreamType.getIsIncremental() && upstreamType.getIsIncremental()) {
-                        addIncrementalTask(domain, currentTask, upstreamType, new ArrayList<>(personFromUpstreamByPersonCharacteristic.values()));
+                String source = upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")";
+                JSONArray dataByBus;
+                try {
+                    dataByBus = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
+                } catch (CustomException e) {
+                    e.printStackTrace();
+                    if (new Long("1085").equals(e.getCode())) {
+                        throw new CustomException(ResultCode.INVOKE_URL_ERROR, "请求资源地址失败,请检查权威源:" + upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")" + "下的权威源类型:" + upstreamType.getDescription());
+                    } else {
+                        throw e;
                     }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    log.error("人员治理中类型 : " + upstreamType.getUpstreamId() + "表达式异常");
+                    throw new CustomException(ResultCode.PERSON_ERROR, null, null, upstreamType.getDescription(), e.getMessage());
+                }
+                //获取人员类型合重主体
+                String personCharacteristic = upstreamType.getPersonCharacteristic();
+                //遍历权威源数据进行数据规范化
+                if (null != dataByBus) {
+                    //校验上游数据并对关键字段赋默认值
+                    getPersons(domain, cardTypeMap, finalDynamicCodes, now, rules, personFromUpstreamByPersonCharacteristic, upstreamType, source, dataByBus, personCharacteristic);
 
-                    log.info("权威源类型:{}所有人员数据获取完成:{}", upstreamType.getId(), personFromUpstreamByPersonCharacteristic.size());
 
-                    ////单个权威源类型本次同步变化数量容器(预留)
-                    //ConcurrentHashMap<String, ConcurrentHashMap<String, List<Person>>> upstreamCountMap = new ConcurrentHashMap<>();
-                    //对比处理
-                    dealWithData(valueUpdateMap, valueInsertMap, result, avatarResult, finalValueMap, dynamicSSOValues, preViewPersonMap, invalidPersonMap, keepPersonMap, backUpPersonMap, tempResult, avatarTempResult, finalAttrMap, upstreamMap, finalDistinctPersonMap, finalAvatarMap, personFromUpstreamByPersonCharacteristic, personCharacteristic, upstreamType.getId(), avatarRules, rules);
+                    if (!CollectionUtils.isEmpty(personFromUpstreamByPersonCharacteristic)) {
+                        //权威源类型为增量则添加对应的增量同步日志
+                        if (null != currentTask && null != upstreamType.getIsIncremental() && upstreamType.getIsIncremental()) {
+                            addIncrementalTask(domain, currentTask, upstreamType, new ArrayList<>(personFromUpstreamByPersonCharacteristic.values()));
+                        }
 
-                    if (!CollectionUtils.isEmpty(result.get("insert"))) {
-                        Map<String, Person> insert = result.get("insert").stream().filter(person -> !StringUtils.isBlank(person.getId())).collect(Collectors.toMap(Person::getId, person -> person, (v1, v2) -> v2));
-                        preViewPersonMap.putAll(insert);
+                        log.info("权威源类型:{}所有人员数据获取完成:{}", upstreamType.getId(), personFromUpstreamByPersonCharacteristic.size());
+
+                        ////单个权威源类型本次同步变化数量容器(预留)
+                        //ConcurrentHashMap<String, ConcurrentHashMap<String, List<Person>>> upstreamCountMap = new ConcurrentHashMap<>();
+                        //对比处理
+                        dealWithData(valueUpdateMap, valueInsertMap, result, avatarResult, finalValueMap, dynamicSSOValues, preViewPersonMap, invalidPersonMap, keepPersonMap, backUpPersonMap, tempResult, avatarTempResult, finalAttrMap, upstreamMap, finalDistinctPersonMap, finalAvatarMap, personFromUpstreamByPersonCharacteristic, personCharacteristic, upstreamType.getId(), avatarRules, rules);
+
+                        if (!CollectionUtils.isEmpty(result.get("insert"))) {
+                            Map<String, Person> insert = result.get("insert").stream().filter(person -> !StringUtils.isBlank(person.getId())).collect(Collectors.toMap(Person::getId, person -> person, (v1, v2) -> v2));
+                            preViewPersonMap.putAll(insert);
+                        }
+
+                    } else {
+                        log.error("权威源类型:{}提供人员数据不符合规范,本次同步跳过该权威源类型", upstreamType.getId());
                     }
-
-                } else {
-                    log.error("权威源类型:{}提供人员数据不符合规范,本次同步跳过该权威源类型", upstreamType.getId());
                 }
             }
+
         });
         //处理纯新增的扩展字段
         if (result.containsKey("insert") && !CollectionUtils.isEmpty(result.get("insert"))) {
@@ -1869,8 +1872,8 @@ public class PersonServiceImpl implements PersonService {
                                     hashMap.put(personFromSSO.getId(), avatar);
                                     avatarTempResult.put("delete", hashMap);
                                 }
+                                log.error("人员{}头像对比后删除", newPerson);
                             }
-                            log.error("人员{}头像对比后删除", newPerson);
                         }
 
 
@@ -2013,7 +2016,7 @@ public class PersonServiceImpl implements PersonService {
             this.reFreshPersons(arguments, domain, null);
             return null;
         }
-        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        Tenant tenant = tenantService.findByDomainName(domain.getDomainName());
         if (null == tenant) {
             throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
@@ -2105,7 +2108,7 @@ public class PersonServiceImpl implements PersonService {
         //错误数据置空
         TaskConfig.errorData.put(domain.getId(), "");
         personErrorData = new ConcurrentHashMap<>();
-        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        Tenant tenant = tenantService.findByDomainName(domain.getDomainName());
         if (null == tenant) {
             throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
@@ -2130,19 +2133,19 @@ public class PersonServiceImpl implements PersonService {
         log.info("----------------- upstream Person start:{}", System.currentTimeMillis());
         List<Person> personList;
         try {
-            List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
+            List<NodeDto> nodes = nodeService.findNodes(arguments, domain.getId(), true);
             if (null == nodes || nodes.size() <= 0) {
                 log.error("无人员管理规则信息");
 
                 throw new CustomException(ResultCode.FAILED, "无人员管理规则信息");
             }
-            String nodeId = nodes.get(0).getId();
             //
-            List<NodeRules> userRules = rulesService.getByNodeAndType(nodeId, 1, null, 0);
-            if (null == userRules || userRules.size() == 0) {
+            List<NodeRulesVo> nodeRules = nodes.get(0).getNodeRules();
+            if (null == nodeRules || nodeRules.size() == 0) {
                 log.error("无人员管理规则信息");
                 throw new CustomException(ResultCode.FAILED, "无人员规则信息");
             }
+            List<NodeRules> userRules = new ArrayList<>(nodeRules);
             //获取该租户下的当前类型的无效有效权威源
             ArrayList<Upstream> invalidUpstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
             Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
@@ -2365,28 +2368,23 @@ public class PersonServiceImpl implements PersonService {
         //错误数据置空
         TaskConfig.errorData.put(domain.getId(), "");
         personErrorData = new ConcurrentHashMap<>();
-        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        Tenant tenant = tenantService.findByDomainName(domain.getDomainName());
         if (null == tenant) {
             throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
 
         // 获取规则
-        Map<String, Object> arguments = new ConcurrentHashMap<>();
-        arguments.put("type", "person");
-        arguments.put("status", 0);
+        List<NodeDto> nodes = nodeService.findNodes(domain.getId(), 0, "person", true);
+        if (CollectionUtils.isEmpty(nodes)) {
+            log.error("无人员管理规则信息");
+            return;
+        }
 
-        List<Node> nodes = nodeDao.findNodes(arguments, domain.getId());
-        if (null == nodes || nodes.size() <= 0) {
+        List<NodeRulesVo> nodeRules = nodes.get(0).getNodeRules();
+        if (CollectionUtils.isEmpty(nodeRules)) {
             log.error("无人员管理规则信息");
-            return;
         }
-        String nodeId = nodes.get(0).getId();
-        //
-        List<NodeRules> userRules = rulesService.getByNodeAndType(nodeId, 1, null, 0);
-        if (null == userRules || userRules.size() == 0) {
-            log.error("无人员管理规则信息");
-            return;
-        }
+        ArrayList<NodeRules> userRules = new ArrayList<>(nodeRules);
 
         // 所有证件类型
         List<CardType> cardTypes = cardTypeDao.findAllUser(tenant.getId());
@@ -2460,7 +2458,7 @@ public class PersonServiceImpl implements PersonService {
 
     @Override
     public JSONObject dealWithPerson(DomainInfo domain) {
-        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        Tenant tenant = tenantService.findByDomainName(domain.getDomainName());
         if (null == tenant) {
             throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
@@ -2503,7 +2501,7 @@ public class PersonServiceImpl implements PersonService {
 
     @Override
     public PersonConnection igaUser(Map<String, Object> arguments, DomainInfo domain) {
-        Tenant tenant = tenantDao.findByDomainName(domain.getDomainName());
+        Tenant tenant = tenantService.findByDomainName(domain.getDomainName());
         Map<String, Object> testPersons = personDao.findTestPersons(arguments, tenant);
         List<Person> list = (List<Person>) testPersons.get("list");
         Integer count = (Integer) testPersons.get("count");
