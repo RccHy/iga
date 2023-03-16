@@ -99,7 +99,7 @@ public class CertifiedConnector {
         //DomainInfo domainInfo = certifiedConnector.domainInfoService.findAll().get(0);
         String domainName = CertifiedConnector.introspect(request, ssoUrl, certifiedConnector.clientId, certifiedConnector.clientSecret);
         if (null == domainName) {
-            throw new Exception("No access authorization");
+            throw new Exception("ACCESS_TOKEN_INVALID");
         }
         DomainInfo byDomainName = certifiedConnector.domainInfoService.getByDomainName(domainName);
         if (null == byDomainName) {

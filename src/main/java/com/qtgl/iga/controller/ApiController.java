@@ -264,12 +264,12 @@ public class ApiController {
                 statusCode = upstreamService.saveUpstreamAboutNodes(nodes, nodeRulesList, nodeRulesRangeList, domainInfo);
                 log.info("[bootstrap] {}-{}保存权威源相关规则节点完成", upstream.getAppCode(), domainInfo.getDomainName());
                 // todo 推送才需要 rolebinding
-                if (statusCode != -1&&false) {
-                    upstreamService.saveRoleBing(upstreamTypes, nodes, nodeRulesList, domainInfo);
-                }else{
-                    log.error("[bootstrap] {}-{}保存权威源相关规则节点失败", upstream.getAppCode(), domainInfo.getDomainName());
-                }
-            }else {
+//                if (statusCode != -1) {
+//                    upstreamService.saveRoleBing(upstreamTypes, nodes, nodeRulesList, domainInfo);
+//                }else{
+//                    log.error("[bootstrap] {}-{}保存权威源相关规则节点失败", upstream.getAppCode(), domainInfo.getDomainName());
+//                }
+            } else {
                 log.error("[bootstrap] {}-{}保存权威源类型失败", upstream.getAppCode(), domainInfo.getDomainName());
             }
 
@@ -355,12 +355,12 @@ public class ApiController {
                                           List<UpstreamTypeField> fields, List<Node> nodes, List<NodeRules> nodeRulesList, List<NodeRulesRange> nodeRulesRangeList, Upstream upstream) {
         //todo 参数检查
 
-        log.info("[bootstrap] {}-{}-{}开始处理权威源类型及node",  domainInfo.getDomainName(),upstream.getAppCode(), source.getText());
+        log.info("[bootstrap] {}-{}-{}开始处理权威源类型及node", domainInfo.getDomainName(), upstream.getAppCode(), source.getText());
         UpstreamType upstreamType = new UpstreamType();
         upstreamType.setId(UUID.randomUUID().toString());
         upstreamType.setCode(source.getName());
         upstreamType.setUpstreamId(upstream.getId());
-        upstreamType.setSynType(source.getKind().equals("user")?"person":source.getKind());
+        upstreamType.setSynType(source.getKind().equals("user") ? "person" : source.getKind());
         upstreamType.setActive(true);
         // 如果定义了 app 信息则为推送模式 , 定义了service 则为拉取模式. 1拉取 0推送 2自定义json
         switch (source.getMode()) {
@@ -382,11 +382,11 @@ public class ApiController {
         if ("builtin".equals(source.getMode())) {
             upstreamType.setBuiltinData(source.getData().getValue());
         }
-        String mode="拉取";
-        if("push".equals(source.getMode())){
-            mode="推送";
+        String mode = "拉取";
+        if ("push".equals(source.getMode())) {
+            mode = "推送";
         }
-        upstreamType.setDescription(StringUtils.isNotBlank(source.getText())?source.getText(): source.getKind()+mode);
+        upstreamType.setDescription(StringUtils.isNotBlank(source.getText()) ? source.getText() : source.getKind() + mode);
         upstreamType.setIsPage(true);
         if (null != source.getService() && null != source.getService().getOperation()) {
             String serviceName = source.getService().getName();
@@ -445,7 +445,7 @@ public class ApiController {
         node.setId(UUID.randomUUID().toString());
         node.setCreateTime(now);
         node.setDomain(domainInfo.getId());
-        node.setNodeCode(" ");
+        node.setNodeCode("");
         node.setStatus(0);
         node.setType(upstreamType.getSynType());
 
@@ -475,7 +475,10 @@ public class ApiController {
             //  monut 可能为空, 为空则默认分配
             // todo 定义类型,默认01
             node.setDeptTreeType("01");
-            node.setNodeCode(" ");
+            if ("post".equals(source.getKind())) {
+                node.setDeptTreeType(null);
+            }
+            node.setNodeCode("");
 
             // 构建rulesRange
             NodeRulesRange nodeRulesRange = new NodeRulesRange();
@@ -486,16 +489,18 @@ public class ApiController {
             nodeRulesRange.setRange(0);
             nodeRulesRange.setCreateTime(now);
             nodeRulesRange.setStatus(0);
+            nodeRulesRange.setNode("=*");
             // source 下 rule 不为空时, 覆盖默认值
             if (null != source.getRule()) {
                 Rule rule = source.getRule();
                 if (null != rule.getMount()) {
-                    String treeType = rule.getMount().getCategory();
-                    node.setDeptTreeType(treeType);
+                    if ("dept".equals(source.getKind())) {
+                        String treeType = rule.getMount().getCategory();
+                        node.setDeptTreeType(treeType);
+                    }
                     // 挂载路径, 为空则是根节点
                     String code = source.getRule().getMount().getPath();
-                    node.setNodeCode(null != code ? code : " ");
-                    nodeRulesRange.setNode("=*");
+                    node.setNodeCode(null != code ? code : "");
                 }
                 nodeRulesRange.setType(source.getRule().getKind().equals("exclude") ? 1 : 0);
 
@@ -504,7 +509,7 @@ public class ApiController {
         }
         nodes.add(node);
 
-        log.info("[bootstrap] {}-{}-{}开始处理权威源类型及node",  domainInfo.getDomainName(),upstream.getAppCode(), source.getText());
+        log.info("[bootstrap] {}-{}-{}开始处理权威源类型及node", domainInfo.getDomainName(), upstream.getAppCode(), source.getText());
 
     }
 
