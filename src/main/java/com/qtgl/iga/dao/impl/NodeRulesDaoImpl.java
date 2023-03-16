@@ -173,21 +173,21 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
     }
 
 
-    public List<NodeRules> findNodeRulesByService(String serviceName,String domain,String synType){
-    String sql="select tmnr.* " +
-            "from t_mgr_upstream_types ut " +
-            "left join t_mgr_upstream u on ut.upstream_id=u.id " +
-            "left join t_mgr_node_rules tmnr on ut.id = tmnr.upstream_types_id " +
-            " where graphql_url like ? " +
-            "  and ut.active = 1 " +
-            "  and u.active=1 " +
-            "  and syn_way = 1 " +
-            "   and domain in ? " +
-            "  and syn_type = ? ";
+    public List<NodeRules> findNodeRulesByService(String serviceName, String domain, String synType) {
+        String sql = "select tmnr.* " +
+                "from t_mgr_upstream_types ut " +
+                "left join t_mgr_upstream u on ut.upstream_id=u.id " +
+                "left join t_mgr_node_rules tmnr on ut.id = tmnr.upstream_types_id " +
+                " where graphql_url like ? " +
+                "  and ut.active = 1 " +
+                "  and u.active=1 " +
+                "  and syn_way = 1 " +
+                "   and domain in ? " +
+                "  and syn_type = ? ";
         //存入参数
         List<Object> param = new ArrayList<>();
-        param.add("bus://"+serviceName+"/%");
-        param.add(Arrays.asList(domain,"localhost"));
+        param.add("bus://" + serviceName + "/%");
+        param.add(Arrays.asList(domain, "localhost"));
         param.add(synType);
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, param);
         ArrayList<NodeRules> list = new ArrayList<>();
@@ -460,6 +460,37 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
             param.add(AutoUpRunner.superDomainId);
         }
         stb.append(" ) ");
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
+        if (null != mapList && mapList.size() > 0) {
+            List<NodeRules> nodeRules = new ArrayList<>();
+            for (Map<String, Object> map : mapList) {
+                NodeRules nodeRule = new NodeRules();
+                try {
+                    MyBeanUtils.populate(nodeRule, map);
+                } catch (IllegalAccessException | InvocationTargetException e) {
+                    e.printStackTrace();
+                }
+                nodeRules.add(nodeRule);
+            }
+            return nodeRules;
+        }
+
+        return null;
+    }
+
+    @Override
+    public List<NodeRules> findNodeRulesByDomain(String superDomainId, Integer status, String type) {
+//拼接sql
+        StringBuffer stb = new StringBuffer("select r.id,r.node_id as nodeId,r.type as type,r.active as active," +
+                "r.create_time as createTime,r.service_key as serviceKey,r.upstream_types_id as upstreamTypesId,r.inherit_id as inheritId," +
+                "r.active_time as activeTime,r.update_time as updateTime,r.sort,r.status from t_mgr_node_rules r,t_mgr_node n where 1 = 1 and r.type = 1 and  r.node_id = n.id and n.type =? " +
+                "and r.status= ? and n.domain=? ");
+        //存入参数
+        List<Object> param = new ArrayList<>();
+        param.add(type);
+        param.add(status);
+        param.add(superDomainId);
+
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
         if (null != mapList && mapList.size() > 0) {
             List<NodeRules> nodeRules = new ArrayList<>();

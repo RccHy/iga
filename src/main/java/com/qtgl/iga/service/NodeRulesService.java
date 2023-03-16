@@ -23,7 +23,7 @@ public interface NodeRulesService {
 
     List<NodeRules> deleteBatchRules(List<NodeRules> nodeRules, String domain) throws Exception;
 
-    List<NodeRules>  findNodeRulesByService(String serviceName, String domain, String synType);
+    List<NodeRules> findNodeRulesByService(String serviceName, String domain, String synType);
 
     List<NodeRules> getByNodeAndType(String nodeId, int type, Boolean active, int status);
 
@@ -40,4 +40,6 @@ public interface NodeRulesService {
     List<NodeRules> findNodeRulesByServiceKey(String serviceKey, Integer status, Integer synWay);
 
     List<NodeRules> findNodeRulesByUpStreamTypeId(String upstreamTypeId, Integer status);
+
+    List<NodeRules> findNodeRulesByDomain(String superDomainId, Integer status, String type);
 }

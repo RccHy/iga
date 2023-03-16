@@ -64,8 +64,22 @@ public class NodeServiceImpl implements NodeService {
         if (null == save) {
             throw new CustomException(ResultCode.FAILED, "添加节点失败");
         }
-        if (null != node.getNodeRules() && node.getNodeRules().size() > 0) {
+        if (!CollectionUtils.isEmpty(node.getNodeRules())) {
+            //获取超级租户的规则
+            if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
+                List<NodeRules> superNodeRules = nodeRulesService.findNodeRulesByDomain(AutoUpRunner.superDomainId, 0, node.getType());
+                if (!CollectionUtils.isEmpty(superNodeRules)) {
+                    Map<String, NodeRules> superNodeRulesMap = superNodeRules.stream().collect(Collectors.toMap(rule -> rule.getId(), n -> n));
+                    ArrayList<NodeRulesVo> resultNodeRules = new ArrayList<>();
+                    for (NodeRulesVo nodeRule : node.getNodeRules()) {
+                        if (!superNodeRulesMap.containsKey(nodeRule.getId())) {
+                            resultNodeRules.add(nodeRule);
+                        }
+                    }
+                    node.setNodeRules(resultNodeRules);
 
+                }
+            }
             //添加节点规则明细
             NodeDto nodeRule = nodeRulesService.saveNodeRules(save);
             if (null == nodeRule) {
@@ -100,7 +114,7 @@ public class NodeServiceImpl implements NodeService {
         Integer flag = 0;
 
         List<NodeDto> nodes = findNodes(arguments, domainId, false);
-        if (!CollectionUtils.isEmpty(nodes)) {
+        if (CollectionUtils.isEmpty(nodes)) {
             return null;
         }
 
