@@ -170,12 +170,12 @@ public class NodeServiceImpl implements NodeService {
         List<Node> nodeList = nodeDao.findNodes(arguments, domainId);
         //查询是否有超级租户规则
         Map<String, Node> superNodeMap = new ConcurrentHashMap<>();
-
+        List<Node> superNodeList = new ArrayList<>();
         if (flag) {
             if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
-                List<Node> superNodeList = nodeDao.findNodes(arguments, AutoUpRunner.superDomainId);
+                superNodeList = nodeDao.findNodes(arguments, AutoUpRunner.superDomainId);
                 if (!CollectionUtils.isEmpty(superNodeList)) {
-                    superNodeMap = superNodeList.stream().collect(Collectors.toMap((node -> (StringUtils.isBlank(node.getNodeCode()) ? "*" : node.getNodeCode()) + "_" + (StringUtils.isBlank(node.getDeptTreeType()) ? "*" : node.getDeptTreeType())), (node -> node)));
+                    superNodeMap = superNodeList.stream().collect(Collectors.toMap((node -> (StringUtils.isBlank(node.getNodeCode()) ? "*" : node.getNodeCode()) + "_" + (StringUtils.isBlank(node.getDeptTreeType()) ? "*" : node.getDeptTreeType())), node -> node, (v1, v2) -> v2));
                     if (CollectionUtils.isEmpty(nodeList)) {
                         dealWithNode(domainId, nodeDos, nodeList, superNodeMap, false);
                     }
@@ -186,6 +186,11 @@ public class NodeServiceImpl implements NodeService {
 
         if (!CollectionUtils.isEmpty(nodeList)) {
             //根据node查询对应规则
+            dealWithNode(domainId, nodeDos, nodeList, superNodeMap, true);
+        } else if (!CollectionUtils.isEmpty(superNodeList)) {
+            Node node = new Node();
+            node.setId(UUID.randomUUID().toString());
+            nodeList.add(node);
             dealWithNode(domainId, nodeDos, nodeList, superNodeMap, true);
         }
         if (!CollectionUtils.isEmpty(nodeDos)) {
@@ -544,7 +549,7 @@ public class NodeServiceImpl implements NodeService {
                 //超级租户规则只获取正式的
                 List<Node> superNodeList = nodeDao.findNodes(AutoUpRunner.superDomainId, 0, type);
                 if (!CollectionUtils.isEmpty(superNodeList)) {
-                    superNodeMap = superNodeList.stream().collect(Collectors.toMap((node -> (StringUtils.isBlank(node.getNodeCode()) ? "*" : node.getNodeCode()) + "_" + (StringUtils.isBlank(node.getDeptTreeType()) ? "*" : node.getDeptTreeType())), (node -> node)));
+                    superNodeMap = superNodeList.stream().collect(Collectors.toMap((node -> (StringUtils.isBlank(node.getNodeCode()) ? "*" : node.getNodeCode()) + "_" + (StringUtils.isBlank(node.getDeptTreeType()) ? "*" : node.getDeptTreeType())), node -> node, (v1, v2) -> v2));
                     if (CollectionUtils.isEmpty(nodeList)) {
                         dealWithNode(domainId, nodeDos, nodeList, superNodeMap, false);
                     }

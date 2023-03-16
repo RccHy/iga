@@ -457,6 +457,7 @@ public class NodeDaoImpl implements NodeDao {
             stb.append(" and status =?  ");
             param.add(status);
         }
+        stb.append(" order by create_time");
         log.info("sql:{}", stb.toString());
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
 
