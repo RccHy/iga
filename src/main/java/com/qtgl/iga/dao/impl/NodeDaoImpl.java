@@ -1,5 +1,6 @@
 package com.qtgl.iga.dao.impl;
 
+import com.qtgl.iga.AutoUpRunner;
 import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.Node;
 import com.qtgl.iga.bo.NodeRulesRange;
@@ -126,7 +127,11 @@ public class NodeDaoImpl implements NodeDao {
         }
         if (null != status) {
             stb.append(" and status =?  ");
-            param.add(status);
+            if (StringUtils.isNotBlank(AutoUpRunner.superDomainId) && domain.equals(AutoUpRunner.superDomainId)) {
+                param.add(0);
+            } else {
+                param.add(status);
+            }
         }
         if (null != version) {
             stb.append(" and create_time =?  ");
@@ -177,7 +182,11 @@ public class NodeDaoImpl implements NodeDao {
                 " from t_mgr_node where domain= ? and status=? and type=? ";
         List<Object> param = new ArrayList<>();
         param.add(domainId);
-        param.add(status);
+        if (StringUtils.isNotBlank(AutoUpRunner.superDomainId) && domainId.equals(AutoUpRunner.superDomainId)) {
+            param.add(0);
+        } else {
+            param.add(status);
+        }
         param.add(type);
         if (StringUtils.isNotBlank(treeType)) {
             sql = sql + " and dept_tree_type =?  ";

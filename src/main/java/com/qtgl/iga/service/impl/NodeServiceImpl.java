@@ -460,7 +460,7 @@ public class NodeServiceImpl implements NodeService {
             nodeList = findNodesByStatusAndType(1, type, domain.getId(), null);
         }
         //   如果状态为编辑,并且没有治理中的数据
-        if (null == nodeList && status == 1) {
+        if (CollectionUtils.isEmpty(nodeList) && status == 1) {
             //复制,再返回
             List<NodeDto> nodes = findNodesByStatusAndType(0, type, domain.getId(), null);
             //复制数据
@@ -527,7 +527,8 @@ public class NodeServiceImpl implements NodeService {
 
         if (flag) {
             if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
-                List<Node> superNodeList = nodeDao.findNodes(AutoUpRunner.superDomainId, status, type);
+                //超级租户规则只获取正式的
+                List<Node> superNodeList = nodeDao.findNodes(AutoUpRunner.superDomainId, 0, type);
                 if (!CollectionUtils.isEmpty(superNodeList)) {
                     superNodeMap = superNodeList.stream().collect(Collectors.toMap((node -> (StringUtils.isBlank(node.getNodeCode()) ? "*" : node.getNodeCode()) + "_" + (StringUtils.isBlank(node.getDeptTreeType()) ? "*" : node.getDeptTreeType())), (node -> node)));
                     if (CollectionUtils.isEmpty(nodeList)) {

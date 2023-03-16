@@ -616,10 +616,10 @@ public class NodeRulesCalculationServiceImpl {
                         LocalDateTime timestamp = LocalDateTime.now();
                         try {
                             //todo builtin处理
-                            if(2==upstreamType.getSynWay()){
+                            if (2 == upstreamType.getSynWay()) {
                                 // 直接从数据库中获取
-                                upstreamTree =JSONArray.parseArray(upstreamType.getBuiltinData());
-                            }else{
+                                upstreamTree = JSONArray.parseArray(upstreamType.getBuiltinData());
+                            } else {
                                 upstreamTree = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
                             }
 
@@ -1214,7 +1214,7 @@ public class NodeRulesCalculationServiceImpl {
 
                     } else {
 
-                        NodeRules nodeRules = rulesDao.findNodeRulesById(treeBean1.getRuleId(), status);
+                        NodeRules nodeRules = rulesDao.findNodeRulesById(treeBean1.getRuleId(), null);
                         List<Node> nodes = nodeDao.findById(nodeRules.getNodeId());
                         //deptTreeName = (null == deptTreeType ? "" : deptTreeType.getName());
                         //treeBeanName = StringUtils.isBlank(nodes.get(0).getNodeCode()) ? "根节点" : resultBeans.get(nodes.get(0).getNodeCode()).get(0).getName();
@@ -1237,7 +1237,7 @@ public class NodeRulesCalculationServiceImpl {
                         treeCodeM = treeBean.getCode();
                         list.add(new ErrorData((null == deptTreeType2 ? "" : deptTreeType2.getId()), treeBean.getRuleId(), treeBean.getCode()));
                     } else {
-                        NodeRules nodeRules2 = rulesDao.findNodeRulesById(treeBean.getRuleId(), status);
+                        NodeRules nodeRules2 = rulesDao.findNodeRulesById(treeBean.getRuleId(), null);
                         List<Node> nodes2 = nodeDao.findById(nodeRules2.getNodeId());
                         //deptTreeNameM = null == deptTreeType2 ? "" : deptTreeType2.getName();
                         //treeBeanNameM = StringUtils.isBlank(nodes2.get(0).getNodeCode())? "根节点" : resultBeans.get(nodes2.get(0).getNodeCode()).get(0).getName();
