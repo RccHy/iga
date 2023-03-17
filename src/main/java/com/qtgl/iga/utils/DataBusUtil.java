@@ -1,5 +1,6 @@
 package com.qtgl.iga.utils;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.DataMapField;
@@ -130,7 +131,7 @@ public class DataBusUtil {
 
         // 如果upstreamType 是自定义json ，则不用调用接口。
         if (upstreamType.getSynWay() == 2) {
-            return invokeForData(upstreamType, serverName, dataMap);
+            return invokeForData(null,upstreamType, serverName, dataMap);
         } else {
             String[] split = upstreamType.getGraphqlUrl().split("/");
             //调用获取资源url
@@ -294,14 +295,83 @@ public class DataBusUtil {
         //获取字段映射
         List<UpstreamTypeField> fields = upstreamTypeService.findFields(upstreamType.getId());
         Map<String, String> collect = fields.stream().collect(Collectors.toMap(UpstreamTypeField::getSourceField, UpstreamTypeField::getTargetField));
-
         typeFields.put(upstreamType.getId(), fields);
-        String[] type = upstreamType.getGraphqlUrl().split("/");
-        GraphqlClient graphqlClient = GraphqlClient.buildGraphqlClient(dataUrl);
-        String methodName = type[5];
         Map<String, Object> result = null;
         JSONArray objects = new JSONArray();
-        if (upstreamType.getIsPage()) {
+
+        //不需要处理的映射字段(常量)
+        ArrayList<UpstreamTypeField> upstreamTypeFields = new ArrayList<>();
+        //存储映射字段(表达式需处理的)
+        HashMap<String, List<String>> map = new HashMap<>();
+        //存储忽略值映射需要数据库数据覆盖的
+        HashMap<String, List<String>> ignoreMap = new HashMap<>();
+        //query拼接所需查询的字段(简单映射的重命名以及表达式的处理(源字段查询))
+        Map<String, String> nodeMap = new ConcurrentHashMap<>();
+        for (UpstreamTypeField field : fields) {
+            //如果为头像则跳过
+            if ("avatar".equals(field.getSourceField())) {
+                continue;
+            }
+            //名称校验
+            String pattern = "\\$[a-zA-Z0-9_]+";
+            Pattern r = Pattern.compile(pattern);
+            Matcher m = r.matcher(field.getTargetField());
+            //ENTITY校验
+            String enPattern = "\\$[a-zA-Z0-9_]+.[a-zA-Z0-9_]+";
+            Pattern enR = Pattern.compile(enPattern);
+            Matcher enM = enR.matcher(field.getTargetField());
+            if (field.getTargetField().startsWith("=")) {
+                List<String> groupList = new ArrayList<>();
+                while (m.find()) {
+                    System.out.println("Found value: " + m.group(0));
+                    if (!m.group(0).equals("$ENTITY")) {
+                        groupList.add(m.group(0).substring(1));
+                        nodeMap.put(m.group(0).substring(1), m.group(0).substring(1));
+                    }
+                    if (!field.getTargetField().contains("$ENTITY")) {
+                        nodeMap.put(m.group(0).substring(1), m.group(0).substring(1));
+                    }
+                }
+                if (!field.getTargetField().contains("$ENTITY")) {
+                    map.put(field.getSourceField(), groupList);
+                } else {
+                    while (enM.find()) {
+                        System.out.println("Ignore Found value: " + enM.group(0));
+                        groupList.add(enM.group(0).substring(1));
+                    }
+                    ignoreMap.put(field.getSourceField(), groupList);
+                    //if ("tags".equals(field.getSourceField())) {
+                    //    log.info("{}: ignoreMap{}", upstreamType.getSynType(), ignoreMap);
+                    //}
+                }
+                // 表达式 最终需要进行运算
+            } else if (!field.getTargetField().startsWith("=") && field.getTargetField().contains("$ENTITY")) {
+                // 覆盖映射，查询后进行字段值覆盖
+                if (enM.find()) {
+                    List<String> groupList = new ArrayList<>();
+                    System.out.println("Ignore Found value: " + enM.group(0));
+                    // node.addResultAttributes(field.getSourceField() + ":" + m.group(0).substring(1));
+                    groupList.add(enM.group(0).substring(1));
+                    ignoreMap.put(field.getSourceField(), groupList);
+                }
+            } else if (!field.getTargetField().startsWith("=") && field.getTargetField().contains("$")) {
+                // 简单映射，直接查询时候进行重命名
+                if (m.find()) {
+                    System.out.println("Found value: " + m.group(0));
+                    // node.addResultAttributes(field.getSourceField() + ":" + m.group(0).substring(1));
+                    nodeMap.put(field.getSourceField() + ":" + m.group(0).substring(1), m.group(0).substring(1));
+                    //nodeMap.put(m.group(0).substring(1), m.group(0).substring(1));
+
+                }
+            } else {
+                upstreamTypeFields.add(field);
+            }
+        }
+
+        if (upstreamType.getSynWay()==0&&upstreamType.getIsPage()) {
+            String[] type = upstreamType.getGraphqlUrl().split("/");
+            GraphqlClient graphqlClient = GraphqlClient.buildGraphqlClient(dataUrl);
+            String methodName = type[5];
             if ("query".equals(type[4])) {
                 GraphqlQuery query = new DefaultGraphqlQuery(upstreamType.getSynType() + ":" + methodName);
                 // 增量同步添加入参
@@ -318,76 +388,6 @@ public class DataBusUtil {
                 }
                 ResultAttributtes edges = new ResultAttributtes("edges");
                 ResultAttributtes node = new ResultAttributtes("node");
-                //不需要处理的映射字段(常量)
-                ArrayList<UpstreamTypeField> upstreamTypeFields = new ArrayList<>();
-                //存储映射字段(表达式需处理的)
-                HashMap<String, List<String>> map = new HashMap<>();
-                //存储忽略值映射需要数据库数据覆盖的
-                HashMap<String, List<String>> ignoreMap = new HashMap<>();
-                //query拼接所需查询的字段(简单映射的重命名以及表达式的处理(源字段查询))
-                Map<String, String> nodeMap = new ConcurrentHashMap<>();
-                for (UpstreamTypeField field : fields) {
-
-                    //如果为头像则跳过
-                    if ("avatar".equals(field.getSourceField())) {
-                        continue;
-                    }
-
-                    //名称校验
-                    String pattern = "\\$[a-zA-Z0-9_]+";
-                    Pattern r = Pattern.compile(pattern);
-                    Matcher m = r.matcher(field.getTargetField());
-                    //ENTITY校验
-                    String enPattern = "\\$[a-zA-Z0-9_]+.[a-zA-Z0-9_]+";
-                    Pattern enR = Pattern.compile(enPattern);
-                    Matcher enM = enR.matcher(field.getTargetField());
-                    if (field.getTargetField().startsWith("=")) {
-                        List<String> groupList = new ArrayList<>();
-                        while (m.find()) {
-                            System.out.println("Found value: " + m.group(0));
-                            if (!m.group(0).equals("$ENTITY")) {
-                                groupList.add(m.group(0).substring(1));
-                                nodeMap.put(m.group(0).substring(1), m.group(0).substring(1));
-                            }
-                            if (!field.getTargetField().contains("$ENTITY")) {
-                                nodeMap.put(m.group(0).substring(1), m.group(0).substring(1));
-                            }
-                        }
-                        if (!field.getTargetField().contains("$ENTITY")) {
-                            map.put(field.getSourceField(), groupList);
-                        } else {
-                            while (enM.find()) {
-                                System.out.println("Ignore Found value: " + enM.group(0));
-                                groupList.add(enM.group(0).substring(1));
-                            }
-                            ignoreMap.put(field.getSourceField(), groupList);
-                            //if ("tags".equals(field.getSourceField())) {
-                            //    log.info("{}: ignoreMap{}", upstreamType.getSynType(), ignoreMap);
-                            //}
-                        }
-                        // 表达式 最终需要进行运算
-                    } else if (!field.getTargetField().startsWith("=") && field.getTargetField().contains("$ENTITY")) {
-                        // 覆盖映射，查询后进行字段值覆盖
-                        if (enM.find()) {
-                            List<String> groupList = new ArrayList<>();
-                            System.out.println("Ignore Found value: " + enM.group(0));
-                            // node.addResultAttributes(field.getSourceField() + ":" + m.group(0).substring(1));
-                            groupList.add(enM.group(0).substring(1));
-                            ignoreMap.put(field.getSourceField(), groupList);
-                        }
-                    } else if (!field.getTargetField().startsWith("=") && field.getTargetField().contains("$")) {
-                        // 简单映射，直接查询时候进行重命名
-                        if (m.find()) {
-                            System.out.println("Found value: " + m.group(0));
-                            // node.addResultAttributes(field.getSourceField() + ":" + m.group(0).substring(1));
-                            nodeMap.put(field.getSourceField() + ":" + m.group(0).substring(1), m.group(0).substring(1));
-                            //nodeMap.put(m.group(0).substring(1), m.group(0).substring(1));
-
-                        }
-                    } else {
-                        upstreamTypeFields.add(field);
-                    }
-                }
                 Set<String> nodeSet = nodeMap.keySet();
                 String[] nodeString = nodeSet.toArray(new String[nodeSet.size()]);
                 node.addResultAttributes(nodeString);
@@ -405,217 +405,234 @@ public class DataBusUtil {
                     query.getRequestParameter().addObjectParameter("first", 5000);
                     doQueryData(upstreamType, graphqlClient, objects, query);
                 }
-
                 log.info("类型:{},权威源类型:{},获取数据成功,总计:{}条", upstreamType.getSynType(), upstreamType.getId(), totalCount);
 
-                JSONArray resultJson = new JSONArray();
-                //获取sso数据
-                Tenant tenant = tenantDao.findByDomainName(domainName);
-                if (null == tenant) {
-                    throw new CustomException(ResultCode.FAILED, "租户不存在");
-                }
-                //数据库数据存储容器
-                List<TreeBean> beans;
-                Map<String, TreeBean> treeMap = new HashMap<>();
-                List<Person> persons;
-                Map<String, Person> personCardMap = new HashMap<>();
-                Map<String, Person> personAccountMap = new HashMap<>();
-                List<OccupyDto> occupyDtos;
-                Map<String, OccupyDto> occupyDtoMap = new HashMap<>();
-                Map<String, OccupyDto> occupyDtoAccountMap = new HashMap<>();
-                if ("dept".equals(upstreamType.getSynType())) {
-                    beans = deptDao.findByTenantId(tenant.getId(), null, null);
-                    if (!CollectionUtils.isEmpty(beans)) {
-                        treeMap = beans.stream().collect(Collectors.toMap(TreeBean::getCode, bean -> bean));
-                    }
-                } else if ("post".equals(upstreamType.getSynType())) {
-                    beans = postDao.findByTenantId(tenant.getId());
-                    if (!CollectionUtils.isEmpty(beans)) {
-                        treeMap = beans.stream().collect(Collectors.toMap(TreeBean::getCode, bean -> bean));
-                    }
-
-                } else if ("person".equals(upstreamType.getSynType())) {
-                    persons = personDao.getAll(tenant.getId());
-                    if (!CollectionUtils.isEmpty(persons)) {
-                        personAccountMap = persons.stream().filter(person ->
-                                !StringUtils.isBlank(person.getAccountNo())).collect(Collectors.toMap(Person::getAccountNo, person -> person, (v1, v2) -> v2));
-                        personCardMap = persons.stream().filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
-                    }
-
-                } else if ("occupy".equals(upstreamType.getSynType())) {
-                    //获取sso的所有人员
-                    persons = personDao.getAll(tenant.getId());
-                    if (!CollectionUtils.isEmpty(persons)) {
-                        personAccountMap = persons.stream().filter(person ->
-                                !StringUtils.isBlank(person.getAccountNo())).collect(Collectors.toMap(Person::getAccountNo, person -> person, (v1, v2) -> v2));
-                        personCardMap = persons.stream().filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
-                    }
-                    occupyDtos = occupyDao.findAll(tenant.getId(), null, null);
-                    if (!CollectionUtils.isEmpty(occupyDtos)) {
-                        occupyDtoMap = occupyDtos.stream().filter(occupyDto -> !StringUtils.isBlank(occupyDto.getPostCode()) && !StringUtils.isBlank(occupyDto.getDeptCode())).collect(Collectors.toMap(occupyDto -> (occupyDto.getPersonId() + ":" + occupyDto.getPostCode() + ":" + occupyDto.getDeptCode()), occupyDto -> occupyDto, (v1, v2) -> v2));
-                        occupyDtoAccountMap = occupyDtos.stream().filter(occupyDto -> !StringUtils.isBlank(occupyDto.getAccountNo())).collect(Collectors.toMap(occupyDto -> (occupyDto.getPersonId() + ":" + occupyDto.getAccountNo()), occupyDto -> occupyDto, (v1, v2) -> v2));
-                    }
-
-
-                }
-                log.info("-------------开始处理上游数据映射");
-                for (Object object : objects) {
-                    BeanMap beanMap = new BeanMap(object);
-                    //以查询结果为结果集装入处理表达式后的结果
-                    HashMap<String, Object> innerMap = (HashMap<String, Object>) beanMap.get("innerMap");
-
-                    for (Map.Entry<String, List<String>> entry : map.entrySet()) {
-                        try {
-                            //处理前缀
-                            SimpleBindings bindings = new SimpleBindings();
-                            for (int i = 0; i < entry.getValue().size(); i++) {
-                                bindings.put("$" + entry.getValue().get(i), null == innerMap.get(entry.getValue().get(i)) ? "" : innerMap.get(entry.getValue().get(i)));
-                            }
-
-                            String reg = collect.get(entry.getKey()).substring(1);
-                            // 如果是map 表达式 =map(XX,DataMapCode)
-                            if (reg.startsWith("map(") && reg.endsWith(")")) {
-                                if (null == dataMapField || dataMapField.size() <= 0) {
-                                    throw new Exception("无法进行代码映射，请检查" + entry.getKey() + "字段映射关系。");
-                                }
-                                // Pattern pattern = Pattern.compile("(?<=\\=map\\()[^\\)]+");
-                                String v = reg.substring(4, reg.length() - 1);
-                                final String[] vSplit = v.split(",");
-                                if (vSplit.length != 2) {
-                                    throw new Exception("数据映射表达式异常");
-                                }
-                                String value = bindings.get(vSplit[0]).toString();
-                                // 代码表
-                                if (dataMapField.containsKey(vSplit[1])) {
-                                    if (dataMapField.get(vSplit[1]).containsKey(value)) {
-                                        innerMap.put(entry.getKey(), dataMapField.get(vSplit[1]).get(value));
-                                    } else if (dataMapField.get(vSplit[1]).containsKey("=other()")) {
-                                        String reg2 = dataMapField.get(vSplit[1]).get("=other()");
-                                        if (reg2.equals("=old()")) {
-                                            innerMap.put(entry.getKey(), value);
-                                        } else {
-                                            reg2 = reg2.substring(1);
-                                            ScriptEngineManager sem = new ScriptEngineManager();
-                                            ScriptEngine engine = sem.getEngineByName("js");
-                                            final Object eval = engine.eval(reg2, bindings);
-                                            innerMap.put(entry.getKey(), eval);
-                                        }
-                                    }
-
-                                }
-
-                            } else {
-                                ScriptEngineManager sem = new ScriptEngineManager();
-                                ScriptEngine engine = sem.getEngineByName("js");
-                                final Object eval = engine.eval(reg, bindings);
-                                // jsonObject.put(entry.getValue(), eval);
-                                innerMap.put(entry.getKey(), eval);
-                            }
-
-                        } catch (ScriptException e) {
-                            log.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
-                            throw new Exception("eval处理数据异常" + collect.get(map.get(entry.getKey())));
-                        }
-                    }
-                    //常量
-                    if (!CollectionUtils.isEmpty(upstreamTypeFields)) {
-                        for (UpstreamTypeField field : upstreamTypeFields) {
-                            innerMap.put(field.getSourceField(), field.getTargetField());
-                        }
-                    }
-                    //处理entity
-                    for (Map.Entry<String, List<String>> entry : ignoreMap.entrySet()) {
-                        try {
-
-                            //处理前缀
-                            SimpleBindings bindings = new SimpleBindings();
-                            for (int i = 0; i < entry.getValue().size(); i++) {
-                                if (!entry.getValue().get(i).contains("ENTITY")) {
-                                    bindings.put("$" + entry.getValue().get(i), null == innerMap.get(entry.getValue().get(i)) ? "" : innerMap.get(entry.getValue().get(i)));
-                                } else {
-                                    //判断类型实体
-                                    if ("dept".equals(upstreamType.getSynType()) || "post".equals(upstreamType.getSynType())) {
-                                        if (!CollectionUtils.isEmpty(treeMap) && treeMap.containsKey(innerMap.get("code"))) {
-                                            TreeBean code = treeMap.get(innerMap.get("code"));
-                                            bindings.put("$ENTITY", code);
-                                        } else {
-                                            bindings.put("$ENTITY", new TreeBean());
-                                        }
-                                    } else if ("person".equals(upstreamType.getSynType())) {
-                                        if (!CollectionUtils.isEmpty(personCardMap) && personCardMap.containsKey(innerMap.get("cardType") + ":" + innerMap.get("cardNo"))) {
-                                            Person code = personCardMap.get(innerMap.get("cardType") + ":" + innerMap.get("cardNo"));
-                                            bindings.put("$ENTITY", code);
-                                        } else if (!CollectionUtils.isEmpty(personAccountMap) && personAccountMap.containsKey(innerMap.get("accountNo"))) {
-                                            Person code = personAccountMap.get(innerMap.get("accountNo"));
-                                            bindings.put("$ENTITY", code);
-                                        } else {
-                                            bindings.put("$ENTITY", new Person());
-                                        }
-
-                                    } else if ("occupy".equals(upstreamType.getSynType())) {
-
-                                        //人员标识是否有有效数据
-                                        if (!CollectionUtils.isEmpty(personCardMap) && personCardMap.containsKey(innerMap.get("personCardType") + ":" + innerMap.get("personCardNo"))) {
-                                            Person code = personCardMap.get(innerMap.get("personCardType") + ":" + innerMap.get("personCardNo"));
-                                            if (!CollectionUtils.isEmpty(occupyDtoMap) && occupyDtoMap.containsKey(code.getId() + ":" + innerMap.get("postCode") + ":" + innerMap.get("deptCode"))) {
-                                                OccupyDto occupyDto = occupyDtoMap.get(code.getId() + ":" + innerMap.get("postCode") + ":" + innerMap.get("deptCode"));
-                                                bindings.put("$ENTITY", occupyDto);
-                                            } else {
-                                                bindings.put("$ENTITY", new OccupyDto());
-                                            }
-                                        } else if (!CollectionUtils.isEmpty(personAccountMap) && personAccountMap.containsKey(innerMap.get("accountNo"))) {
-                                            Person code = personAccountMap.get(innerMap.get("accountNo"));
-                                            if (!CollectionUtils.isEmpty(occupyDtoAccountMap) && occupyDtoAccountMap.containsKey(code.getId() + ":" + innerMap.get("accountNo"))) {
-                                                OccupyDto occupyDto = occupyDtoAccountMap.get(code.getId() + ":" + innerMap.get("accountNo"));
-                                                bindings.put("$ENTITY", occupyDto);
-                                            } else {
-                                                bindings.put("$ENTITY", new OccupyDto());
-                                            }
-                                        } else {
-                                            bindings.put("$ENTITY", new OccupyDto());
-                                        }
-                                    }
-                                }
-                            }
-                            String reg = collect.get(entry.getKey());
-                            if (reg.startsWith("=")) {
-                                reg = reg.substring(1);
-                            }
-                            ScriptEngineManager sem = new ScriptEngineManager();
-                            ScriptEngine engine = sem.getEngineByName("js");
-                            final Object eval = engine.eval(reg, bindings);
-                            innerMap.put(entry.getKey(), eval);
-
-                        } catch (ScriptException e) {
-                            log.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
-                            throw new Exception("eval处理数据异常" + collect.get(map.get(entry.getKey())));
-                        }
-                    }
-                    //处理parentCode字段
-                    if (null == innerMap.get("parentCode")) {
-                        innerMap.put("parentCode", "");
-                    }
-                    resultJson.add(innerMap);
-
-                }
-                log.info("-------------处理上游数据映射结束");
-
-
-                return resultJson;
             }
         }
-        return null;
+        if (upstreamType.getSynWay() == 2) {
+            objects=JSONArray.parseArray(upstreamType.getBuiltinData());
+        }
+
+
+        JSONArray resultJson = new JSONArray();
+        //获取sso数据
+        Tenant tenant = tenantDao.findByDomainName(domainName);
+        if (null == tenant) {
+            throw new CustomException(ResultCode.FAILED, "租户不存在");
+        }
+        //数据库数据存储容器
+        List<TreeBean> beans;
+        Map<String, TreeBean> treeMap = new HashMap<>();
+        List<Person> persons;
+        Map<String, Person> personCardMap = new HashMap<>();
+        Map<String, Person> personAccountMap = new HashMap<>();
+        List<OccupyDto> occupyDtos;
+        Map<String, OccupyDto> occupyDtoMap = new HashMap<>();
+        Map<String, OccupyDto> occupyDtoAccountMap = new HashMap<>();
+        if ("dept".equals(upstreamType.getSynType())) {
+            beans = deptDao.findByTenantId(tenant.getId(), null, null);
+            if (!CollectionUtils.isEmpty(beans)) {
+                treeMap = beans.stream().collect(Collectors.toMap(TreeBean::getCode, bean -> bean));
+            }
+        } else if ("post".equals(upstreamType.getSynType())) {
+            beans = postDao.findByTenantId(tenant.getId());
+            if (!CollectionUtils.isEmpty(beans)) {
+                treeMap = beans.stream().collect(Collectors.toMap(TreeBean::getCode, bean -> bean));
+            }
+
+        } else if ("person".equals(upstreamType.getSynType())) {
+            persons = personDao.getAll(tenant.getId());
+            if (!CollectionUtils.isEmpty(persons)) {
+                personAccountMap = persons.stream().filter(person ->
+                        !StringUtils.isBlank(person.getAccountNo())).collect(Collectors.toMap(Person::getAccountNo, person -> person, (v1, v2) -> v2));
+                personCardMap = persons.stream().filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
+            }
+
+        } else if ("occupy".equals(upstreamType.getSynType())) {
+            //获取sso的所有人员
+            persons = personDao.getAll(tenant.getId());
+            if (!CollectionUtils.isEmpty(persons)) {
+                personAccountMap = persons.stream().filter(person ->
+                        !StringUtils.isBlank(person.getAccountNo())).collect(Collectors.toMap(Person::getAccountNo, person -> person, (v1, v2) -> v2));
+                personCardMap = persons.stream().filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo())).collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
+            }
+            occupyDtos = occupyDao.findAll(tenant.getId(), null, null);
+            if (!CollectionUtils.isEmpty(occupyDtos)) {
+                occupyDtoMap = occupyDtos.stream().filter(occupyDto -> !StringUtils.isBlank(occupyDto.getPostCode()) && !StringUtils.isBlank(occupyDto.getDeptCode())).collect(Collectors.toMap(occupyDto -> (occupyDto.getPersonId() + ":" + occupyDto.getPostCode() + ":" + occupyDto.getDeptCode()), occupyDto -> occupyDto, (v1, v2) -> v2));
+                occupyDtoAccountMap = occupyDtos.stream().filter(occupyDto -> !StringUtils.isBlank(occupyDto.getAccountNo())).collect(Collectors.toMap(occupyDto -> (occupyDto.getPersonId() + ":" + occupyDto.getAccountNo()), occupyDto -> occupyDto, (v1, v2) -> v2));
+            }
+
+
+        }
+        log.info("-------------开始处理上游数据映射");
+        for (Object object : objects) {
+            JSONObject data = JSONObject.parseObject(JSON.toJSONString(object));
+            if(upstreamType.getSynWay()==2){
+
+                // 替换data中的key
+                for (Map.Entry<String, String> entry : nodeMap.entrySet()) {
+                    String[] keys = entry.getKey().split(":");
+                    if (keys.length == 2) {
+                        String value = data.getString(keys[1]);
+                        if (null != value) {
+                            data.put(keys[0], value);
+                        }
+                    }
+                }
+            }
+            BeanMap beanMap = new BeanMap(data);
+            //以查询结果为结果集装入处理表达式后的结果
+            HashMap<String, Object> innerMap = (HashMap<String, Object>) beanMap.get("innerMap");
+
+            for (Map.Entry<String, List<String>> entry : map.entrySet()) {
+                try {
+                    //处理前缀
+                    SimpleBindings bindings = new SimpleBindings();
+                    for (int i = 0; i < entry.getValue().size(); i++) {
+                        bindings.put("$" + entry.getValue().get(i), null == innerMap.get(entry.getValue().get(i)) ? "" : innerMap.get(entry.getValue().get(i)));
+                    }
+
+                    String reg = collect.get(entry.getKey()).substring(1);
+                    // 如果是map 表达式 =map(XX,DataMapCode)
+                    if (reg.startsWith("map(") && reg.endsWith(")")) {
+                        if (null == dataMapField || dataMapField.size() <= 0) {
+                            throw new Exception("无法进行代码映射，请检查" + entry.getKey() + "字段映射关系。");
+                        }
+                        // Pattern pattern = Pattern.compile("(?<=\\=map\\()[^\\)]+");
+                        String v = reg.substring(4, reg.length() - 1);
+                        final String[] vSplit = v.split(",");
+                        if (vSplit.length != 2) {
+                            throw new Exception("数据映射表达式异常");
+                        }
+                        String value = bindings.get(vSplit[0]).toString();
+                        // 代码表
+                        if (dataMapField.containsKey(vSplit[1])) {
+                            if (dataMapField.get(vSplit[1]).containsKey(value)) {
+                                innerMap.put(entry.getKey(), dataMapField.get(vSplit[1]).get(value));
+                            } else if (dataMapField.get(vSplit[1]).containsKey("=other()")) {
+                                String reg2 = dataMapField.get(vSplit[1]).get("=other()");
+                                if (reg2.equals("=old()")) {
+                                    innerMap.put(entry.getKey(), value);
+                                } else {
+                                    reg2 = reg2.substring(1);
+                                    ScriptEngineManager sem = new ScriptEngineManager();
+                                    ScriptEngine engine = sem.getEngineByName("js");
+                                    final Object eval = engine.eval(reg2, bindings);
+                                    innerMap.put(entry.getKey(), eval);
+                                }
+                            }
+
+                        }
+
+                    } else {
+                        ScriptEngineManager sem = new ScriptEngineManager();
+                        ScriptEngine engine = sem.getEngineByName("js");
+                        final Object eval = engine.eval(reg, bindings);
+                        // jsonObject.put(entry.getValue(), eval);
+                        innerMap.put(entry.getKey(), eval);
+                    }
+
+                } catch (ScriptException e) {
+                    log.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
+                    throw new Exception("eval处理数据异常" + collect.get(map.get(entry.getKey())));
+                }
+            }
+            //常量
+            if (!CollectionUtils.isEmpty(upstreamTypeFields)) {
+                for (UpstreamTypeField field : upstreamTypeFields) {
+                    innerMap.put(field.getSourceField(), field.getTargetField());
+                }
+            }
+            //处理entity
+            for (Map.Entry<String, List<String>> entry : ignoreMap.entrySet()) {
+                try {
+
+                    //处理前缀
+                    SimpleBindings bindings = new SimpleBindings();
+                    for (int i = 0; i < entry.getValue().size(); i++) {
+                        if (!entry.getValue().get(i).contains("ENTITY")) {
+                            bindings.put("$" + entry.getValue().get(i), null == innerMap.get(entry.getValue().get(i)) ? "" : innerMap.get(entry.getValue().get(i)));
+                        } else {
+                            //判断类型实体
+                            if ("dept".equals(upstreamType.getSynType()) || "post".equals(upstreamType.getSynType())) {
+                                if (!CollectionUtils.isEmpty(treeMap) && treeMap.containsKey(innerMap.get("code"))) {
+                                    TreeBean code = treeMap.get(innerMap.get("code"));
+                                    bindings.put("$ENTITY", code);
+                                } else {
+                                    bindings.put("$ENTITY", new TreeBean());
+                                }
+                            } else if ("person".equals(upstreamType.getSynType())) {
+                                if (!CollectionUtils.isEmpty(personCardMap) && personCardMap.containsKey(innerMap.get("cardType") + ":" + innerMap.get("cardNo"))) {
+                                    Person code = personCardMap.get(innerMap.get("cardType") + ":" + innerMap.get("cardNo"));
+                                    bindings.put("$ENTITY", code);
+                                } else if (!CollectionUtils.isEmpty(personAccountMap) && personAccountMap.containsKey(innerMap.get("accountNo"))) {
+                                    Person code = personAccountMap.get(innerMap.get("accountNo"));
+                                    bindings.put("$ENTITY", code);
+                                } else {
+                                    bindings.put("$ENTITY", new Person());
+                                }
+
+                            } else if ("occupy".equals(upstreamType.getSynType())) {
+
+                                //人员标识是否有有效数据
+                                if (!CollectionUtils.isEmpty(personCardMap) && personCardMap.containsKey(innerMap.get("personCardType") + ":" + innerMap.get("personCardNo"))) {
+                                    Person code = personCardMap.get(innerMap.get("personCardType") + ":" + innerMap.get("personCardNo"));
+                                    if (!CollectionUtils.isEmpty(occupyDtoMap) && occupyDtoMap.containsKey(code.getId() + ":" + innerMap.get("postCode") + ":" + innerMap.get("deptCode"))) {
+                                        OccupyDto occupyDto = occupyDtoMap.get(code.getId() + ":" + innerMap.get("postCode") + ":" + innerMap.get("deptCode"));
+                                        bindings.put("$ENTITY", occupyDto);
+                                    } else {
+                                        bindings.put("$ENTITY", new OccupyDto());
+                                    }
+                                } else if (!CollectionUtils.isEmpty(personAccountMap) && personAccountMap.containsKey(innerMap.get("accountNo"))) {
+                                    Person code = personAccountMap.get(innerMap.get("accountNo"));
+                                    if (!CollectionUtils.isEmpty(occupyDtoAccountMap) && occupyDtoAccountMap.containsKey(code.getId() + ":" + innerMap.get("accountNo"))) {
+                                        OccupyDto occupyDto = occupyDtoAccountMap.get(code.getId() + ":" + innerMap.get("accountNo"));
+                                        bindings.put("$ENTITY", occupyDto);
+                                    } else {
+                                        bindings.put("$ENTITY", new OccupyDto());
+                                    }
+                                } else {
+                                    bindings.put("$ENTITY", new OccupyDto());
+                                }
+                            }
+                        }
+                    }
+                    String reg = collect.get(entry.getKey());
+                    if (reg.startsWith("=")) {
+                        reg = reg.substring(1);
+                    }
+                    ScriptEngineManager sem = new ScriptEngineManager();
+                    ScriptEngine engine = sem.getEngineByName("js");
+                    final Object eval = engine.eval(reg, bindings);
+                    innerMap.put(entry.getKey(), eval);
+
+                } catch (ScriptException e) {
+                    log.error("eval处理数据异常{}", collect.get(map.get(entry.getKey())));
+                    throw new Exception("eval处理数据异常" + collect.get(map.get(entry.getKey())));
+                }
+            }
+            //处理parentCode字段
+            if (null == innerMap.get("parentCode")) {
+                innerMap.put("parentCode", "");
+            }
+            resultJson.add(innerMap);
+
+        }
+        log.info("-------------处理上游数据映射结束");
+
+
+        return resultJson;
+
     }
 
-    private JSONArray invokeForData(UpstreamType upstreamType, String domainName, Map<String, Map<String, String>> dataMapField) throws Exception {
+    private JSONArray invokeForData2(UpstreamType upstreamType, String domainName, Map<String, Map<String, String>> dataMapField) throws Exception {
 
         //获取字段映射
         List<UpstreamTypeField> fields = upstreamTypeService.findFields(upstreamType.getId());
-        if (null!= fields && fields.size() > 0) {
+        if (null != fields && fields.size() > 0) {
             Map<String, String> collect = fields.stream().collect(Collectors.toMap(UpstreamTypeField::getSourceField, UpstreamTypeField::getTargetField));
             typeFields.put(upstreamType.getId(), fields);
             Map<String, Object> result = null;
-            JSONArray objects = JSONArray.parseArray(upstreamType.getBuiltinData());
             //不需要处理的映射字段(常量)
             ArrayList<UpstreamTypeField> upstreamTypeFields = new ArrayList<>();
             //存储映射字段(表达式需处理的)
@@ -672,13 +689,10 @@ public class DataBusUtil {
                         ignoreMap.put(field.getSourceField(), groupList);
                     }
                 } else if (!field.getTargetField().startsWith("=") && field.getTargetField().contains("$")) {
-                    // 简单映射，直接查询时候进行重命名
+                    // 简单映射，转换为表达式 映射， $A -> =$A 交个js引擎计算
                     if (m.find()) {
                         System.out.println("Found value: " + m.group(0));
-                        // node.addResultAttributes(field.getSourceField() + ":" + m.group(0).substring(1));
                         nodeMap.put(field.getSourceField() + ":" + m.group(0).substring(1), m.group(0).substring(1));
-                        //nodeMap.put(m.group(0).substring(1), m.group(0).substring(1));
-
                     }
                 } else {
                     upstreamTypeFields.add(field);
@@ -735,12 +749,25 @@ public class DataBusUtil {
 
 
             }
-            log.info("-------------开始处理上游数据映射");
-            for (Object object : objects) {
-                BeanMap beanMap = new BeanMap(object);
+            // 获取出来的数据
+            JSONArray datas = JSONArray.parseArray(upstreamType.getBuiltinData());
+            for (Object dataOb : datas) {
+                // data to json
+                JSONObject data = JSONObject.parseObject(JSON.toJSONString(dataOb));
+                // 替换data中的key
+                for (Map.Entry<String, String> entry : nodeMap.entrySet()) {
+                    String[] keys = entry.getKey().split(":");
+                    if (keys.length == 2) {
+                        String value = data.getString(keys[1]);
+                        if (null != value) {
+                            data.put(keys[0], value);
+                        }
+                    }
+                }
+                log.info("-------------开始处理上游数据映射");
+                BeanMap beanMap = new BeanMap(data);
                 //以查询结果为结果集装入处理表达式后的结果
                 HashMap<String, Object> innerMap = (HashMap<String, Object>) beanMap.get("innerMap");
-
                 for (Map.Entry<String, List<String>> entry : map.entrySet()) {
                     try {
                         //处理前缀
@@ -874,7 +901,7 @@ public class DataBusUtil {
             }
             log.info("-------------处理上游数据映射结束");
             return resultJson;
-        }else{
+        } else {
             return JSONArray.parseArray(upstreamType.getBuiltinData());
         }
 

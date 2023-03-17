@@ -109,6 +109,8 @@ public class CertifiedConnector {
                 certifiedConnector.domainInfoService.install(byDomainName);
                 // 租户初始化完成后,开启监听
                 subWebSocket.listening(byDomainName);
+                //todo 指定运行 权威源为console的 同步
+
                 //GraphQLService.setDomainGraphQLMap(certifiedConnector.runner.buildGraphql());
             } catch (Exception e) {
                 e.printStackTrace();
