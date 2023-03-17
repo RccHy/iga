@@ -43,6 +43,8 @@ type NodeRules{
     status :Int
     #是否来自本租户
     local:Boolean
+    #是否被忽略
+    isIgnore:Boolean
 }
 
 
@@ -74,6 +76,8 @@ input InputNodeRules{
     nodeRulesRanges:[InputNodeRulesRange]
     #状态 0 发布 1 编辑中 2 历史 3失效
     status :Int
+    #是否来自本租户
+    local:Boolean
 }
 
 input NodeRulesFilter{

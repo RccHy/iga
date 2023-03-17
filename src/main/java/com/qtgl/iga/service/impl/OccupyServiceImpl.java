@@ -111,11 +111,10 @@ public class OccupyServiceImpl implements OccupyService {
         }
 
         Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
+        List<NodeRulesVo> rules = new ArrayList<>();
         // 获取规则  (不为sub则获取所有规则)
         if (CollectionUtils.isEmpty(occupyRules)) {
             // 获取规则
-
-            occupyRules = new ArrayList<>();
 
             List<NodeDto> nodes = nodeService.findNodes(domain.getId(), 0, "occupy", true);
             if (null == nodes || nodes.size() <= 0) {
@@ -129,7 +128,7 @@ public class OccupyServiceImpl implements OccupyService {
                 log.error("无人员身份管理规则信息");
                 return null;
             }
-            occupyRules.addAll(nodeRules);
+            rules.addAll(nodeRules);
 
             //获取该租户下的当前类型的无效权威源
             ArrayList<Upstream> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
@@ -150,7 +149,8 @@ public class OccupyServiceImpl implements OccupyService {
             List<String> ids = upstreams.stream().map(Upstream::getId).collect(Collectors.toList());
 
             //根据权威源和类型获取需要执行的规则
-            occupyRules = rulesService.findNodeRulesByUpStreamIdAndType(ids, "occupy", domain.getId(), 0);
+            rules = rulesService.findNodeRulesByUpStreamIdAndType(ids, "occupy", domain.getId(), 0);
+
             //获取除了该权威源以外的所有权威源(用于sub模式)
             ArrayList<Upstream> otherDomains = upstreamService.findByOtherUpstream(ids, domain.getId());
             if (!CollectionUtils.isEmpty(otherDomains)) {
@@ -176,7 +176,7 @@ public class OccupyServiceImpl implements OccupyService {
         ArrayList<DynamicValue> valueInsert = new ArrayList<>();
 
 
-        dataProcessing(occupyRules, domain, tenant, result, deleteFromSSO, occupyDtoFromUpstream, incrementalTasks, currentTask, valueUpdateMap, valueInsertMap, upstreamMap);
+        dataProcessing(rules, domain, tenant, result, deleteFromSSO, occupyDtoFromUpstream, incrementalTasks, currentTask, valueUpdateMap, valueInsertMap, upstreamMap);
 
         List<OccupyDto> occupiesFromSSO = occupyDao.findAll(tenant.getId(), null, null);
 
@@ -252,7 +252,7 @@ public class OccupyServiceImpl implements OccupyService {
         }
     }
 
-    private List<OccupyDto> dataProcessing(List<NodeRules> occupyRules, DomainInfo domain, Tenant tenant, Map<String, List<OccupyDto>> result, ArrayList<OccupyDto> deleteFromSSO, Map<String, OccupyDto> occupyDtoFromUpstream, List<IncrementalTask> incrementalTasks, TaskLog currentTask,
+    private List<OccupyDto> dataProcessing(List<NodeRulesVo> occupyRules, DomainInfo domain, Tenant tenant, Map<String, List<OccupyDto>> result, ArrayList<OccupyDto> deleteFromSSO, Map<String, OccupyDto> occupyDtoFromUpstream, List<IncrementalTask> incrementalTasks, TaskLog currentTask,
                                            Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, Upstream> upstreamMap) {
 
         // 所有证件类型
@@ -355,8 +355,13 @@ public class OccupyServiceImpl implements OccupyService {
         Map<String, List<Person>> mergePersonFromSSOMapByEmail = null;
 
         // 开始遍历规则
-        for (NodeRules rules : occupyRules) {
+        for (NodeRulesVo rules : occupyRules) {
             if (1 != rules.getType()) {
+                continue;
+            }
+            if(rules.getIsIgnore()){
+                //todo 忽略提示
+                log.info("当前规则被忽略,跳过执行");
                 continue;
             }
             UpstreamType upstreamType = upstreamTypeService.findById(rules.getUpstreamTypesId());
@@ -1648,14 +1653,13 @@ public class OccupyServiceImpl implements OccupyService {
                 log.error("无人员身份管理规则信息");
                 throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
             }
-            List<NodeRules> occupyRules = new ArrayList<>(nodeRules);
             //获取该租户下的当前类型的无效权威源
             ArrayList<Upstream> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
             Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
             if (!CollectionUtils.isEmpty(upstreams)) {
                 upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
             }
-            occupyDtos = dataProcessing(occupyRules, domain, tenant, result, deleteFromSSO, occupyDtoFromUpstream, null, null, valueUpdateMap, valueInsertMap, upstreamMap);
+            occupyDtos = dataProcessing(nodeRules, domain, tenant, result, deleteFromSSO, occupyDtoFromUpstream, null, null, valueUpdateMap, valueInsertMap, upstreamMap);
         } catch (Exception e) {
             e.printStackTrace();
             throw new CustomException(ResultCode.FAILED, e.getMessage());
@@ -1864,14 +1868,13 @@ public class OccupyServiceImpl implements OccupyService {
             log.error("无人员身份管理规则信息");
             throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
         }
-        List<NodeRules> occupyRules = new ArrayList<>(nodeRules);
         //获取该租户下的当前类型的无效权威源
         ArrayList<Upstream> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
         Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
         if (!CollectionUtils.isEmpty(upstreams)) {
             upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
         }
-        dataProcessing(occupyRules, domain, tenant, result, deleteFromSSO, occupyDtoFromUpstream, incrementalTasks, null, valueUpdateMap, valueInsertMap, upstreamMap);
+        dataProcessing(nodeRules, domain, tenant, result, deleteFromSSO, occupyDtoFromUpstream, incrementalTasks, null, valueUpdateMap, valueInsertMap, upstreamMap);
 
         //数据库重复身份删除
         if (!CollectionUtils.isEmpty(deleteFromSSO)) {

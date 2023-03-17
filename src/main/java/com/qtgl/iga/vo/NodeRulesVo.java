@@ -18,6 +18,8 @@ public class NodeRulesVo extends NodeRules {
     private List<NodeRulesRange> nodeRulesRanges;
     //是否来源于本租户
     private Boolean local;
+    //是否被忽略
+    private Boolean isIgnore = false;
 
     public NodeRulesVo(NodeRules nodeRules) {
         this.setId(nodeRules.getId());

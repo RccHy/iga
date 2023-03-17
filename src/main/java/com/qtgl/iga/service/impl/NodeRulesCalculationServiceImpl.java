@@ -18,6 +18,7 @@ import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.enums.TreeEnum;
 import com.qtgl.iga.utils.exception.CustomException;
 import com.qtgl.iga.vo.NodeRulesVo;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +47,7 @@ import java.util.stream.Collectors;
 
 @Service
 //@Transactional
+@Slf4j
 public class NodeRulesCalculationServiceImpl {
     @Resource
     NodeRulesDao rulesDao;
@@ -577,8 +579,12 @@ public class NodeRulesCalculationServiceImpl {
                             .collect(Collectors.toMap(NodeRules::getId, v -> v));
                     // 遍历结束后 要对数据确权
                     for (NodeRulesVo nodeRule : nodeRules) {
-                        //跳过推送规则
-                        if (0 == nodeRule.getType()) {
+                        if (1 != nodeRule.getType()) {
+                            continue;
+                        }
+                        if (nodeRule.getIsIgnore()) {
+                            //todo 忽略提示
+                            log.info("当前规则被忽略,跳过执行");
                             continue;
                         }
                         //是否有规则过滤非继承数据打标识
@@ -599,6 +605,8 @@ public class NodeRulesCalculationServiceImpl {
                             continue;
                         }
                         // 根据id 获取 UpstreamType
+
+                        //todo 不启用 不报错
                         UpstreamType upstreamType = upstreamTypeDao.findById(nodeRule.getUpstreamTypesId());
                         if (null == upstreamType) {
                             logger.error("对应拉取节点规则'{}'无有效权威源类型数据", code);

@@ -437,7 +437,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
     }
 
     @Override
-    public List<NodeRules> findNodeRulesByUpStreamTypeIdsAndType(List<String> ids, String type, String domain, Integer status) {
+    public List<NodeRulesVo> findNodeRulesByUpStreamTypeIdsAndType(List<String> ids, String type, String domain, Integer status) {
 
         //拼接sql
         StringBuffer stb = new StringBuffer("select r.id,r.node_id as nodeId,r.type as type,r.active as active," +
@@ -462,9 +462,9 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
         stb.append(" ) ");
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
         if (null != mapList && mapList.size() > 0) {
-            List<NodeRules> nodeRules = new ArrayList<>();
+            List<NodeRulesVo> nodeRules = new ArrayList<>();
             for (Map<String, Object> map : mapList) {
-                NodeRules nodeRule = new NodeRules();
+                NodeRulesVo nodeRule = new NodeRulesVo();
                 try {
                     MyBeanUtils.populate(nodeRule, map);
                 } catch (IllegalAccessException | InvocationTargetException e) {

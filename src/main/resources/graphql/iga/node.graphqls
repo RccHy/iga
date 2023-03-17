@@ -92,6 +92,9 @@ input InputNode{
     #类型
     type:String
 
+    #是否来自本租户 默认为true
+    local:Boolean
+
 
 }
 

@@ -5,6 +5,7 @@ import com.qtgl.iga.vo.NodeRulesVo;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -38,6 +39,7 @@ public class NodeDto extends Node {
         this.setDeptTreeType(node.getDeptTreeType());
         this.setStatus(node.getStatus());
         this.setType(node.getType());
+        this.setNodeRules(new ArrayList<NodeRulesVo>());
     }
 
 }

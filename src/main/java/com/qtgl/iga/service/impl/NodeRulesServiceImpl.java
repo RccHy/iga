@@ -2,15 +2,9 @@ package com.qtgl.iga.service.impl;
 
 
 import com.qtgl.iga.bean.NodeDto;
-import com.qtgl.iga.bo.Node;
-import com.qtgl.iga.bo.NodeRules;
-import com.qtgl.iga.bo.NodeRulesRange;
-import com.qtgl.iga.bo.UpstreamType;
+import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.NodeRulesDao;
-import com.qtgl.iga.service.NodeRulesRangeService;
-import com.qtgl.iga.service.NodeRulesService;
-import com.qtgl.iga.service.NodeService;
-import com.qtgl.iga.service.UpstreamTypeService;
+import com.qtgl.iga.service.*;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
 import com.qtgl.iga.vo.NodeRulesVo;
@@ -38,7 +32,8 @@ public class NodeRulesServiceImpl implements NodeRulesService {
     NodeService nodeService;
     @Resource
     UpstreamTypeService upstreamTypeService;
-
+    @Resource
+    DomainIgnoreService domainIgnoreService;
 
     @Override
     public List<NodeRules> findNodeRules(Map<String, Object> arguments, String domain) {
@@ -174,7 +169,7 @@ public class NodeRulesServiceImpl implements NodeRulesService {
     }
 
     @Override
-    public List<NodeRules> findNodeRulesByUpStreamIdAndType(List<String> ids, String type, String domain, Integer status) {
+    public List<NodeRulesVo> findNodeRulesByUpStreamIdAndType(List<String> ids, String type, String domain, Integer status) {
         List<UpstreamType> upstreamTypes = upstreamTypeService.findByUpstreamIds(ids, domain);
         if (!CollectionUtils.isEmpty(upstreamTypes)) {
             List<String> upstreamTypeIds = upstreamTypes.stream().map(UpstreamType::getId).collect(Collectors.toList());
@@ -195,8 +190,10 @@ public class NodeRulesServiceImpl implements NodeRulesService {
     }
 
     @Override
-    public List<NodeRulesVo> findNodeRulesByNodeId(String id, Integer status) {
-        return nodeRulesDao.findNodeRulesByNodeId(id, status);
+    public List<NodeRulesVo> findNodeRulesByNodeId(String nodeId, Integer status) {
+        //根据权威源及权威源类型判断是否需要忽略
+
+        return nodeRulesDao.findNodeRulesByNodeId(nodeId, status);
     }
 
     @Override
@@ -222,6 +219,28 @@ public class NodeRulesServiceImpl implements NodeRulesService {
     @Override
     public List<NodeRules> findNodeRulesByDomain(String superDomainId, Integer status, String type) {
         return nodeRulesDao.findNodeRulesByDomain(superDomainId, status, type);
+    }
+
+    @Override
+    public List<NodeRulesVo> findSuperNodeRulesByNodeId(String nodeId, Integer status, String domainId) {
+        List<NodeRulesVo> nodeRulesByNodeId = findNodeRulesByNodeId(nodeId, status);
+        if (!CollectionUtils.isEmpty(nodeRulesByNodeId)) {
+            //查找本租户是否有忽略的超级租户权威源类型
+            List<DomainIgnore> domainIgnores = domainIgnoreService.findByDomain(domainId);
+            if (!CollectionUtils.isEmpty(domainIgnores)) {
+                List<String> collect = domainIgnores.stream().map(DomainIgnore::getUpstreamTypeId).collect(Collectors.toList());
+                ArrayList<NodeRulesVo> list = new ArrayList<>();
+                for (NodeRulesVo nodeRulesVo : nodeRulesByNodeId) {
+                    if (collect.contains(nodeRulesVo.getUpstreamTypesId())) {
+                        //当前规则被忽略
+                        nodeRulesVo.setIsIgnore(true);
+                    }
+                    list.add(nodeRulesVo);
+                }
+                return list;
+            }
+        }
+        return nodeRulesByNodeId;
     }
 
     public NodeRules deleteRules(NodeRules rules, String domain) {

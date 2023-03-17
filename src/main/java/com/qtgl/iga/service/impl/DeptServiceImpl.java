@@ -166,7 +166,7 @@ public class DeptServiceImpl implements DeptService {
         //同步到sso
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
         beans = new ArrayList<>(ssoBeansMap.values());
-        beans = dataProcessing(mainTreeMap, domain, beans, result, insert, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, null);
+        beans = dataProcessing(mainTreeMap, beans, result, insert, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, null);
 
 //        //如果插入的数据不为空则加入返回集
 //        if (null != beans) {
@@ -301,7 +301,7 @@ public class DeptServiceImpl implements DeptService {
         beans = new ArrayList<>(ssoBeansMap.values());
         //监控身份
         ArrayList<TreeBean> occupyMonitors = new ArrayList<>();
-        beans = dataProcessing(mainTreeMap, domain, beans, result, treeBeans, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, occupyMonitors);
+        beans = dataProcessing(mainTreeMap, beans, result, treeBeans, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, occupyMonitors);
 
         //code重复性校验
         calculationService.groupByCode(beans, 0, domain);
@@ -458,7 +458,6 @@ public class DeptServiceImpl implements DeptService {
      * 新增正常添加 其余情况不单独处理扩展字段
      *
      * @param mainTree       上游源规则治理的数据
-     * @param domainInfo     当前租户
      * @param ssoBeans       sso的部门数据
      * @param result         最终处理结果集
      * @param insert
@@ -471,7 +470,7 @@ public class DeptServiceImpl implements DeptService {
      * @param occupyMonitors 组织机构失效,删除,恢复,或新增 导致历史身份有效期变化存储容器
      * @return
      */
-    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, List<TreeBean> ssoBeans, Map<TreeBean, String> result, ArrayList<TreeBean> insert, LocalDateTime now, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamMap, ArrayList<TreeBean> occupyMonitors) {
+    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, List<TreeBean> ssoBeans, Map<TreeBean, String> result, ArrayList<TreeBean> insert, LocalDateTime now, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamMap, ArrayList<TreeBean> occupyMonitors) {
         //将sso的数据转化为map方便对比
         Map<String, TreeBean> ssoCollect = new HashMap<>();
         if (null != ssoBeans && ssoBeans.size() > 0) {
