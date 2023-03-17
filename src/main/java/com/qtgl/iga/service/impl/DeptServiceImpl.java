@@ -176,7 +176,9 @@ public class DeptServiceImpl implements DeptService {
         calculationService.groupByCode(beans, status, domain);
         // 无效规则筛选标记
         List<NodeDto> nodeList = nodeService.findNodesByStatusAndType(status, TYPE, domain.getId(), null);
-        nodeService.updateNodeAndRules(nodeList, beans);
+        if(!CollectionUtils.isEmpty(nodeList)){
+            nodeService.updateNodeAndRules(nodeList, beans);
+        }
         return beans;
 
     }

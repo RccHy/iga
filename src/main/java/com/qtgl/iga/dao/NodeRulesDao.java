@@ -42,4 +42,6 @@ public interface NodeRulesDao {
     List<NodeRulesVo> findNodeRulesByUpStreamTypeIdsAndType(List<String> ids, String type, String domain, Integer status);
 
     List<NodeRules> findNodeRulesByDomain(String superDomainId, Integer status, String type);
+
+    List<NodeRulesVo> findNodeRulesByNodeIds(List<String> nodeIds);
 }

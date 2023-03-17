@@ -36,10 +36,6 @@ public class NodeServiceImpl implements NodeService {
     NodeRulesRangeService nodeRulesRangeService;
     @Resource
     TaskLogService taskLogService;
-    @Resource
-    UpstreamTypeService upstreamTypeService;
-    @Resource
-    UpstreamService upstreamService;
 
 
     @Override
@@ -144,7 +140,7 @@ public class NodeServiceImpl implements NodeService {
                 }
             }
         }
-        if (flag >= 0 && null != rules) {
+        if (null != rules) {
             //删除rule
             i = nodeRulesService.deleteNodeRules(id);
             nodeDto.setNodeRules(rules);
@@ -175,42 +171,99 @@ public class NodeServiceImpl implements NodeService {
     @Override
     public List<NodeDto> findNodes(Map<String, Object> arguments, String domainId, Boolean flag) {
 
-        ArrayList<NodeDto> nodeDos = new ArrayList<>();
         //获取当前租户的node
         List<Node> nodeList = nodeDao.findNodes(arguments, domainId);
         //查询是否有超级租户规则
-        Map<String, Node> superNodeMap = new ConcurrentHashMap<>();
+        List<Node> superNodeList = new ArrayList<>();
         if (flag) {
             if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
-                List<Node> superNodeList = nodeDao.findNodes(arguments, AutoUpRunner.superDomainId);
-                if (!CollectionUtils.isEmpty(superNodeList)) {
-                    superNodeMap = superNodeList.stream().collect(Collectors.toMap((node -> (StringUtils.isBlank(node.getNodeCode()) ? "*" : node.getNodeCode()) + "_" + (StringUtils.isBlank(node.getDeptTreeType()) ? "*" : node.getDeptTreeType())), (node -> node)));
-                }
+                superNodeList = nodeDao.findNodes(arguments, AutoUpRunner.superDomainId);
             }
         }
+        return getNodeDtoByNodeList(nodeList, superNodeList);
 
-        //查询超级租户权威源是否被覆盖
 
-        //查询未启用的权威源 及权威源类型
-        ArrayList<Upstream> invalidUpstream = upstreamService.findByDomainAndActiveIsFalse(domainId);
+    }
 
+    private List<NodeDto> getNodeDtoByNodeList(List<Node> nodeList, List<Node> superNodeList) {
+        List<NodeDto> nodeDos = new ArrayList<>();
 
         if (!CollectionUtils.isEmpty(nodeList)) {
-            //根据node查询对应规则
-            dealWithNode(domainId, nodeDos, nodeList, superNodeMap, true);
-        } else if (!CollectionUtils.isEmpty(superNodeMap)) {
-            for (String key : superNodeMap.keySet()) {
-                Node node = superNodeMap.get(key);
-                NodeDto nodeDto = new NodeDto(node);
-                nodeDto.setLocal(false);
-                List<NodeRulesVo> superNodeRulesByNodeId = nodeRulesService.findSuperNodeRulesByNodeId(node.getId(), null, domainId);
-                dealWithNodeRules(nodeDto, superNodeRulesByNodeId, false);
-                nodeDos.add(nodeDto);
+            //当前租户下有规则,根据node查询对应规则
+            ArrayList<Node> allNodes = new ArrayList<>(nodeList);
+            //本租户规则与超级租户规则合并对应关系  localDomain-> superDomain
+            Map<String, String> keyMap = new ConcurrentHashMap<>();
+
+            if (!CollectionUtils.isEmpty(superNodeList)) {
+                //处理node 合并指向关系
+                Map<String, String> superNodeMap = superNodeList.stream().collect(Collectors.toMap(node -> (StringUtils.isBlank(node.getNodeCode()) ? "*" : node.getNodeCode()) + "_" + (StringUtils.isBlank(node.getDeptTreeType()) ? "*" : node.getDeptTreeType()), Node::getId));
+                for (Node node : nodeList) {
+                    String key = (StringUtils.isBlank(node.getNodeCode()) ? "*" : node.getNodeCode()) + "_" + (StringUtils.isBlank(node.getDeptTreeType()) ? "*" : node.getDeptTreeType());
+                    if (superNodeMap.containsKey(key)) {
+                        keyMap.put(node.getId(), superNodeMap.get(key));
+                    }
+                }
+                //超级租户下有规则 加入集合一并查询规则
+                allNodes.addAll(superNodeList);
             }
+
+            //获取所有规则
+            List<String> nodeIds = allNodes.stream().map(Node::getId).collect(Collectors.toList());
+            List<NodeRulesVo> nodeRulesVos = nodeRulesService.findNodeRulesByNodeIds(nodeIds);
+
+            if (!CollectionUtils.isEmpty(nodeRulesVos)) {
+                //根据node分组
+                Map<String, List<NodeRulesVo>> rulesMap = nodeRulesVos.stream().collect(Collectors.groupingBy(NodeRules::getNodeId));
+                for (Node node : nodeList) {
+                    NodeDto nodeDto = new NodeDto(node);
+                    nodeDto.setLocal(true);
+                    if (rulesMap.containsKey(node.getId())) {
+                        List<NodeRulesVo> resultRules = rulesMap.get(node.getId());
+                        //有跟超级租户对应的node
+                        if (keyMap.containsKey(node.getId()) && rulesMap.containsKey(keyMap.get(node.getId()))) {
+                            resultRules.addAll(rulesMap.get(keyMap.get(node.getId())));
+                        }
+                        dealWithNodeRules(nodeDto, resultRules, true);
+
+                    }
+                    nodeDos.add(nodeDto);
+                }
+                if (!CollectionUtils.isEmpty(superNodeList)) {
+                    for (Node node : superNodeList) {
+                        //当前租户没有对应的超级租户 节点 单独装配
+                        if (!keyMap.containsValue(node.getId()) && rulesMap.containsKey(node.getId())) {
+                            NodeDto nodeDto = new NodeDto(node);
+                            nodeDto.setLocal(false);
+                            List<NodeRulesVo> resultRules = rulesMap.get(node.getId());
+                            dealWithNodeRules(nodeDto, resultRules, false);
+                            nodeDos.add(nodeDto);
+
+                        }
+                    }
+                }
+            }
+        } else if (!CollectionUtils.isEmpty(superNodeList)) {
+            //当前租户下没有规则,根据超级租户的node 处理rules
+            List<String> nodeIds = superNodeList.stream().map(Node::getId).collect(Collectors.toList());
+            //获取规则
+            List<NodeRulesVo> nodeRulesVos = nodeRulesService.findNodeRulesByNodeIds(nodeIds);
+            if (!CollectionUtils.isEmpty(nodeRulesVos)) {
+                //根据node分组
+                Map<String, List<NodeRulesVo>> rulesMap = nodeRulesVos.stream().collect(Collectors.groupingBy(NodeRules::getNodeId));
+                for (Node node : superNodeList) {
+                    NodeDto nodeDto = new NodeDto(node);
+                    //来自超级租户的规则node 标识为非本租户
+                    nodeDto.setLocal(false);
+                    if (rulesMap.containsKey(node.getId())) {
+                        dealWithNodeRules(nodeDto, nodeRulesVos, false);
+                        nodeDto.setNodeRules(nodeRulesVos);
+                    }
+                    nodeDos.add(nodeDto);
+                }
+            }
+
         }
         return nodeDos;
-
-
     }
 
     private void dealWithNode(String domainId, ArrayList<NodeDto> nodeDos, List<Node> nodeList, Map<String, Node> superNodeMap, Boolean isLocal) {
@@ -251,6 +304,11 @@ public class NodeServiceImpl implements NodeService {
 
     }
 
+    /**
+     * @param nodeDto      节点容器
+     * @param nodeRulesVos 需要处理的规则
+     * @param isLocal      是否来自本租户
+     */
     private void dealWithNodeRules(NodeDto nodeDto, List<NodeRulesVo> nodeRulesVos, Boolean isLocal) {
         List<NodeRulesVo> nodeRules = nodeDto.getNodeRules();
         //标识是否含有继承
@@ -259,6 +317,11 @@ public class NodeServiceImpl implements NodeService {
             //根据rules查询对应的range
             for (NodeRulesVo nodeRulesVo : nodeRulesVos) {
                 nodeRulesVo.setLocal(isLocal);
+                //rule指向的nodeId 与当前 装配的node 不一致  为超级租户补充的规则
+                if (!nodeRulesVo.getNodeId().equals(nodeDto.getId())) {
+                    nodeRulesVo.setNodeId(nodeDto.getId());
+                    nodeRulesVo.setLocal(false);
+                }
                 if (StringUtils.isBlank(nodeRulesVo.getInheritId())) {
                     List<NodeRulesRange> byRulesId = nodeRulesRangeService.getByRulesId(nodeRulesVo.getId(), null);
                     nodeRulesVo.setNodeRulesRanges(byRulesId);
@@ -281,34 +344,15 @@ public class NodeServiceImpl implements NodeService {
     @Override
     public List<NodeDto> findNodesPlus(Map<String, Object> arguments, String domainId) {
 
-        //查询node
-        ArrayList<NodeDto> nodeDos = new ArrayList<>();
         //获取node
         List<Node> nodeList = nodeDao.findNodesPlus(arguments, domainId);
 
         //查询是否有超级租户规则
-        Map<String, Node> superNodeMap = new ConcurrentHashMap<>();
+        List<Node> superNodeList = new ArrayList<>();
         if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
-            List<Node> superNodeList = nodeDao.findNodesPlus(arguments, AutoUpRunner.superDomainId);
-            superNodeMap = superNodeList.stream().collect(Collectors.toMap((node -> (StringUtils.isBlank(node.getNodeCode()) ? "*" : node.getNodeCode()) + "_" + (StringUtils.isBlank(node.getDeptTreeType()) ? "*" : node.getDeptTreeType())), (node -> node)));
+            superNodeList = nodeDao.findNodesPlus(arguments, AutoUpRunner.superDomainId);
         }
-
-        //根据node查询rules
-        if (!CollectionUtils.isEmpty(nodeList)) {
-            dealWithNode(domainId, nodeDos, nodeList, superNodeMap, true);
-        } else if (!CollectionUtils.isEmpty(superNodeMap)) {
-            for (String key : superNodeMap.keySet()) {
-                Node node = superNodeMap.get(key);
-                NodeDto nodeDto = new NodeDto(node);
-                nodeDto.setLocal(false);
-                List<NodeRulesVo> superNodeRulesByNodeId = nodeRulesService.findSuperNodeRulesByNodeId(node.getId(), null, domainId);
-                dealWithNodeRules(nodeDto, superNodeRulesByNodeId, false);
-                nodeDos.add(nodeDto);
-            }
-        }
-
-
-        return nodeDos;
+        return getNodeDtoByNodeList(nodeList, superNodeList);
     }
 
     @Override
@@ -528,12 +572,12 @@ public class NodeServiceImpl implements NodeService {
 
     @Override
     public List<NodeDto> findNodesByStatusAndType(Integer status, String type, String domainId, Timestamp version) {
-        ArrayList<NodeDto> nodeDtos = new ArrayList<>();
         List<Node> nodesByStatusAndType = nodeDao.findNodesByStatusAndType(status, type, domainId, version);
         if (!CollectionUtils.isEmpty(nodesByStatusAndType)) {
-            dealWithNode(domainId, nodeDtos, nodesByStatusAndType, null, true);
+
+            return getNodeDtoByNodeList(nodesByStatusAndType, null);
         }
-        return nodeDtos;
+        return null;
     }
 
     @Override
@@ -552,37 +596,17 @@ public class NodeServiceImpl implements NodeService {
      */
     @Override
     public List<NodeDto> findNodes(String domainId, Integer status, String type, Boolean flag) {
-        ArrayList<NodeDto> nodeDos = new ArrayList<>();
         //获取当前租户的node
         List<Node> nodeList = nodeDao.findNodes(domainId, status, type);
         //查询是否有超级租户规则
-        Map<String, Node> superNodeMap = new ConcurrentHashMap<>();
-
+        List<Node> superNodeList = new ArrayList<>();
         if (flag) {
             if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
                 //超级租户规则只获取正式的
-                List<Node> superNodeList = nodeDao.findNodes(AutoUpRunner.superDomainId, 0, type);
-                if (!CollectionUtils.isEmpty(superNodeList)) {
-                    superNodeMap = superNodeList.stream().collect(Collectors.toMap((node -> (StringUtils.isBlank(node.getNodeCode()) ? "*" : node.getNodeCode()) + "_" + (StringUtils.isBlank(node.getDeptTreeType()) ? "*" : node.getDeptTreeType())), node -> node, (v1, v2) -> v2));
-                }
+                superNodeList = nodeDao.findNodes(AutoUpRunner.superDomainId, 0, type);
             }
         }
-
-
-        if (!CollectionUtils.isEmpty(nodeList)) {
-            //根据node查询对应规则
-            dealWithNode(domainId, nodeDos, nodeList, superNodeMap, true);
-        } else if (!CollectionUtils.isEmpty(superNodeMap)) {
-            for (String key : superNodeMap.keySet()) {
-                Node node = superNodeMap.get(key);
-                NodeDto nodeDto = new NodeDto(node);
-                nodeDto.setLocal(false);
-                List<NodeRulesVo> superNodeRulesByNodeId = nodeRulesService.findSuperNodeRulesByNodeId(node.getId(), null, domainId);
-                dealWithNodeRules(nodeDto, superNodeRulesByNodeId, false);
-                nodeDos.add(nodeDto);
-            }
-        }
-        return nodeDos;
+        return getNodeDtoByNodeList(nodeList, superNodeList);
     }
 
     @Override

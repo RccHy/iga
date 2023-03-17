@@ -1342,6 +1342,7 @@ public class PersonDaoImpl implements PersonDao {
         strTemp = dealDataAndAttr(arguments, strTemp, params, tenant.getId());
         stb.append(strTemp);
         countStb.append(strTemp);
+        stb.append(" order by i.update_time desc");
         if (null != first && null != offset) {
             stb.append(" limit ").append(offset).append(",").append(first);
         }

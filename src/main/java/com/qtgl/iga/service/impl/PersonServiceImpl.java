@@ -604,7 +604,7 @@ public class PersonServiceImpl implements PersonService {
             if (1 != rules.getType()) {
                 continue;
             }
-            if (rules.getIsIgnore()) {
+            if (0 != rules.getRunningStatus()) {
                 //todo 忽略提示
                 log.info("当前规则被忽略,跳过执行");
                 continue;
@@ -2389,8 +2389,6 @@ public class PersonServiceImpl implements PersonService {
             log.error("无人员管理规则信息");
         }
 
-        // 所有证件类型
-        List<CardType> cardTypes = cardTypeDao.findAllUser(tenant.getId());
         //获取密码加密方式
         pwdConfig = configService.getPasswordConfigByTenantIdAndStatusAndPluginNameAndDelMarkIsFalse(tenant.getId(), "ENABLED", "CommonPlugin");
 

@@ -224,23 +224,28 @@ public class NodeRulesServiceImpl implements NodeRulesService {
     @Override
     public List<NodeRulesVo> findSuperNodeRulesByNodeId(String nodeId, Integer status, String domainId) {
         List<NodeRulesVo> nodeRulesByNodeId = findNodeRulesByNodeId(nodeId, status);
-        if (!CollectionUtils.isEmpty(nodeRulesByNodeId)) {
-            //查找本租户是否有忽略的超级租户权威源类型
-            List<DomainIgnore> domainIgnores = domainIgnoreService.findByDomain(domainId);
-            if (!CollectionUtils.isEmpty(domainIgnores)) {
-                List<String> collect = domainIgnores.stream().map(DomainIgnore::getUpstreamTypeId).collect(Collectors.toList());
-                ArrayList<NodeRulesVo> list = new ArrayList<>();
-                for (NodeRulesVo nodeRulesVo : nodeRulesByNodeId) {
-                    if (collect.contains(nodeRulesVo.getUpstreamTypesId())) {
-                        //当前规则被忽略
-                        nodeRulesVo.setIsIgnore(true);
-                    }
-                    list.add(nodeRulesVo);
-                }
-                return list;
-            }
-        }
+        //if (!CollectionUtils.isEmpty(nodeRulesByNodeId)) {
+        //    //查找本租户是否有忽略的超级租户权威源类型
+        //    List<DomainIgnore> domainIgnores = domainIgnoreService.findByDomain(domainId);
+        //    if (!CollectionUtils.isEmpty(domainIgnores)) {
+        //        List<String> collect = domainIgnores.stream().map(DomainIgnore::getUpstreamTypeId).collect(Collectors.toList());
+        //        ArrayList<NodeRulesVo> list = new ArrayList<>();
+        //        for (NodeRulesVo nodeRulesVo : nodeRulesByNodeId) {
+        //            if (collect.contains(nodeRulesVo.getUpstreamTypesId())) {
+        //                //当前规则被忽略
+        //                nodeRulesVo.setIsIgnore(true);
+        //            }
+        //            list.add(nodeRulesVo);
+        //        }
+        //        return list;
+        //    }
+        //}
         return nodeRulesByNodeId;
+    }
+
+    @Override
+    public List<NodeRulesVo> findNodeRulesByNodeIds(List<String> nodeIds) {
+        return nodeRulesDao.findNodeRulesByNodeIds(nodeIds);
     }
 
     public NodeRules deleteRules(NodeRules rules, String domain) {

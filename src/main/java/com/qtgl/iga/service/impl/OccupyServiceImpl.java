@@ -359,7 +359,7 @@ public class OccupyServiceImpl implements OccupyService {
             if (1 != rules.getType()) {
                 continue;
             }
-            if(rules.getIsIgnore()){
+            if (0 != rules.getRunningStatus()) {
                 //todo 忽略提示
                 log.info("当前规则被忽略,跳过执行");
                 continue;
