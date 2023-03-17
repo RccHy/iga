@@ -219,6 +219,11 @@ public class NodeRulesServiceImpl implements NodeRulesService {
         return nodeRulesDao.findNodeRulesByUpStreamTypeId(upstreamTypeId, status);
     }
 
+    @Override
+    public List<NodeRules> findNodeRulesByDomain(String superDomainId, Integer status, String type) {
+        return nodeRulesDao.findNodeRulesByDomain(superDomainId, status, type);
+    }
+
     public NodeRules deleteRules(NodeRules rules, String domain) {
         //查询是否有range需要删除
         List<NodeRulesRange> ranges = nodeRulesRangeService.getByRulesId(rules.getId(), null);

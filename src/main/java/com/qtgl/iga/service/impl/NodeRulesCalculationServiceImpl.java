@@ -1198,20 +1198,20 @@ public class NodeRulesCalculationServiceImpl {
                     DeptTreeType deptTreeType = deptTreeTypeDao.findByCode(treeBean1.getTreeType(), domainInfo.getId());
                     if (("API".equals(treeBean1.getDataSource())) || ("BUILTIN".equals(treeBean1.getDataSource())) || ("ENTERPRISE".equals(treeBean1.getDataSource()))) {
 
-                        deptTreeName = (null == deptTreeType ? "" : deptTreeType.getName());
-                        treeBeanName = "".equals(treeBean1.getCode()) ? "根节点" : treeBean1.getName();
-                        treeBeanCode = treeBean1.getCode();
+                        //deptTreeName = (null == deptTreeType ? "" : deptTreeType.getName());
+                        //treeBeanName = StringUtils.isBlank(treeBean1.getCode()) ? "根节点" : treeBean1.getName();
+                        //treeBeanCode = treeBean1.getCode();
                         treeName = treeBean1.getName();
                         treeCode = treeBean1.getCode();
                         list.add(new ErrorData((null == deptTreeType ? "" : deptTreeType.getId()), treeBean1.getRuleId(), treeBean1.getCode()));
 
                     } else {
 
-                        NodeRules nodeRules = rulesDao.findNodeRulesById(treeBean1.getRuleId(), status);
+                        NodeRules nodeRules = rulesDao.findNodeRulesById(treeBean1.getRuleId(), null);
                         List<Node> nodes = nodeDao.findById(nodeRules.getNodeId());
-                        deptTreeName = (null == deptTreeType ? "" : deptTreeType.getName());
-                        treeBeanName = "".equals(nodes.get(0).getNodeCode()) ? "根节点" : resultBeans.get(nodes.get(0).getNodeCode()).get(0).getName();
-                        treeBeanCode = nodes.get(0).getNodeCode();
+                        //deptTreeName = (null == deptTreeType ? "" : deptTreeType.getName());
+                        //treeBeanName = StringUtils.isBlank(nodes.get(0).getNodeCode()) ? "根节点" : resultBeans.get(nodes.get(0).getNodeCode()).get(0).getName();
+                        //treeBeanCode = nodes.get(0).getNodeCode();
                         treeName = treeBean1.getName();
                         treeCode = treeBean1.getCode();
                         list.add(new ErrorData((null == deptTreeType ? "" : deptTreeType.getId()), treeBean1.getRuleId(), nodes.get(0).getNodeCode()));
@@ -1223,18 +1223,18 @@ public class NodeRulesCalculationServiceImpl {
                     }
                     DeptTreeType deptTreeType2 = deptTreeTypeDao.findByCode(treeBean.getTreeType(), domainInfo.getId());
                     if (("API".equals(treeBean.getDataSource())) || ("BUILTIN".equals(treeBean.getDataSource())) || ("ENTERPRISE".equals(treeBean.getDataSource()))) {
-                        deptTreeNameM = null == deptTreeType2 ? "" : deptTreeType2.getName();
-                        treeBeanNameM = "".equals(treeBean.getCode()) ? "根节点" : treeBean.getName();
-                        treeBeanCodeM = treeBean.getCode();
+                        //deptTreeNameM = null == deptTreeType2 ? "" : deptTreeType2.getName();
+                        //treeBeanNameM = StringUtils.isBlank(treeBean.getCode()) ? "根节点" : treeBean.getName();
+                        //treeBeanCodeM = treeBean.getCode();
                         treeNameM = treeBean.getName();
                         treeCodeM = treeBean.getCode();
                         list.add(new ErrorData((null == deptTreeType2 ? "" : deptTreeType2.getId()), treeBean.getRuleId(), treeBean.getCode()));
                     } else {
-                        NodeRules nodeRules2 = rulesDao.findNodeRulesById(treeBean.getRuleId(), status);
+                        NodeRules nodeRules2 = rulesDao.findNodeRulesById(treeBean.getRuleId(), null);
                         List<Node> nodes2 = nodeDao.findById(nodeRules2.getNodeId());
-                        deptTreeNameM = null == deptTreeType2 ? "" : deptTreeType2.getName();
-                        treeBeanNameM = "".equals(nodes2.get(0).getNodeCode()) ? "根节点" : resultBeans.get(nodes2.get(0).getNodeCode()).get(0).getName();
-                        treeBeanCodeM = nodes2.get(0).getNodeCode();
+                        //deptTreeNameM = null == deptTreeType2 ? "" : deptTreeType2.getName();
+                        //treeBeanNameM = StringUtils.isBlank(nodes2.get(0).getNodeCode())? "根节点" : resultBeans.get(nodes2.get(0).getNodeCode()).get(0).getName();
+                        //treeBeanCodeM = nodes2.get(0).getNodeCode();
                         treeNameM = treeBean.getName();
                         treeCodeM = treeBean.getCode();
                         list.add(new ErrorData((null == deptTreeType2 ? "" : deptTreeType2.getId()), treeBean.getRuleId(), nodes2.get(0).getNodeCode()));

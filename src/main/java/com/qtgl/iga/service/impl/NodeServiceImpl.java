@@ -64,8 +64,22 @@ public class NodeServiceImpl implements NodeService {
         if (null == save) {
             throw new CustomException(ResultCode.FAILED, "添加节点失败");
         }
-        if (null != node.getNodeRules() && node.getNodeRules().size() > 0) {
+        if (!CollectionUtils.isEmpty(node.getNodeRules())) {
+            //获取超级租户的规则
+            if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
+                List<NodeRules> superNodeRules = nodeRulesService.findNodeRulesByDomain(AutoUpRunner.superDomainId, 0, node.getType());
+                if (!CollectionUtils.isEmpty(superNodeRules)) {
+                    Map<String, NodeRules> superNodeRulesMap = superNodeRules.stream().collect(Collectors.toMap(rule -> rule.getId(), n -> n));
+                    ArrayList<NodeRulesVo> resultNodeRules = new ArrayList<>();
+                    for (NodeRulesVo nodeRule : node.getNodeRules()) {
+                        if (!superNodeRulesMap.containsKey(nodeRule.getId())) {
+                            resultNodeRules.add(nodeRule);
+                        }
+                    }
+                    node.setNodeRules(resultNodeRules);
 
+                }
+            }
             //添加节点规则明细
             NodeDto nodeRule = nodeRulesService.saveNodeRules(save);
             if (null == nodeRule) {
@@ -100,7 +114,7 @@ public class NodeServiceImpl implements NodeService {
         Integer flag = 0;
 
         List<NodeDto> nodes = findNodes(arguments, domainId, false);
-        if (!CollectionUtils.isEmpty(nodes)) {
+        if (CollectionUtils.isEmpty(nodes)) {
             return null;
         }
 
@@ -156,12 +170,12 @@ public class NodeServiceImpl implements NodeService {
         List<Node> nodeList = nodeDao.findNodes(arguments, domainId);
         //查询是否有超级租户规则
         Map<String, Node> superNodeMap = new ConcurrentHashMap<>();
-
+        List<Node> superNodeList = new ArrayList<>();
         if (flag) {
             if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
-                List<Node> superNodeList = nodeDao.findNodes(arguments, AutoUpRunner.superDomainId);
+                superNodeList = nodeDao.findNodes(arguments, AutoUpRunner.superDomainId);
                 if (!CollectionUtils.isEmpty(superNodeList)) {
-                    superNodeMap = superNodeList.stream().collect(Collectors.toMap((node -> (StringUtils.isBlank(node.getNodeCode()) ? "*" : node.getNodeCode()) + "_" + (StringUtils.isBlank(node.getDeptTreeType()) ? "*" : node.getDeptTreeType())), (node -> node)));
+                    superNodeMap = superNodeList.stream().collect(Collectors.toMap((node -> (StringUtils.isBlank(node.getNodeCode()) ? "*" : node.getNodeCode()) + "_" + (StringUtils.isBlank(node.getDeptTreeType()) ? "*" : node.getDeptTreeType())), node -> node, (v1, v2) -> v2));
                     if (CollectionUtils.isEmpty(nodeList)) {
                         dealWithNode(domainId, nodeDos, nodeList, superNodeMap, false);
                     }
@@ -172,6 +186,11 @@ public class NodeServiceImpl implements NodeService {
 
         if (!CollectionUtils.isEmpty(nodeList)) {
             //根据node查询对应规则
+            dealWithNode(domainId, nodeDos, nodeList, superNodeMap, true);
+        } else if (!CollectionUtils.isEmpty(superNodeList)) {
+            Node node = new Node();
+            node.setId(UUID.randomUUID().toString());
+            nodeList.add(node);
             dealWithNode(domainId, nodeDos, nodeList, superNodeMap, true);
         }
         if (!CollectionUtils.isEmpty(nodeDos)) {
@@ -460,7 +479,7 @@ public class NodeServiceImpl implements NodeService {
             nodeList = findNodesByStatusAndType(1, type, domain.getId(), null);
         }
         //   如果状态为编辑,并且没有治理中的数据
-        if (null == nodeList && status == 1) {
+        if (CollectionUtils.isEmpty(nodeList) && status == 1) {
             //复制,再返回
             List<NodeDto> nodes = findNodesByStatusAndType(0, type, domain.getId(), null);
             //复制数据
@@ -527,9 +546,10 @@ public class NodeServiceImpl implements NodeService {
 
         if (flag) {
             if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
-                List<Node> superNodeList = nodeDao.findNodes(AutoUpRunner.superDomainId, status, type);
+                //超级租户规则只获取正式的
+                List<Node> superNodeList = nodeDao.findNodes(AutoUpRunner.superDomainId, 0, type);
                 if (!CollectionUtils.isEmpty(superNodeList)) {
-                    superNodeMap = superNodeList.stream().collect(Collectors.toMap((node -> (StringUtils.isBlank(node.getNodeCode()) ? "*" : node.getNodeCode()) + "_" + (StringUtils.isBlank(node.getDeptTreeType()) ? "*" : node.getDeptTreeType())), (node -> node)));
+                    superNodeMap = superNodeList.stream().collect(Collectors.toMap((node -> (StringUtils.isBlank(node.getNodeCode()) ? "*" : node.getNodeCode()) + "_" + (StringUtils.isBlank(node.getDeptTreeType()) ? "*" : node.getDeptTreeType())), node -> node, (v1, v2) -> v2));
                     if (CollectionUtils.isEmpty(nodeList)) {
                         dealWithNode(domainId, nodeDos, nodeList, superNodeMap, false);
                     }
