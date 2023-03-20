@@ -113,6 +113,21 @@ public class NodeServiceImpl implements NodeService {
 
     @Override
     public NodeDto deleteNode(Map<String, Object> arguments, String domainId) {
+        String id = (String) arguments.get("id");
+        //根据id 查询是否为本租户的节点
+        List<Node> nodeList = nodeDao.findNodeById(id);
+
+        if (!CollectionUtils.isEmpty(nodeList)) {
+            if (nodeList.size() > 1) {
+                throw new CustomException(ResultCode.FAILED, "删除节点失败,当前标识不唯一");
+            }
+            Node node = nodeList.get(0);
+            if (StringUtils.isNotBlank(AutoUpRunner.superDomainId) && AutoUpRunner.superDomainId.equals(node.getDomain())) {
+                throw new CustomException(ResultCode.FAILED, "删除节点失败,当前节点不属于当前租户");
+            }
+        } else {
+            return null;
+        }
         //根据id查询规则是否为禁用状态
         Integer i = 0;
         Integer flag = 0;
@@ -123,7 +138,7 @@ public class NodeServiceImpl implements NodeService {
         }
 
         NodeDto nodeDto = nodes.get(0);
-        String id = (String) arguments.get("id");
+
         Integer status = (Integer) arguments.get("status");
         List<NodeRulesVo> rules = nodeRulesService.findNodeRulesByNodeId(id, status);
 
@@ -607,6 +622,19 @@ public class NodeServiceImpl implements NodeService {
             }
         }
         return getNodeDtoByNodeList(nodeList, superNodeList);
+    }
+
+    @Override
+    public Node finNodeById(String nodeId) {
+        List<Node> nodeById = nodeDao.findNodeById(nodeId);
+        if (!CollectionUtils.isEmpty(nodeById)) {
+            if (nodeById.size() == 1) {
+                return nodeById.get(0);
+            } else {
+                throw new CustomException(ResultCode.FAILED, "当前标识的node不唯一");
+            }
+        }
+        return null;
     }
 
     @Override

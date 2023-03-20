@@ -48,4 +48,5 @@ public interface NodeService {
 
     List<NodeDto> findNodes(String domainId, Integer status, String type, Boolean flag);
 
+    Node finNodeById(String nodeId);
 }

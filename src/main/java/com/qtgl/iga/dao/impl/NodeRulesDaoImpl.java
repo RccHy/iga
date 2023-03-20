@@ -304,9 +304,10 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
             param.add(status);
         }
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, param.toArray());
-        ArrayList<NodeRules> list = new ArrayList<>();
 
         if (null != mapList && mapList.size() > 0) {
+            ArrayList<NodeRules> list = new ArrayList<>();
+
             try {
                 for (Map<String, Object> map : mapList) {
                     NodeRules nodeRules = new NodeRules();

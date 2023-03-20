@@ -6,4 +6,6 @@ import java.util.List;
 
 public interface DomainIgnoreDao {
     List<DomainIgnore> findByDomain(String domainId);
+
+    DomainIgnore save(DomainIgnore domainIgnore);
 }

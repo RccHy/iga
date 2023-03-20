@@ -1,6 +1,7 @@
 package com.qtgl.iga.service.impl;
 
 
+import com.qtgl.iga.AutoUpRunner;
 import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.NodeRulesDao;
@@ -8,6 +9,7 @@ import com.qtgl.iga.service.*;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
 import com.qtgl.iga.vo.NodeRulesVo;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -42,49 +44,68 @@ public class NodeRulesServiceImpl implements NodeRulesService {
 
     @Override
     public NodeRulesVo deleteRules(Map<String, Object> arguments, String domain) {
-        //   查询删除规则拉取的数据子节点是否有规则
-        List<String> codes = (List<String>) arguments.get("codes");
-        String type = (String) arguments.get("type");
-        if (null != codes && codes.size() > 0) {
-            //根据code查询是否有对应的规则
-            for (String code : codes) {
-                List<Node> nodes = nodeService.findNodesByCode(code, domain, type);
-                if (null != nodes && nodes.size() > 0) {
-                    for (Node node : nodes) {
-                        HashMap<String, Object> hashMap = new HashMap<>();
-                        hashMap.put("id", node.getId());
-                        nodeService.deleteNode(hashMap, domain);
+        String id = (String) arguments.get("id");
+        //  查询rule  删除编辑中 或正式(person或occupy)
+        NodeRules nodeRules = nodeRulesDao.findNodeRulesById(id, null);
+        if (null != nodeRules) {
+            Node nodeByNodeRuleId = nodeService.finNodeById(nodeRules.getNodeId());
+            if (null == nodeByNodeRuleId) {
+                throw new CustomException(ResultCode.FAILED, "删除规则失败,当前规则没有合法的node节点");
+            }
+            if (StringUtils.isNotBlank(AutoUpRunner.superDomainId) && AutoUpRunner.superDomainId.equals(nodeByNodeRuleId.getDomain())) {
+                //忽略
+                DomainIgnore domainIgnore = new DomainIgnore();
+                domainIgnore.setDomain(domain);
+                domainIgnore.setNodeRuleId(nodeRules.getId());
+                domainIgnoreService.save(domainIgnore);
+                return new NodeRulesVo();
+            } else {
+                //   查询删除规则拉取的数据子节点是否有规则
+                List<String> codes = (List<String>) arguments.get("codes");
+                String type = (String) arguments.get("type");
+                if (null != codes && codes.size() > 0) {
+                    //根据code查询是否有对应的规则
+                    for (String code : codes) {
+                        List<Node> nodes = nodeService.findNodesByCode(code, domain, type);
+                        if (null != nodes && nodes.size() > 0) {
+                            for (Node node : nodes) {
+                                HashMap<String, Object> hashMap = new HashMap<>();
+                                hashMap.put("id", node.getId());
+                                nodeService.deleteNode(hashMap, domain);
+                            }
+                        }
                     }
                 }
-            }
-        }
-        //查询是否有range需要删除
-        List<NodeRulesRange> ranges = nodeRulesRangeService.getByRulesId((String) arguments.get("id"), null);
-        //删除range
-        if (null != ranges && ranges.size() > 0) {
-            Integer i = nodeRulesRangeService.deleteNodeRulesRangeByRuleId((String) arguments.get("id"));
-            if (!(i > 0)) {
-                throw new CustomException(ResultCode.FAILED, "删除range失败");
-            }
-        }
-        //  查询rule  删除编辑中 或正式(person或occupy)
-        NodeRules nodeRules = nodeRulesDao.findNodeRulesById((String) arguments.get("id"), null);
-        //删除rules
-        Integer flag = nodeRulesDao.deleteNodeRulesById((String) arguments.get("id"));
-        //查询node
-        if (null != nodeRules) {
-            List<NodeRulesVo> nodeRulesByNodeId = nodeRulesDao.findNodeRulesByNodeId(nodeRules.getNodeId(), null);
-            //node下没有对应的nodeRules则将node删除
-            if (CollectionUtils.isEmpty(nodeRulesByNodeId)) {
-                nodeService.deleteNodeById(nodeRules.getNodeId(), domain);
-            }
-        }
-        if (flag > 0) {
-            return new NodeRulesVo();
-        } else {
-            throw new CustomException(ResultCode.FAILED, "删除rule失败");
-        }
+                //查询是否有range需要删除
+                List<NodeRulesRange> ranges = nodeRulesRangeService.getByRulesId(id, null);
+                //删除range
+                if (null != ranges && ranges.size() > 0) {
+                    Integer i = nodeRulesRangeService.deleteNodeRulesRangeByRuleId(id);
+                    if (!(i > 0)) {
+                        throw new CustomException(ResultCode.FAILED, "删除range失败");
+                    }
+                }
 
+                //删除rules
+                Integer flag = nodeRulesDao.deleteNodeRulesById(id);
+                //查询node
+                List<NodeRulesVo> nodeRulesByNodeId = nodeRulesDao.findNodeRulesByNodeId(nodeRules.getNodeId(), null);
+                //node下没有对应的nodeRules则将node删除
+                if (CollectionUtils.isEmpty(nodeRulesByNodeId)) {
+                    nodeService.deleteNodeById(nodeRules.getNodeId(), domain);
+                }
+
+                if (flag > 0) {
+                    return new NodeRulesVo();
+                } else {
+                    throw new CustomException(ResultCode.FAILED, "删除rule失败");
+                }
+            }
+
+
+        } else {
+            throw new CustomException(ResultCode.FAILED, "删除rule失败,请检查当前标识");
+        }
     }
 
     @Override

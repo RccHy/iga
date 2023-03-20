@@ -199,5 +199,20 @@ public class UpstreamTypeServiceImpl implements UpstreamTypeService {
         return upstreamTypeDao.findById(upstreamTypeId);
     }
 
+    @Override
+    public List<UpstreamType> findByUpstreamId(String upstreamId) {
+        return upstreamTypeDao.findByUpstreamId(upstreamId);
+    }
+
+    @Override
+    public Integer deleteByUpstreamId(String upstreamId, String domain) {
+        return upstreamTypeDao.deleteByUpstreamId(upstreamId,domain);
+    }
+
+    @Override
+    public List<UpstreamType> findByUpstreamIdAndDescription(UpstreamType upstreamType, String domain) {
+        return upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType,domain);
+    }
+
 }
 
