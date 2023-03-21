@@ -4,16 +4,15 @@ package com.qtgl.iga.service.impl;
 import com.qtgl.iga.AutoUpRunner;
 import com.qtgl.iga.bean.UpstreamDto;
 import com.qtgl.iga.bo.*;
-import com.qtgl.iga.dao.NodeRulesDao;
 import com.qtgl.iga.dao.UpstreamDao;
-import com.qtgl.iga.dao.impl.UpstreamTypeDaoImpl;
+import com.qtgl.iga.service.DomainIgnoreService;
 import com.qtgl.iga.service.NodeRulesService;
 import com.qtgl.iga.service.UpstreamService;
+import com.qtgl.iga.service.UpstreamTypeService;
 import com.qtgl.iga.utils.RoleBingUtil;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -26,16 +25,16 @@ import java.util.stream.Collectors;
 
 public class UpstreamServiceImpl implements UpstreamService {
 
-    @Autowired
+    @Resource
     UpstreamDao upstreamDao;
-    @Autowired
-    UpstreamTypeDaoImpl upstreamTypeDao;
-    @Autowired
-    NodeRulesDao nodeRulesDao;
+    @Resource
+    UpstreamTypeService upstreamTypeService;
+    @Resource
+    NodeRulesService nodeRulesService;
     @Resource
     RoleBingUtil roleBingUtil;
     @Resource
-    NodeRulesService nodeRulesService;
+    DomainIgnoreService ignoreService;
 
     @Override
     public List<UpstreamDto> findAll(Map<String, Object> arguments, String domain) {
@@ -45,9 +44,9 @@ public class UpstreamServiceImpl implements UpstreamService {
             ArrayList<Upstream> upstreams = distinctSuperUpstream(upstreamList);
             for (Upstream upstream : upstreams) {
                 UpstreamDto upstreamDto = new UpstreamDto(upstream);
-                if(!upstream.getDomain().equals(AutoUpRunner.superDomainId)){
+                if (!upstream.getDomain().equals(AutoUpRunner.superDomainId)) {
                     upstreamDto.setLocal(true);
-                }else {
+                } else {
                     upstreamDto.setLocal(false);
                 }
                 upstreamDtos.add(upstreamDto);
@@ -80,45 +79,59 @@ public class UpstreamServiceImpl implements UpstreamService {
     @Override
     @Transactional
     public Upstream deleteUpstream(Map<String, Object> arguments, String domain) throws Exception {
+        String id = (String) arguments.get("id");
+        //查看是否来自超级租户
+        Upstream byId = upstreamDao.findById(id);
+        if (null != byId) {
+            if (null != AutoUpRunner.superDomainId && AutoUpRunner.superDomainId.equals(byId.getDomain())) {
+                //超级租户的权威源则处理为忽略
+                DomainIgnore domainIgnore = new DomainIgnore();
+                domainIgnore.setDomain(domain);
+                domainIgnore.setUpstreamId(id);
+                ignoreService.save(domainIgnore);
+                return new Upstream();
+            } else {
+                //查看是否有关联node_rules
+                List<UpstreamType> byUpstreamId = upstreamTypeService.findByUpstreamId(id);
+                if (null != byUpstreamId && byUpstreamId.size() > 0) {
+                    for (UpstreamType upstreamType : byUpstreamId) {
+                        List<NodeRules> nodeRules = nodeRulesService.findNodeRulesByUpStreamTypeId(upstreamType.getId(), null);
+                        List<NodeRules> oldNodeRules = nodeRulesService.findNodeRulesByUpStreamTypeId(upstreamType.getId(), 2);
+                        //编辑和正式的规则提示
+                        if (null != nodeRules && nodeRules.size() > 0) {
+                            throw new CustomException(ResultCode.FAILED, "有绑定的nodeRules规则,请查看后再删除");
+                        }
+                        //历史版本,提示
+                        if (null != oldNodeRules && oldNodeRules.size() > 0) {
+                            //删除历史版本
+                            nodeRulesService.deleteBatchRules(oldNodeRules, domain);
+                        }
 
-        //查看是否有关联node_rules
-        List<UpstreamType> byUpstreamId = upstreamTypeDao.findByUpstreamId((String) arguments.get("id"));
-        if (null != byUpstreamId && byUpstreamId.size() > 0) {
-            for (UpstreamType upstreamType : byUpstreamId) {
-                List<NodeRules> nodeRules = nodeRulesDao.findNodeRulesByUpStreamTypeId(upstreamType.getId(), null);
-                List<NodeRules> oldNodeRules = nodeRulesDao.findNodeRulesByUpStreamTypeId(upstreamType.getId(), 2);
-                //编辑和正式的规则提示
-                if (null != nodeRules && nodeRules.size() > 0) {
-                    throw new CustomException(ResultCode.FAILED, "有绑定的nodeRules规则,请查看后再删除");
+                    }
                 }
-                //历史版本,提示
-                if (null != oldNodeRules && oldNodeRules.size() > 0) {
-                    //删除历史版本
-                    nodeRulesService.deleteBatchRules(oldNodeRules, domain);
-                    //throw new CustomException(ResultCode.FAILED, "有历史版本的nodeRules规则");
+
+
+                //删除权威源数据类型
+                if (null != byUpstreamId && byUpstreamId.size() > 0) {
+                    Integer integer = upstreamTypeService.deleteByUpstreamId(id, domain);
+                    if (integer < 0) {
+
+                        throw new CustomException(ResultCode.FAILED, "删除权威源类型失败");
+                    }
+
                 }
-
-            }
-        }
-
-
-        //删除权威源数据类型
-        if (null != byUpstreamId && byUpstreamId.size() > 0) {
-            Integer integer = upstreamTypeDao.deleteByUpstreamId((String) arguments.get("id"), domain);
-            if (integer < 0) {
-
-                throw new CustomException(ResultCode.FAILED, "删除权威源类型失败");
+                //删除权威源数据
+                Integer flag = upstreamDao.deleteUpstream((String) arguments.get("id"));
+                if (flag > 0) {
+                    return new Upstream();
+                } else {
+                    throw new CustomException(ResultCode.FAILED, "删除权威源失败");
+                }
             }
 
+        }else {
+            throw new CustomException(ResultCode.FAILED, "当前标识无对应权威源");
         }
-        //删除权威源数据
-        Integer flag = upstreamDao.deleteUpstream((String) arguments.get("id"));
-        if (flag > 0) {
-            return new Upstream();
-        } else {
-            throw new CustomException(ResultCode.FAILED, "删除权威源失败");
-        }
-
     }
 
     @Override
@@ -155,11 +168,11 @@ public class UpstreamServiceImpl implements UpstreamService {
             for (UpstreamType upstreamType : upstreamTypes) {
                 upstreamType.setUpstreamId(upstream.getId());
                 //校验名称重复
-                List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType,domain);
+                List<UpstreamType> upstreamTypeList = upstreamTypeService.findByUpstreamIdAndDescription(upstreamType, domain);
                 if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
                     throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
                 }
-                UpstreamType upstreamTypeDb = upstreamTypeDao.saveUpstreamType(upstreamType, domain);
+                UpstreamType upstreamTypeDb = upstreamTypeService.saveUpstreamType(upstreamType, domain);
                 if (null != upstreamTypeDb) {
                     list.add(upstreamTypeDb);
                 } else {
@@ -188,12 +201,12 @@ public class UpstreamServiceImpl implements UpstreamService {
             upstreamList = distinctSuperUpstream(upstreamList);
             for (Upstream upstream : upstreamList) {
                 UpstreamDto upstreamDto = new UpstreamDto(upstream);
-                if(!upstream.getDomain().equals(AutoUpRunner.superDomainId)){
+                if (!upstream.getDomain().equals(AutoUpRunner.superDomainId)) {
                     upstreamDto.setLocal(true);
-                }else {
+                } else {
                     upstreamDto.setLocal(false);
                 }
-                List<UpstreamType> byUpstreamId = upstreamTypeDao.findByUpstreamId(upstream.getId());
+                List<UpstreamType> byUpstreamId = upstreamTypeService.findByUpstreamId(upstream.getId());
                 upstreamDto.setUpstreamTypes(byUpstreamId);
                 upstreamDtos.add(upstreamDto);
             }
@@ -213,7 +226,7 @@ public class UpstreamServiceImpl implements UpstreamService {
         if (null != upstreamDto && null != upstreamDto.getUpstreamTypes() && upstreamDto.getUpstreamTypes().size() > 0) {
             for (UpstreamType upstreamType : upstreamDto.getUpstreamTypes()) {
                 //查看是否有关联node_rules
-                List<NodeRules> nodeRules = nodeRulesDao.findNodeRulesByUpStreamTypeId(upstreamType.getId(), null);
+                List<NodeRules> nodeRules = nodeRulesService.findNodeRulesByUpStreamTypeId(upstreamType.getId(), null);
                 if (null != nodeRules && nodeRules.size() > 0) {
                     throw new CustomException(ResultCode.FAILED, "有绑定的node规则,请查看后再操作");
                 }
@@ -230,14 +243,14 @@ public class UpstreamServiceImpl implements UpstreamService {
             for (UpstreamType upstreamType : upstreamTypes) {
                 UpstreamType upstreamResult = null;
                 //校验名称重复
-                List<UpstreamType> upstreamTypeList = upstreamTypeDao.findByUpstreamIdAndDescription(upstreamType,upstreamDto.getDomain());
+                List<UpstreamType> upstreamTypeList = upstreamTypeService.findByUpstreamIdAndDescription(upstreamType, upstreamDto.getDomain());
                 if (null != upstreamTypeList && upstreamTypeList.size() > 0) {
                     throw new CustomException(ResultCode.FAILED, "权威源类型描述重复");
                 }
                 if (null != upstreamType.getId()) {
-                    upstreamResult = upstreamTypeDao.updateUpstreamType(upstreamType);
+                    upstreamResult = upstreamTypeService.updateUpstreamType(upstreamType);
                 } else {
-                    upstreamResult = upstreamTypeDao.saveUpstreamType(upstreamType, upstreamDto.getDomain());
+                    upstreamResult = upstreamTypeService.saveUpstreamType(upstreamType, upstreamDto.getDomain());
                 }
                 if (null != upstreamResult) {
                     list.add(upstreamResult);
@@ -356,8 +369,8 @@ public class UpstreamServiceImpl implements UpstreamService {
     @Override
     public ArrayList<Upstream> findByDomainAndActiveIsFalse(String domainId) {
         ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domainId);
-        if(!CollectionUtils.isEmpty(upstreams)){
-           return distinctSuperUpstream(upstreams);
+        if (!CollectionUtils.isEmpty(upstreams)) {
+            return distinctSuperUpstream(upstreams);
         }
         return upstreams;
     }
@@ -365,24 +378,24 @@ public class UpstreamServiceImpl implements UpstreamService {
     @Override
     public ArrayList<Upstream> getUpstreams(String upstreamId, String domainId) {
         ArrayList<Upstream> upstreams = upstreamDao.getUpstreams(upstreamId, domainId);
-        if(!CollectionUtils.isEmpty(upstreams)){
-            return  distinctSuperUpstream(upstreams);
+        if (!CollectionUtils.isEmpty(upstreams)) {
+            return distinctSuperUpstream(upstreams);
         }
         return upstreams;
     }
 
     @Override
-    public ArrayList<Upstream> findByOtherUpstream(List<String> ids,String domain) {
-        ArrayList<Upstream> otherDomain = upstreamDao.findByOtherUpstream(ids,domain);
-        if(!CollectionUtils.isEmpty(otherDomain)){
-            return  distinctSuperUpstream(otherDomain);
+    public ArrayList<Upstream> findByOtherUpstream(List<String> ids, String domain) {
+        ArrayList<Upstream> otherDomain = upstreamDao.findByOtherUpstream(ids, domain);
+        if (!CollectionUtils.isEmpty(otherDomain)) {
+            return distinctSuperUpstream(otherDomain);
         }
         return otherDomain;
     }
 
     @Override
-    public List<Upstream> findByUpstreamTypeIds(ArrayList<String> ids,String domainId) {
-        return upstreamDao.findByUpstreamTypeIds(ids,domainId);
+    public List<Upstream> findByUpstreamTypeIds(ArrayList<String> ids, String domainId) {
+        return upstreamDao.findByUpstreamTypeIds(ids, domainId);
     }
 
     @Override

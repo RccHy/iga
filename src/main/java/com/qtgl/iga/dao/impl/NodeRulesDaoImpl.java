@@ -10,6 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import java.lang.reflect.InvocationTargetException;
@@ -303,9 +304,10 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
             param.add(status);
         }
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, param.toArray());
-        ArrayList<NodeRules> list = new ArrayList<>();
 
         if (null != mapList && mapList.size() > 0) {
+            ArrayList<NodeRules> list = new ArrayList<>();
+
             try {
                 for (Map<String, Object> map : mapList) {
                     NodeRules nodeRules = new NodeRules();
@@ -480,7 +482,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
 
     @Override
     public List<NodeRules> findNodeRulesByDomain(String superDomainId, Integer status, String type) {
-//拼接sql
+        //拼接sql
         StringBuffer stb = new StringBuffer("select r.id,r.node_id as nodeId,r.type as type,r.active as active," +
                 "r.create_time as createTime,r.service_key as serviceKey,r.upstream_types_id as upstreamTypesId,r.inherit_id as inheritId," +
                 "r.active_time as activeTime,r.update_time as updateTime,r.sort,r.status from t_mgr_node_rules r,t_mgr_node n where 1 = 1 and r.type = 1 and  r.node_id = n.id and n.type =? " +
@@ -504,6 +506,57 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
                 nodeRules.add(nodeRule);
             }
             return nodeRules;
+        }
+
+        return null;
+    }
+
+    @Override
+    public List<NodeRulesVo> findNodeRulesByNodeIds(List<String> nodeIds) {
+        StringBuffer stb = new StringBuffer("SELECT nr.id, " +
+                " nr.node_id AS nodeId, " +
+                " nr.type AS type, " +
+                " nr.active AS active, " +
+                " nr.create_time AS createTime, " +
+                " nr.service_key AS serviceKey, " +
+                " nr.upstream_types_id AS upstreamTypesId, " +
+                " nr.inherit_id AS inheritId, " +
+                " nr.active_time AS activeTime, " +
+                " nr.update_time AS updateTime, " +
+                " nr.sort, " +
+                " nr.status," +
+                "      CASE WHEN di1.upstream_id IS NOT NULL THEN 1" +
+                "           WHEN di2.node_rule_id IS NOT NULL THEN 2" +
+                "           WHEN u.active = FALSE THEN 3" +
+                "           WHEN nr.active = FALSE THEN 4 " +
+                "           ELSE 0 END AS runningStatus " +
+                " FROM t_mgr_node_rules nr " +
+                "         JOIN t_mgr_upstream_types ut ON nr.upstream_types_id = ut.id " +
+                "         JOIN t_mgr_upstream u ON ut.upstream_id = u.id " +
+                "         LEFT JOIN t_mgr_domain_ignore di1 ON di1.upstream_id = u.id " +
+                "         LEFT JOIN t_mgr_domain_ignore di2 ON di2.node_rule_id = nr.id " +
+                " where nr.node_id in ( ");
+        //存入参数
+        List<Object> param = new ArrayList<>();
+        for (String id : nodeIds) {
+            stb.append("?,");
+            param.add(id);
+        }
+        stb.replace(stb.length() - 1, stb.length(), " ) ");
+
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
+        if (!CollectionUtils.isEmpty(mapList)) {
+            List<NodeRulesVo> nodeRulesVos = new ArrayList<>();
+            for (Map<String, Object> map : mapList) {
+                NodeRulesVo nodeRulesVo = new NodeRulesVo();
+                try {
+                    MyBeanUtils.populate(nodeRulesVo, map);
+                } catch (IllegalAccessException | InvocationTargetException e) {
+                    e.printStackTrace();
+                }
+                nodeRulesVos.add(nodeRulesVo);
+            }
+            return nodeRulesVos;
         }
 
         return null;

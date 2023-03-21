@@ -330,7 +330,9 @@ public class PostServiceImpl implements PostService {
         // 判断重复(code)
         calculationService.groupByCode(beans, status, domain);
         List<NodeDto> nodeList = nodeService.findNodesByStatusAndType(status, TYPE, domain.getId(), null);
-        nodeService.updateNodeAndRules(nodeList, beans);
+        if (!CollectionUtils.isEmpty(nodeList)) {
+            nodeService.updateNodeAndRules(nodeList, beans);
+        }
         return beans;
 
     }

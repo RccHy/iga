@@ -22,7 +22,7 @@ public class DomainIgnoreDaoImpl implements DomainIgnoreDao {
 
     @Override
     public List<DomainIgnore> findByDomain(String domainId) {
-        String sql = "select id, domain, upstream_type_id as upstreamTypeId  from t_mgr_domain_ignore  where domain= ? ";
+        String sql = "select id, domain, upstream_id as upstreamId,node_rule_id as nodeRuleId  from t_mgr_domain_ignore  where domain= ? ";
 
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, domainId);
         if (!CollectionUtils.isEmpty(mapList)) {
@@ -41,5 +41,16 @@ public class DomainIgnoreDaoImpl implements DomainIgnoreDao {
             return list;
         }
         return null;
+    }
+
+    @Override
+    public DomainIgnore save(DomainIgnore domainIgnore) {
+        String sql = "INSERT INTO `t_mgr_domain_ignore`(`id`, `domain`, `upstream_id`, `node_rule_id`) VALUES (uuid(), ?, ?, ?)";
+        jdbcIGA.update(sql, preparedStatement -> {
+            preparedStatement.setObject(1, domainIgnore.getDomain());
+            preparedStatement.setObject(2, domainIgnore.getUpstreamId());
+            preparedStatement.setObject(3, domainIgnore.getNodeRuleId());
+        });
+        return domainIgnore;
     }
 }

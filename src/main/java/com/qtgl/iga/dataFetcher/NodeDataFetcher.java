@@ -64,8 +64,7 @@ public class NodeDataFetcher {
             // 获取传入参数
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
             try {
-                NodeDto nodeDto = nodeService.deleteNode(arguments, domain.getId());
-                return nodeDto;
+                return nodeService.deleteNode(arguments, domain.getId());
             } catch (CustomException e) {
                 e.printStackTrace();
                 logger.error(domain.getDomainName() + e.getMessage());

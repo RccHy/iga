@@ -39,7 +39,7 @@ public class NodeDto extends Node {
         this.setDeptTreeType(node.getDeptTreeType());
         this.setStatus(node.getStatus());
         this.setType(node.getType());
-        this.setNodeRules(new ArrayList<NodeRulesVo>());
+        this.setNodeRules(new ArrayList<>());
     }
 
 }

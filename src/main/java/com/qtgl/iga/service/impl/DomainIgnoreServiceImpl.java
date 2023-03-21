@@ -18,4 +18,9 @@ public class DomainIgnoreServiceImpl implements DomainIgnoreService {
     public List<DomainIgnore> findByDomain(String domainId) {
         return domainIgnoreDao.findByDomain(domainId);
     }
+
+    @Override
+    public DomainIgnore save(DomainIgnore domainIgnore) {
+        return domainIgnoreDao.save(domainIgnore);
+    }
 }

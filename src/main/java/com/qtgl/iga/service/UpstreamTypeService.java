@@ -31,4 +31,10 @@ public interface UpstreamTypeService {
     void deleteUpstreamTypeByCods(List<String> codes, String domain);
 
     UpstreamType findById(String upstreamTypeId);
+
+    List<UpstreamType> findByUpstreamId(String upstreamId);
+
+    Integer deleteByUpstreamId(String upstreamId, String domain);
+
+    List<UpstreamType> findByUpstreamIdAndDescription(UpstreamType upstreamType, String domain);
 }

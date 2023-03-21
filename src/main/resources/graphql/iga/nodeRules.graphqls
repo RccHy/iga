@@ -43,8 +43,9 @@ type NodeRules{
     status :Int
     #是否来自本租户
     local:Boolean
-    #是否被忽略
-    isIgnore:Boolean
+    #状态 0 正常 1 [超级租户]权威源禁用 2 [超级租户]规则禁用
+    #3 [当前租户]权威源不启用  4 [当前租户]规则不启用
+    runningStatus:Int
 }
 
 

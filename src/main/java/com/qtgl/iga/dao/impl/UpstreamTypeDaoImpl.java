@@ -3,18 +3,15 @@ package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.AutoUpRunner;
 import com.qtgl.iga.bo.*;
-
 import com.qtgl.iga.dao.UpstreamTypeDao;
-import com.qtgl.iga.utils.enums.FilterCodeEnum;
 import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.enums.FilterCodeEnum;
 import com.qtgl.iga.utils.exception.CustomException;
 import com.qtgl.iga.vo.UpstreamTypeVo;
-import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -46,7 +43,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         List<Object> param = new ArrayList<>();
         if (!isLocal) {
             param.add(AutoUpRunner.superDomainId);
-            stb.append(" and id not in (select upstream_type_id from t_mgr_domain_ignore where domain=?) ");
+            stb.append(" and upstream_id not in (select upstream_id from t_mgr_domain_ignore where domain=?) ");
         }
         param.add(domain);
         dealData(arguments, stb, param);

@@ -55,9 +55,8 @@ public class UpstreamTypeFetcher {
      * 删除权威源类型
      *
      * @return
-     * @throws Exception
      */
-    public DataFetcher deleteUpstreamType() throws Exception {
+    public DataFetcher deleteUpstreamType() {
         return dataFetchingEvn -> {
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
