@@ -53,4 +53,12 @@ public class DomainIgnoreDaoImpl implements DomainIgnoreDao {
         });
         return domainIgnore;
     }
+
+    @Override
+    public Integer deleteByUpstreamId(String upstreamId) {
+        String sql = "delete from t_mgr_domain_ignore where upstream_id = ?";
+        return jdbcIGA.update(sql, preparedStatement -> {
+            preparedStatement.setObject(1, upstreamId);
+        });
+    }
 }

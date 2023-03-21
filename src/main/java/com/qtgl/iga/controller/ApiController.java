@@ -77,6 +77,8 @@ public class ApiController {
     OccupyService occupyService;
     @Autowired
     NodeService nodeService;
+    @Autowired
+    DomainIgnoreService domainIgnoreService;
 
 
     @PostMapping("/event")
@@ -222,7 +224,7 @@ public class ApiController {
             Upstream byCodeAndDomain = upstreamService.findByCodeAndDomain(upstream.getAppCode(), domainInfo.getId());
             boolean update = false;
             if (null != byCodeAndDomain) {
-                logger.info("[bootstrap] {}-{}权威源已存在", upstream.getAppCode(), domainInfo.getDomainName());
+                logger.info("[bootstrap] {}-{}权威源已存在，进行更新", upstream.getAppCode(), domainInfo.getDomainName());
                 upstream.setId(byCodeAndDomain.getId());
                 update = true;
             }
@@ -236,7 +238,6 @@ public class ApiController {
                 List<String> codes = qUserSource.getSources().stream().map(Sources::getName).collect(Collectors.toList());
                 // 删除权威源类型
                 upstreamTypeService.deleteUpstreamTypeByCods(codes, domainInfo.getId());
-
             } else {
                 upstreamService.saveUpstream(upstream, domainInfo.getId());
                 log.info("[bootstrap] {}-{}新增权威源完成", upstream.getAppCode(), domainInfo.getDomainName());
@@ -269,6 +270,8 @@ public class ApiController {
 //                }else{
 //                    log.error("[bootstrap] {}-{}保存权威源相关规则节点失败", upstream.getAppCode(), domainInfo.getDomainName());
 //                }
+                // 兼容旧版本升级情况下，会先有本地租户信息，再创建超级租户信息。 所以进行验证，如果本次创建的upstream是超级租户并且本地租住存在同appCode的upstream，则记录忽略信息
+
             } else {
                 log.error("[bootstrap] {}-{}保存权威源类型失败", upstream.getAppCode(), domainInfo.getDomainName());
             }
@@ -353,7 +356,6 @@ public class ApiController {
 
     private void dealUpstreamTypeAndNodes(Sources source, long now, DomainInfo domainInfo, List<UpstreamType> upstreamTypes, List<UpstreamType> updateUpstreamTypes,
                                           List<UpstreamTypeField> fields, List<Node> nodes, List<NodeRules> nodeRulesList, List<NodeRulesRange> nodeRulesRangeList, Upstream upstream) {
-        //todo 参数检查
 
         log.info("[bootstrap] {}-{}-{}开始处理权威源类型及node", domainInfo.getDomainName(), upstream.getAppCode(), source.getText());
         UpstreamType upstreamType = new UpstreamType();
@@ -362,7 +364,7 @@ public class ApiController {
         upstreamType.setUpstreamId(upstream.getId());
         upstreamType.setSynType(source.getKind().equals("user") ? "person" : source.getKind());
         upstreamType.setActive(true);
-        // 如果定义了 app 信息则为推送模式 , 定义了service 则为拉取模式. 1拉取 0推送 2自定义json
+        // 如果定义了 app 信息则为推送模式 , 定义了service 则为拉取模式. 0拉取 1推送 2自定义json
         switch (source.getMode()) {
             case "push":
                 upstreamType.setSynWay(0);

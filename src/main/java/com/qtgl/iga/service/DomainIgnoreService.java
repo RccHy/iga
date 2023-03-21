@@ -8,4 +8,6 @@ public interface DomainIgnoreService {
     List<DomainIgnore> findByDomain(String domainId);
 
     DomainIgnore save(DomainIgnore domainIgnore);
+
+    Integer deleteByUpstreamId(String upstreamId);
 }

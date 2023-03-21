@@ -160,7 +160,9 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
     public UpstreamType saveUpstreamType(UpstreamType upStreamType, String domain) {
 
 
-        String sql = "insert into t_mgr_upstream_types  values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        String sql = " INSERT INTO t_mgr_upstream_types (id, upstream_id, description,code, syn_type, dept_type_id, enable_prefix, active, active_time, root, create_time, update_time, graphql_url, service_code, \n" +
+                "                domain, dept_tree_type_id, is_page, syn_way, is_incremental, person_characteristic, builtin_data)\n" +
+                "    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         //生成主键和时间
         String id = UUID.randomUUID().toString().replace("-", "");
         upStreamType.setId(id);
