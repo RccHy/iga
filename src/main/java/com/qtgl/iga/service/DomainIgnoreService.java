@@ -9,5 +9,7 @@ public interface DomainIgnoreService {
 
     DomainIgnore save(DomainIgnore domainIgnore);
 
+    DomainIgnore recoverUpstreamOrRule(DomainIgnore domainIgnore, String domain);
+
     Integer deleteByUpstreamId(String upstreamId);
 }

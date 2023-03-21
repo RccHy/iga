@@ -9,4 +9,10 @@ public interface DomainIgnoreDao {
 
     DomainIgnore save(DomainIgnore domainIgnore);
     Integer deleteByUpstreamId(String upstreamId);
+
+    DomainIgnore deleteByUpstreamIdAndDomain(String upstreamId, String domainId);
+
+    DomainIgnore deleteByNodeRuleIdAndDomain(String nodeRuleId, String domainId);
+
+    List<DomainIgnore> findByParam(DomainIgnore domainIgnore);
 }

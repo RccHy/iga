@@ -61,4 +61,55 @@ public class DomainIgnoreDaoImpl implements DomainIgnoreDao {
             preparedStatement.setObject(1, upstreamId);
         });
     }
+
+    @Override
+    public DomainIgnore deleteByUpstreamIdAndDomain(String upstreamId, String domainId) {
+        String sql = "DELETE FROM `t_mgr_domain_ignore` WHERE upstream_id = ? and domain= ? ";
+        jdbcIGA.update(sql, preparedStatement -> {
+            preparedStatement.setObject(1, upstreamId);
+            preparedStatement.setObject(2, domainId);
+        });
+        return new DomainIgnore();
+    }
+
+    @Override
+    public DomainIgnore deleteByNodeRuleIdAndDomain(String nodeRuleId, String domainId) {
+        String sql = "DELETE FROM `t_mgr_domain_ignore` WHERE node_rule_id = ? and domain= ? ";
+        jdbcIGA.update(sql, preparedStatement -> {
+            preparedStatement.setObject(1, nodeRuleId);
+            preparedStatement.setObject(2, domainId);
+        });
+        return new DomainIgnore();
+    }
+
+    @Override
+    public List<DomainIgnore> findByParam(DomainIgnore domainIgnore) {
+        String sql = "select id  from t_mgr_domain_ignore  where domain= ? ";
+        List<Object> param = new ArrayList<>();
+        param.add(domainIgnore.getDomain());
+        if (null != domainIgnore.getNodeRuleId()) {
+            sql = sql + "and node_rule_id =? ";
+            param.add(domainIgnore.getNodeRuleId());
+        }
+        if (null != domainIgnore.getUpstreamId()) {
+            sql = sql + "and upstream_id =? ";
+            param.add(domainIgnore.getUpstreamId());
+        }
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, param.toArray());
+        if (!CollectionUtils.isEmpty(mapList)) {
+            ArrayList<DomainIgnore> list = new ArrayList<>();
+            for (Map<String, Object> map : mapList) {
+                DomainIgnore ignore = new DomainIgnore();
+                try {
+                    MyBeanUtils.populate(ignore, map);
+                } catch (IllegalAccessException | InvocationTargetException e) {
+                    e.printStackTrace();
+                }
+
+                list.add(ignore);
+            }
+            return list;
+        }
+        return null;
+    }
 }

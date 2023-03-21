@@ -1,0 +1,18 @@
+
+extend type Mutation {
+    #恢复超级租户的权威源或规则
+    recoverUpstreamOrRule(upstreamId:String,nodeRuleId:String):DomainIgnore
+
+}
+
+type DomainIgnore{
+    id:String
+    domain:String
+    upstreamId:String
+    nodeRuleId:String
+}
+
+
+
+
+
