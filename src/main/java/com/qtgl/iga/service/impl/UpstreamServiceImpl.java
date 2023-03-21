@@ -227,8 +227,13 @@ public class UpstreamServiceImpl implements UpstreamService {
         //查询权威源类型
         if (!CollectionUtils.isEmpty(upstreamList)) {
 
-            return distinctSuperUpstream(upstreamList, domainId);
-
+           List<UpstreamDto> upstreamDtoList = distinctSuperUpstream(upstreamList, domainId);
+            for (UpstreamDto upstreamDto : upstreamDtoList) {
+                List<UpstreamType> byUpstreamId = upstreamTypeService.findByUpstreamId(upstreamDto.getId());
+                upstreamDto.setUpstreamTypes(byUpstreamId);
+                upstreamDtos.add(upstreamDto);
+            }
+            return upstreamDtos;
         }
 
 
