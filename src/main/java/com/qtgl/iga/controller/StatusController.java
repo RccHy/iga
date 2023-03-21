@@ -132,11 +132,12 @@ public class StatusController {
 
     @PostMapping(value = "/bootstrap")
     @ResponseBody
-    public void postBootstrap(HttpServletRequest request,
+    public JSONObject postBootstrap(HttpServletRequest request,
                               @RequestParam String resource,
                               @RequestParam(required = false) String context) {
 
         logger.info(resource);
+        JSONObject result = new JSONObject();
 
         JSONObject jsonObject = JSONObject.parseObject(resource);
 
@@ -150,12 +151,16 @@ public class StatusController {
             //检查租户
             if (StringUtils.isBlank(tenant)) {
                 logger.error("[bootstrap] 租户信息为空");
-                return;
+                result.put("code", ResultCode.FAILED.getCode());
+                result.put("message", "租户信息为空");
+                return result;
             } else {
                 domainInfo = domainInfoService.getByDomainName(tenant);
                 if (domainInfo == null) {
                     logger.error("[bootstrap] 租户:{} 匹配不到", tenant);
-                    return;
+                    result.put("code", ResultCode.FAILED.getCode());
+                    result.put("message", "租户"+tenant+"匹配不到");
+                    return result;
                 }
             }
             //处理权威源
@@ -212,23 +217,32 @@ public class StatusController {
 //                }
                 // 兼容旧版本升级情况下，会先有本地租户信息，再创建超级租户信息。 所以进行验证，如果本次创建的upstream是超级租户并且本地租住存在同appCode的upstream，则记录忽略信息
 
+                result.put("code", ResultCode.SUCCESS.getCode());
+                result.put("message", "保存成功");
+                return result;
             } else {
                 log.error("[bootstrap] {}-{}保存权威源类型失败", upstream.getAppCode(), domainInfo.getDomainName());
+                result.put("code", ResultCode.FAILED.getCode());
+                result.put("message", "保存权威源类型失败");
+                return result;
             }
 
 
         } catch (Exception e) {
             e.printStackTrace();
             logger.error(e.getMessage());
+            result.put("code", ResultCode.FAILED.getCode());
+            result.put("message", e.getMessage());
+            return result;
         }
     }
 
     @PutMapping(value = "/bootstrap")
     @ResponseBody
-    public void putBootstrap(HttpServletRequest request,
+    public JSONObject putBootstrap(HttpServletRequest request,
                              @RequestParam String resource,
                              @RequestParam(required = false) String context) {
-        postBootstrap(request, resource, context);
+        return postBootstrap(request, resource, context);
     }
 
     private Upstream setUpstream(QUserSource qUserSource, DomainInfo domainInfo) {
