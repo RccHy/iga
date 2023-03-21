@@ -7,6 +7,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bean.PersonConnection;
 import com.qtgl.iga.bean.PersonEdge;
+import com.qtgl.iga.bean.UpstreamDto;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.config.AvatarTaskThreadPool;
 import com.qtgl.iga.config.PreViewPersonThreadPool;
@@ -146,7 +147,7 @@ public class PersonServiceImpl implements PersonService {
             throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
 
-        Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
+        Map<String, UpstreamDto> upstreamMap = new ConcurrentHashMap<>();
         List<NodeRulesVo> rules = new ArrayList<>();
         // 获取规则  (不为sub则获取所有规则)
         if (CollectionUtils.isEmpty(userRules)) {
@@ -164,7 +165,7 @@ public class PersonServiceImpl implements PersonService {
             rules.addAll(nodeRules);
 
             //获取该租户下的当前类型的无效有效权威源
-            ArrayList<Upstream> invalidUpstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
+            List<UpstreamDto> invalidUpstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
             if (!CollectionUtils.isEmpty(invalidUpstreams)) {
                 upstreamMap = invalidUpstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
             }
@@ -189,7 +190,7 @@ public class PersonServiceImpl implements PersonService {
             //根据权威源和类型获取需要执行的规则
             rules = rulesService.findNodeRulesByUpStreamIdAndType(ids, "person", domain.getId(), 0);
             //获取除了该租户以外的所有权威源(用于sub模式)
-            ArrayList<Upstream> otherDomains = upstreamService.findByOtherUpstream(new ArrayList<>(), domain.getId());
+            List<UpstreamDto> otherDomains = upstreamService.findByOtherUpstream(new ArrayList<>(), domain.getId());
             if (!CollectionUtils.isEmpty(otherDomains)) {
                 upstreamMap = otherDomains.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
             }
@@ -357,7 +358,7 @@ public class PersonServiceImpl implements PersonService {
                         log.error("人员对应拉取节点规则'{}'无有效权威源类型数据", rules);
                         throw new CustomException(ResultCode.NO_UPSTREAM_TYPE, null, null, "人员", rules.getId());
                     }
-                    ArrayList<Upstream> upstreams = upstreamService.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
+                    List<UpstreamDto> upstreams = upstreamService.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
                     if (CollectionUtils.isEmpty(upstreams)) {
                         log.error("人员对应拉取节点规则'{}'无权威源数据", rules.getId());
                         throw new CustomException(ResultCode.NO_UPSTREAM, null, null, "人员", rules.getId());
@@ -402,7 +403,7 @@ public class PersonServiceImpl implements PersonService {
         });
     }
 
-    private Integer getDataTotalCountByBus(UpstreamType upstreamType, String domainName, ArrayList<Upstream> upstreams) {
+    private Integer getDataTotalCountByBus(UpstreamType upstreamType, String domainName, List<UpstreamDto> upstreams) {
 
         try {
             Integer dataTotalCountByBus = dataBusUtil.getDataTotalCountByBus(upstreamType, domainName);
@@ -421,7 +422,7 @@ public class PersonServiceImpl implements PersonService {
         }
     }
 
-    private void dealWithAvatar(DomainInfo domain, UpstreamType upstreamType, ArrayList<Upstream> upstreams, Map<String, Avatar> avatarMap, Map<String, CardType> cardTypeMap, Tenant tenant, Integer offset, Integer first) {
+    private void dealWithAvatar(DomainInfo domain, UpstreamType upstreamType, List<UpstreamDto> upstreams, Map<String, Avatar> avatarMap, Map<String, CardType> cardTypeMap, Tenant tenant, Integer offset, Integer first) {
         String personCharacteristic = upstreamType.getPersonCharacteristic();
         ArrayList<Avatar> avatarList = new ArrayList<>();
         JSONArray dataByBus;
@@ -472,7 +473,7 @@ public class PersonServiceImpl implements PersonService {
         avatarDao.saveToSso(avatarList, tenant.getId());
     }
 
-    private JSONArray getDataFromUpstream(DomainInfo domain, UpstreamType upstreamType, ArrayList<Upstream> upstreams, Integer offset, Integer first) {
+    private JSONArray getDataFromUpstream(DomainInfo domain, UpstreamType upstreamType, List<UpstreamDto> upstreams, Integer offset, Integer first) {
         JSONArray dataByBus;
         try {
             dataByBus = dataBusUtil.getAvatarDataByBus(upstreamType, domain.getDomainName(), offset, first);
@@ -509,7 +510,7 @@ public class PersonServiceImpl implements PersonService {
         return url;
     }
 
-    private List<Person> dataProcessing(List<NodeRulesVo> userRules, DomainInfo domain, Tenant tenant, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, List<Person>> result, TaskLog currentTask, Map<String, List<Avatar>> avatarResult, Map<String, Upstream> upstreamMap, List<NodeRules> avatarRules) {
+    private List<Person> dataProcessing(List<NodeRulesVo> userRules, DomainInfo domain, Tenant tenant, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, List<Person>> result, TaskLog currentTask, Map<String, List<Avatar>> avatarResult, Map<String, UpstreamDto> upstreamMap, List<NodeRules> avatarRules) {
         final LocalDateTime now = LocalDateTime.now();
         List<Person> people = new ArrayList<>();
 
@@ -618,7 +619,7 @@ public class PersonServiceImpl implements PersonService {
                 log.error("人员对应拉取节点规则'{}'无有效权威源类型数据", rules);
                 throw new CustomException(ResultCode.NO_UPSTREAM_TYPE, null, null, "人员", rules.getId());
             }
-            ArrayList<Upstream> upstreams = upstreamService.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
+            List<UpstreamDto> upstreams = upstreamService.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
             if (CollectionUtils.isEmpty(upstreams)) {
                 log.error("人员对应拉取节点规则'{}'无权威源数据", rules.getId());
                 throw new CustomException(ResultCode.NO_UPSTREAM, null, null, "人员", rules.getId());
@@ -792,7 +793,7 @@ public class PersonServiceImpl implements PersonService {
      * @param personCharacteristic                     人员特征
      * @param upstreamTypeId                           当前权威源类型id
      */
-    private void dealWithData(Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, List<Person>> result, Map<String, List<Avatar>> avatarResult, Map<String, List<DynamicValue>> finalValueMap, Map<String, String> dynamicSSOValues, Map<String, Person> preViewPersonMap, Map<String, Person> invalidPersonMap, Map<String, Person> keepPersonMap, Map<String, Person> backUpPersonMap, Map<String, Map<String, Person>> tempResult, Map<String, Map<String, Avatar>> avatarTempResult, Map<String, String> finalAttrMap, Map<String, Upstream> finalUpstreamMap, Map<String, Person> finalDistinctPersonMap, Map<String, Avatar> finalAvatarMap, Map<String, Person> personFromUpstreamByPersonCharacteristic, String personCharacteristic, String upstreamTypeId, List<NodeRules> avatarRules, NodeRules rules) {
+    private void dealWithData(Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, List<Person>> result, Map<String, List<Avatar>> avatarResult, Map<String, List<DynamicValue>> finalValueMap, Map<String, String> dynamicSSOValues, Map<String, Person> preViewPersonMap, Map<String, Person> invalidPersonMap, Map<String, Person> keepPersonMap, Map<String, Person> backUpPersonMap, Map<String, Map<String, Person>> tempResult, Map<String, Map<String, Avatar>> avatarTempResult, Map<String, String> finalAttrMap, Map<String, UpstreamDto> finalUpstreamMap, Map<String, Person> finalDistinctPersonMap, Map<String, Avatar> finalAvatarMap, Map<String, Person> personFromUpstreamByPersonCharacteristic, String personCharacteristic, String upstreamTypeId, List<NodeRules> avatarRules, NodeRules rules) {
         //当前权威源类型映射字段
         List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(upstreamTypeId);
         Map<String, UpstreamTypeField> fieldsMap = fields.stream().collect(Collectors.toMap(UpstreamTypeField::getSourceField, sourceFiled -> sourceFiled, (v1, v2) -> v2));
@@ -889,7 +890,7 @@ public class PersonServiceImpl implements PersonService {
         }
     }
 
-    private void dealInvalidPerson(Map<String, List<Person>> result, LocalDateTime now, Map<String, Person> distinctPersonMap, Map<String, Person> preViewPersonMap, Map<String, Person> invalidPersonMap, Map<String, Upstream> upstreamMap, Map<String, Person> keepPersonMap) {
+    private void dealInvalidPerson(Map<String, List<Person>> result, LocalDateTime now, Map<String, Person> distinctPersonMap, Map<String, Person> preViewPersonMap, Map<String, Person> invalidPersonMap, Map<String, UpstreamDto> upstreamMap, Map<String, Person> keepPersonMap) {
         ArrayList<Person> invalidPeople = new ArrayList<>(invalidPersonMap.values());
         for (Person invalidPerson : invalidPeople) {
 
@@ -1325,7 +1326,7 @@ public class PersonServiceImpl implements PersonService {
      * @param avatarTempResult     头像临时结果集
      * @param personCharacteristic 冗余头像人员特征方便对比
      */
-    private void calculate(Map<String, Person> personFromUpstream, Map<String, List<Person>> result, String key, Person personFromSSO, Map<String, String> attrMap, Map<String, List<DynamicValue>> valueMap, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, Upstream> upstreamMap, Map<String, Person> preViewPersonMap, Map<String, Person> distinctPersonMap, Map<String, Person> invalidPersonMap, Map<String, Map<String, Person>> tempResult, Map<String, Person> backUpPersonMap, List<UpstreamTypeField> fields, Map<String, UpstreamTypeField> fieldMap, Map<String, String> dynamicSSOValues, Map<String, Person> keepPersonMap, Map<String, Avatar> avatarMap, Map<String, Map<String, Avatar>> avatarTempResult, String personCharacteristic) {
+    private void calculate(Map<String, Person> personFromUpstream, Map<String, List<Person>> result, String key, Person personFromSSO, Map<String, String> attrMap, Map<String, List<DynamicValue>> valueMap, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, UpstreamDto> upstreamMap, Map<String, Person> preViewPersonMap, Map<String, Person> distinctPersonMap, Map<String, Person> invalidPersonMap, Map<String, Map<String, Person>> tempResult, Map<String, Person> backUpPersonMap, List<UpstreamTypeField> fields, Map<String, UpstreamTypeField> fieldMap, Map<String, String> dynamicSSOValues, Map<String, Person> keepPersonMap, Map<String, Avatar> avatarMap, Map<String, Map<String, Avatar>> avatarTempResult, String personCharacteristic) {
         // 对比出需要修改的person
         if (personFromUpstream.containsKey(key)) {
             //上游包含该数据则将该数据从失效map中移除
@@ -2151,8 +2152,8 @@ public class PersonServiceImpl implements PersonService {
                 throw new CustomException(ResultCode.FAILED, "无人员规则信息");
             }
             //获取该租户下的当前类型的无效有效权威源
-            ArrayList<Upstream> invalidUpstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
-            Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
+            List<UpstreamDto> invalidUpstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
+            Map<String, UpstreamDto> upstreamMap = new ConcurrentHashMap<>();
             if (!CollectionUtils.isEmpty(invalidUpstreams)) {
                 upstreamMap = invalidUpstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
             }
@@ -2406,8 +2407,8 @@ public class PersonServiceImpl implements PersonService {
 
 
         //获取该租户下的当前类型的无效有效权威源
-        ArrayList<Upstream> invalidUpstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
-        Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
+        List<UpstreamDto> invalidUpstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
+        Map<String, UpstreamDto> upstreamMap = new ConcurrentHashMap<>();
         if (!CollectionUtils.isEmpty(invalidUpstreams)) {
             upstreamMap = invalidUpstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
         }

@@ -4,6 +4,7 @@ package com.qtgl.iga.service.impl;
 import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bean.TreeBean;
+import com.qtgl.iga.bean.UpstreamDto;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.PostDao;
 import com.qtgl.iga.service.*;
@@ -131,8 +132,8 @@ public class PostServiceImpl implements PostService {
 
         mainTreeBeans.addAll(ssoBeans);
         //获取该租户下的当前类型的无效权威源
-        ArrayList<Upstream> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
-        Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
+        List<UpstreamDto> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
+        Map<String, UpstreamDto> upstreamMap = new ConcurrentHashMap<>();
         if (!CollectionUtils.isEmpty(upstreams)) {
             upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
         }
@@ -156,7 +157,7 @@ public class PostServiceImpl implements PostService {
         beans = new ArrayList<>(ssoBeansMap.values());
         //监控身份
         ArrayList<TreeBean> occupyMonitors = new ArrayList<>();
-        beans = dataProcessing(mainTreeMap, domain, "", beans, result, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, occupyMonitors);
+        beans = dataProcessing(mainTreeMap, "", beans, result, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, occupyMonitors);
 //        if (null != beans) {
 //            beans.addAll(treeBeans);
 //        }
@@ -284,8 +285,8 @@ public class PostServiceImpl implements PostService {
 
         mainTreeBeans.addAll(ssoBeans);
         //获取该租户下的当前类型的无效权威源
-        ArrayList<Upstream> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
-        Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
+        List<UpstreamDto> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
+        Map<String, UpstreamDto> upstreamMap = new ConcurrentHashMap<>();
         if (!CollectionUtils.isEmpty(upstreams)) {
             upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
         }
@@ -318,7 +319,7 @@ public class PostServiceImpl implements PostService {
         //数据对比处理
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
 
-        beans = dataProcessing(mainTreeMap, domain, "", beans, result, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, null);
+        beans = dataProcessing(mainTreeMap, "", beans, result, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, null);
 
 //        if (null != beans) {
 //            beans.addAll(treeBeans);
@@ -466,7 +467,7 @@ public class PostServiceImpl implements PostService {
      * E: 删除恢复  之前被标记为删除后再通过推送了相同的数据   (上游必须del_mark字段)
      * E: 失效恢复  之前被标记为失效后再通过推送了相同的数据   提供active则修改对比时直接覆盖,不提供则手动恢复
      **/
-    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, DomainInfo domainInfo, String treeTypeId, List<TreeBean> ssoBeans, Map<TreeBean, String> result, LocalDateTime now, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamMap, ArrayList<TreeBean> occupyMonitors) {
+    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, String treeTypeId, List<TreeBean> ssoBeans, Map<TreeBean, String> result, LocalDateTime now, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, UpstreamDto> upstreamMap, ArrayList<TreeBean> occupyMonitors) {
         //将sso的数据转化为map方便对比
         Map<String, TreeBean> ssoCollect = new HashMap<>();
         if (null != ssoBeans && ssoBeans.size() > 0) {

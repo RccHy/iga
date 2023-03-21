@@ -4,6 +4,7 @@ package com.qtgl.iga.service.impl;
 import com.qtgl.iga.bean.NodeDto;
 import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bean.TreeBean;
+import com.qtgl.iga.bean.UpstreamDto;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.DeptDao;
 import com.qtgl.iga.service.*;
@@ -125,8 +126,8 @@ public class DeptServiceImpl implements DeptService {
 
 
         //获取该租户下的当前类型的无效权威源
-        ArrayList<Upstream> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
-        Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
+        List<UpstreamDto> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
+        Map<String, UpstreamDto> upstreamMap = new ConcurrentHashMap<>();
         if (!CollectionUtils.isEmpty(upstreams)) {
             upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
         }
@@ -176,7 +177,7 @@ public class DeptServiceImpl implements DeptService {
         calculationService.groupByCode(beans, status, domain);
         // 无效规则筛选标记
         List<NodeDto> nodeList = nodeService.findNodesByStatusAndType(status, TYPE, domain.getId(), null);
-        if(!CollectionUtils.isEmpty(nodeList)){
+        if (!CollectionUtils.isEmpty(nodeList)) {
             nodeService.updateNodeAndRules(nodeList, beans);
         }
         return beans;
@@ -258,8 +259,8 @@ public class DeptServiceImpl implements DeptService {
 
         logger.info("获取到当前租户{}的映射字段集为{}", tenant.getId(), dynamicAttrs);
         //获取该租户下的当前类型的无效权威源
-        ArrayList<Upstream> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
-        Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
+        List<UpstreamDto> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
+        Map<String, UpstreamDto> upstreamMap = new ConcurrentHashMap<>();
         if (!CollectionUtils.isEmpty(upstreams)) {
             upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
         }
@@ -472,7 +473,7 @@ public class DeptServiceImpl implements DeptService {
      * @param occupyMonitors 组织机构失效,删除,恢复,或新增 导致历史身份有效期变化存储容器
      * @return
      */
-    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, List<TreeBean> ssoBeans, Map<TreeBean, String> result, ArrayList<TreeBean> insert, LocalDateTime now, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamMap, ArrayList<TreeBean> occupyMonitors) {
+    private List<TreeBean> dataProcessing(Map<String, TreeBean> mainTree, List<TreeBean> ssoBeans, Map<TreeBean, String> result, ArrayList<TreeBean> insert, LocalDateTime now, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, UpstreamDto> upstreamMap, ArrayList<TreeBean> occupyMonitors) {
         //将sso的数据转化为map方便对比
         Map<String, TreeBean> ssoCollect = new HashMap<>();
         if (null != ssoBeans && ssoBeans.size() > 0) {

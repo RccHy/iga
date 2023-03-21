@@ -34,7 +34,6 @@ public class UpstreamDaoImpl implements UpstreamDao {
     @Resource(name = "iga-txTemplate")
     TransactionTemplate txTemplate;
 
-
     @Override
     public List<Upstream> findAll(Map<String, Object> arguments, String domain) {
         String sql = "select id,app_code as appCode,app_name as appName,data_code as dataCode," +
@@ -71,12 +70,8 @@ public class UpstreamDaoImpl implements UpstreamDao {
     @Override
     @Transactional
     public Upstream saveUpstream(Upstream upstream, String domain) {
-        //判重
-        Object[] param = new Object[]{upstream.getAppCode(), domain};
-        List<Map<String, Object>> mapList = jdbcIGA.queryForList("select  * from t_mgr_upstream where app_code =?  and domain=? ", param);
-        if (null != mapList && mapList.size() > 0) {
-            throw new CustomException(ResultCode.REPEAT_UPSTREAM_ERROR, null, null, upstream.getAppCode(), upstream.getAppName());
-        }
+
+
         String sql = "insert into t_mgr_upstream  values(?,?,?,?,?,?,?,?,?,?,?)";
         //生成主键和时间
         String id = UUID.randomUUID().toString().replace("-", "");

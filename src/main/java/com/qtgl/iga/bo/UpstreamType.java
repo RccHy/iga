@@ -105,7 +105,7 @@ public class UpstreamType implements Serializable {
     private Boolean isPage;
 
     /**
-     * 方式
+     * 方式  推送0/拉取1/手工2
      */
     private Integer synWay;
     /**

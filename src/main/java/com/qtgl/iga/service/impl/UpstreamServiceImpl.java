@@ -40,31 +40,43 @@ public class UpstreamServiceImpl implements UpstreamService {
     public List<UpstreamDto> findAll(Map<String, Object> arguments, String domain) {
         List<Upstream> upstreamList = upstreamDao.findAll(arguments, domain);
         if (!CollectionUtils.isEmpty(upstreamList)) {
-            ArrayList<UpstreamDto> upstreamDtos = new ArrayList<>();
-            ArrayList<Upstream> upstreams = distinctSuperUpstream(upstreamList);
-            for (Upstream upstream : upstreams) {
-                UpstreamDto upstreamDto = new UpstreamDto(upstream);
-                if (!upstream.getDomain().equals(AutoUpRunner.superDomainId)) {
-                    upstreamDto.setLocal(true);
-                } else {
-                    upstreamDto.setLocal(false);
-                }
-                upstreamDtos.add(upstreamDto);
-            }
-            return upstreamDtos;
+
+            //权威源去重
+            List<UpstreamDto> upstreams = distinctSuperUpstream(upstreamList, domain);
+
+            return upstreams;
         }
         return new ArrayList<>();
     }
 
-    private ArrayList<Upstream> distinctSuperUpstream(List<Upstream> upstreamList) {
-        HashMap<String, Upstream> map = new HashMap<>();
+    private ArrayList<UpstreamDto> distinctSuperUpstream(List<Upstream> upstreamList, String domain) {
+
+        //获取当前租户禁用的权威源信息
+        List<DomainIgnore> byDomain = ignoreService.findByDomain(domain);
+        List<String> ignoreUpstreamIds = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(byDomain)) {
+            ignoreUpstreamIds = byDomain.stream().filter(domainIgnore -> StringUtils.isNotBlank(domainIgnore.getUpstreamId())).map(DomainIgnore::getUpstreamId).collect(Collectors.toList());
+        }
+
+        HashMap<String, UpstreamDto> map = new HashMap<>();
         for (Upstream upstream : upstreamList) {
-            if (map.containsKey(upstream.getAppName() + "_" + upstream.getAppCode())) {
+            UpstreamDto upstreamDto = new UpstreamDto(upstream);
+            //逻辑字段值判断赋值
+            if (!upstream.getDomain().equals(AutoUpRunner.superDomainId)) {
+                upstreamDto.setLocal(true);
+            } else {
+                if (!CollectionUtils.isEmpty(ignoreUpstreamIds) && ignoreUpstreamIds.contains(upstreamDto.getId())) {
+                    upstreamDto.setDisEnable(true);
+                }
+                upstreamDto.setLocal(false);
+            }
+            //覆盖判断
+            if (map.containsKey(upstreamDto.getAppName() + "_" + upstreamDto.getAppCode())) {
                 if (!upstream.getDomain().equals(AutoUpRunner.superDomainId)) {
-                    map.put(upstream.getAppName() + "_" + upstream.getAppCode(), upstream);
+                    map.put(upstreamDto.getAppName() + "_" + upstreamDto.getAppCode(), upstreamDto);
                 }
             } else {
-                map.put(upstream.getAppName() + "_" + upstream.getAppCode(), upstream);
+                map.put(upstreamDto.getAppName() + "_" + upstreamDto.getAppCode(), upstreamDto);
             }
         }
 
@@ -129,7 +141,7 @@ public class UpstreamServiceImpl implements UpstreamService {
                 }
             }
 
-        }else {
+        } else {
             throw new CustomException(ResultCode.FAILED, "当前标识无对应权威源");
         }
     }
@@ -137,6 +149,22 @@ public class UpstreamServiceImpl implements UpstreamService {
     @Override
     @Transactional
     public Upstream saveUpstream(Upstream upstream, String domain) throws Exception {
+        //判重
+        Upstream byCodeAndDomain = upstreamDao.findByCodeAndDomain(upstream.getAppCode(), domain);
+        if (null != byCodeAndDomain) {
+            throw new CustomException(ResultCode.REPEAT_UPSTREAM_ERROR, null, null, upstream.getAppCode(), upstream.getAppName());
+        }
+        if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
+
+            Upstream superUpstream = upstreamDao.findByCodeAndDomain(upstream.getAppCode(), AutoUpRunner.superDomainId);
+            if (null != superUpstream) {
+                //将超级租户的权威源置为禁用
+                DomainIgnore domainIgnore = new DomainIgnore();
+                domainIgnore.setDomain(domain);
+                domainIgnore.setUpstreamId(superUpstream.getId());
+                ignoreService.save(domainIgnore);
+            }
+        }
         return upstreamDao.saveUpstream(upstream, domain);
     }
 
@@ -156,7 +184,7 @@ public class UpstreamServiceImpl implements UpstreamService {
     @Transactional
     public UpstreamDto saveUpstreamAndTypes(UpstreamDto upstreamDto, String domain) throws Exception {
         // 添加权威源
-        Upstream upstream = upstreamDao.saveUpstream(upstreamDto, domain);
+        Upstream upstream = this.saveUpstream(upstreamDto, domain);
         UpstreamDto upstreamDb = new UpstreamDto(upstream);
         //添加权威源类型
         if (null == upstream) {
@@ -187,29 +215,20 @@ public class UpstreamServiceImpl implements UpstreamService {
 
     /**
      * @param arguments
-     * @param id
+     * @param domainId
      * @Description: 查询权威源及类型
      * @return: java.util.List<com.qtgl.iga.bean.UpstreamDto>
      */
     @Override
-    public List<UpstreamDto> upstreamsAndTypes(Map<String, Object> arguments, String id) {
+    public List<UpstreamDto> upstreamsAndTypes(Map<String, Object> arguments, String domainId) {
         ArrayList<UpstreamDto> upstreamDtos = new ArrayList<>();
         //查询权威源
-        List<Upstream> upstreamList = upstreamDao.findAll(arguments, id);
+        List<Upstream> upstreamList = upstreamDao.findAll(arguments, domainId);
         //查询权威源类型
         if (!CollectionUtils.isEmpty(upstreamList)) {
-            upstreamList = distinctSuperUpstream(upstreamList);
-            for (Upstream upstream : upstreamList) {
-                UpstreamDto upstreamDto = new UpstreamDto(upstream);
-                if (!upstream.getDomain().equals(AutoUpRunner.superDomainId)) {
-                    upstreamDto.setLocal(true);
-                } else {
-                    upstreamDto.setLocal(false);
-                }
-                List<UpstreamType> byUpstreamId = upstreamTypeService.findByUpstreamId(upstream.getId());
-                upstreamDto.setUpstreamTypes(byUpstreamId);
-                upstreamDtos.add(upstreamDto);
-            }
+
+            return distinctSuperUpstream(upstreamList, domainId);
+
         }
 
 
@@ -367,30 +386,30 @@ public class UpstreamServiceImpl implements UpstreamService {
 
 
     @Override
-    public ArrayList<Upstream> findByDomainAndActiveIsFalse(String domainId) {
+    public List<UpstreamDto> findByDomainAndActiveIsFalse(String domainId) {
         ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domainId);
         if (!CollectionUtils.isEmpty(upstreams)) {
-            return distinctSuperUpstream(upstreams);
+            return distinctSuperUpstream(upstreams, domainId);
         }
-        return upstreams;
+        return new ArrayList<>();
     }
 
     @Override
-    public ArrayList<Upstream> getUpstreams(String upstreamId, String domainId) {
+    public List<UpstreamDto> getUpstreams(String upstreamId, String domainId) {
         ArrayList<Upstream> upstreams = upstreamDao.getUpstreams(upstreamId, domainId);
         if (!CollectionUtils.isEmpty(upstreams)) {
-            return distinctSuperUpstream(upstreams);
+            return distinctSuperUpstream(upstreams, domainId);
         }
-        return upstreams;
+        return new ArrayList<>();
     }
 
     @Override
-    public ArrayList<Upstream> findByOtherUpstream(List<String> ids, String domain) {
+    public List<UpstreamDto> findByOtherUpstream(List<String> ids, String domain) {
         ArrayList<Upstream> otherDomain = upstreamDao.findByOtherUpstream(ids, domain);
         if (!CollectionUtils.isEmpty(otherDomain)) {
-            return distinctSuperUpstream(otherDomain);
+            return distinctSuperUpstream(otherDomain, domain);
         }
-        return otherDomain;
+        return new ArrayList<>();
     }
 
     @Override

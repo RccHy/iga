@@ -43,7 +43,7 @@ public class UpstreamTypeDaoImpl implements UpstreamTypeDao {
         List<Object> param = new ArrayList<>();
         if (!isLocal) {
             param.add(AutoUpRunner.superDomainId);
-            stb.append(" and upstream_id not in (select upstream_id from t_mgr_domain_ignore where domain=?) ");
+            stb.append(" and upstream_id not in (select upstream_id from t_mgr_domain_ignore where domain=? is null )  ");
         }
         param.add(domain);
         dealData(arguments, stb, param);

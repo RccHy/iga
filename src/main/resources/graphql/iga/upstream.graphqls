@@ -52,6 +52,8 @@ type Upstream{
     upstreamTypes:[UpstreamType]
     #是否来自本租户
     local:Boolean
+    #是否被禁用
+    disEnable:Boolean
 
 }
 

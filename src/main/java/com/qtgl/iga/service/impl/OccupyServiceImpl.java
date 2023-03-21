@@ -110,7 +110,7 @@ public class OccupyServiceImpl implements OccupyService {
             throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
 
-        Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
+        Map<String, UpstreamDto> upstreamMap = new ConcurrentHashMap<>();
         List<NodeRulesVo> rules = new ArrayList<>();
         // 获取规则  (不为sub则获取所有规则)
         if (CollectionUtils.isEmpty(occupyRules)) {
@@ -131,7 +131,7 @@ public class OccupyServiceImpl implements OccupyService {
             rules.addAll(nodeRules);
 
             //获取该租户下的当前类型的无效权威源
-            ArrayList<Upstream> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
+            List<UpstreamDto> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
             if (!CollectionUtils.isEmpty(upstreams)) {
                 upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
             }
@@ -152,7 +152,7 @@ public class OccupyServiceImpl implements OccupyService {
             rules = rulesService.findNodeRulesByUpStreamIdAndType(ids, "occupy", domain.getId(), 0);
 
             //获取除了该权威源以外的所有权威源(用于sub模式)
-            ArrayList<Upstream> otherDomains = upstreamService.findByOtherUpstream(ids, domain.getId());
+            List<UpstreamDto> otherDomains = upstreamService.findByOtherUpstream(ids, domain.getId());
             if (!CollectionUtils.isEmpty(otherDomains)) {
                 upstreamMap = otherDomains.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
             }
@@ -253,7 +253,7 @@ public class OccupyServiceImpl implements OccupyService {
     }
 
     private List<OccupyDto> dataProcessing(List<NodeRulesVo> occupyRules, DomainInfo domain, Tenant tenant, Map<String, List<OccupyDto>> result, ArrayList<OccupyDto> deleteFromSSO, Map<String, OccupyDto> occupyDtoFromUpstream, List<IncrementalTask> incrementalTasks, TaskLog currentTask,
-                                           Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, Upstream> upstreamMap) {
+                                           Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, UpstreamDto> upstreamMap) {
 
         // 所有证件类型
         List<CardType> cardTypes = cardTypeDao.findAllUser(tenant.getId());
@@ -376,7 +376,7 @@ public class OccupyServiceImpl implements OccupyService {
                 errorDataProcessing(domain);
                 throw new CustomException(ResultCode.NO_PERSON_CHARACTERISTIC, null, null, "人员身份", upstreamType.getId());
             }
-            ArrayList<Upstream> upstreams = upstreamService.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
+            List<UpstreamDto> upstreams = upstreamService.getUpstreams(upstreamType.getUpstreamId(), domain.getId());
             if (CollectionUtils.isEmpty(upstreams)) {
                 log.error("人员身份对应拉取节点规则'{}'无权威源数据", rules.getId());
                 errorDataProcessing(domain);
@@ -581,7 +581,7 @@ public class OccupyServiceImpl implements OccupyService {
         incrementalTaskService.save(incrementalTask, domain);
     }
 
-    private void getOccupy(DomainInfo domain, Map<String, OccupyDto> occupyDtoFromUpstream, Map<String, CardType> userCardTypeMap, List<String> finalDynamicCodes, Map<String, TreeBean> deptFromSSOMap, Map<String, TreeBean> postFromSSOMap, Map<String, List<Person>> personFromSSOMap, Map<String, List<Person>> personFromSSOMapByAccount, Map<String, List<Person>> personFromSSOMapByCardNo, Map<String, List<Person>> personFromSSOMapByPhone, Map<String, List<Person>> personFromSSOMapByEmail, Map<String, List<Person>> personFromSSOMapByOpenid, Map<String, List<Person>> mergePersonFromSSOMap, Map<String, List<Person>> mergePersonFromSSOMapByAccount, Map<String, List<Person>> mergePersonFromSSOMapByCardNo, Map<String, List<Person>> mergePersonFromSSOMapByPhone, Map<String, List<Person>> mergePersonFromSSOMapByEmail, NodeRules rules, UpstreamType upstreamType, String findPersonKey, ArrayList<Upstream> upstreams, LocalDateTime now, JSONArray dataByBus, List<OccupyDto> occupies, ArrayList<OccupyDto> resultOccupies) {
+    private void getOccupy(DomainInfo domain, Map<String, OccupyDto> occupyDtoFromUpstream, Map<String, CardType> userCardTypeMap, List<String> finalDynamicCodes, Map<String, TreeBean> deptFromSSOMap, Map<String, TreeBean> postFromSSOMap, Map<String, List<Person>> personFromSSOMap, Map<String, List<Person>> personFromSSOMapByAccount, Map<String, List<Person>> personFromSSOMapByCardNo, Map<String, List<Person>> personFromSSOMapByPhone, Map<String, List<Person>> personFromSSOMapByEmail, Map<String, List<Person>> personFromSSOMapByOpenid, Map<String, List<Person>> mergePersonFromSSOMap, Map<String, List<Person>> mergePersonFromSSOMapByAccount, Map<String, List<Person>> mergePersonFromSSOMapByCardNo, Map<String, List<Person>> mergePersonFromSSOMapByPhone, Map<String, List<Person>> mergePersonFromSSOMapByEmail, NodeRules rules, UpstreamType upstreamType, String findPersonKey, List<UpstreamDto> upstreams, LocalDateTime now, JSONArray dataByBus, List<OccupyDto> occupies, ArrayList<OccupyDto> resultOccupies) {
         for (Object o : dataByBus) {
             JSONObject occupyObj = JSON.parseObject(JSON.toJSONString(o));
             if (null != occupyObj.getTimestamp(TreeEnum.UPDATE_TIME.getCode())) {
@@ -910,7 +910,7 @@ public class OccupyServiceImpl implements OccupyService {
     }
 
     private void createOccupyDto(DomainInfo domain, Map<String, OccupyDto> occupyDtoFromUpstream, Map<String, TreeBean> deptFromSSOMap,
-                                 Map<String, TreeBean> postFromSSOMap, NodeRules rules, UpstreamType upstreamType, ArrayList<Upstream> upstreams, LocalDateTime now, List<OccupyDto> occupies,
+                                 Map<String, TreeBean> postFromSSOMap, NodeRules rules, UpstreamType upstreamType, List<UpstreamDto> upstreams, LocalDateTime now, List<OccupyDto> occupies,
                                  ArrayList<OccupyDto> resultOccupies, OccupyDto oldOccupyDto, Person person) {
         OccupyDto occupyDto = new OccupyDto();
         BeanUtils.copyProperties(oldOccupyDto, occupyDto);
@@ -1000,7 +1000,7 @@ public class OccupyServiceImpl implements OccupyService {
      * @param preViewOccupyMap
      * @param now
      */
-    private void calculate(Map<String, OccupyDto> occupyDtoFromUpstream, Map<String, List<OccupyDto>> result, String key, OccupyDto occupyFromSSO, Map<String, Upstream> upstreamMap, Map<String, OccupyDto> preViewOccupyMap, LocalDateTime now, Map<String, String> attrMap, Map<String, List<DynamicValue>> valueMap, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, OccupyDto> keepOccupyMap) {
+    private void calculate(Map<String, OccupyDto> occupyDtoFromUpstream, Map<String, List<OccupyDto>> result, String key, OccupyDto occupyFromSSO, Map<String, UpstreamDto> upstreamMap, Map<String, OccupyDto> preViewOccupyMap, LocalDateTime now, Map<String, String> attrMap, Map<String, List<DynamicValue>> valueMap, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, OccupyDto> keepOccupyMap) {
         // 对比出需要修改的occupy
         if (occupyDtoFromUpstream.containsKey(key) &&
                 occupyDtoFromUpstream.get(key).getUpdateTime().isAfter(occupyFromSSO.getUpdateTime())) {
@@ -1654,8 +1654,8 @@ public class OccupyServiceImpl implements OccupyService {
                 throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
             }
             //获取该租户下的当前类型的无效权威源
-            ArrayList<Upstream> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
-            Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
+            List<UpstreamDto> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
+            Map<String, UpstreamDto> upstreamMap = new ConcurrentHashMap<>();
             if (!CollectionUtils.isEmpty(upstreams)) {
                 upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
             }
@@ -1869,8 +1869,8 @@ public class OccupyServiceImpl implements OccupyService {
             throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
         }
         //获取该租户下的当前类型的无效权威源
-        ArrayList<Upstream> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
-        Map<String, Upstream> upstreamMap = new ConcurrentHashMap<>();
+        List<UpstreamDto> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
+        Map<String, UpstreamDto> upstreamMap = new ConcurrentHashMap<>();
         if (!CollectionUtils.isEmpty(upstreams)) {
             upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
         }

@@ -18,6 +18,8 @@ public class UpstreamDto extends Upstream {
 
     //是否为当前租户的权威源
     private Boolean local;
+    //是否被禁用
+    private Boolean disEnable = Boolean.FALSE;
 
     public UpstreamDto(Upstream upstream) {
         this.setId(upstream.getId());

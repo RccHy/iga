@@ -30,11 +30,11 @@ public interface UpstreamService {
     UpstreamDto updateUpstreamAndTypes(UpstreamDto upstream) throws Exception;
 
 
-    ArrayList<Upstream> findByDomainAndActiveIsFalse(String domainId);
+    List<UpstreamDto> findByDomainAndActiveIsFalse(String domainId);
 
-    ArrayList<Upstream> getUpstreams(String upstreamId, String domainId);
+    List<UpstreamDto> getUpstreams(String upstreamId, String domainId);
 
-    ArrayList<Upstream> findByOtherUpstream(List<String> ids,String domain);
+    List<UpstreamDto> findByOtherUpstream(List<String> ids,String domain);
 
     List<Upstream> findByUpstreamTypeIds(ArrayList<String> upstreamTypeIds,String domainId);
 

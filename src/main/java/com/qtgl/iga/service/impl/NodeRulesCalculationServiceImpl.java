@@ -3,10 +3,7 @@ package com.qtgl.iga.service.impl;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.qtgl.iga.bean.ErrorData;
-import com.qtgl.iga.bean.NodeDto;
-import com.qtgl.iga.bean.OccupyDto;
-import com.qtgl.iga.bean.TreeBean;
+import com.qtgl.iga.bean.*;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.IncrementalTaskService;
@@ -543,7 +540,7 @@ public class NodeRulesCalculationServiceImpl {
      * @return: java.util.Map<java.lang.String, com.qtgl.iga.bean.TreeBean>
      */
     public List<TreeBean> nodeRules(DomainInfo domain, DeptTreeType treeType, String nodeCode, List<TreeBean> mainTree, Integer status, String type, List<String> dynamicCodes, Map<String, TreeBean> ssoBeansMap,
-                                    List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamHashMap,
+                                    List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, UpstreamDto> upstreamHashMap,
                                     Map<TreeBean, String> result, Map<String, List<NodeDto>> nodesMap, TaskLog currentTask) throws Exception {
         //获取根节点的规则
         //List<Node> nodes = nodeDao.getByCode(domain.getId(), treeType, nodeCode, status, type);
@@ -1308,7 +1305,7 @@ public class NodeRulesCalculationServiceImpl {
      * @param upstreamMap  判别权威源是否处于无效
      * @return
      */
-    private Map<String, TreeBean> incrementalDataProcessing(Collection<TreeBean> values, Map<String, TreeBean> ssoCollect, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, Upstream> upstreamMap, IncrementalTask incrementalTask, Map<TreeBean, String> result) {
+    private Map<String, TreeBean> incrementalDataProcessing(Collection<TreeBean> values, Map<String, TreeBean> ssoCollect, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, UpstreamDto> upstreamMap, IncrementalTask incrementalTask, Map<TreeBean, String> result) {
 
         LocalDateTime now = LocalDateTime.now();
 

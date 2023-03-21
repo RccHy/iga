@@ -131,7 +131,7 @@ public class DataBusUtil {
 
         // 如果upstreamType 是自定义json ，则不用调用接口。
         if (upstreamType.getSynWay() == 2) {
-            return invokeForData(null,upstreamType, serverName, dataMap);
+            return invokeForData(null, upstreamType, serverName, dataMap);
         } else {
             String[] split = upstreamType.getGraphqlUrl().split("/");
             //调用获取资源url
@@ -368,7 +368,7 @@ public class DataBusUtil {
             }
         }
 
-        if (upstreamType.getSynWay()==0&&upstreamType.getIsPage()) {
+        if (upstreamType.getSynWay() == 1 && upstreamType.getIsPage()) {
             String[] type = upstreamType.getGraphqlUrl().split("/");
             GraphqlClient graphqlClient = GraphqlClient.buildGraphqlClient(dataUrl);
             String methodName = type[5];
@@ -410,7 +410,7 @@ public class DataBusUtil {
             }
         }
         if (upstreamType.getSynWay() == 2) {
-            objects=JSONArray.parseArray(upstreamType.getBuiltinData());
+            objects = JSONArray.parseArray(upstreamType.getBuiltinData());
         }
 
 
@@ -467,7 +467,7 @@ public class DataBusUtil {
         log.info("-------------开始处理上游数据映射");
         for (Object object : objects) {
             JSONObject data = JSONObject.parseObject(JSON.toJSONString(object));
-            if(upstreamType.getSynWay()==2){
+            if (upstreamType.getSynWay() == 2) {
 
                 // 替换data中的key
                 for (Map.Entry<String, String> entry : nodeMap.entrySet()) {

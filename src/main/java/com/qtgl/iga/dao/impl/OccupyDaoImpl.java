@@ -101,7 +101,7 @@ public class OccupyDaoImpl implements OccupyDao {
         return txTemplate.execute(transactionStatus -> {
             try {
                 if (occupyMap.containsKey("insert")) {
-                    log.info("开始构造 insert sql："+System.currentTimeMillis());
+                    log.info("开始构造 insert sql：" + System.currentTimeMillis());
                     List<OccupyDto> list = occupyMap.get("insert");
                     String sql = "INSERT INTO user " +
                             "               (id, user_type, card_type,user_code, del_mark, start_time, end_time, create_time, update_time, tenant_id, dept_code, source, data_source, active, active_time,user_index,post_code,account_no,valid_start_time,valid_end_time,orphan,create_data_source,create_source) " +
@@ -159,18 +159,19 @@ public class OccupyDaoImpl implements OccupyDao {
                                 preparedStatement.setObject(2, subList.get(i).getPersonId());
                                 preparedStatement.setObject(3, subList.get(i).getOccupyId());
                             }
+
                             @Override
                             public int getBatchSize() {
                                 return subList.size();
                             }
                         });
-                        log.info("完成构造 insert sql："+System.currentTimeMillis());
+                        log.info("完成构造 insert sql：" + System.currentTimeMillis());
                     }
                 }
 
 
                 if (occupyMap.containsKey("update") || occupyMap.containsKey("invalid") || occupyMap.containsKey("recover")) {
-                    log.info("开始构造 update、invalid、recover sql："+System.currentTimeMillis());
+                    log.info("开始构造 update、invalid、recover sql：" + System.currentTimeMillis());
                     List<OccupyDto> list = new ArrayList<>();
                     List<OccupyDto> update = occupyMap.get("update");
                     List<OccupyDto> invalid = occupyMap.get("invalid");
@@ -193,7 +194,7 @@ public class OccupyDaoImpl implements OccupyDao {
                     for (int i = 0; i < batchCount; i++) {
                         int fromIndex = i * batchSize;
                         int toIndex = Math.min((i + 1) * batchSize, list.size());
-                        log.info("from:"+fromIndex+"to:"+toIndex);
+                        log.info("from:" + fromIndex + "to:" + toIndex);
                         List<OccupyDto> subList = list.subList(fromIndex, toIndex);
                         int[] ints = jdbcSSO.batchUpdate(sql, new BatchPreparedStatementSetter() {
                             @Override
@@ -225,12 +226,12 @@ public class OccupyDaoImpl implements OccupyDao {
                             }
                         });
                     }
-                    log.info("完成构造 update、invalid、recover sql："+System.currentTimeMillis());
+                    log.info("完成构造 update、invalid、recover sql：" + System.currentTimeMillis());
                 }
 
 
                 if (occupyMap.containsKey("delete")) {
-                    log.info("开始构造 del sql："+System.currentTimeMillis());
+                    log.info("开始构造 del sql：" + System.currentTimeMillis());
                     List<OccupyDto> list = occupyMap.get("delete");
                     String sql = "UPDATE `user` SET  del_mark = 1, update_time = ?, data_source=?,active=0,valid_start_time=?,valid_end_time=? " +
                             " WHERE id = ? and update_time <= ?  ";
@@ -258,10 +259,10 @@ public class OccupyDaoImpl implements OccupyDao {
                             }
                         });
                     }
-                    log.info("完成构造 del sql："+System.currentTimeMillis());
+                    log.info("完成构造 del sql：" + System.currentTimeMillis());
                 }
                 if (!CollectionUtils.isEmpty(valueInsert)) {
-                    log.info("开始构造 dynamic_value sql："+System.currentTimeMillis());
+                    log.info("开始构造 dynamic_value sql：" + System.currentTimeMillis());
                     String valueStr = "INSERT INTO dynamic_value (`id`, `attr_id`, `entity_id`, `value`, `tenant_id`) VALUES (?, ?, ?, ?, ?)";
                     jdbcSSO.batchUpdate(valueStr, new BatchPreparedStatementSetter() {
                         @Override
@@ -278,11 +279,11 @@ public class OccupyDaoImpl implements OccupyDao {
                             return valueInsert.size();
                         }
                     });
-                    log.info("完成构造 dynamic_value sql："+System.currentTimeMillis());
+                    log.info("完成构造 dynamic_value sql：" + System.currentTimeMillis());
                 }
 
                 if (!CollectionUtils.isEmpty(valueUpdate)) {
-                    log.info("开始构造 update dynamic_value sql："+System.currentTimeMillis());
+                    log.info("开始构造 update dynamic_value sql：" + System.currentTimeMillis());
                     String valueStr = "update dynamic_value set `value`=? where id= ?";
                     jdbcSSO.batchUpdate(valueStr, new BatchPreparedStatementSetter() {
                         @Override
@@ -296,7 +297,7 @@ public class OccupyDaoImpl implements OccupyDao {
                             return valueUpdate.size();
                         }
                     });
-                    log.info("完成构造 update dynamic_value sql："+System.currentTimeMillis());
+                    log.info("完成构造 update dynamic_value sql：" + System.currentTimeMillis());
                 }
 
                 return 1;
@@ -321,200 +322,265 @@ public class OccupyDaoImpl implements OccupyDao {
         return igaTemplate.execute(transactionStatus -> {
             try {
                 // 删除租户下数据
-                String delUserSql = "delete from user where tenant_id = ? ";
-                jdbcIGA.update(delUserSql, tenantId);
+                String delUserSql = "delete from user where tenant_id = ? limit 5000 ";
+                deleteOccupyData(delUserSql, tenantId);
 
                 if (occupyMap.containsKey("keep")) {
                     List<OccupyDto> list = occupyMap.get("keep");
-                    int[] ints = jdbcIGA.batchUpdate(sql, new BatchPreparedStatementSetter() {
-                        @Override
-                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, list.get(i).getOccupyId());
-                            preparedStatement.setObject(2, list.get(i).getPostCode());
-                            preparedStatement.setObject(3, list.get(i).getIdentityCardType());
-                            preparedStatement.setObject(4, list.get(i).getIdentityCardNo());
-                            preparedStatement.setObject(5, list.get(i).getDelMark());
-                            preparedStatement.setObject(6, list.get(i).getStartTime());
-                            preparedStatement.setObject(7, list.get(i).getEndTime());
-                            preparedStatement.setObject(8, list.get(i).getCreateTime());
-                            preparedStatement.setObject(9, list.get(i).getUpdateTime());
-                            preparedStatement.setObject(10, tenantId);
-                            preparedStatement.setObject(11, list.get(i).getDeptCode());
-                            preparedStatement.setObject(12, list.get(i).getSource());
-                            preparedStatement.setObject(13, list.get(i).getDataSource());
-                            preparedStatement.setObject(14, list.get(i).getActive());
-                            preparedStatement.setObject(15, LocalDateTime.now());
-                            preparedStatement.setObject(16, list.get(i).getIndex());
-                            preparedStatement.setObject(17, list.get(i).getAccountNo());
-                            preparedStatement.setObject(18, list.get(i).getValidStartTime());
-                            preparedStatement.setObject(19, list.get(i).getValidEndTime());
-                            preparedStatement.setObject(20, list.get(i).getOrphan());
-                            preparedStatement.setObject(21, list.get(i).getDataSource());
-                            preparedStatement.setObject(22, list.get(i).getSource());
-                            preparedStatement.setObject(23, 0);
-                            preparedStatement.setObject(24, list.get(i).getPersonId());
-                        }
+                    if (!CollectionUtils.isEmpty(list)) {
 
-                        @Override
-                        public int getBatchSize() {
-                            return list.size();
+                        int batchSize = 5000;
+                        int batchCount = (list.size() + batchSize - 1) / batchSize;
+                        for (int i = 0; i < batchCount; i++) {
+                            int fromIndex = i * batchSize;
+                            int toIndex = Math.min((i + 1) * batchSize, list.size());
+                            log.info("from:" + fromIndex + "to:" + toIndex);
+                            List<OccupyDto> subList = list.subList(fromIndex, toIndex);
+
+                            int[] ints = jdbcIGA.batchUpdate(sql, new BatchPreparedStatementSetter() {
+                                @Override
+                                public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                                    preparedStatement.setObject(1, subList.get(i).getOccupyId());
+                                    preparedStatement.setObject(2, subList.get(i).getPostCode());
+                                    preparedStatement.setObject(3, subList.get(i).getIdentityCardType());
+                                    preparedStatement.setObject(4, subList.get(i).getIdentityCardNo());
+                                    preparedStatement.setObject(5, subList.get(i).getDelMark());
+                                    preparedStatement.setObject(6, subList.get(i).getStartTime());
+                                    preparedStatement.setObject(7, subList.get(i).getEndTime());
+                                    preparedStatement.setObject(8, subList.get(i).getCreateTime());
+                                    preparedStatement.setObject(9, subList.get(i).getUpdateTime());
+                                    preparedStatement.setObject(10, tenantId);
+                                    preparedStatement.setObject(11, subList.get(i).getDeptCode());
+                                    preparedStatement.setObject(12, subList.get(i).getSource());
+                                    preparedStatement.setObject(13, subList.get(i).getDataSource());
+                                    preparedStatement.setObject(14, subList.get(i).getActive());
+                                    preparedStatement.setObject(15, LocalDateTime.now());
+                                    preparedStatement.setObject(16, subList.get(i).getIndex());
+                                    preparedStatement.setObject(17, subList.get(i).getAccountNo());
+                                    preparedStatement.setObject(18, subList.get(i).getValidStartTime());
+                                    preparedStatement.setObject(19, subList.get(i).getValidEndTime());
+                                    preparedStatement.setObject(20, subList.get(i).getOrphan());
+                                    preparedStatement.setObject(21, subList.get(i).getDataSource());
+                                    preparedStatement.setObject(22, subList.get(i).getSource());
+                                    preparedStatement.setObject(23, 0);
+                                    preparedStatement.setObject(24, subList.get(i).getPersonId());
+                                }
+
+                                @Override
+                                public int getBatchSize() {
+                                    return subList.size();
+                                }
+                            });
+
                         }
-                    });
+                    }
                 }
 
 
                 if (occupyMap.containsKey("insert")) {
                     List<OccupyDto> list = occupyMap.get("insert");
-                    int[] ints = jdbcIGA.batchUpdate(sql, new BatchPreparedStatementSetter() {
-                        @Override
-                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, list.get(i).getOccupyId());
-                            preparedStatement.setObject(2, list.get(i).getPostCode());
-                            preparedStatement.setObject(3, list.get(i).getIdentityCardType());
-                            preparedStatement.setObject(4, list.get(i).getIdentityCardNo());
-                            preparedStatement.setObject(5, list.get(i).getDelMark());
-                            preparedStatement.setObject(6, list.get(i).getStartTime());
-                            preparedStatement.setObject(7, list.get(i).getEndTime());
-                            preparedStatement.setObject(8, list.get(i).getCreateTime());
-                            preparedStatement.setObject(9, list.get(i).getUpdateTime());
-                            preparedStatement.setObject(10, tenantId);
-                            preparedStatement.setObject(11, list.get(i).getDeptCode());
-                            preparedStatement.setObject(12, list.get(i).getSource());
-                            preparedStatement.setObject(13, list.get(i).getDataSource());
-                            preparedStatement.setObject(14, list.get(i).getActive());
-                            preparedStatement.setObject(15, LocalDateTime.now());
-                            preparedStatement.setObject(16, list.get(i).getIndex());
-                            preparedStatement.setObject(17, list.get(i).getAccountNo());
-                            preparedStatement.setObject(18, list.get(i).getValidStartTime());
-                            preparedStatement.setObject(19, list.get(i).getValidEndTime());
-                            preparedStatement.setObject(20, list.get(i).getOrphan());
-                            preparedStatement.setObject(21, list.get(i).getDataSource());
-                            preparedStatement.setObject(22, list.get(i).getSource());
-                            preparedStatement.setObject(23, 1);
-                            preparedStatement.setObject(24, list.get(i).getPersonId());
-                        }
+                    if (!CollectionUtils.isEmpty(list)) {
 
-                        @Override
-                        public int getBatchSize() {
-                            return list.size();
+                        int batchSize = 5000;
+                        int batchCount = (list.size() + batchSize - 1) / batchSize;
+                        for (int i = 0; i < batchCount; i++) {
+                            int fromIndex = i * batchSize;
+                            int toIndex = Math.min((i + 1) * batchSize, list.size());
+                            log.info("from:" + fromIndex + "to:" + toIndex);
+                            List<OccupyDto> subList = list.subList(fromIndex, toIndex);
+
+                            int[] ints = jdbcIGA.batchUpdate(sql, new BatchPreparedStatementSetter() {
+                                @Override
+                                public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                                    preparedStatement.setObject(1, subList.get(i).getOccupyId());
+                                    preparedStatement.setObject(2, subList.get(i).getPostCode());
+                                    preparedStatement.setObject(3, subList.get(i).getIdentityCardType());
+                                    preparedStatement.setObject(4, subList.get(i).getIdentityCardNo());
+                                    preparedStatement.setObject(5, subList.get(i).getDelMark());
+                                    preparedStatement.setObject(6, subList.get(i).getStartTime());
+                                    preparedStatement.setObject(7, subList.get(i).getEndTime());
+                                    preparedStatement.setObject(8, subList.get(i).getCreateTime());
+                                    preparedStatement.setObject(9, subList.get(i).getUpdateTime());
+                                    preparedStatement.setObject(10, tenantId);
+                                    preparedStatement.setObject(11, subList.get(i).getDeptCode());
+                                    preparedStatement.setObject(12, subList.get(i).getSource());
+                                    preparedStatement.setObject(13, subList.get(i).getDataSource());
+                                    preparedStatement.setObject(14, subList.get(i).getActive());
+                                    preparedStatement.setObject(15, LocalDateTime.now());
+                                    preparedStatement.setObject(16, subList.get(i).getIndex());
+                                    preparedStatement.setObject(17, subList.get(i).getAccountNo());
+                                    preparedStatement.setObject(18, subList.get(i).getValidStartTime());
+                                    preparedStatement.setObject(19, subList.get(i).getValidEndTime());
+                                    preparedStatement.setObject(20, subList.get(i).getOrphan());
+                                    preparedStatement.setObject(21, subList.get(i).getDataSource());
+                                    preparedStatement.setObject(22, subList.get(i).getSource());
+                                    preparedStatement.setObject(23, 1);
+                                    preparedStatement.setObject(24, subList.get(i).getPersonId());
+                                }
+
+                                @Override
+                                public int getBatchSize() {
+                                    return subList.size();
+                                }
+                            });
+
                         }
-                    });
+                    }
                 }
 
 
                 if (occupyMap.containsKey("update")) {
                     List<OccupyDto> list = occupyMap.get("update");
-                    int[] ints = jdbcIGA.batchUpdate(sql, new BatchPreparedStatementSetter() {
-                        @Override
-                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, list.get(i).getOccupyId());
-                            preparedStatement.setObject(2, list.get(i).getPostCode());
-                            preparedStatement.setObject(3, list.get(i).getIdentityCardType());
-                            preparedStatement.setObject(4, list.get(i).getIdentityCardNo());
-                            preparedStatement.setObject(5, list.get(i).getDelMark());
-                            preparedStatement.setObject(6, list.get(i).getStartTime());
-                            preparedStatement.setObject(7, list.get(i).getEndTime());
-                            preparedStatement.setObject(8, list.get(i).getCreateTime());
-                            preparedStatement.setObject(9, LocalDateTime.now());
-                            preparedStatement.setObject(10, tenantId);
-                            preparedStatement.setObject(11, list.get(i).getDeptCode());
-                            preparedStatement.setObject(12, list.get(i).getSource());
-                            preparedStatement.setObject(13, list.get(i).getDataSource());
-                            preparedStatement.setObject(14, list.get(i).getActive());
-                            preparedStatement.setObject(15, list.get(i).getCreateTime());
-                            preparedStatement.setObject(16, list.get(i).getIndex());
-                            preparedStatement.setObject(17, list.get(i).getAccountNo());
-                            preparedStatement.setObject(18, list.get(i).getValidStartTime());
-                            preparedStatement.setObject(19, list.get(i).getValidEndTime());
-                            preparedStatement.setObject(20, list.get(i).getOrphan());
-                            preparedStatement.setObject(21, list.get(i).getDataSource());
-                            preparedStatement.setObject(22, list.get(i).getSource());
-                            preparedStatement.setObject(23, 3);
-                            preparedStatement.setObject(24, list.get(i).getPersonId());
-                        }
+                    if (!CollectionUtils.isEmpty(list)) {
 
-                        @Override
-                        public int getBatchSize() {
-                            return list.size();
+                        int batchSize = 5000;
+                        int batchCount = (list.size() + batchSize - 1) / batchSize;
+                        for (int i = 0; i < batchCount; i++) {
+                            int fromIndex = i * batchSize;
+                            int toIndex = Math.min((i + 1) * batchSize, list.size());
+                            log.info("from:" + fromIndex + "to:" + toIndex);
+                            List<OccupyDto> subList = list.subList(fromIndex, toIndex);
+
+                            int[] ints = jdbcIGA.batchUpdate(sql, new BatchPreparedStatementSetter() {
+                                @Override
+                                public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                                    preparedStatement.setObject(1, subList.get(i).getOccupyId());
+                                    preparedStatement.setObject(2, subList.get(i).getPostCode());
+                                    preparedStatement.setObject(3, subList.get(i).getIdentityCardType());
+                                    preparedStatement.setObject(4, subList.get(i).getIdentityCardNo());
+                                    preparedStatement.setObject(5, subList.get(i).getDelMark());
+                                    preparedStatement.setObject(6, subList.get(i).getStartTime());
+                                    preparedStatement.setObject(7, subList.get(i).getEndTime());
+                                    preparedStatement.setObject(8, subList.get(i).getCreateTime());
+                                    preparedStatement.setObject(9, subList.get(i).getUpdateTime());
+                                    preparedStatement.setObject(10, tenantId);
+                                    preparedStatement.setObject(11, subList.get(i).getDeptCode());
+                                    preparedStatement.setObject(12, subList.get(i).getSource());
+                                    preparedStatement.setObject(13, subList.get(i).getDataSource());
+                                    preparedStatement.setObject(14, subList.get(i).getActive());
+                                    preparedStatement.setObject(15, LocalDateTime.now());
+                                    preparedStatement.setObject(16, subList.get(i).getIndex());
+                                    preparedStatement.setObject(17, subList.get(i).getAccountNo());
+                                    preparedStatement.setObject(18, subList.get(i).getValidStartTime());
+                                    preparedStatement.setObject(19, subList.get(i).getValidEndTime());
+                                    preparedStatement.setObject(20, subList.get(i).getOrphan());
+                                    preparedStatement.setObject(21, subList.get(i).getDataSource());
+                                    preparedStatement.setObject(22, subList.get(i).getSource());
+                                    preparedStatement.setObject(23, 3);
+                                    preparedStatement.setObject(24, subList.get(i).getPersonId());
+                                }
+
+                                @Override
+                                public int getBatchSize() {
+                                    return subList.size();
+                                }
+                            });
+
                         }
-                    });
+                    }
                 }
 
                 if (occupyMap.containsKey("delete")) {
                     List<OccupyDto> list = occupyMap.get("delete");
 
-                    int[] ints = jdbcSSO.batchUpdate(sql, new BatchPreparedStatementSetter() {
-                        @Override
-                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, list.get(i).getOccupyId());
-                            preparedStatement.setObject(2, list.get(i).getPostCode());
-                            preparedStatement.setObject(3, list.get(i).getIdentityCardType());
-                            preparedStatement.setObject(4, list.get(i).getIdentityCardNo());
-                            preparedStatement.setObject(5, 1);
-                            preparedStatement.setObject(6, list.get(i).getStartTime());
-                            preparedStatement.setObject(7, list.get(i).getEndTime());
-                            preparedStatement.setObject(8, list.get(i).getCreateTime());
-                            preparedStatement.setObject(9, LocalDateTime.now());
-                            preparedStatement.setObject(10, tenantId);
-                            preparedStatement.setObject(11, list.get(i).getDeptCode());
-                            preparedStatement.setObject(12, list.get(i).getSource());
-                            preparedStatement.setObject(13, list.get(i).getDataSource());
-                            preparedStatement.setObject(14, list.get(i).getActive());
-                            preparedStatement.setObject(15, list.get(i).getCreateTime());
-                            preparedStatement.setObject(16, list.get(i).getIndex());
-                            preparedStatement.setObject(17, list.get(i).getAccountNo());
-                            preparedStatement.setObject(18, list.get(i).getValidStartTime());
-                            preparedStatement.setObject(19, list.get(i).getValidEndTime());
-                            preparedStatement.setObject(20, list.get(i).getOrphan());
-                            preparedStatement.setObject(21, list.get(i).getDataSource());
-                            preparedStatement.setObject(22, list.get(i).getSource());
-                            preparedStatement.setObject(23, 2);
-                            preparedStatement.setObject(24, list.get(i).getPersonId());
-                        }
+                    if (!CollectionUtils.isEmpty(list)) {
 
-                        @Override
-                        public int getBatchSize() {
-                            return list.size();
+                        int batchSize = 5000;
+                        int batchCount = (list.size() + batchSize - 1) / batchSize;
+                        for (int i = 0; i < batchCount; i++) {
+                            int fromIndex = i * batchSize;
+                            int toIndex = Math.min((i + 1) * batchSize, list.size());
+                            log.info("from:" + fromIndex + "to:" + toIndex);
+                            List<OccupyDto> subList = list.subList(fromIndex, toIndex);
+
+                            int[] ints = jdbcIGA.batchUpdate(sql, new BatchPreparedStatementSetter() {
+                                @Override
+                                public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                                    preparedStatement.setObject(1, subList.get(i).getOccupyId());
+                                    preparedStatement.setObject(2, subList.get(i).getPostCode());
+                                    preparedStatement.setObject(3, subList.get(i).getIdentityCardType());
+                                    preparedStatement.setObject(4, subList.get(i).getIdentityCardNo());
+                                    preparedStatement.setObject(5, subList.get(i).getDelMark());
+                                    preparedStatement.setObject(6, subList.get(i).getStartTime());
+                                    preparedStatement.setObject(7, subList.get(i).getEndTime());
+                                    preparedStatement.setObject(8, subList.get(i).getCreateTime());
+                                    preparedStatement.setObject(9, subList.get(i).getUpdateTime());
+                                    preparedStatement.setObject(10, tenantId);
+                                    preparedStatement.setObject(11, subList.get(i).getDeptCode());
+                                    preparedStatement.setObject(12, subList.get(i).getSource());
+                                    preparedStatement.setObject(13, subList.get(i).getDataSource());
+                                    preparedStatement.setObject(14, subList.get(i).getActive());
+                                    preparedStatement.setObject(15, LocalDateTime.now());
+                                    preparedStatement.setObject(16, subList.get(i).getIndex());
+                                    preparedStatement.setObject(17, subList.get(i).getAccountNo());
+                                    preparedStatement.setObject(18, subList.get(i).getValidStartTime());
+                                    preparedStatement.setObject(19, subList.get(i).getValidEndTime());
+                                    preparedStatement.setObject(20, subList.get(i).getOrphan());
+                                    preparedStatement.setObject(21, subList.get(i).getDataSource());
+                                    preparedStatement.setObject(22, subList.get(i).getSource());
+                                    preparedStatement.setObject(23, 2);
+                                    preparedStatement.setObject(24, subList.get(i).getPersonId());
+                                }
+
+                                @Override
+                                public int getBatchSize() {
+                                    return subList.size();
+                                }
+                            });
+
                         }
-                    });
+                    }
                 }
 
                 if (occupyMap.containsKey("invalid")) {
                     List<OccupyDto> list = occupyMap.get("invalid");
-                    int[] ints = jdbcIGA.batchUpdate(sql, new BatchPreparedStatementSetter() {
-                        @Override
-                        public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                            preparedStatement.setObject(1, list.get(i).getOccupyId());
-                            preparedStatement.setObject(2, list.get(i).getPostCode());
-                            preparedStatement.setObject(3, list.get(i).getIdentityCardType());
-                            preparedStatement.setObject(4, list.get(i).getIdentityCardNo());
-                            preparedStatement.setObject(5, list.get(i).getDelMark());
-                            preparedStatement.setObject(6, list.get(i).getStartTime());
-                            preparedStatement.setObject(7, list.get(i).getEndTime());
-                            preparedStatement.setObject(8, list.get(i).getCreateTime());
-                            preparedStatement.setObject(9, LocalDateTime.now());
-                            preparedStatement.setObject(10, tenantId);
-                            preparedStatement.setObject(11, list.get(i).getDeptCode());
-                            preparedStatement.setObject(12, list.get(i).getSource());
-                            preparedStatement.setObject(13, list.get(i).getDataSource());
-                            preparedStatement.setObject(14, list.get(i).getActive());
-                            preparedStatement.setObject(15, list.get(i).getCreateTime());
-                            preparedStatement.setObject(16, list.get(i).getIndex());
-                            preparedStatement.setObject(17, list.get(i).getAccountNo());
-                            preparedStatement.setObject(18, list.get(i).getValidStartTime());
-                            preparedStatement.setObject(19, list.get(i).getValidEndTime());
-                            preparedStatement.setObject(20, list.get(i).getOrphan());
-                            preparedStatement.setObject(21, list.get(i).getDataSource());
-                            preparedStatement.setObject(22, list.get(i).getSource());
-                            preparedStatement.setObject(23, 4);
-                            preparedStatement.setObject(24, list.get(i).getPersonId());
-                        }
+                    if (!CollectionUtils.isEmpty(list)) {
 
-                        @Override
-                        public int getBatchSize() {
-                            return list.size();
+                        int batchSize = 5000;
+                        int batchCount = (list.size() + batchSize - 1) / batchSize;
+                        for (int i = 0; i < batchCount; i++) {
+                            int fromIndex = i * batchSize;
+                            int toIndex = Math.min((i + 1) * batchSize, list.size());
+                            log.info("from:" + fromIndex + "to:" + toIndex);
+                            List<OccupyDto> subList = list.subList(fromIndex, toIndex);
+
+                            int[] ints = jdbcIGA.batchUpdate(sql, new BatchPreparedStatementSetter() {
+                                @Override
+                                public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                                    preparedStatement.setObject(1, subList.get(i).getOccupyId());
+                                    preparedStatement.setObject(2, subList.get(i).getPostCode());
+                                    preparedStatement.setObject(3, subList.get(i).getIdentityCardType());
+                                    preparedStatement.setObject(4, subList.get(i).getIdentityCardNo());
+                                    preparedStatement.setObject(5, subList.get(i).getDelMark());
+                                    preparedStatement.setObject(6, subList.get(i).getStartTime());
+                                    preparedStatement.setObject(7, subList.get(i).getEndTime());
+                                    preparedStatement.setObject(8, subList.get(i).getCreateTime());
+                                    preparedStatement.setObject(9, subList.get(i).getUpdateTime());
+                                    preparedStatement.setObject(10, tenantId);
+                                    preparedStatement.setObject(11, subList.get(i).getDeptCode());
+                                    preparedStatement.setObject(12, subList.get(i).getSource());
+                                    preparedStatement.setObject(13, subList.get(i).getDataSource());
+                                    preparedStatement.setObject(14, subList.get(i).getActive());
+                                    preparedStatement.setObject(15, LocalDateTime.now());
+                                    preparedStatement.setObject(16, subList.get(i).getIndex());
+                                    preparedStatement.setObject(17, subList.get(i).getAccountNo());
+                                    preparedStatement.setObject(18, subList.get(i).getValidStartTime());
+                                    preparedStatement.setObject(19, subList.get(i).getValidEndTime());
+                                    preparedStatement.setObject(20, subList.get(i).getOrphan());
+                                    preparedStatement.setObject(21, subList.get(i).getDataSource());
+                                    preparedStatement.setObject(22, subList.get(i).getSource());
+                                    preparedStatement.setObject(23, 4);
+                                    preparedStatement.setObject(24, subList.get(i).getPersonId());
+                                }
+
+                                @Override
+                                public int getBatchSize() {
+                                    return subList.size();
+                                }
+                            });
+
                         }
-                    });
+                    }
                 }
 
                 if (!CollectionUtils.isEmpty(attrList)) {
@@ -546,58 +612,90 @@ public class OccupyDaoImpl implements OccupyDao {
                         }
                     });
                     // 删除value条件
-                    String deleteDynamicValueSql = "delete from dynamic_value where  tenant_id = ? and attr_id  in (select id from dynamic_attr where type='IDENTITY' and tenant_id=?  )";
-                    jdbcIGA.update(deleteDynamicValueSql, tenantId, tenantId);
+                    String deleteDynamicValueSql = "delete from dynamic_value where  attr_id  in (select id from dynamic_attr where type='IDENTITY' and tenant_id=?) limit 5000 ";
+                    deleteOccupyData(deleteDynamicValueSql, tenantId);
                     String valueStr = "INSERT INTO dynamic_value (`id`, `attr_id`, `entity_id`, `value`, `tenant_id`) VALUES (?, ?, ?, ?, ?)";
 
                     if (!CollectionUtils.isEmpty(dynamicValues)) {
-                        jdbcIGA.batchUpdate(valueStr, new BatchPreparedStatementSetter() {
-                            @Override
-                            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                                preparedStatement.setObject(1, dynamicValues.get(i).getId());
-                                preparedStatement.setObject(2, dynamicValues.get(i).getAttrId());
-                                preparedStatement.setObject(3, dynamicValues.get(i).getEntityId());
-                                preparedStatement.setObject(4, dynamicValues.get(i).getValue());
-                                preparedStatement.setObject(5, tenantId);
-                            }
 
-                            @Override
-                            public int getBatchSize() {
-                                return dynamicValues.size();
-                            }
-                        });
+                        int batchSize = 5000;
+                        int batchCount = (dynamicValues.size() + batchSize - 1) / batchSize;
+                        for (int i = 0; i < batchCount; i++) {
+                            int fromIndex = i * batchSize;
+                            int toIndex = Math.min((i + 1) * batchSize, dynamicValues.size());
+                            log.info("from:" + fromIndex + "to:" + toIndex);
+                            List<DynamicValue> subList = dynamicValues.subList(fromIndex, toIndex);
+
+                            int[] ints = jdbcIGA.batchUpdate(valueStr, new BatchPreparedStatementSetter() {
+                                @Override
+                                public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                                    preparedStatement.setObject(1, subList.get(i).getId());
+                                    preparedStatement.setObject(2, subList.get(i).getAttrId());
+                                    preparedStatement.setObject(3, subList.get(i).getEntityId());
+                                    preparedStatement.setObject(4, subList.get(i).getValue());
+                                    preparedStatement.setObject(5, tenantId);
+                                }
+
+                                @Override
+                                public int getBatchSize() {
+                                    return subList.size();
+                                }
+                            });
+
+                        }
                     }
                     if (!CollectionUtils.isEmpty(valueInsert)) {
-                        jdbcIGA.batchUpdate(valueStr, new BatchPreparedStatementSetter() {
-                            @Override
-                            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                                preparedStatement.setObject(1, dynamicValues.get(i).getId());
-                                preparedStatement.setObject(2, dynamicValues.get(i).getAttrId());
-                                preparedStatement.setObject(3, dynamicValues.get(i).getEntityId());
-                                preparedStatement.setObject(4, dynamicValues.get(i).getValue());
-                                preparedStatement.setObject(5, tenantId);
-                            }
+                        int batchSize = 5000;
+                        int batchCount = (valueInsert.size() + batchSize - 1) / batchSize;
+                        for (int i = 0; i < batchCount; i++) {
+                            int fromIndex = i * batchSize;
+                            int toIndex = Math.min((i + 1) * batchSize, valueInsert.size());
+                            log.info("from:" + fromIndex + "to:" + toIndex);
+                            List<DynamicValue> subList = valueInsert.subList(fromIndex, toIndex);
 
-                            @Override
-                            public int getBatchSize() {
-                                return dynamicValues.size();
-                            }
-                        });
+                            jdbcIGA.batchUpdate(valueStr, new BatchPreparedStatementSetter() {
+                                @Override
+                                public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                                    preparedStatement.setObject(1, subList.get(i).getId());
+                                    preparedStatement.setObject(2, subList.get(i).getAttrId());
+                                    preparedStatement.setObject(3, subList.get(i).getEntityId());
+                                    preparedStatement.setObject(4, subList.get(i).getValue());
+                                    preparedStatement.setObject(5, tenantId);
+                                }
+
+                                @Override
+                                public int getBatchSize() {
+                                    return subList.size();
+                                }
+                            });
+
+                        }
                     }
                     if (!CollectionUtils.isEmpty(valueUpdate)) {
                         String valueUpdateStr = "update dynamic_value set `value`=? where id= ?";
-                        jdbcIGA.batchUpdate(valueUpdateStr, new BatchPreparedStatementSetter() {
-                            @Override
-                            public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                                preparedStatement.setObject(1, valueUpdate.get(i).getValue());
-                                preparedStatement.setObject(2, valueUpdate.get(i).getId());
-                            }
+                        int batchSize = 5000;
+                        int batchCount = (valueUpdate.size() + batchSize - 1) / batchSize;
+                        for (int i = 0; i < batchCount; i++) {
+                            int fromIndex = i * batchSize;
+                            int toIndex = Math.min((i + 1) * batchSize, valueUpdate.size());
+                            log.info("from:" + fromIndex + "to:" + toIndex);
+                            List<DynamicValue> subList = valueUpdate.subList(fromIndex, toIndex);
 
-                            @Override
-                            public int getBatchSize() {
-                                return valueUpdate.size();
-                            }
-                        });
+                            jdbcIGA.batchUpdate(valueUpdateStr, new BatchPreparedStatementSetter() {
+                                @Override
+                                public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
+                                    preparedStatement.setObject(1, subList.get(i).getValue());
+                                    preparedStatement.setObject(2, subList.get(i).getId());
+                                }
+
+                                @Override
+                                public int getBatchSize() {
+                                    return subList.size();
+                                }
+                            });
+
+                        }
+
                     }
                 }
 
@@ -610,6 +708,13 @@ public class OccupyDaoImpl implements OccupyDao {
             }
 
         });
+    }
+
+    private void deleteOccupyData(String sql, String tenantId) {
+        int update = jdbcIGA.update(sql, tenantId);
+        if (update >= 5000) {
+            deleteOccupyData(sql, tenantId);
+        }
     }
 
     @Override
