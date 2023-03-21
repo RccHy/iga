@@ -166,7 +166,7 @@ public class ReConnectWebSocketClient {
 
                     @Override
                     public void onWebsocketPong(WebSocket conn, Framedata f) {
-                        log.info(
+                        log.debug(
                                 "[{}]ReConnectWebSocketClient [onWebsocketPong]接收到服务端数据：opcode={}",
                                 key,
                                 f.getOpcode());
