@@ -217,7 +217,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
 
             //删除nodeRule
             String deleteNodeRuleSql = "delete from  t_mgr_node_rules where upstream_types_id in (select id from t_mgr_upstream_types where upstream_id = ?) or service_key in (select id from t_mgr_upstream_types where upstream_id = ?)";
-            jdbcIGA.update(deleteNodeRuleSql, upstream.getId(),upstream.getId());
+            jdbcIGA.update(deleteNodeRuleSql, upstream.getId(), upstream.getId());
 
             //删除node, nodeRule 没有数据关联 则需要删除
             String deleteNodeSql = "delete from t_mgr_node where domain = ? and id not in (select node_id from t_mgr_node_rules)";
@@ -305,6 +305,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
                         preparedStatement.setObject(17, updateUpstreamTypes.get(i).getBuiltinData());
                         preparedStatement.setObject(18, updateUpstreamTypes.get(i).getId());
                     }
+
                     @Override
                     public int getBatchSize() {
                         return updateUpstreamTypes.size();
@@ -325,6 +326,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
                         preparedStatement.setObject(6, null);
                         preparedStatement.setObject(7, domainInfo.getId());
                     }
+
                     @Override
                     public int getBatchSize() {
                         return upstreamTypeFields.size();
@@ -339,6 +341,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
 
     /**
      * [bootstrap]批量保存 权威源相关的规则信息
+     *
      * @param nodes
      * @param nodeRulesList
      * @param nodeRulesRangeList
@@ -366,6 +369,7 @@ public class UpstreamDaoImpl implements UpstreamDao {
                             preparedStatement.setObject(8, nodes.get(i).getStatus());
                             preparedStatement.setObject(9, nodes.get(i).getType());
                         }
+
                         @Override
                         public int getBatchSize() {
                             return nodes.size();
@@ -531,6 +535,32 @@ public class UpstreamDaoImpl implements UpstreamDao {
             param.add(AutoUpRunner.superDomainId);
         }
         stb.append(" ) ");
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
+
+        ArrayList<Upstream> list = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(mapList)) {
+            for (Map<String, Object> map : mapList) {
+                Upstream upstream = new Upstream();
+                BeanMap beanMap = BeanMap.create(upstream);
+                beanMap.putAll(map);
+                list.add(upstream);
+            }
+            return list;
+        }
+        return null;
+    }
+
+    @Override
+    public List<Upstream> findByRecover(String domain) {
+        //拼接sql
+        StringBuffer stb = new StringBuffer("SELECT  *   FROM  t_mgr_upstream   WHERE  domain = ?   AND app_code IN ( SELECT " +
+                " app_code  FROM  t_mgr_upstream   WHERE domain = ?   AND app_code IN ( " +
+                "SELECT app_code FROM t_mgr_upstream WHERE id IN ( SELECT upstream_id FROM t_mgr_domain_ignore WHERE domain = ? AND upstream_id IS NOT NULL ) ) )");
+        //存入参数
+        List<Object> param = new ArrayList<>();
+        param.add(AutoUpRunner.superDomainId);
+        param.add(domain);
+        param.add(domain);
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
 
         ArrayList<Upstream> list = new ArrayList<>();

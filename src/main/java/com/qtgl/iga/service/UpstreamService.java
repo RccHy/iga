@@ -45,4 +45,6 @@ public interface UpstreamService {
     Integer saveUpstreamAboutNodes(List<Node> nodes, List<NodeRules> nodeRulesList, List<NodeRulesRange> nodeRulesRanges, DomainInfo domainInfo);
 
     void saveRoleBing(List<UpstreamType> upstreamTypes, List<Node> nodes, List<NodeRules> nodeRulesList, DomainInfo domainInfo);
+
+    List<UpstreamDto> findByRecover(String domain);
 }

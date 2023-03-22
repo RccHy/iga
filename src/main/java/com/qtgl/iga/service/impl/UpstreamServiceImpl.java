@@ -55,7 +55,7 @@ public class UpstreamServiceImpl implements UpstreamService {
         List<DomainIgnore> byDomain = ignoreService.findByDomain(domain);
         List<String> ignoreUpstreamIds = new ArrayList<>();
         if (!CollectionUtils.isEmpty(byDomain)) {
-            ignoreUpstreamIds = byDomain.stream().filter(domainIgnore -> StringUtils.isNotBlank(domainIgnore.getUpstreamId())).map(DomainIgnore::getUpstreamId).collect(Collectors.toList());
+            ignoreUpstreamIds = byDomain.stream().map(DomainIgnore::getUpstreamId).filter(StringUtils::isNotBlank).collect(Collectors.toList());
         }
 
         HashMap<String, UpstreamDto> map = new HashMap<>();
@@ -71,12 +71,12 @@ public class UpstreamServiceImpl implements UpstreamService {
                 upstreamDto.setLocal(false);
             }
             //覆盖判断
-            if (map.containsKey(upstreamDto.getAppName() + "_" + upstreamDto.getAppCode())) {
+            if (map.containsKey(upstreamDto.getAppCode())) {
                 if (!upstream.getDomain().equals(AutoUpRunner.superDomainId)) {
-                    map.put(upstreamDto.getAppName() + "_" + upstreamDto.getAppCode(), upstreamDto);
+                    map.put( upstreamDto.getAppCode(), upstreamDto);
                 }
             } else {
-                map.put(upstreamDto.getAppName() + "_" + upstreamDto.getAppCode(), upstreamDto);
+                map.put(upstreamDto.getAppCode(), upstreamDto);
             }
         }
 
@@ -387,6 +387,28 @@ public class UpstreamServiceImpl implements UpstreamService {
         }
 
 
+    }
+
+    @Override
+    public List<UpstreamDto> findByRecover(String domain) {
+        ArrayList<UpstreamDto> upstreamDtos = new ArrayList<>();
+
+        //获取被覆盖的权威源
+       List<Upstream> upstreams =  upstreamDao.findByRecover(domain);
+       if(!CollectionUtils.isEmpty(upstreams)){
+           List<String> ids = upstreams.stream().map(Upstream::getId).collect(Collectors.toList());
+           //获取被覆盖权威源所涉及的权威源类型
+           List<UpstreamType> byUpstreamIds = upstreamTypeService.findByUpstreamIds(ids, domain);
+           if(!CollectionUtils.isEmpty(byUpstreamIds)){
+               Map<String, List<UpstreamType>> typesMap = byUpstreamIds.stream().collect(Collectors.groupingBy(UpstreamType::getUpstreamId));
+               for (Upstream upstream : upstreams) {
+                   UpstreamDto upstreamDto = new UpstreamDto(upstream);
+                   upstreamDto.setUpstreamTypes(typesMap.get(upstream.getId()));
+                   upstreamDtos.add(upstreamDto);
+               }
+           }
+       }
+        return upstreamDtos;
     }
 
 
