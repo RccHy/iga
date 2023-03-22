@@ -487,6 +487,19 @@ CREATE TABLE `dynamic_value` (
                                  KEY `entity_id_index` (`entity_id`) USING BTREE COMMENT '实体字段索引'
 );
 
+create table t_mgr_dept_merge_attr_rule
+(
+    id              varchar(50)  not null
+        primary key,
+    attr_name       varchar(100) null comment '属性名称',
+    entity_id       varchar(50)  not null comment '被赋值的对象',
+    from_entity_id  varchar(50)  not null comment '提供值的对象',
+    dynamic_attr_id varchar(50)  null comment '扩展属性情况下对应的id',
+    create_time     timestamp     null,
+    tenant_Id       varchar(50)  null
+)
+    comment '手工合重属性';
+
 
 
 

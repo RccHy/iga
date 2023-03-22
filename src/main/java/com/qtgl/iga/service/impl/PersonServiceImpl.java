@@ -134,7 +134,7 @@ public class PersonServiceImpl implements PersonService {
      * * D: 无效  上游曾经提供后，不再提供 OR 上游提供了active
      * * E: 恢复  之前被标记为失效后再通过推送了相同的数据
      * Doing： 一对多的证件。 一个人可以有多个证件；身份证、护照等
-     * TODO： 如果有手动合重规则，运算手动合重规则【待确认】
+     *
      */
 
     @Override
@@ -230,6 +230,8 @@ public class PersonServiceImpl implements PersonService {
         if (!CollectionUtils.isEmpty(valueUpdateMap)) {
             valueUpdate = new ArrayList<>(valueUpdateMap.values());
         }
+
+
         //插入数据库
         personDao.saveToSso(result, tenant.getId(), valueUpdate, valueInsert, certificates);
 

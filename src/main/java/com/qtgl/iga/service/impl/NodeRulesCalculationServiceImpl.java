@@ -630,7 +630,7 @@ public class NodeRulesCalculationServiceImpl {
                             }
                         } catch (Exception e) {
 
-                            logger.error("{} 节点 {} 中的类型 {} 表达式异常", (null == treeType ? "" : treeType.getName()), ("".equals(nodeCode) ? "根节点" : nodeCode), upstreamType.getDescription());
+                            logger.error("{}{} 中的类型 【{}】 表达式异常", (null == treeType ? "" : treeType.getName()+"下"), ("".equals(nodeCode) ? "根节点" : nodeCode), upstreamType.getDescription());
                             throw new CustomException(ResultCode.EXPRESSION_ERROR, null, null, null == treeType ? "" : treeType.getName(), "".equals(nodeCode) ? "根节点" : nodeCode, upstreamType.getDescription());
                         }
 
