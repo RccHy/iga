@@ -129,9 +129,8 @@ public class NodeServiceImpl implements NodeService {
             if (StringUtils.isNotBlank(AutoUpRunner.superDomainId) && AutoUpRunner.superDomainId.equals(node.getDomain())) {
                 throw new CustomException(ResultCode.FAILED, "删除节点失败,当前节点不属于当前租户");
             }
-        } else {
-            return null;
         }
+
         //根据id查询规则是否为禁用状态
         Integer i = 0;
         Integer flag = 0;
@@ -272,7 +271,7 @@ public class NodeServiceImpl implements NodeService {
                             NodeDto nodeDto = new NodeDto(node);
                             nodeDto.setLocal(false);
                             List<NodeRulesVo> resultRules = rulesMap.get(node.getId());
-                            dealWithNodeRules(nodeDto, resultRules, false,ignoreUpstreamTypeIds);
+                            dealWithNodeRules(nodeDto, resultRules, false, ignoreUpstreamTypeIds);
                             nodeDos.add(nodeDto);
 
                         }
@@ -292,7 +291,7 @@ public class NodeServiceImpl implements NodeService {
                     //来自超级租户的规则node 标识为非本租户
                     nodeDto.setLocal(false);
                     if (rulesMap.containsKey(node.getId())) {
-                        dealWithNodeRules(nodeDto, nodeRulesVos, false,ignoreUpstreamTypeIds);
+                        dealWithNodeRules(nodeDto, nodeRulesVos, false, ignoreUpstreamTypeIds);
                         nodeDto.setNodeRules(nodeRulesVos);
                     }
                     nodeDos.add(nodeDto);
