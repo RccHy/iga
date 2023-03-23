@@ -255,7 +255,7 @@ public class NodeServiceImpl implements NodeService {
                     nodeDto.setLocal(true);
                     List<NodeRulesVo> resultRules = new ArrayList<>();
                     if (rulesMap.containsKey(node.getId())) {
-                        resultRules.addAll(rulesMap.get(keyMap.get(node.getId())));
+                        resultRules.addAll(rulesMap.get(node.getId()));
                     }
                     //有跟超级租户对应的node
                     if (keyMap.containsKey(node.getId()) && rulesMap.containsKey(keyMap.get(node.getId()))) {
