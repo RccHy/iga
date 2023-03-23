@@ -253,15 +253,16 @@ public class NodeServiceImpl implements NodeService {
                 for (Node node : nodeList) {
                     NodeDto nodeDto = new NodeDto(node);
                     nodeDto.setLocal(true);
+                    List<NodeRulesVo> resultRules = new ArrayList<>();
                     if (rulesMap.containsKey(node.getId())) {
-                        List<NodeRulesVo> resultRules = rulesMap.get(node.getId());
-                        //有跟超级租户对应的node
-                        if (keyMap.containsKey(node.getId()) && rulesMap.containsKey(keyMap.get(node.getId()))) {
-                            resultRules.addAll(rulesMap.get(keyMap.get(node.getId())));
-                        }
-                        dealWithNodeRules(nodeDto, resultRules, true, ignoreUpstreamTypeIds);
-
+                        resultRules.addAll(rulesMap.get(keyMap.get(node.getId())));
                     }
+                    //有跟超级租户对应的node
+                    if (keyMap.containsKey(node.getId()) && rulesMap.containsKey(keyMap.get(node.getId()))) {
+                        resultRules.addAll(rulesMap.get(keyMap.get(node.getId())));
+                    }
+                    dealWithNodeRules(nodeDto, resultRules, true, ignoreUpstreamTypeIds);
+
                     nodeDos.add(nodeDto);
                 }
                 if (!CollectionUtils.isEmpty(superNodeList)) {
