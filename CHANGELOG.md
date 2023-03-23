@@ -1,25 +1,25 @@
 
-### 20230323
+### 身份治理-20230323-v0.3.7
 
 **数据库**
-- 执行iga/update/update.sql下 20230323的sql
+- 执行 /scripts/iga/sql/update/update.sql  中  20230323 日期脚本
+
 
 **new：**
-- 超级租户相关功能
-- 同步支持sub变更
-- 人员同步支持基础信息合重
-- bootstrap相关功能
+- *【beta】支持通过bus的MQ触发权威源同步，提高当个权威源数据更新效率。参考定义[MQ](https://github.com/ketanyun/docs/wiki/MQ), 参考邮件["关于身份治理“订阅”模式的支持"]
+- 支持通过install解析QUserSource，来实现自动初始化环境所需要的身份治理相关权威源以及规则信息， yaml定义参考[QUserSource.yaml](https://github.com/ketanyun/docs/blob/main/src/main/resources/crd/QUserSource.yaml)
 
 **bug fix**
 - 无
+
 **image：**
 
 - docker.qtgl.com.cn/product/iga:20230323
+- docker.qtgl.com.cn/product/iga-sync:20230216
 
-**依赖其他项目：**
+- **chart：**
 
-- docker.qtgl.com.cn/product/console:20230323
-
+  iga: 0.3.7
 
 ### 20230302
 
