@@ -135,12 +135,12 @@ public class NodeServiceImpl implements NodeService {
         Integer i = 0;
         Integer flag = 0;
 
-        List<NodeDto> nodes = findNodes(arguments, domainId, false);
-        if (CollectionUtils.isEmpty(nodes)) {
+        Node node = finNodeById(id);
+        if (null == node) {
             return null;
         }
 
-        NodeDto nodeDto = nodes.get(0);
+        NodeDto nodeDto = new NodeDto(node);
 
         Integer status = (Integer) arguments.get("status");
         List<NodeRulesVo> rules = nodeRulesService.findNodeRulesByNodeId(id, status);
@@ -253,15 +253,16 @@ public class NodeServiceImpl implements NodeService {
                 for (Node node : nodeList) {
                     NodeDto nodeDto = new NodeDto(node);
                     nodeDto.setLocal(true);
+                    List<NodeRulesVo> resultRules = new ArrayList<>();
                     if (rulesMap.containsKey(node.getId())) {
-                        List<NodeRulesVo> resultRules = rulesMap.get(node.getId());
-                        //有跟超级租户对应的node
-                        if (keyMap.containsKey(node.getId()) && rulesMap.containsKey(keyMap.get(node.getId()))) {
-                            resultRules.addAll(rulesMap.get(keyMap.get(node.getId())));
-                        }
-                        dealWithNodeRules(nodeDto, resultRules, true, ignoreUpstreamTypeIds);
-
+                        resultRules.addAll(rulesMap.get(node.getId()));
                     }
+                    //有跟超级租户对应的node
+                    if (keyMap.containsKey(node.getId()) && rulesMap.containsKey(keyMap.get(node.getId()))) {
+                        resultRules.addAll(rulesMap.get(keyMap.get(node.getId())));
+                    }
+                    dealWithNodeRules(nodeDto, resultRules, true, ignoreUpstreamTypeIds);
+
                     nodeDos.add(nodeDto);
                 }
                 if (!CollectionUtils.isEmpty(superNodeList)) {
