@@ -378,7 +378,7 @@ public class PersonDaoImpl implements PersonDao {
 
                 // 运行属性合重规则，先查询出所有合重属性规则
                 List<MergeAttrRule> mergeAttrRules = jdbcIGA.query("select id,attr_name as attrName,entity_id as entityId,from_entity_id as fromEntityId,dynamic_attr_id as dynamicAttrId " +
-                        "create_time as createTime from merge_attr_rule where domain=?", new Object[]{tenantId}, new BeanPropertyRowMapper<>(MergeAttrRule.class));
+                        "create_time as createTime from merge_attr_rule where tenant_id=?", new Object[]{tenantId}, new BeanPropertyRowMapper<>(MergeAttrRule.class));
                 if (!CollectionUtils.isEmpty(mergeAttrRules)) {
                     for (MergeAttrRule mergeAttrRule : mergeAttrRules) {
                         if (StringUtils.isNotBlank(mergeAttrRule.getDynamicAttrId())) {

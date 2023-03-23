@@ -7,7 +7,7 @@ update t_mgr_upstream_types set code=UUID() where description is not null and co
 alter table t_mgr_upstream_types    add builtin_data longtext null comment '自定义数据 json格式';
 alter table t_mgr_upstream_types modify syn_way int(1) null comment ' 拉取0/推送1/自定义2';
 
-create table t_mgr_dept_merge_attr_rule
+create table t_mgr_merge_attr_rule
 (
     id              varchar(50)  not null primary key,
     attr_name       varchar(100) null comment '属性名称',
@@ -15,7 +15,7 @@ create table t_mgr_dept_merge_attr_rule
     from_entity_id  varchar(50)  not null comment '提供值的对象',
     dynamic_attr_id varchar(50)  null comment '扩展属性情况下对应的id',
     create_time     timestamp     null,
-    tenant_Id       varchar(50)  not null
+    tenant_id       varchar(50)  not null
 )
     comment '手工合重属性';
 
