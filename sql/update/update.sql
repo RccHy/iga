@@ -1,5 +1,5 @@
 
--- 未发版
+-- 20230323
 alter table t_mgr_domain_info add unique (domain_name);
 
 alter table t_mgr_upstream_types add code varchar(50) null comment '机读代码' AFTER `description`;

@@ -1,3 +1,26 @@
+
+### 20230323
+
+**数据库**
+- 执行iga/update/update.sql下 20230323的sql
+
+**new：**
+- 超级租户相关功能
+- 同步支持sub变更
+- 人员同步支持基础信息合重
+- bootstrap相关功能
+
+**bug fix**
+- 无
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20230323
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20230323
+
+
 ### 20230302
 
 **数据库**
