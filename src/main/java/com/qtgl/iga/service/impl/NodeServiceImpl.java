@@ -135,12 +135,12 @@ public class NodeServiceImpl implements NodeService {
         Integer i = 0;
         Integer flag = 0;
 
-        List<NodeDto> nodes = findNodes(arguments, domainId, false);
-        if (CollectionUtils.isEmpty(nodes)) {
+        Node node = finNodeById(id);
+        if (null == node) {
             return null;
         }
 
-        NodeDto nodeDto = nodes.get(0);
+        NodeDto nodeDto = new NodeDto(node);
 
         Integer status = (Integer) arguments.get("status");
         List<NodeRulesVo> rules = nodeRulesService.findNodeRulesByNodeId(id, status);
