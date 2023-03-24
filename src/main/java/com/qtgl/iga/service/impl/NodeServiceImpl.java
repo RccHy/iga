@@ -400,6 +400,7 @@ public class NodeServiceImpl implements NodeService {
                 nodeRules.add(nodeRulesVo);
             }
             nodeDto.setInherit(flag);
+            nodeRules =  nodeRules.stream().sorted(Comparator.comparing(NodeRules::getSort)).collect(Collectors.toList());
             nodeDto.setNodeRules(nodeRules);
         }
     }
