@@ -531,7 +531,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
                 "           WHEN nr.active = FALSE THEN 4 " +
                 "           ELSE 0 END AS runningStatus " +
                 " FROM t_mgr_node_rules nr " +
-                "         JOIN t_mgr_upstream_types ut ON nr.upstream_types_id = ut.id " +
+                "         JOIN t_mgr_upstream_types ut ON (nr.upstream_types_id = ut.id or nr.service_key = ut.id  ) " +
                 "         JOIN t_mgr_upstream u ON ut.upstream_id = u.id " +
                 "         LEFT JOIN t_mgr_domain_ignore di1 ON di1.upstream_id = u.id " +
                 "         LEFT JOIN t_mgr_domain_ignore di2 ON di2.node_rule_id = nr.id " +

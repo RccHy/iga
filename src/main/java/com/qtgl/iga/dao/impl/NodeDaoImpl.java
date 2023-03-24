@@ -497,6 +497,28 @@ public class NodeDaoImpl implements NodeDao {
         return nodes;
     }
 
+    @Override
+    public Node findNodeByIdAndDomain(String id, String domain) {
+        String sql = "select id,manual,node_code as nodeCode,create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status,type" +
+                " from t_mgr_node where id= ?  and domain=?   ";
+        log.info("sql:{}", sql);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id,domain);
+
+        if (!CollectionUtils.isEmpty(mapList) && mapList.size() == 1) {
+            for (Map<String, Object> map : mapList) {
+                try {
+                    Node node = new Node();
+                    MyBeanUtils.populate(node, map);
+                    return node;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return null;
+    }
+
 
     private String handleSql(String sql, List<String> codes, List<Object> param) {
         StringBuffer stb = new StringBuffer(sql);

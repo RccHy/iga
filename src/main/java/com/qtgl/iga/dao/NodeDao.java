@@ -46,4 +46,6 @@ public interface NodeDao {
     List<Node> findNodes(String domainId, Integer status, String type);
 
     List<Node> findNodeById(String id);
+
+    Node findNodeByIdAndDomain(String id, String domain);
 }

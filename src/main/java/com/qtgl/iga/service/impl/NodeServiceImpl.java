@@ -43,17 +43,34 @@ public class NodeServiceImpl implements NodeService {
 
     @Override
     public NodeDto saveNode(NodeDto node, String domain) {
-        if (null == node.getLocal() || node.getLocal()) {
-            //删除原有数据
-            if (null != node.getId()) {
-                HashMap<String, Object> hashMap = new HashMap<>();
-                hashMap.put("id", node.getId());
-                hashMap.put("type", node.getType());
-                deleteNode(hashMap, domain);
+
+        if (null != node.getId()) {
+            //判断当前节点是否为当前租户的
+            Node nodeById = nodeDao.findNodeByIdAndDomain(node.getId(), domain);
+            if (null != nodeById) {
+                //删除原有数据
+                if (null != node.getId()) {
+                    HashMap<String, Object> hashMap = new HashMap<>();
+                    hashMap.put("id", node.getId());
+                    hashMap.put("type", node.getType());
+                    deleteNode(hashMap, domain);
+                }
+            } else {
+                node.setId(UUID.randomUUID().toString());
             }
-        } else {
-            node.setId(UUID.randomUUID().toString());
         }
+
+        //if (null == node.getLocal() || node.getLocal()) {
+        //    //删除原有数据
+        //    if (null != node.getId()) {
+        //        HashMap<String, Object> hashMap = new HashMap<>();
+        //        hashMap.put("id", node.getId());
+        //        hashMap.put("type", node.getType());
+        //        deleteNode(hashMap, domain);
+        //    }
+        //} else {
+        //    node.setId(UUID.randomUUID().toString());
+        //}
 
         //保留版本号
 
@@ -68,7 +85,7 @@ public class NodeServiceImpl implements NodeService {
         node.setDomain(domain);
         NodeDto save = nodeDao.save(node);
         if (null == save) {
-            throw new CustomException(ResultCode.FAILED, "添加节点失败");
+            throw new CustomException(ResultCode.FAILED, "添加规则失败");
         }
         if (!CollectionUtils.isEmpty(node.getNodeRules())) {
             //获取超级租户的规则
@@ -91,12 +108,12 @@ public class NodeServiceImpl implements NodeService {
             //添加节点规则明细
             NodeDto nodeRule = nodeRulesService.saveNodeRules(save);
             if (null == nodeRule) {
-                throw new CustomException(ResultCode.FAILED, "添加节点规则明细失败");
+                throw new CustomException(ResultCode.FAILED, "添加规则明细失败");
             }
             //添加节点规则明细作用域
             NodeDto range = nodeRulesRangeService.saveNodeRuleRange(nodeRule);
             if (null == range) {
-                throw new CustomException(ResultCode.FAILED, "添加节点规则明细作用域失败");
+                throw new CustomException(ResultCode.FAILED, "添加规则明细作用域失败");
             }
             return range;
         }
@@ -123,11 +140,11 @@ public class NodeServiceImpl implements NodeService {
 
         if (!CollectionUtils.isEmpty(nodeList)) {
             if (nodeList.size() > 1) {
-                throw new CustomException(ResultCode.FAILED, "删除节点失败,当前标识不唯一");
+                throw new CustomException(ResultCode.FAILED, "删除规则失败,当前标识不唯一");
             }
             Node node = nodeList.get(0);
             if (StringUtils.isNotBlank(AutoUpRunner.superDomainId) && AutoUpRunner.superDomainId.equals(node.getDomain())) {
-                throw new CustomException(ResultCode.FAILED, "删除节点失败,当前节点不属于当前租户");
+                throw new CustomException(ResultCode.FAILED, "删除规则失败,当前规则不属于当前租户");
             }
         }
 
@@ -154,7 +171,7 @@ public class NodeServiceImpl implements NodeService {
                 if (flag >= 0) {
                     rule.setNodeRulesRanges(byRulesId);
                 } else {
-                    throw new CustomException(ResultCode.FAILED, "删除节点规则作用域失败");
+                    throw new CustomException(ResultCode.FAILED, "删除规则作用域失败");
                 }
             }
         }
@@ -164,7 +181,7 @@ public class NodeServiceImpl implements NodeService {
             nodeDto.setNodeRules(rules);
         }
         if (i < 0 && null != rules) {
-            throw new CustomException(ResultCode.FAILED, "删除节点规则失败");
+            throw new CustomException(ResultCode.FAILED, "删除规则失败");
         }
         //如果节点规则明细为空,直接删除node并返回
         //删除node
@@ -373,8 +390,10 @@ public class NodeServiceImpl implements NodeService {
                     nodeRulesVo.setLocal(false);
                 }
                 if (StringUtils.isBlank(nodeRulesVo.getInheritId())) {
-                    List<NodeRulesRange> byRulesId = nodeRulesRangeService.getByRulesId(nodeRulesVo.getId(), null);
-                    nodeRulesVo.setNodeRulesRanges(byRulesId);
+                    if (1 == nodeRulesVo.getType()) {
+                        List<NodeRulesRange> byRulesId = nodeRulesRangeService.getByRulesId(nodeRulesVo.getId(), null);
+                        nodeRulesVo.setNodeRulesRanges(byRulesId);
+                    }
                 } else {
                     flag = true;
                 }
