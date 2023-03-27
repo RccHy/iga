@@ -143,7 +143,7 @@ public class TaskConfig {
                             log.info("{}开始同步,task:{}", domainInfo.getDomainName(), taskLog.getId());
                             taskLogService.save(taskLog, domainInfo.getId(), "save");
                             //部门数据同步至sso
-                            Map<TreeBean, String> deptResult = deptService.buildDeptUpdateResult(domainInfo, lastTaskLog, taskLog);
+                            Map<TreeBean, String> deptResult = deptService.buildDeptUpdateResult(domainInfo, lastTaskLog, taskLog,null);
                             Map<String, List<Map.Entry<TreeBean, String>>> deptResultMap = deptResult.entrySet().stream().collect(Collectors.groupingBy(Map.Entry::getValue));
                             //处理数据
                             Integer recoverDept = deptResultMap.containsKey("recover") ? deptResultMap.get("recover").size() : 0;
@@ -166,7 +166,7 @@ public class TaskConfig {
 
 
                             //=============岗位数据同步至sso=================
-                            final Map<TreeBean, String> postResult = postService.buildPostUpdateResult(domainInfo, lastTaskLog, taskLog);
+                            final Map<TreeBean, String> postResult = postService.buildPostUpdateResult(domainInfo, lastTaskLog, taskLog,null);
                             Map<String, List<Map.Entry<TreeBean, String>>> postResultMap = postResult.entrySet().stream().collect(Collectors.groupingBy(Map.Entry::getValue));
                             Integer recoverPost = postResultMap.containsKey("recover") ? postResultMap.get("recover").size() : 0;
                             Integer insertPost = (postResultMap.containsKey("insert") ? postResultMap.get("insert").size() : 0) + recoverPost;

@@ -134,7 +134,6 @@ public class PersonServiceImpl implements PersonService {
      * * D: 无效  上游曾经提供后，不再提供 OR 上游提供了active
      * * E: 恢复  之前被标记为失效后再通过推送了相同的数据
      * Doing： 一对多的证件。 一个人可以有多个证件；身份证、护照等
-     *
      */
 
     @Override
@@ -190,7 +189,7 @@ public class PersonServiceImpl implements PersonService {
             //根据权威源和类型获取需要执行的规则
             rules = rulesService.findNodeRulesByUpStreamIdAndType(ids, "person", domain.getId(), 0);
             //获取除了该租户以外的所有权威源(用于sub模式)
-            List<UpstreamDto> otherDomains = upstreamService.findByOtherUpstream(new ArrayList<>(), domain.getId());
+            List<UpstreamDto> otherDomains = upstreamService.findByOtherUpstream(ids, domain.getId());
             if (!CollectionUtils.isEmpty(otherDomains)) {
                 upstreamMap = otherDomains.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
             }

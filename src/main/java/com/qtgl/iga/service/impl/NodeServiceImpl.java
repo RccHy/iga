@@ -39,6 +39,8 @@ public class NodeServiceImpl implements NodeService {
     TaskLogService taskLogService;
     @Resource
     UpstreamService upstreamService;
+    @Resource
+    UpstreamTypeService upstreamTypeService;
 
 
     @Override
@@ -400,7 +402,7 @@ public class NodeServiceImpl implements NodeService {
                 nodeRules.add(nodeRulesVo);
             }
             nodeDto.setInherit(flag);
-            nodeRules =  nodeRules.stream().sorted(Comparator.comparing(NodeRules::getSort)).collect(Collectors.toList());
+            nodeRules = nodeRules.stream().sorted(Comparator.comparing(NodeRules::getSort)).collect(Collectors.toList());
             nodeDto.setNodeRules(nodeRules);
         }
     }
@@ -688,6 +690,33 @@ public class NodeServiceImpl implements NodeService {
             } else {
                 throw new CustomException(ResultCode.FAILED, "当前标识的node不唯一");
             }
+        }
+        return null;
+    }
+
+    @Override
+    public List<NodeDto> dealWithUpstreamIds(List<String> ids, List<NodeDto> nodes, String domain) {
+        List<UpstreamType> upstreamTypes = upstreamTypeService.findByUpstreamIds(ids, domain);
+        if (!CollectionUtils.isEmpty(nodes) && !CollectionUtils.isEmpty(upstreamTypes)) {
+            List<NodeDto> nodeDtos = new ArrayList<>();
+            List<String> upstreamTypeIds = upstreamTypes.stream().map(UpstreamType::getId).collect(Collectors.toList());
+            for (NodeDto node : nodes) {
+                if (!CollectionUtils.isEmpty(node.getNodeRules())) {
+                    List<NodeRulesVo> list = new ArrayList<>();
+                    for (NodeRulesVo nodeRule : node.getNodeRules()) {
+                        //只获取拉取 并且符合sub 权威源下权威源类型的规则
+                        if (null != nodeRule.getUpstreamTypesId() && upstreamTypeIds.contains(nodeRule.getUpstreamTypesId())) {
+                            list.add(nodeRule);
+                        }
+                    }
+                    //当前节点没有符合的规则,则抛弃该node节点
+                    if (!CollectionUtils.isEmpty(list)) {
+                        node.setNodeRules(list);
+                        nodeDtos.add(node);
+                    }
+                }
+            }
+            return nodeDtos;
         }
         return null;
     }

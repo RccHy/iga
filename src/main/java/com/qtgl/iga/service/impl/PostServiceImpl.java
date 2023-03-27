@@ -59,7 +59,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
-    public Map<TreeBean, String> buildPostUpdateResult(DomainInfo domain, TaskLog lastTaskLog, TaskLog currentTask) throws Exception {
+    public Map<TreeBean, String> buildPostUpdateResult(DomainInfo domain, TaskLog lastTaskLog, TaskLog currentTask, List<NodeRules> postRules) throws Exception {
         //获取默认数据
         Tenant tenant = tenantService.findByDomainName(domain.getDomainName());
         if (null == tenant) {
@@ -119,30 +119,47 @@ public class PostServiceImpl implements PostService {
             attrMap = dynamicAttrs.stream().collect(Collectors.toMap(DynamicAttr::getCode, DynamicAttr::getId));
         }
         if (!CollectionUtils.isEmpty(dynamicAttrs)) {
-            dynamicCodes = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getCode()).collect(Collectors.toList());
+            dynamicCodes = dynamicAttrs.stream().map(DynamicAttr::getCode).collect(Collectors.toList());
             //获取扩展value
-            List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getId()).collect(Collectors.toList());
+            List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr::getId).collect(Collectors.toList());
 
             List<DynamicValue> dynamicValues = dynamicValueService.findAllByAttrId(attrIds, tenant.getId());
             if (!CollectionUtils.isEmpty(dynamicValues)) {
-                valueMap = dynamicValues.stream().collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
+                valueMap = dynamicValues.stream().collect(Collectors.groupingBy(DynamicValue::getEntityId));
             }
         }
-
-
         mainTreeBeans.addAll(ssoBeans);
-        //获取该租户下的当前类型的无效权威源
-        List<UpstreamDto> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
-        Map<String, UpstreamDto> upstreamMap = new ConcurrentHashMap<>();
-        if (!CollectionUtils.isEmpty(upstreams)) {
-            upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
-        }
         //获取岗位治理下所有的运行中规则
         List<NodeDto> nodes = nodeService.findNodes(domain.getId(), 0, TYPE, true);
+        List<UpstreamDto> upstreams;
+        if (CollectionUtils.isEmpty(postRules)) {
+            //获取该租户下的当前类型的无效权威源
+            upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
+        } else {
+            //根据规则获取排除的权威源  及补充规则
+            Set<String> strings = postRules.stream().collect(Collectors.groupingBy(NodeRules::getUpstreamTypesId)).keySet();
+
+            List<Upstream> ruleUpstreams = upstreamService.findByUpstreamTypeIds(new ArrayList<>(strings), domain.getId());
+            if (CollectionUtils.isEmpty(ruleUpstreams)) {
+                logger.error("当前sub 任务提供的规则有误请确认:{}", postRules);
+                throw new CustomException(ResultCode.FAILED, "当前sub 任务提供的规则有误请确认");
+            }
+            List<String> ids = ruleUpstreams.stream().map(Upstream::getId).collect(Collectors.toList());
+
+            //根据权威源和类型获取需要执行的规则
+            nodes = nodeService.dealWithUpstreamIds(ids, nodes, domain.getId());
+            upstreams = upstreamService.findByOtherUpstream(ids, domain.getId());
+        }
+        //处理岗位治理下运行中规则
         Map<String, List<NodeDto>> nodesMapByNodeCode = new ConcurrentHashMap<>();
         if (!CollectionUtils.isEmpty(nodes)) {
             nodesMapByNodeCode = nodes.stream().collect(Collectors.groupingBy(Node::getNodeCode));
         }
+        Map<String, UpstreamDto> upstreamMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(upstreams)) {
+            upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
+        }
+
         for (TreeBean rootBean : rootBeans) {
 
             mainTreeBeans = calculationService.nodeRules(domain, null, rootBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, result, nodesMapByNodeCode, currentTask);

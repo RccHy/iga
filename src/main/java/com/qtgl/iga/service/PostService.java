@@ -2,6 +2,7 @@ package com.qtgl.iga.service;
 
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.DomainInfo;
+import com.qtgl.iga.bo.NodeRules;
 import com.qtgl.iga.bo.TaskLog;
 
 import java.util.List;
@@ -18,5 +19,5 @@ public interface PostService {
 
     //List<TreeBean> findDeptByDomainName(String domainName) throws Exception;
 
-    Map<TreeBean, String> buildPostUpdateResult(DomainInfo domain, TaskLog lastTaskLog, TaskLog currentTask) throws Exception;
+    Map<TreeBean, String> buildPostUpdateResult(DomainInfo domain, TaskLog lastTaskLog, TaskLog currentTask, List<NodeRules> postRules) throws Exception;
 }

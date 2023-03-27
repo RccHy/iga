@@ -49,4 +49,6 @@ public interface NodeService {
     List<NodeDto> findNodes(String domainId, Integer status, String type, Boolean flag);
 
     Node finNodeById(String nodeId);
+
+    List<NodeDto> dealWithUpstreamIds(List<String> ids, List<NodeDto> nodes, String domain);
 }
