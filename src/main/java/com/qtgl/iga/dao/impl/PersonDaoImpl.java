@@ -5,6 +5,7 @@ import com.qtgl.iga.bean.MergeAttrRule;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.DynamicAttrDao;
 import com.qtgl.iga.dao.PersonDao;
+import com.qtgl.iga.service.MergeAttrRuleService;
 import com.qtgl.iga.service.impl.OccupyServiceImpl;
 import com.qtgl.iga.utils.MyBeanUtils;
 import com.qtgl.iga.utils.enumerate.ResultCode;
@@ -14,7 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
-import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
@@ -49,6 +49,9 @@ public class PersonDaoImpl implements PersonDao {
 
     @Resource
     DynamicAttrDao dynamicAttrDao;
+
+    @Resource
+    MergeAttrRuleService mergeAttrRuleService;
 
     List<String> columnBlacklist = Arrays.asList("id", "open_id", "del_mark", "active", "tenant_id", "create_time", "update_time", "source", "data_source", "freeze_time", "valid_start_time", "valid_end_time");
 
@@ -377,8 +380,9 @@ public class PersonDaoImpl implements PersonDao {
 
 
                 // 运行属性合重规则，先查询出所有合重属性规则
-                List<MergeAttrRule> mergeAttrRules = jdbcIGA.query("select id,attr_name as attrName,entity_id as entityId,from_entity_id as fromEntityId,dynamic_attr_id as dynamicAttrId, " +
-                        "create_time as createTime from t_mgr_merge_attr_rule where tenant_id=?", new Object[]{tenantId}, new BeanPropertyRowMapper<>(MergeAttrRule.class));
+                //List<MergeAttrRule> mergeAttrRules = jdbcIGA.query("select id,attr_name as attrName,entity_id as entityId,from_entity_id as fromEntityId,dynamic_attr_id as dynamicAttrId, " +
+                //        "create_time as createTime from t_mgr_merge_attr_rule where tenant_id=?", new Object[]{tenantId}, new BeanPropertyRowMapper<>(MergeAttrRule.class));
+                List<MergeAttrRule> mergeAttrRules = mergeAttrRuleService.findMergeAttrRulesByTenantId(tenantId);
                 if (!CollectionUtils.isEmpty(mergeAttrRules)) {
                     for (MergeAttrRule mergeAttrRule : mergeAttrRules) {
                         if (StringUtils.isNotBlank(mergeAttrRule.getDynamicAttrId())) {
@@ -837,13 +841,15 @@ public class PersonDaoImpl implements PersonDao {
 
 
                 // 运行属性合重规则，先查询出所有合重属性规则
-                List<MergeAttrRule> mergeAttrRules = jdbcIGA.query("select id,attr_name as attrName,entity_id as entityId,from_entity_id as fromEntityId,dynamic_attr_id as dynamicAttrId, " +
-                        "create_time as createTime from t_mgr_merge_attr_rule where tenant_id= ?", new Object[]{tenantId}, new BeanPropertyRowMapper<>(MergeAttrRule.class));
+                //List<MergeAttrRule> mergeAttrRules = jdbcIGA.query("select id,attr_name as attrName,entity_id as entityId,from_entity_id as fromEntityId,dynamic_attr_id as dynamicAttrId, " +
+                //        "create_time as createTime from t_mgr_merge_attr_rule where tenant_id= ?", new Object[]{tenantId}, new BeanPropertyRowMapper<>(MergeAttrRule.class));
+                List<MergeAttrRule> mergeAttrRules = mergeAttrRuleService.findMergeAttrRulesByTenantId(tenantId);
+
                 if (!CollectionUtils.isEmpty(mergeAttrRules)) {
                     for (MergeAttrRule mergeAttrRule : mergeAttrRules) {
                         if (StringUtils.isNotBlank(mergeAttrRule.getDynamicAttrId())) {
                             String sql = "update from dynamic_value set value=(select value from dynamic_value where entity_id=?) where entity_id=?";
-                            jdbcSSO.update(sql, new Object[]{mergeAttrRule.getFromEntityId(), mergeAttrRule.getEntityId()});
+                            jdbcSSO.update(sql, mergeAttrRule.getFromEntityId(), mergeAttrRule.getEntityId());
 
                         } else {
                             // 非动态属性
@@ -852,7 +858,7 @@ public class PersonDaoImpl implements PersonDao {
                                 continue;
                             }
                             String sql = "update from identity set " + mergeAttrRule.getAttrName() + "=(select " + mergeAttrRule.getAttrName() + " from identity where id=?) where id=?";
-                            jdbcSSO.update(sql, new Object[]{mergeAttrRule.getFromEntityId(), mergeAttrRule.getEntityId()});
+                            jdbcSSO.update(sql, mergeAttrRule.getFromEntityId(), mergeAttrRule.getEntityId());
                         }
                     }
 

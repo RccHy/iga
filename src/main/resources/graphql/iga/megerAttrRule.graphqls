@@ -1,0 +1,50 @@
+extend type Query {
+    #查询手工合重属性
+    mergeAttrRules(userId:ID,):[MergeAttrRule]
+}
+extend type Mutation {
+    #新增手工合重属性
+    saveMergeAttrRule(entity:[InputMergeAttrRule]!):[MergeAttrRule]
+
+}
+
+
+# 手工合重属性
+type MergeAttrRule{
+    # 主键
+    id:ID
+    # 属性名称
+    attrName:String
+    # 被赋值的对象
+    entityId:String
+    # 提供值的对象
+    fromEntityId:String
+    #扩展属性情况下对应的id
+    dynamicAttrId:Boolean
+    # 创建日期
+    createTime:Timestamp
+}
+
+
+# 手工合重属性入参
+input InputMergeAttrRule{
+    # 主键
+    id:ID
+    # 属性名称
+    attrName:String
+    # 被赋值的对象
+    entityId:String!
+    # 提供值的对象
+    fromEntityId:String!
+    #扩展属性情况下对应的id
+    dynamicAttrId:Boolean
+    # 创建日期
+    createTime:Timestamp
+}
+
+
+
+
+
+
+
