@@ -32,7 +32,7 @@ public class MergeAttrRuleFetcher {
             DomainInfo domain = CertifiedConnector.getDomain();
             // 获取传入参数
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
-            String userId = null== arguments.get("userId")?null:(String)arguments.get("userId");
+            String userId = null == arguments.get("userId") ? null : (String) arguments.get("userId");
             try {
                 return mergeAttrRuleService.mergeAttrRules(userId, domain);
             } catch (CustomException e) {
@@ -60,7 +60,27 @@ public class MergeAttrRuleFetcher {
                 return GraphqlExceptionUtils.getObject("添加手工合重数据失败", e);
 
             }
-        };    }
+        };
+    }
+
+
+    public DataFetcher deleteMergeAttrRule() {
+        return dataFetchingEvn -> {
+            //1。更具token信息验证是否合法，并判断其租户
+            DomainInfo domain = CertifiedConnector.getDomain();
+            // 获取传入参数
+            Map<String, Object> arguments = dataFetchingEvn.getArguments();
+            String userId = null == arguments.get("userId") ? null : (String) arguments.get("userId");
+            try {
+                return mergeAttrRuleService.deleteMergeAttrRuleByEntityId(userId, domain);
+            } catch (CustomException e) {
+                e.printStackTrace();
+                logger.error(domain.getDomainName() + e.getErrorMsg());
+                return GraphqlExceptionUtils.getObject("删除手工合重数据失败", e);
+
+            }
+        };
+    }
 
     private List<MergeAttrRule> getMergeAttrRules(Map<String, Object> arguments) {
         JSONArray jsonArray = JSON.parseArray(JSON.toJSONString(arguments.get("entity")));

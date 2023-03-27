@@ -61,4 +61,15 @@ public class MergeAttrRuleServiceImpl implements MergeAttrRuleService {
     public Integer deleteMergeAttrRuleByEntityIds(List<String> entityIds, String tenantId) {
         return mergeAttrRuleDao.deleteMergeAttrRuleByEntityIds(entityIds, tenantId);
     }
+
+    @Override
+    public List<MergeAttrRule> deleteMergeAttrRuleByEntityId(String userId, DomainInfo domain) {
+        //根据domain获取tenantId
+        Tenant tenant = tenantService.findByDomainName(domain.getDomainName());
+        List<MergeAttrRule> mergeAttrRules = mergeAttrRuleDao.findMergeAttrRules(userId, tenant.getId());
+        if(!CollectionUtils.isEmpty(mergeAttrRules)){
+            mergeAttrRuleDao.deleteMergeAttrRuleByEntityId(userId, tenant.getId());
+        }
+        return mergeAttrRules;
+    }
 }

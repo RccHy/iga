@@ -26,9 +26,11 @@ public class MergeAttrRuleProvider {
 
     public TypeRuntimeWiring.Builder buildMutationRuntimeWiring() {
         return newTypeWiring("Mutation")
-                .dataFetcher("saveMergeAttrRule", mergeAttrRuleFetcher.saveMergeAttrRule());
+                .dataFetcher("saveMergeAttrRule", mergeAttrRuleFetcher.saveMergeAttrRule())
+                .dataFetcher("deleteMergeAttrRule", mergeAttrRuleFetcher.deleteMergeAttrRule());
 
     }
+
     @Resource
     private GraphQLConfig graphQLConfig;
 

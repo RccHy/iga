@@ -87,6 +87,11 @@ public class MergeAttrRuleDaoImpl implements MergeAttrRuleDao {
         return jdbcIGA.update(sql.toString(), params.toArray());
     }
 
+    @Override
+    public Integer deleteMergeAttrRuleByEntityId(String userId, String tenantId) {
+        return jdbcIGA.update("delete from t_mgr_merge_attr_rule where tenant_id = ? and entity_id = ? ", tenantId, userId);
+    }
+
     private List<MergeAttrRule> getMergeAttrRules(List<Map<String, Object>> mapList) {
         List<MergeAttrRule> list = new ArrayList<>();
         if (!CollectionUtils.isEmpty(mapList)) {

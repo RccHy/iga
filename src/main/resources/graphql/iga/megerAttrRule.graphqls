@@ -1,11 +1,12 @@
 extend type Query {
     #查询手工合重属性
-    mergeAttrRules(userId:ID,):[MergeAttrRule]
+    mergeAttrRules(userId:ID):[MergeAttrRule]
 }
 extend type Mutation {
     #新增手工合重属性
     saveMergeAttrRule(entity:[InputMergeAttrRule]!):[MergeAttrRule]
-
+    #删除手工合重属性
+    deleteMergeAttrRule(userId:ID!):[MergeAttrRule]
 }
 
 
