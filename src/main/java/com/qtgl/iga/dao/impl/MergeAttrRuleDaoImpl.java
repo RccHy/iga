@@ -2,8 +2,8 @@ package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bean.MergeAttrRule;
 import com.qtgl.iga.dao.MergeAttrRuleDao;
-import com.qtgl.iga.utils.MyBeanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -98,7 +98,8 @@ public class MergeAttrRuleDaoImpl implements MergeAttrRuleDao {
             for (Map<String, Object> map : mapList) {
                 MergeAttrRule mergeAttrRule = new MergeAttrRule();
                 try {
-                    MyBeanUtils.populate(mergeAttrRule, map);
+                    BeanMap beanMap = BeanMap.create(mergeAttrRule);
+                    beanMap.putAll(map);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
