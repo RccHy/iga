@@ -74,6 +74,8 @@ public class ReConnectWebSocketClient {
      */
     private Consumer<String> endConsumer;
 
+    private Long disconnectionTime;
+
     public ReConnectWebSocketClient(URI serverUri, String key, Consumer<String> msgStr, Consumer<ByteBuffer> msgByte, Consumer<Exception> error) {
         this.msgStr = msgStr;
         this.msgByte = msgByte;
@@ -99,17 +101,15 @@ public class ReConnectWebSocketClient {
     }
 
     /**
-     * todo : 断开后如何恢复(例如: bus 重启 后能恢复)
-     *         sub since 支持,记录断开时间,指定since获取记录
-     *         集群多节点,如何保证数据一致性
+     *  断开后如何恢复(例如: bus 重启 后能恢复)       -- 取消重连次数限制
+     *  sub since 支持,记录断开时间,指定since获取记录 -- error or close 后记录对应的时间，重连成功后发送。
+     *         todo : 集群多节点,如何保证数据一致性
      */
     private void needReconnect() throws Exception {
         ThreadUtil.sleep(10, TimeUnit.SECONDS);
+        if (null==disconnectionTime){ disconnectionTime=System.currentTimeMillis(); }
+
         int cul = reConnectTimes.incrementAndGet();
-        if (cul > 3) {
-            close("real stop");
-            throw new Exception("服务端断连，3次重连均失败");
-        }
         log.warn("[{}]第[{}]次断开重连", key, cul);
         if (tryReconnect.get()) {
             log.error("[{}]第[{}]次断开重连结果 -> 连接正在重连，本次重连请求放弃", key, cul);
@@ -118,7 +118,6 @@ public class ReConnectWebSocketClient {
         }
         try {
             tryReconnect.set(true);
-
             if (webSocketClient.isOpen()) {
                 log.warn("[{}]第[{}]次断开重连，关闭旧连接", key, cul);
                 webSocketClient.closeConnection(2, "reconnect stop");
@@ -143,11 +142,21 @@ public class ReConnectWebSocketClient {
                     @Override
                     public void onOpen(ServerHandshake serverHandshake) {
                         log.info("[{}]ReConnectWebSocketClient [onOpen]连接成功{}", key, getRemoteSocketAddress());
-                        JSONObject jsonObject=new JSONObject();
-                        jsonObject.put("query", "subscription {" +
-                                "  sub(topics:\"usersource.cdc\"){" +
-                                "    id clientid services type openid data subject " +
-                                "  } }");
+                        JSONObject jsonObject = new JSONObject();
+                        if(null!=disconnectionTime){
+                            log.info("[{}]ReConnectWebSocketClient [onOpen]断线重连，断线时间：{}", key, disconnectionTime);
+                            jsonObject.put("query", "subscription {" +
+                                    "  sub(topics:\"usersource.cdc\",sine:"+disconnectionTime+"){" +
+                                    "    id clientid services type openid data subject " +
+                                    "  } }");
+                            disconnectionTime=null;
+                        }else{
+                            jsonObject.put("query", "subscription {" +
+                                    "  sub(topics:\"usersource.cdc\"){" +
+                                    "    id clientid services type openid data subject " +
+                                    "  } }");
+                        }
+
                         send(jsonObject.toString());
                         tryReconnect.set(false);
                     }
@@ -175,7 +184,7 @@ public class ReConnectWebSocketClient {
                     @Override
                     public void onClose(int i, String s, boolean b) {
                         log.info("[{}]ReConnectWebSocketClient [onClose]关闭，s={}，b={}", key, s, b);
-                        if (StrUtil.hasBlank(s) || s.contains("https")) {
+                        if (StrUtil.hasBlank(s) || s.contains("https")|| "error close".equals(s)) {
                             if (end.get()) {
                                 return;
                             }
@@ -193,6 +202,8 @@ public class ReConnectWebSocketClient {
                         log.info("[{}]ReConnectWebSocketClient [onError]异常，e={}", key, e);
                         endConsumer.accept("error close");
                         error.accept(e);
+
+
                     }
                 };
         if (serverUri.toString().contains("wss://")) {
@@ -221,6 +232,7 @@ public class ReConnectWebSocketClient {
      */
     public void connect() throws Exception {
         webSocketClient.connectBlocking(10, TimeUnit.SECONDS);
+        disconnectionTime=null;
     }
 
     /**
@@ -242,12 +254,13 @@ public class ReConnectWebSocketClient {
      * @param msg 关闭消息
      */
     public void close(String msg) {
-        needPing.set(false);
-        end.set(true);
+        //needPing.set(false);
+        //end.set(true);
         if (webSocketClient != null) {
             webSocketClient.closeConnection(3, msg);
         }
     }
+
 
     /**
      * 忽略证书

@@ -1,21 +1,19 @@
 package com.qtgl.iga.utils.webSocket;
 
-import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.NodeRules;
 import com.qtgl.iga.service.NodeRulesService;
 import com.qtgl.iga.service.SubTaskService;
-import com.qtgl.iga.service.impl.SubTaskServiceImpl;
 import com.qtgl.iga.utils.DataBusUtil;
 import com.qtgl.iga.utils.UrlUtil;
+import lombok.extern.log4j.Log4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -23,6 +21,7 @@ import java.util.Map;
 
 
 @Component
+@Log4j
 public class SubWebSocket {
 
 
@@ -36,7 +35,7 @@ public class SubWebSocket {
     @Value("${bus.url}")
     private String busUrl;
 
-    private Map<String, ReConnectWebSocketClient> clientMap = new HashMap<>();
+     static Map<String, ReConnectWebSocketClient> webSocketClientMap = new HashMap<>();
 
 
     public void listening(DomainInfo domainInfo) throws Exception {
@@ -63,6 +62,10 @@ public class SubWebSocket {
                                 for (String service : services) {
                                     nodeRules.addAll(nodeRulesService.findNodeRulesByService(service, domainInfo.getDomainName(), "person"));
                                 }
+                                //组织架构
+                                subTaskService.subTask("DEPT", domainInfo, nodeRules);
+                                //岗位
+                                subTaskService.subTask("POST", domainInfo, nodeRules);
                                 // 用户变更
                                 subTaskService.subTask("PERSON", domainInfo, nodeRules);
                                 // 查找对应服务 有哪些规则
@@ -81,6 +84,6 @@ public class SubWebSocket {
                             System.out.println("异常:" + error.getMessage());
                         });
         client.connect();
-        clientMap.put(domainInfo.getDomainName(), client);
+        webSocketClientMap.put(domainInfo.getDomainName(), client);
     }
 }
