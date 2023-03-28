@@ -21,7 +21,7 @@ type MergeAttrRule{
     # 提供值的对象
     fromEntityId:String
     #扩展属性情况下对应的id
-    dynamicAttrId:Boolean
+    dynamicAttrId:String
     # 创建日期
     createTime:Timestamp
 }
@@ -38,7 +38,7 @@ input InputMergeAttrRule{
     # 提供值的对象
     fromEntityId:String!
     #扩展属性情况下对应的id
-    dynamicAttrId:Boolean
+    dynamicAttrId:String
     # 创建日期
     createTime:Timestamp
 }
