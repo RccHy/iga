@@ -14,8 +14,6 @@ import org.springframework.util.CollectionUtils;
 import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -49,8 +47,17 @@ public class MergeAttrRuleServiceImpl implements MergeAttrRuleService {
             //判断是否作用于同一人
 
             //根据entity_id 删除之前的数据
-            Set<String> ids = mergeAttrRules.stream().collect(Collectors.groupingBy(MergeAttrRule::getEntityId)).keySet();
-            deleteMergeAttrRuleByEntityIds(new ArrayList<>(ids), tenant.getId());
+            ArrayList<String> ids = new ArrayList<>();
+            for (MergeAttrRule mergeAttrRule : mergeAttrRules) {
+                if (!ids.contains(mergeAttrRule.getEntityId())) {
+                    ids.add(mergeAttrRule.getEntityId());
+                }
+                //字段名称转换
+                if ("username".equals(mergeAttrRule.getAttrName())) {
+                    mergeAttrRule.setAttrName("account_no");
+                }
+            }
+            deleteMergeAttrRuleByEntityIds(ids, tenant.getId());
             //新增合重基础属性
             return mergeAttrRuleDao.saveMergeAttrRule(mergeAttrRules, tenant.getId());
         }
@@ -67,7 +74,7 @@ public class MergeAttrRuleServiceImpl implements MergeAttrRuleService {
         //根据domain获取tenantId
         Tenant tenant = tenantService.findByDomainName(domain.getDomainName());
         List<MergeAttrRule> mergeAttrRules = mergeAttrRuleDao.findMergeAttrRules(userId, tenant.getId());
-        if(!CollectionUtils.isEmpty(mergeAttrRules)){
+        if (!CollectionUtils.isEmpty(mergeAttrRules)) {
             mergeAttrRuleDao.deleteMergeAttrRuleByEntityId(userId, tenant.getId());
         }
         return mergeAttrRules;
