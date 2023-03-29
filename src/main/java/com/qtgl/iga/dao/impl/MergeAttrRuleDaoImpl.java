@@ -100,6 +100,9 @@ public class MergeAttrRuleDaoImpl implements MergeAttrRuleDao {
                 try {
                     BeanMap beanMap = BeanMap.create(mergeAttrRule);
                     beanMap.putAll(map);
+                    if ("account_no".equals(mergeAttrRule.getAttrName())) {
+                        mergeAttrRule.setAttrName("username");
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
