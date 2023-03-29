@@ -1,4 +1,9 @@
 
+--待发布
+ALTER TABLE `t_mgr_merge_attr_rule`
+    MODIFY COLUMN `create_time` datetime NULL DEFAULT NULL AFTER `dynamic_attr_id`;
+
+
 -- 20230323
 alter table t_mgr_domain_info add unique (domain_name);
 

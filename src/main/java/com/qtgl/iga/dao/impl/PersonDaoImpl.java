@@ -386,8 +386,8 @@ public class PersonDaoImpl implements PersonDao {
                 if (!CollectionUtils.isEmpty(mergeAttrRules)) {
                     for (MergeAttrRule mergeAttrRule : mergeAttrRules) {
                         if (StringUtils.isNotBlank(mergeAttrRule.getDynamicAttrId())) {
-                            String sql = "update from dynamic_value set value=(select value from dynamic_value where entity_id=?) where entity_id=?";
-                            jdbcSSO.update(sql, new Object[]{mergeAttrRule.getFromEntityId(), mergeAttrRule.getEntityId()});
+                            String sql = "update  dynamic_value set value=(select a.`value` from (SELECT `value` FROM dynamic_value WHERE entity_id = ? and attr_id=?)  a) where entity_id=? and attr_id=?";
+                            jdbcSSO.update(sql, new Object[]{mergeAttrRule.getFromEntityId(), mergeAttrRule.getDynamicAttrId(), mergeAttrRule.getEntityId(), mergeAttrRule.getDynamicAttrId()});
 
                         } else {
                             // 非动态属性
@@ -395,7 +395,7 @@ public class PersonDaoImpl implements PersonDao {
                                 // 如果是黑名单属性，不进行合重
                                 continue;
                             }
-                            String sql = "update from identity set " + mergeAttrRule.getAttrName() + "=(select " + mergeAttrRule.getAttrName() + " from identity where id=?) where id=?";
+                            String sql = "update  identity set " + mergeAttrRule.getAttrName() + "=( select a." + mergeAttrRule.getAttrName() + " from (select " + mergeAttrRule.getAttrName() + " from identity where id=?) a ) where id=?";
                             jdbcSSO.update(sql, new Object[]{mergeAttrRule.getFromEntityId(), mergeAttrRule.getEntityId()});
                         }
                     }
