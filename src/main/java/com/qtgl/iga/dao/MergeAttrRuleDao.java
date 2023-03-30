@@ -14,4 +14,6 @@ public interface MergeAttrRuleDao {
     Integer deleteMergeAttrRuleByEntityIds(List<String> entityIds, String tenantId);
 
     Integer deleteMergeAttrRuleByEntityId(String userId, String id);
+
+    List<MergeAttrRule> findOriginalMergeAttrRulesByTenantId(String tenantId);
 }

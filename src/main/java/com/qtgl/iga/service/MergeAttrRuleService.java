@@ -16,4 +16,6 @@ public interface MergeAttrRuleService {
     Integer deleteMergeAttrRuleByEntityIds(List<String> entityIds, String tenantId);
 
     List<MergeAttrRule> deleteMergeAttrRuleByEntityId(String userId, DomainInfo domain);
+
+    List<MergeAttrRule> findOriginalMergeAttrRulesByTenantId(String tenantId);
 }

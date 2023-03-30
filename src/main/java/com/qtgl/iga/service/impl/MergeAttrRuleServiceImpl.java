@@ -56,6 +56,12 @@ public class MergeAttrRuleServiceImpl implements MergeAttrRuleService {
                 if ("username".equals(mergeAttrRule.getAttrName())) {
                     mergeAttrRule.setAttrName("account_no");
                 }
+                if ("cardNo".equals(mergeAttrRule.getAttrName())) {
+                    mergeAttrRule.setAttrName("card_no");
+                }
+                if ("cardType".equals(mergeAttrRule.getAttrName())) {
+                    mergeAttrRule.setAttrName("card_type");
+                }
             }
             deleteMergeAttrRuleByEntityIds(ids, tenant.getId());
             //新增合重基础属性
@@ -78,5 +84,10 @@ public class MergeAttrRuleServiceImpl implements MergeAttrRuleService {
             mergeAttrRuleDao.deleteMergeAttrRuleByEntityId(userId, tenant.getId());
         }
         return mergeAttrRules;
+    }
+
+    @Override
+    public List<MergeAttrRule> findOriginalMergeAttrRulesByTenantId(String tenantId) {
+        return mergeAttrRuleDao.findOriginalMergeAttrRulesByTenantId(tenantId);
     }
 }

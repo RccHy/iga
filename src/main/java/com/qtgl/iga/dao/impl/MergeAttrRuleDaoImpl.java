@@ -5,6 +5,7 @@ import com.qtgl.iga.dao.MergeAttrRuleDao;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
@@ -92,6 +93,13 @@ public class MergeAttrRuleDaoImpl implements MergeAttrRuleDao {
         return jdbcIGA.update("delete from t_mgr_merge_attr_rule where tenant_id = ? and entity_id = ? ", tenantId, userId);
     }
 
+    @Override
+    public List<MergeAttrRule> findOriginalMergeAttrRulesByTenantId(String tenantId) {
+        List<MergeAttrRule> mergeAttrRules = jdbcIGA.query("select id,attr_name as attrName,entity_id as entityId,from_entity_id as fromEntityId,dynamic_attr_id as dynamicAttrId, " +
+                "create_time as createTime from t_mgr_merge_attr_rule where tenant_id=?", new Object[]{tenantId}, new BeanPropertyRowMapper<>(MergeAttrRule.class));
+        return mergeAttrRules;
+    }
+
     private List<MergeAttrRule> getMergeAttrRules(List<Map<String, Object>> mapList) {
         List<MergeAttrRule> list = new ArrayList<>();
         if (!CollectionUtils.isEmpty(mapList)) {
@@ -102,6 +110,12 @@ public class MergeAttrRuleDaoImpl implements MergeAttrRuleDao {
                     beanMap.putAll(map);
                     if ("account_no".equals(mergeAttrRule.getAttrName())) {
                         mergeAttrRule.setAttrName("username");
+                    }
+                    if ("card_no".equals(mergeAttrRule.getAttrName())) {
+                        mergeAttrRule.setAttrName("cardNo");
+                    }
+                    if ("card_type".equals(mergeAttrRule.getAttrName())) {
+                        mergeAttrRule.setAttrName("cardType");
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
