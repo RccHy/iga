@@ -117,6 +117,9 @@ public class MergeAttrRuleDaoImpl implements MergeAttrRuleDao {
                     if ("card_type".equals(mergeAttrRule.getAttrName())) {
                         mergeAttrRule.setAttrName("cardType");
                     }
+                    if ("cellphone".equals(mergeAttrRule.getAttrName())) {
+                        mergeAttrRule.setAttrName("phone");
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

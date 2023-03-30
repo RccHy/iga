@@ -62,6 +62,9 @@ public class MergeAttrRuleServiceImpl implements MergeAttrRuleService {
                 if ("cardType".equals(mergeAttrRule.getAttrName())) {
                     mergeAttrRule.setAttrName("card_type");
                 }
+                if ("phone".equals(mergeAttrRule.getAttrName())) {
+                    mergeAttrRule.setAttrName("cellphone");
+                }
             }
             deleteMergeAttrRuleByEntityIds(ids, tenant.getId());
             //新增合重基础属性
