@@ -487,6 +487,16 @@ CREATE TABLE `dynamic_value` (
                                  KEY `entity_id_index` (`entity_id`) USING BTREE COMMENT '实体字段索引'
 );
 
+CREATE TABLE `t_mgr_domain_ignore`  (
+  `id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '主键',
+  `domain` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '租户',
+  `upstream_id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '需要忽略的权威源',
+  `node_rule_id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '需要忽略的规则',
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
+
+SET FOREIGN_KEY_CHECKS = 1;
+
 create table t_mgr_merge_attr_rule
 (
     id              varchar(50)  not null
