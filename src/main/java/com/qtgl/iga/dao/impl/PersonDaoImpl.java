@@ -116,8 +116,8 @@ public class PersonDaoImpl implements PersonDao {
                 if (personMap.containsKey("insert")) {
                     final List<Person> list = personMap.get("insert");
                     String str = "insert into identity (id, `name`, account_no,open_id,  del_mark, create_time, update_time, tenant_id, card_type, card_no, cellphone, email, data_source, tags,  `active`, active_time,`source`,valid_start_time,valid_end_time,freeze_time," +
-                            "create_data_source,create_source,birthday)" +
-                            " values  (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                            "create_data_source,create_source,birthday,sex)" +
+                            " values  (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
                     // 对 list 分批执行，每批次5000条,不足5000按足量执行
                     int batchSize = 5000;
@@ -153,6 +153,7 @@ public class PersonDaoImpl implements PersonDao {
                                 preparedStatement.setObject(21, subList.get(i).getDataSource());
                                 preparedStatement.setObject(22, subList.get(i).getSource());
                                 preparedStatement.setObject(23, subList.get(i).getBirthday());
+                                preparedStatement.setObject(24, subList.get(i).getSex());
                             }
 
                             @Override
@@ -165,7 +166,7 @@ public class PersonDaoImpl implements PersonDao {
                 }
                 if (personMap.containsKey("update") || personMap.containsKey("invalid")) {
                     String str = "UPDATE identity set  `name`= ?, account_no=?,  del_mark=?, update_time=?, tenant_id=?,  cellphone=?, email=?,  tags=?,  `active`=?, active_time=? ,`source`= ?,data_source=?,valid_start_time=?,valid_end_time=? ," +
-                            " card_type =? ,card_no=?,birthday=? where id=? and update_time<= ? ";
+                            " card_type =? ,card_no=?,birthday=?,sex=? where id=? and update_time<= ? ";
                     List<Person> list = new ArrayList<>();
                     List<Person> update = personMap.get("update");
                     List<Person> invalid = personMap.get("invalid");
@@ -204,8 +205,9 @@ public class PersonDaoImpl implements PersonDao {
                                 preparedStatement.setObject(15, subList.get(i).getCardType());
                                 preparedStatement.setObject(16, subList.get(i).getCardNo());
                                 preparedStatement.setObject(17, subList.get(i).getBirthday());
-                                preparedStatement.setObject(18, subList.get(i).getId());
-                                preparedStatement.setObject(19, subList.get(i).getUpdateTime());
+                                preparedStatement.setObject(18, subList.get(i).getSex());
+                                preparedStatement.setObject(19, subList.get(i).getId());
+                                preparedStatement.setObject(20, subList.get(i).getUpdateTime());
                             }
 
                             @Override
