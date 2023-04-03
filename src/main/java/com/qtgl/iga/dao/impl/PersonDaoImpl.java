@@ -109,7 +109,7 @@ public class PersonDaoImpl implements PersonDao {
 
 
     @Override
-    public Integer saveToSso(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, List<Certificate> certificates) {
+    public Integer saveToSso(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, List<Certificate> certificates, List<MergeAttrRule> mergeAttrRules) {
 
         return txTemplate.execute(transactionStatus -> {
             try {
@@ -378,8 +378,7 @@ public class PersonDaoImpl implements PersonDao {
 
                 }
 
-                // 运行属性合重规则，先查询出所有合重属性规则
-                List<MergeAttrRule> mergeAttrRules = mergeAttrRuleService.findOriginalMergeAttrRulesByTenantId(tenantId);
+                // 运行属性合重规则
                 if (!CollectionUtils.isEmpty(mergeAttrRules)) {
                     for (MergeAttrRule mergeAttrRule : mergeAttrRules) {
                         if (StringUtils.isNotBlank(mergeAttrRule.getDynamicAttrId())) {

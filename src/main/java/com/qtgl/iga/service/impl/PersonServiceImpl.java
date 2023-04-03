@@ -4,14 +4,14 @@ package com.qtgl.iga.service.impl;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.qtgl.iga.bean.NodeDto;
-import com.qtgl.iga.bean.PersonConnection;
-import com.qtgl.iga.bean.PersonEdge;
-import com.qtgl.iga.bean.UpstreamDto;
+import com.qtgl.iga.bean.*;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.config.AvatarTaskThreadPool;
 import com.qtgl.iga.config.PreViewPersonThreadPool;
-import com.qtgl.iga.dao.*;
+import com.qtgl.iga.dao.AvatarDao;
+import com.qtgl.iga.dao.CardTypeDao;
+import com.qtgl.iga.dao.PersonDao;
+import com.qtgl.iga.dao.UpstreamTypeDao;
 import com.qtgl.iga.dao.impl.DynamicAttrDaoImpl;
 import com.qtgl.iga.dao.impl.DynamicValueDaoImpl;
 import com.qtgl.iga.service.*;
@@ -30,7 +30,6 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
@@ -62,28 +61,30 @@ public class PersonServiceImpl implements PersonService {
     TenantService tenantService;
     @Resource
     NodeService nodeService;
-    @Autowired
+    @Resource
     NodeRulesService rulesService;
-    @Autowired
+    @Resource
     UpstreamTypeDao upstreamTypeDao;
-    @Autowired
+    @Resource
     UpstreamService upstreamService;
-    @Autowired
+    @Resource
     DataBusUtil dataBusUtil;
-    @Autowired
+    @Resource
     PersonDao personDao;
-    @Autowired
+    @Resource
     NodeRulesCalculationServiceImpl calculationService;
-    @Autowired
+    @Resource
     DynamicAttrDaoImpl dynamicAttrDao;
-    @Autowired
+    @Resource
     DynamicValueDaoImpl dynamicValueDao;
-    @Autowired
+    @Resource
     ConfigService configService;
-    @Autowired
+    @Resource
     PreViewTaskService preViewTaskService;
-    @Autowired
+    @Resource
     IncrementalTaskService incrementalTaskService;
+    @Resource
+    MergeAttrRuleService mergeAttrRuleService;
     @Resource
     AvatarDao avatarDao;
     @Resource
@@ -213,7 +214,11 @@ public class PersonServiceImpl implements PersonService {
         //存储头像需要处理的规则
         List<NodeRules> avatarRules = new ArrayList<>();
 
-        dataProcessing(rules, domain, tenant, valueUpdateMap, valueInsertMap, result, currentTask, avatarResult, upstreamMap, avatarRules);
+        //获取 手工合重属性相关信息
+        List<MergeAttrRule> mergeAttrRules = mergeAttrRuleService.findOriginalMergeAttrRulesByTenantId(tenant.getId());
+
+
+        dataProcessing(rules, domain, tenant, valueUpdateMap, valueInsertMap, result, currentTask, avatarResult, upstreamMap, avatarRules, mergeAttrRules);
         // 验证监控规则
         dealMonitorRule(domain, taskLog, tenant, result);
 
@@ -232,7 +237,7 @@ public class PersonServiceImpl implements PersonService {
 
 
         //插入数据库
-        personDao.saveToSso(result, tenant.getId(), valueUpdate, valueInsert, certificates);
+        personDao.saveToSso(result, tenant.getId(), valueUpdate, valueInsert, certificates, mergeAttrRules);
 
         //判断是否需要处理头像
         List<Avatar> insertAvatars = avatarResult.get("insert");
@@ -511,7 +516,7 @@ public class PersonServiceImpl implements PersonService {
         return url;
     }
 
-    private List<Person> dataProcessing(List<NodeRulesVo> userRules, DomainInfo domain, Tenant tenant, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, List<Person>> result, TaskLog currentTask, Map<String, List<Avatar>> avatarResult, Map<String, UpstreamDto> upstreamMap, List<NodeRules> avatarRules) {
+    private List<Person> dataProcessing(List<NodeRulesVo> userRules, DomainInfo domain, Tenant tenant, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, List<Person>> result, TaskLog currentTask, Map<String, List<Avatar>> avatarResult, Map<String, UpstreamDto> upstreamMap, List<NodeRules> avatarRules, List<MergeAttrRule> mergeAttrRules) {
         final LocalDateTime now = LocalDateTime.now();
         List<Person> people = new ArrayList<>();
 
@@ -571,6 +576,38 @@ public class PersonServiceImpl implements PersonService {
         Map<String, Avatar> avatarMap = new ConcurrentHashMap<>();
         if (!CollectionUtils.isEmpty(avatars)) {
             avatarMap = avatars.stream().collect(Collectors.toMap(Avatar::getIdentityId, avatar -> avatar));
+        }
+
+        //手工合重基础属性根据  entityId 分组
+        Map<String, List<String>> mergeFieldMap = new ConcurrentHashMap<>();
+        if (!CollectionUtils.isEmpty(mergeAttrRules)) {
+            //根据entityId  装配name 或attrId
+            for (MergeAttrRule mergeAttrRule : mergeAttrRules) {
+                List<String> list;
+                if (mergeFieldMap.containsKey(mergeAttrRule.getEntityId())) {
+                    list = mergeFieldMap.get(mergeAttrRule.getEntityId());
+                } else {
+                    list = new ArrayList<>();
+                }
+                if (StringUtils.isNotBlank(mergeAttrRule.getAttrName())) {
+                    String name = mergeAttrRule.getAttrName();
+                    //处理字段对应关系
+                    switch (name) {
+                        case "account_no":
+                            name = "accountNo";
+                            break;
+                        case "card_no":
+                            name = "cardNo";
+                            break;
+                        case "card_type":
+                            name = "cardType";
+                            break;
+                    }
+                    list.add(name);
+                } else if (StringUtils.isNotBlank(mergeAttrRule.getDynamicAttrId())) {
+                    list.add(mergeAttrRule.getDynamicAttrId());
+                }
+            }
         }
 
 
@@ -661,7 +698,7 @@ public class PersonServiceImpl implements PersonService {
                     ////单个权威源类型本次同步变化数量容器(预留)
                     //ConcurrentHashMap<String, ConcurrentHashMap<String, List<Person>>> upstreamCountMap = new ConcurrentHashMap<>();
                     //对比处理
-                    dealWithData(valueUpdateMap, valueInsertMap, result, avatarResult, finalValueMap, dynamicSSOValues, preViewPersonMap, invalidPersonMap, keepPersonMap, backUpPersonMap, tempResult, avatarTempResult, finalAttrMap, upstreamMap, finalDistinctPersonMap, finalAvatarMap, personFromUpstreamByPersonCharacteristic, personCharacteristic, upstreamType.getId(), avatarRules, rules);
+                    dealWithData(valueUpdateMap, valueInsertMap, result, avatarResult, finalValueMap, dynamicSSOValues, preViewPersonMap, invalidPersonMap, keepPersonMap, backUpPersonMap, tempResult, avatarTempResult, finalAttrMap, upstreamMap, finalDistinctPersonMap, finalAvatarMap, personFromUpstreamByPersonCharacteristic, personCharacteristic, upstreamType.getId(), avatarRules, rules, mergeFieldMap);
 
                     if (!CollectionUtils.isEmpty(result.get("insert"))) {
                         Map<String, Person> insert = result.get("insert").stream().filter(person -> !StringUtils.isBlank(person.getId())).collect(Collectors.toMap(Person::getId, person -> person, (v1, v2) -> v2));
@@ -794,7 +831,13 @@ public class PersonServiceImpl implements PersonService {
      * @param personCharacteristic                     人员特征
      * @param upstreamTypeId                           当前权威源类型id
      */
-    private void dealWithData(Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, List<Person>> result, Map<String, List<Avatar>> avatarResult, Map<String, List<DynamicValue>> finalValueMap, Map<String, String> dynamicSSOValues, Map<String, Person> preViewPersonMap, Map<String, Person> invalidPersonMap, Map<String, Person> keepPersonMap, Map<String, Person> backUpPersonMap, Map<String, Map<String, Person>> tempResult, Map<String, Map<String, Avatar>> avatarTempResult, Map<String, String> finalAttrMap, Map<String, UpstreamDto> finalUpstreamMap, Map<String, Person> finalDistinctPersonMap, Map<String, Avatar> finalAvatarMap, Map<String, Person> personFromUpstreamByPersonCharacteristic, String personCharacteristic, String upstreamTypeId, List<NodeRules> avatarRules, NodeRules rules) {
+    private void dealWithData(Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, List<Person>> result,
+                              Map<String, List<Avatar>> avatarResult, Map<String, List<DynamicValue>> finalValueMap, Map<String, String> dynamicSSOValues,
+                              Map<String, Person> preViewPersonMap, Map<String, Person> invalidPersonMap, Map<String, Person> keepPersonMap, Map<String, Person> backUpPersonMap,
+                              Map<String, Map<String, Person>> tempResult, Map<String, Map<String, Avatar>> avatarTempResult, Map<String, String> finalAttrMap,
+                              Map<String, UpstreamDto> finalUpstreamMap, Map<String, Person> finalDistinctPersonMap, Map<String, Avatar> finalAvatarMap,
+                              Map<String, Person> personFromUpstreamByPersonCharacteristic, String personCharacteristic, String upstreamTypeId, List<NodeRules> avatarRules,
+                              NodeRules rules, Map<String, List<String>> mergeFieldMap) {
         //当前权威源类型映射字段
         List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(upstreamTypeId);
         Map<String, UpstreamTypeField> fieldsMap = fields.stream().collect(Collectors.toMap(UpstreamTypeField::getSourceField, sourceFiled -> sourceFiled, (v1, v2) -> v2));
@@ -807,7 +850,7 @@ public class PersonServiceImpl implements PersonService {
             Map<String, Person> personFromSSOMapByAccount = new ArrayList<>(preViewPersonMap.values()).stream().filter(person ->
                     !StringUtils.isBlank(person.getAccountNo())).sorted(Comparator.comparing(Person::getUpdateTime)).collect(Collectors.toMap(Person::getAccountNo, person -> person, (v1, v2) -> v2));
             personFromSSOMapByAccount.forEach((key, personFromSSO) -> {
-                calculate(personFromUpstreamByPersonCharacteristic, result, key, personFromSSO, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, fieldsMap, dynamicSSOValues, keepPersonMap, finalAvatarMap, avatarTempResult, personCharacteristic);
+                calculate(personFromUpstreamByPersonCharacteristic, result, key, personFromSSO, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, fieldsMap, dynamicSSOValues, keepPersonMap, finalAvatarMap, avatarTempResult, personCharacteristic, mergeFieldMap);
             });
             personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
                 calculateInsert(personFromSSOMapByAccount, result, key, val, avatarResult, personCharacteristic);
@@ -822,7 +865,7 @@ public class PersonServiceImpl implements PersonService {
             log.info("---------------------------------end2:" + System.currentTimeMillis());
 
             personFromSSOMapByCardTypeAndNo.forEach((key, personFromSSO) -> {
-                calculate(personFromUpstreamByPersonCharacteristic, result, key, personFromSSO, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, fieldsMap, dynamicSSOValues, keepPersonMap, finalAvatarMap, avatarTempResult, personCharacteristic);
+                calculate(personFromUpstreamByPersonCharacteristic, result, key, personFromSSO, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, fieldsMap, dynamicSSOValues, keepPersonMap, finalAvatarMap, avatarTempResult, personCharacteristic, mergeFieldMap);
             });
             personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
                 calculateInsert(personFromSSOMapByCardTypeAndNo, result, key, val, avatarResult, personCharacteristic);
@@ -834,7 +877,7 @@ public class PersonServiceImpl implements PersonService {
                     .collect(Collectors.toMap(Person::getCardNo, person -> person, (v1, v2) -> v2));
 
             personFromSSOMapByCardNo.forEach((key, personFromSSO) -> {
-                calculate(personFromUpstreamByPersonCharacteristic, result, key, personFromSSO, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, fieldsMap, dynamicSSOValues, keepPersonMap, finalAvatarMap, avatarTempResult, personCharacteristic);
+                calculate(personFromUpstreamByPersonCharacteristic, result, key, personFromSSO, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, fieldsMap, dynamicSSOValues, keepPersonMap, finalAvatarMap, avatarTempResult, personCharacteristic, mergeFieldMap);
             });
             personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
                 calculateInsert(personFromSSOMapByCardNo, result, key, val, avatarResult, personCharacteristic);
@@ -847,7 +890,7 @@ public class PersonServiceImpl implements PersonService {
                     .collect(Collectors.toMap(Person::getEmail, person -> person, (v1, v2) -> v2));
 
             personFromSSOMapByEmail.forEach((key, personFromSSO) -> {
-                calculate(personFromUpstreamByPersonCharacteristic, result, key, personFromSSO, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, fieldsMap, dynamicSSOValues, keepPersonMap, finalAvatarMap, avatarTempResult, personCharacteristic);
+                calculate(personFromUpstreamByPersonCharacteristic, result, key, personFromSSO, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, fieldsMap, dynamicSSOValues, keepPersonMap, finalAvatarMap, avatarTempResult, personCharacteristic, mergeFieldMap);
             });
             personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
                 calculateInsert(personFromSSOMapByEmail, result, key, val, avatarResult, personCharacteristic);
@@ -859,7 +902,7 @@ public class PersonServiceImpl implements PersonService {
                     .collect(Collectors.toMap(Person::getCellphone, person -> person, (v1, v2) -> v2));
 
             personFromSSOMapByCellphone.forEach((key, personFromSSO) -> {
-                calculate(personFromUpstreamByPersonCharacteristic, result, key, personFromSSO, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, fieldsMap, dynamicSSOValues, keepPersonMap, finalAvatarMap, avatarTempResult, personCharacteristic);
+                calculate(personFromUpstreamByPersonCharacteristic, result, key, personFromSSO, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, fieldsMap, dynamicSSOValues, keepPersonMap, finalAvatarMap, avatarTempResult, personCharacteristic, mergeFieldMap);
             });
             personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
                 calculateInsert(personFromSSOMapByCellphone, result, key, val, avatarResult, personCharacteristic);
@@ -1327,7 +1370,7 @@ public class PersonServiceImpl implements PersonService {
      * @param avatarTempResult     头像临时结果集
      * @param personCharacteristic 冗余头像人员特征方便对比
      */
-    private void calculate(Map<String, Person> personFromUpstream, Map<String, List<Person>> result, String key, Person personFromSSO, Map<String, String> attrMap, Map<String, List<DynamicValue>> valueMap, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, UpstreamDto> upstreamMap, Map<String, Person> preViewPersonMap, Map<String, Person> distinctPersonMap, Map<String, Person> invalidPersonMap, Map<String, Map<String, Person>> tempResult, Map<String, Person> backUpPersonMap, List<UpstreamTypeField> fields, Map<String, UpstreamTypeField> fieldMap, Map<String, String> dynamicSSOValues, Map<String, Person> keepPersonMap, Map<String, Avatar> avatarMap, Map<String, Map<String, Avatar>> avatarTempResult, String personCharacteristic) {
+    private void calculate(Map<String, Person> personFromUpstream, Map<String, List<Person>> result, String key, Person personFromSSO, Map<String, String> attrMap, Map<String, List<DynamicValue>> valueMap, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, UpstreamDto> upstreamMap, Map<String, Person> preViewPersonMap, Map<String, Person> distinctPersonMap, Map<String, Person> invalidPersonMap, Map<String, Map<String, Person>> tempResult, Map<String, Person> backUpPersonMap, List<UpstreamTypeField> fields, Map<String, UpstreamTypeField> fieldMap, Map<String, String> dynamicSSOValues, Map<String, Person> keepPersonMap, Map<String, Avatar> avatarMap, Map<String, Map<String, Avatar>> avatarTempResult, String personCharacteristic, Map<String, List<String>> mergeFieldMap) {
         // 对比出需要修改的person
         if (personFromUpstream.containsKey(key)) {
             //上游包含该数据则将该数据从失效map中移除
@@ -1455,6 +1498,13 @@ public class PersonServiceImpl implements PersonService {
                                         }
                                     }
                                     continue;
+                                }
+                                //对于手工合重的相关字段不处理
+                                if (mergeFieldMap.containsKey(newPerson.getId())) {
+                                    List<String> list = mergeFieldMap.get(newPerson.getId());
+                                    if (list.contains(sourceField)) {
+                                        continue;
+                                    }
                                 }
                                 if (null == oldValue && null == newValue) {
                                     continue;
@@ -1664,7 +1714,7 @@ public class PersonServiceImpl implements PersonService {
                                     if (!CollectionUtils.isEmpty(valueMap)) {
                                         dyValuesFromSSO = valueMap.get(newPerson.getId());
                                     }
-                                    dynamicProcessing(valueUpdateMap, valueInsertMap, attrMap, newPerson, dynamic, dyValuesFromSSO, dynamicSSOValues);
+                                    dynamicProcessing(valueUpdateMap, valueInsertMap, attrMap, newPerson, dynamic, dyValuesFromSSO, dynamicSSOValues, mergeFieldMap);
                                     dyFlag = false;
                                 }
                             }
@@ -1689,7 +1739,7 @@ public class PersonServiceImpl implements PersonService {
                                     if (!CollectionUtils.isEmpty(valueMap)) {
                                         dyValuesFromSSO = valueMap.get(newPerson.getId());
                                     }
-                                    dynamicProcessing(valueUpdateMap, valueInsertMap, attrMap, newPerson, dynamic, dyValuesFromSSO, dynamicSSOValues);
+                                    dynamicProcessing(valueUpdateMap, valueInsertMap, attrMap, newPerson, dynamic, dyValuesFromSSO, dynamicSSOValues, mergeFieldMap);
                                     dyFlag = false;
                                 }
 
@@ -1745,7 +1795,7 @@ public class PersonServiceImpl implements PersonService {
                             if (!CollectionUtils.isEmpty(valueMap)) {
                                 dyValuesFromSSO = valueMap.get(newPerson.getId());
                             }
-                            Boolean valueFlag = dynamicProcessing(valueUpdateMap, valueInsertMap, attrMap, newPerson, dynamic, dyValuesFromSSO, dynamicSSOValues);
+                            Boolean valueFlag = dynamicProcessing(valueUpdateMap, valueInsertMap, attrMap, newPerson, dynamic, dyValuesFromSSO, dynamicSSOValues, mergeFieldMap);
                             if (valueFlag) {
                                 if (!CollectionUtils.isEmpty(distinctPersonMap)) {
                                     if (distinctPersonMap.containsKey(newPerson.getId())) {
@@ -2162,7 +2212,10 @@ public class PersonServiceImpl implements PersonService {
             //存储头像需要处理的规则
             List<NodeRules> avatarRules = new ArrayList<>();
 
-            personList = dataProcessing(nodeRules, domain, tenant, valueUpdateMap, valueInsertMap, result, null, avatarResult, upstreamMap, avatarRules);
+            //获取 手工合重属性相关信息
+            List<MergeAttrRule> mergeAttrRules = mergeAttrRuleService.findOriginalMergeAttrRulesByTenantId(tenant.getId());
+
+            personList = dataProcessing(nodeRules, domain, tenant, valueUpdateMap, valueInsertMap, result, null, avatarResult, upstreamMap, avatarRules, mergeAttrRules);
         } catch (Exception e) {
             e.printStackTrace();
             throw new CustomException(ResultCode.FAILED, e.getMessage());
@@ -2200,13 +2253,19 @@ public class PersonServiceImpl implements PersonService {
      * @param dyValuesFromSSO sso扩展字段值
      * @return
      */
-    private Boolean dynamicProcessing(Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, String> attrMap, Person ssoBean, Map<String, String> dynamic, List<DynamicValue> dyValuesFromSSO, Map<String, String> dynamicSSOValues) {
+    private Boolean dynamicProcessing(Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, String> attrMap, Person ssoBean, Map<String, String> dynamic, List<DynamicValue> dyValuesFromSSO, Map<String, String> dynamicSSOValues, Map<String, List<String>> mergeFieldMap) {
         Boolean valueFlag = false;
         //扩展字段处理结果集
         ArrayList<DynamicValue> dynValues = new ArrayList<>();
         if (!CollectionUtils.isEmpty(dyValuesFromSSO)) {
             Map<String, DynamicValue> collect = dyValuesFromSSO.stream().collect(Collectors.toMap(DynamicValue::getAttrId, dynamicValue -> dynamicValue));
             for (Map.Entry<String, String> str : attrMap.entrySet()) {
+                if (mergeFieldMap.containsKey(ssoBean.getId())) {
+                    List<String> list = mergeFieldMap.get(ssoBean.getId());
+                    if (list.contains(str.getKey())) {
+                        continue;
+                    }
+                }
                 String o = dynamic.get(str.getValue());
                 if (collect.containsKey(str.getKey())) {
                     DynamicValue dynamicValue = collect.get(str.getKey());
@@ -2415,7 +2474,10 @@ public class PersonServiceImpl implements PersonService {
         }
         //存储头像需要处理的规则
         List<NodeRules> avatarRules = new ArrayList<>();
-        dataProcessing(nodeRules, domain, tenant, valueUpdateMap, valueInsertMap, result, null, avatarResult, upstreamMap, avatarRules);
+        //获取 手工合重属性相关信息
+        List<MergeAttrRule> mergeAttrRules = mergeAttrRuleService.findOriginalMergeAttrRulesByTenantId(tenant.getId());
+
+        dataProcessing(nodeRules, domain, tenant, valueUpdateMap, valueInsertMap, result, null, avatarResult, upstreamMap, avatarRules, mergeAttrRules);
 
         if (!CollectionUtils.isEmpty(personErrorData.get(domain.getId()))) {
             TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(personErrorData.get(domain.getId())));

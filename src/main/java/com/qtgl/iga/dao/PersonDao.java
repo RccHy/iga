@@ -1,6 +1,7 @@
 package com.qtgl.iga.dao;
 
 import com.alibaba.fastjson.JSONObject;
+import com.qtgl.iga.bean.MergeAttrRule;
 import com.qtgl.iga.bo.*;
 
 import java.util.ArrayList;
@@ -13,9 +14,9 @@ public interface PersonDao {
     List<Person> getAll(String tenantId);
 
 
-    Integer saveToSso(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, List<Certificate> certificates);
+    Integer saveToSso(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, List<Certificate> certificates, List<MergeAttrRule> mergeAttrRules);
 
-    Integer saveToSsoTest(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, List<DynamicAttr> attrList, List<Certificate> certificates,List<DynamicValue> dynamicValues);
+    Integer saveToSsoTest(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, List<DynamicAttr> attrList, List<Certificate> certificates, List<DynamicValue> dynamicValues);
 
     Integer saveToTemp(List<Person> personList, DomainInfo domainInfo);
 
