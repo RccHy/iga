@@ -115,7 +115,7 @@ public class FileUtil {
     }
 
 
-    public String putFileByGql(byte[] file, String fileName, DomainInfo domainInfo) {
+    public JSONObject putFileByGql(byte[] file, String fileName, DomainInfo domainInfo) {
         String fileGqlUrl = null;
         try {
             // 通过 fluent.Request 发送post请求，设置请求头为multipart/form-data，参数为operations 和 map
@@ -144,14 +144,15 @@ public class FileUtil {
                 JSONObject object = JSONObject.parseObject(content).getJSONObject("data").getJSONObject("upload");
                 //String uri = url + object.getJSONArray("entities").getJSONObject(0).getString("uri");
                 //System.out.println(uri);
-                return object.getString("uri");
+                object.put("name",fileName);
+                return object;
             }
         } catch (Exception ioException) {
             ioException.printStackTrace();
             log.error("put file error:{}", ioException);
             throw new CustomException(ResultCode.FAILED, "上传文件失败,上传路径为:" + fileGqlUrl);
         }
-        return "";
+        return null;
 
     }
 

@@ -5,8 +5,8 @@ import com.qtgl.iga.bean.TaskLogConnection;
 import com.qtgl.iga.bean.TaskLogEdge;
 import com.qtgl.iga.bo.TaskLog;
 import com.qtgl.iga.dao.TaskLogDao;
-import com.qtgl.iga.utils.enums.FilterCodeEnum;
 import com.qtgl.iga.utils.MyBeanUtils;
+import com.qtgl.iga.utils.enums.FilterCodeEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -100,23 +100,19 @@ public class TaskLogDaoImpl implements TaskLogDao {
                 param.add(null == arguments.get("first") ? 0 : arguments.get("first"));
             }
 
-            System.out.println(stb.toString());
+            System.out.println(stb);
             List<Map<String, Object>> taskLogMap = jdbcIGA.queryForList(stb.toString(), param.toArray());
             for (Map<String, Object> map : taskLogMap) {
                 TaskLogEdge taskLogEdge = new TaskLogEdge();
                 TaskLog taskLog = new TaskLog();
                 MyBeanUtils.populate(taskLog, map);
                 String data = taskLog.getData();
-                try {
-                    if (StringUtils.isNotBlank(data) && 0 == JSONObject.parseObject(data).getInteger("errno")) {
-                        JSONObject object = JSONObject.parseObject(data);
-                        String uri = object.getJSONArray("entities").getJSONObject(0).getString("name");
-                        taskLog.setData(uri);
-                    }
-                } catch (Exception e) {
-
+                //如果不是json则不处理
+                if (StringUtils.isNotBlank(data)) {
+                    JSONObject object = JSONObject.parseObject(data);
+                    String uri = object.getString("uri");
+                    taskLog.setData(uri);
                 }
-
                 taskLogEdge.setNode(taskLog);
                 taskLogEdges.add(taskLogEdge);
             }
@@ -191,10 +187,20 @@ public class TaskLogDaoImpl implements TaskLogDao {
         Map<String, Object> url = jdbcIGA.queryForMap(sql, domainId, id);
         String data = null == url.get("data") ? null : String.valueOf(url.get("data"));
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<>();
-        if (StringUtils.isNotBlank(data) && 0 == JSONObject.parseObject(data).getInteger("errno")) {
+        //if (StringUtils.isNotBlank(data) && 0 == JSONObject.parseObject(data).getInteger("errno")) {
+        //    JSONObject object = JSONObject.parseObject(data);
+        //    String uri = object.getJSONArray("entities").getJSONObject(0).getString("uri");
+        //    String fileName = object.getJSONArray("entities").getJSONObject(0).getString("name");
+        //    map.put("uri", uri);
+        //    map.put("fileName", fileName);
+        //    return map;
+        //} else {
+        //    return null;
+        //}
+        if (StringUtils.isNotBlank(data)) {
             JSONObject object = JSONObject.parseObject(data);
-            String uri = object.getJSONArray("entities").getJSONObject(0).getString("uri");
-            String fileName = object.getJSONArray("entities").getJSONObject(0).getString("name");
+            String uri = object.getString("uri");
+            String fileName = object.getString("name");
             map.put("uri", uri);
             map.put("fileName", fileName);
             return map;

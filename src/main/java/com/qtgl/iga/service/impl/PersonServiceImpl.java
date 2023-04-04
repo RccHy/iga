@@ -505,7 +505,10 @@ public class PersonServiceImpl implements PersonService {
         try {
 
             String suffix = SuffixUtil.getByteSuffix(avatar.getAvatar());
-            url = fileUtil.putFileByGql(avatar.getAvatar(), avatar.getIdentityId() + "_avatar." + suffix, domain);
+            JSONObject jsonObject = fileUtil.putFileByGql(avatar.getAvatar(), avatar.getIdentityId() + "_avatar." + suffix, domain);
+            if(null!=jsonObject){
+                url = jsonObject.getString("uri");
+            }
         } catch (Exception e) {
             e.printStackTrace();
             if (count < 2) {

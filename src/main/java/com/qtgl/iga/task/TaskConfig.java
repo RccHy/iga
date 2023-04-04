@@ -1,5 +1,6 @@
 package com.qtgl.iga.task;
 
+import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
@@ -143,7 +144,7 @@ public class TaskConfig {
                             log.info("{}开始同步,task:{}", domainInfo.getDomainName(), taskLog.getId());
                             taskLogService.save(taskLog, domainInfo.getId(), "save");
                             //部门数据同步至sso
-                            Map<TreeBean, String> deptResult = deptService.buildDeptUpdateResult(domainInfo, lastTaskLog, taskLog,null);
+                            Map<TreeBean, String> deptResult = deptService.buildDeptUpdateResult(domainInfo, lastTaskLog, taskLog, null);
                             Map<String, List<Map.Entry<TreeBean, String>>> deptResultMap = deptResult.entrySet().stream().collect(Collectors.groupingBy(Map.Entry::getValue));
                             //处理数据
                             Integer recoverDept = deptResultMap.containsKey("recover") ? deptResultMap.get("recover").size() : 0;
@@ -166,7 +167,7 @@ public class TaskConfig {
 
 
                             //=============岗位数据同步至sso=================
-                            final Map<TreeBean, String> postResult = postService.buildPostUpdateResult(domainInfo, lastTaskLog, taskLog,null);
+                            final Map<TreeBean, String> postResult = postService.buildPostUpdateResult(domainInfo, lastTaskLog, taskLog, null);
                             Map<String, List<Map.Entry<TreeBean, String>>> postResultMap = postResult.entrySet().stream().collect(Collectors.groupingBy(Map.Entry::getValue));
                             Integer recoverPost = postResultMap.containsKey("recover") ? postResultMap.get("recover").size() : 0;
                             Integer insertPost = (postResultMap.containsKey("insert") ? postResultMap.get("insert").size() : 0) + recoverPost;
@@ -186,7 +187,7 @@ public class TaskConfig {
 
 
                             //=============人员数据同步至sso=============
-                            Map<String, List<Person>> personResult = personService.buildPerson(domainInfo, lastTaskLog, taskLog,null);
+                            Map<String, List<Person>> personResult = personService.buildPerson(domainInfo, lastTaskLog, taskLog, null);
                             Integer countPerson = 0;
                             if (null == personResult) {
                                 log.error("无人员管理规则，不进行人员同步");
@@ -211,7 +212,7 @@ public class TaskConfig {
                             }
 
                             //人员身份同步至sso
-                            final Map<String, List<OccupyDto>> occupyResult = occupyService.buildOccupy(domainInfo, lastTaskLog, taskLog,null);
+                            final Map<String, List<OccupyDto>> occupyResult = occupyService.buildOccupy(domainInfo, lastTaskLog, taskLog, null);
                             Integer countOccupy = 0;
                             if (null == occupyResult) {
                                 log.error("无身份管理规则，不进行身份同步");
@@ -286,9 +287,10 @@ public class TaskConfig {
     public void upload(DomainInfo domainInfo, TaskLog taskLog) {
         try {
             String fileName = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()) + ".txt";
-            String utf8 = fileUtil.putFileByGql(TaskConfig.errorData.get(domainInfo.getId()).getBytes("UTF8"), fileName, domainInfo);
-
-            taskLog.setData(utf8);
+            JSONObject jsonObject = fileUtil.putFileByGql(TaskConfig.errorData.get(domainInfo.getId()).getBytes("UTF8"), fileName, domainInfo);
+            if (null != jsonObject) {
+                taskLog.setData(jsonObject.toJSONString());
+            }
             taskLogService.save(taskLog, domainInfo.getId(), "update");
             log.info("上传文件{}成功", fileName);
 

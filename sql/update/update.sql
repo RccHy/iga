@@ -3,6 +3,8 @@
 ALTER TABLE `t_mgr_merge_attr_rule`
     MODIFY COLUMN `create_time` datetime NULL DEFAULT NULL AFTER `dynamic_attr_id`;
 
+UPDATE t_mgr_task_log SET `data` = CONCAT( '{"name": "', create_time, '","uri":"', `data`, '"}' )
+WHERE `data` NOT LIKE '{%' and `data` is not null;
 
 -- 20230323
 alter table t_mgr_domain_info add unique (domain_name);

@@ -385,7 +385,14 @@ public class PersonDaoImpl implements PersonDao {
                     for (MergeAttrRule mergeAttrRule : mergeAttrRules) {
                         if (StringUtils.isNotBlank(mergeAttrRule.getDynamicAttrId())) {
                             String sql = "update  dynamic_value set value=(select a.`value` from (SELECT `value` FROM dynamic_value WHERE entity_id = ? and attr_id=?)  a) where entity_id=? and attr_id=?";
-                            jdbcSSO.update(sql, new Object[]{mergeAttrRule.getFromEntityId(), mergeAttrRule.getDynamicAttrId(), mergeAttrRule.getEntityId(), mergeAttrRule.getDynamicAttrId()});
+                            int update = jdbcSSO.update(sql, new Object[]{mergeAttrRule.getFromEntityId(), mergeAttrRule.getDynamicAttrId(), mergeAttrRule.getEntityId(), mergeAttrRule.getDynamicAttrId()});
+                            if (update <= 0) {
+                                //修改操作无数据则新增
+                                String insertSql = "INSERT INTO `dynamic_value` ( `id`, `attr_id`, `entity_id`, `value`, `tenant_id` ) VALUES" +
+                                        " (uuid( ),?,?,( SELECT a.`value` FROM ( SELECT `value` FROM dynamic_value WHERE entity_id = ? AND attr_id = ? ) a ), " +
+                                        " ?)";
+                                jdbcSSO.update(insertSql, mergeAttrRule.getDynamicAttrId(), mergeAttrRule.getEntityId(), tenantId);
+                            }
 
                         } else {
                             // 非动态属性
