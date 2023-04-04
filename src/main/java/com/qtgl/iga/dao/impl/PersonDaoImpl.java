@@ -391,7 +391,7 @@ public class PersonDaoImpl implements PersonDao {
                                 String insertSql = "INSERT INTO `dynamic_value` ( `id`, `attr_id`, `entity_id`, `value`, `tenant_id` ) VALUES" +
                                         " (uuid( ),?,?,( SELECT a.`value` FROM ( SELECT `value` FROM dynamic_value WHERE entity_id = ? AND attr_id = ? ) a ), " +
                                         " ?)";
-                                jdbcSSO.update(insertSql, mergeAttrRule.getDynamicAttrId(), mergeAttrRule.getEntityId(), tenantId);
+                                jdbcSSO.update(insertSql, mergeAttrRule.getDynamicAttrId(), mergeAttrRule.getEntityId(), mergeAttrRule.getFromEntityId(), mergeAttrRule.getDynamicAttrId(), tenantId);
                             }
 
                         } else {
