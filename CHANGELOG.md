@@ -1,4 +1,27 @@
 
+### 20230406
+
+**数据库**
+- 执行iga/update/update.sql下 20230406的sql
+
+**new：**
+- 人员同步逻辑兼容手动合重基础属性
+- 组织机构及岗位支持sub
+**bug fix**
+- 添加规则 bug fix
+- 同步日志下载 bug fix
+- 人员同步sex字段支持异常 bug fix
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20230406
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20230406
+
+
+
 ### 身份治理-20230323-v0.3.7
 
 **数据库**

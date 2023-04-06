@@ -1,5 +1,5 @@
 
---待发布
+--20230406
 ALTER TABLE `t_mgr_merge_attr_rule`
     MODIFY COLUMN `create_time` datetime NULL DEFAULT NULL AFTER `dynamic_attr_id`;
 
