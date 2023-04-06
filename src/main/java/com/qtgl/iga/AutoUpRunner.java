@@ -25,7 +25,7 @@ public class AutoUpRunner implements CommandLineRunner {
 
 
     @Override
-    public void run(String... args) throws Exception {
+    public void run(String... args)  {
         List<DomainInfo> all = domainInfoService.findAll();
         if (null != all&&all.size()>0) {
             for (DomainInfo domainInfo : all) {
@@ -34,7 +34,11 @@ public class AutoUpRunner implements CommandLineRunner {
                 if (null == monitorRules || monitorRules.size() <= 0) {
                     monitorRulesService.initialization(domainInfo.getId());
                 }
-                subWebSocket.listening(domainInfo);
+                try {
+                    subWebSocket.listening(domainInfo);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         }
         //获取超级租户id 放入全局变量
