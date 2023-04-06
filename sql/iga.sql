@@ -495,7 +495,7 @@ create table t_mgr_merge_attr_rule
     entity_id       varchar(50)  not null comment '被赋值的对象',
     from_entity_id  varchar(50)  not null comment '提供值的对象',
     dynamic_attr_id varchar(50)  null comment '扩展属性情况下对应的id',
-    create_time     timestamp     null,
+    create_time     datetime     null,
     tenant_id       varchar(50)  null
 )
     comment '手工合重属性';
