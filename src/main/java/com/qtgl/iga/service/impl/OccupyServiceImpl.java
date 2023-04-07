@@ -64,6 +64,8 @@ public class OccupyServiceImpl implements OccupyService {
     PreViewTaskService preViewTaskService;
     @Resource
     IncrementalTaskService incrementalTaskService;
+    @Resource
+    ShadowCopyService shadowCopyService;
 
     @Resource
     DataBusUtil dataBusUtil;
@@ -81,7 +83,8 @@ public class OccupyServiceImpl implements OccupyService {
     public static ConcurrentHashMap<String, Map<String, String>> occupyTypeFields = new ConcurrentHashMap<>();
     //类型
     private final String TYPE = "IDENTITY";
-
+    //iga 对应type
+    private final String synType = "occupy";
 
     /**
      * 1：根据规则获取所有的 人员身份数据
@@ -116,7 +119,7 @@ public class OccupyServiceImpl implements OccupyService {
         if (CollectionUtils.isEmpty(occupyRules)) {
             // 获取规则
 
-            List<NodeDto> nodes = nodeService.findNodes(domain.getId(), 0, "occupy", true);
+            List<NodeDto> nodes = nodeService.findNodes(domain.getId(), 0, synType, true);
             if (null == nodes || nodes.size() <= 0) {
                 log.error("无人员身份管理规则信息");
                 return null;
@@ -149,7 +152,7 @@ public class OccupyServiceImpl implements OccupyService {
             List<String> ids = upstreams.stream().map(Upstream::getId).collect(Collectors.toList());
 
             //根据权威源和类型获取需要执行的规则
-            rules = rulesService.findNodeRulesByUpStreamIdAndType(ids, "occupy", domain.getId(), 0);
+            rules = rulesService.findNodeRulesByUpStreamIdAndType(ids, synType, domain.getId(), 0);
 
             //获取除了该权威源以外的所有权威源(用于sub模式)
             List<UpstreamDto> otherDomains = upstreamService.findByOtherUpstream(ids, domain.getId());
@@ -449,15 +452,28 @@ public class OccupyServiceImpl implements OccupyService {
             try {
                 dataByBus = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
             } catch (CustomException e) {
+                //if (new Long("1085").equals(e.getCode())) {
+                //    throw new CustomException(ResultCode.INVOKE_URL_ERROR, "请求资源地址失败,请检查权威源:" + upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")" + "下的权威源类型:" + upstreamType.getDescription());
+                //} else {
+                //    throw e;
+                //}
+
                 if (new Long("1085").equals(e.getCode())) {
-                    throw new CustomException(ResultCode.INVOKE_URL_ERROR, "请求资源地址失败,请检查权威源:" + upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")" + "下的权威源类型:" + upstreamType.getDescription());
+                    log.error("请求资源地址失败,请检查权威源:{}下的权威源类型:{},通过影子副本获取数据", upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")", upstreamType.getDescription());
                 } else {
-                    throw e;
+                    e.printStackTrace();
+                    log.error("{}:获取上游数据失败:{},通过影子副本获取数据", synType, e.getErrorMsg());
                 }
+                //通过影子副本获取数据
+                dataByBus = shadowCopyService.findDataByUpstreamTypeAndType(upstreamType.getId(), synType, upstreamType.getDomain());
+
             } catch (Exception e) {
-                log.error("人员身份类型中 : " + upstreamType.getUpstreamId() + "表达式异常");
+                e.printStackTrace();
+                log.error("人员身份类型中 : " + upstreamType.getUpstreamId() + "表达式异常,通过影子副本获取数据");
                 errorDataProcessing(domain);
-                throw new CustomException(ResultCode.OCCUPY_ERROR, null, null, upstreamType.getDescription(), e.getMessage());
+                //throw new CustomException(ResultCode.OCCUPY_ERROR, null, null, upstreamType.getDescription(), e.getMessage());
+                //通过影子副本获取数据
+                dataByBus = shadowCopyService.findDataByUpstreamTypeAndType(upstreamType.getId(), synType, upstreamType.getDomain());
             }
             List<OccupyDto> occupies = new ArrayList<>();
 
@@ -572,7 +588,7 @@ public class OccupyServiceImpl implements OccupyService {
         IncrementalTask incrementalTask = new IncrementalTask();
         incrementalTask.setId(UUID.randomUUID().toString());
         incrementalTask.setMainTaskId(currentTask.getId());
-        incrementalTask.setType("occupy");
+        incrementalTask.setType(synType);
         log.info("类型:{},权威源类型:{},上游增量最大修改时间:{} -> {},当前时刻:{}", upstreamType.getSynType(), upstreamType.getId(), collect1.get(0).getUpdateTime(), collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
         long min = Math.min(collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
         incrementalTask.setTime(new Timestamp(min));
@@ -1463,11 +1479,11 @@ public class OccupyServiceImpl implements OccupyService {
         JSONObject jsonObject = JSONObject.parseObject(JSONObject.toJSONString(occupyDto));
         if (occupyErrorData.containsKey(domain.getId())) {
             jsonObject.put("reason", reason);
-            jsonObject.put("type", "occupy");
+            jsonObject.put("type", synType);
             occupyErrorData.get(domain.getId()).add(jsonObject);
         } else {
             jsonObject.put("reason", reason);
-            jsonObject.put("type", "occupy");
+            jsonObject.put("type", synType);
             occupyErrorData.put(domain.getId(), new ArrayList<JSONObject>() {{
                 this.add(jsonObject);
             }});
@@ -1575,10 +1591,10 @@ public class OccupyServiceImpl implements OccupyService {
             viewTask.setTaskId(UUID.randomUUID().toString());
             viewTask.setStatus("doing");
             viewTask.setDomain(domain.getId());
-            viewTask.setType("occupy");
+            viewTask.setType(synType);
         }
         //查询进行中的刷新人员身份任务数
-        Integer count = preViewTaskService.findByTypeAndStatus("occupy", "doing", domain);
+        Integer count = preViewTaskService.findByTypeAndStatus(synType, "doing", domain);
 
         if (count <= 10) {
             viewTask = preViewTaskService.saveTask(viewTask);
@@ -1794,7 +1810,7 @@ public class OccupyServiceImpl implements OccupyService {
             viewTask.setTaskId(UUID.randomUUID().toString());
             viewTask.setStatus("doing");
             viewTask.setDomain(domain.getId());
-            viewTask.setType("occupy");
+            viewTask.setType(synType);
         }
 
         viewTask = preViewTaskService.saveTask(viewTask);
@@ -1854,7 +1870,7 @@ public class OccupyServiceImpl implements OccupyService {
 
 
         // 获取规则
-        List<NodeDto> nodes = nodeService.findNodes(domain.getId(), 0, "occupy", true);
+        List<NodeDto> nodes = nodeService.findNodes(domain.getId(), 0, synType, true);
         if (CollectionUtils.isEmpty(nodes)) {
             log.error("无人员身份管理规则信息");
             throw new CustomException(ResultCode.FAILED, "无人员身份管理规则信息");
@@ -1975,7 +1991,7 @@ public class OccupyServiceImpl implements OccupyService {
         }
         igaOccupyConnection.setTotalCount(count);
         //查询上次同步的时间
-        PreViewTask person = preViewTaskService.findByTypeAndUpdateTime("occupy", domain.getId());
+        PreViewTask person = preViewTaskService.findByTypeAndUpdateTime(synType, domain.getId());
         if (null != person) {
             igaOccupyConnection.setUpdateTime(person.getUpdateTime());
         }

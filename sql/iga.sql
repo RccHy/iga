@@ -510,7 +510,13 @@ create table t_mgr_merge_attr_rule
 )
     comment '手工合重属性';
 
-
-
-
+CREATE TABLE `t_mgr_shadow_copy`  (
+                                      `id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '主键',
+                                      `data` mediumblob NULL COMMENT '数据',
+                                      `upstream_type_id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '权威源类型id',
+                                      `type` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '同步类型  dept/post/person/occupy',
+                                      `domain` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '租户',
+                                      `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
+                                      PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
 

@@ -5,8 +5,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.*;
 import com.qtgl.iga.bo.*;
-import com.qtgl.iga.dao.*;
-import com.qtgl.iga.service.IncrementalTaskService;
+import com.qtgl.iga.service.*;
 import com.qtgl.iga.task.TaskConfig;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
@@ -19,9 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
@@ -47,28 +44,27 @@ import java.util.stream.Collectors;
 @Slf4j
 public class NodeRulesCalculationServiceImpl {
     @Resource
-    NodeRulesDao rulesDao;
+    NodeRulesService rulesService;
     @Resource
-    UpstreamDao upstreamDao;
+    UpstreamService upstreamService;
     @Resource
     DataBusUtil dataBusUtil;
-    @Autowired
-    UpstreamTypeDao upstreamTypeDao;
-    @Autowired
-    NodeDao nodeDao;
-    @Autowired
-    UpstreamDeptDao upstreamDeptDao;
-    @Autowired
-    NodeRulesRangeDao rangeDao;
-    @Autowired
-    DeptTreeTypeDao deptTreeTypeDao;
-    @Autowired
-    MonitorRulesDao monitorRulesDao;
-    @Autowired
+    @Resource
+    UpstreamTypeService upstreamTypeService;
+    @Resource
+    NodeService nodeService;
+    @Resource
+    DeptTreeTypeService deptTreeTypeService;
+    @Resource
+    MonitorRulesService monitorRulesService;
+    @Resource
     DeptServiceImpl deptService;
-    @Autowired
+    @Resource
     IncrementalTaskService incrementalTaskService;
-
+    @Resource
+    ShadowCopyService shadowCopyService;
+    //@Resource
+    //UpstreamDeptDao upstreamDeptDao;
     public static Logger logger = LoggerFactory.getLogger(NodeRulesCalculationServiceImpl.class);
     //岗位重命名数据
     public static ConcurrentHashMap<String, String> postRename;
@@ -341,7 +337,7 @@ public class NodeRulesCalculationServiceImpl {
 
         if (null != all && all.size() > 0) {
             // 获取 监控规则
-            final List<MonitorRules> deptMonitorRules = monitorRulesDao.findAll(domain.getId(), type);
+            final List<MonitorRules> deptMonitorRules = monitorRulesService.findAll(domain.getId(), type);
             if ("dept".equals(type)) {
                 type = "组织机构";
             } else {
@@ -406,7 +402,7 @@ public class NodeRulesCalculationServiceImpl {
                 type = "person";
             }
             // 获取 监控规则
-            final List<MonitorRules> deptMonitorRules = monitorRulesDao.findAll(domain.getId(), type);
+            final List<MonitorRules> deptMonitorRules = monitorRulesService.findAll(domain.getId(), type);
             for (MonitorRules deptMonitorRule : deptMonitorRules) {
                 SimpleBindings bindings = new SimpleBindings();
                 bindings.put("$count", count);
@@ -530,14 +526,25 @@ public class NodeRulesCalculationServiceImpl {
     }
 
     /**
-     * @param domain   租户
-     * @param treeType 组织机构树类型
-     * @param nodeCode 节点
+     * @param domain          租户
+     * @param treeType        组织机构树类型
+     * @param nodeCode        节点
      * @param mainTree
-     * @param status   状态(0:正式,1:编辑,2:历史)
-     * @param type     来源类型 person,post,dept,occupy
+     * @param status          状态(0:正式,1:编辑,2:历史)
+     * @param type            来源类型 person,post,dept,occupy
+     * @param dynamicCodes
+     * @param ssoBeansMap     sso数据
+     * @param dynamicAttrs    sso 扩展字段定义字段
+     * @param valueMap        sso扩展字段值
+     * @param valueUpdate     扩展字段修改结果集
+     * @param valueInsert     扩展字段新增结果集
+     * @param upstreamHashMap 需要忽略的权威源
+     * @param result          最终结果集
+     * @param nodesMap        node规则
+     * @param currentTask     当前同步任务
+     * @return
+     * @throws Exception
      * @Description: 规则运算
-     * @return: java.util.Map<java.lang.String, com.qtgl.iga.bean.TreeBean>
      */
     public List<TreeBean> nodeRules(DomainInfo domain, DeptTreeType treeType, String nodeCode, List<TreeBean> mainTree, Integer status, String type, List<String> dynamicCodes, Map<String, TreeBean> ssoBeansMap,
                                     List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, UpstreamDto> upstreamHashMap,
@@ -604,13 +611,13 @@ public class NodeRulesCalculationServiceImpl {
                         // 根据id 获取 UpstreamType
 
                         //todo 不启用 不报错
-                        UpstreamType upstreamType = upstreamTypeDao.findById(nodeRule.getUpstreamTypesId());
+                        UpstreamType upstreamType = upstreamTypeService.findById(nodeRule.getUpstreamTypesId());
                         if (null == upstreamType) {
                             logger.error("对应拉取节点规则'{}'无有效权威源类型数据", code);
                             throw new CustomException(ResultCode.NO_UPSTREAM_TYPE, null, null, "", code);
                         }
                         //获取来源
-                        Upstream upstream = upstreamDao.findById(upstreamType.getUpstreamId());
+                        Upstream upstream = upstreamService.findById(upstreamType.getUpstreamId());
                         if (null == upstream) {
                             logger.error("对应拉取节点规则'{}'无权威源数据", code);
                             throw new CustomException(ResultCode.NO_UPSTREAM, null, null, "", code);
@@ -622,16 +629,26 @@ public class NodeRulesCalculationServiceImpl {
                         try {
                             upstreamTree = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
                         } catch (CustomException e) {
-                            e.setData(mainTree);
+                            //e.setData(mainTree);
+                            //if (new Long("1085").equals(e.getCode())) {
+                            //    throw new CustomException(ResultCode.INVOKE_URL_ERROR, "请求资源地址失败,请检查权威源:" + upstream.getAppName() + "(" + upstream.getAppCode() + ")" + "下的权威源类型:" + upstreamType.getDescription(), mainTree);
+                            //} else {
+                            //    throw e;
+                            //}
                             if (new Long("1085").equals(e.getCode())) {
-                                throw new CustomException(ResultCode.INVOKE_URL_ERROR, "请求资源地址失败,请检查权威源:" + upstream.getAppName() + "(" + upstream.getAppCode() + ")" + "下的权威源类型:" + upstreamType.getDescription(), mainTree);
+                                log.error("请求资源地址失败,请检查权威源:{}下的权威源类型:{},通过影子副本获取数据", upstream.getAppName() + "(" + upstream.getAppCode() + ")", upstreamType.getDescription());
                             } else {
-                                throw e;
+                                e.printStackTrace();
+                                log.error("{}:获取上游数据失败:{} ,通过影子副本获取数据", type, e.getErrorMsg());
                             }
+                            //通过影子副本获取数据
+                            upstreamTree = shadowCopyService.findDataByUpstreamTypeAndType(upstreamType.getId(), type, upstreamType.getDomain());
                         } catch (Exception e) {
-
-                            logger.error("{}{} 中的类型 【{}】 表达式异常", (null == treeType ? "" : treeType.getName()+"下"), ("".equals(nodeCode) ? "根节点" : nodeCode), upstreamType.getDescription());
-                            throw new CustomException(ResultCode.EXPRESSION_ERROR, null, null, null == treeType ? "" : treeType.getName(), "".equals(nodeCode) ? "根节点" : nodeCode, upstreamType.getDescription());
+                            e.printStackTrace();
+                            logger.error("{}{} 中的类型 【{}】 表达式异常, 通过影子副本获取数据", (null == treeType ? "" : treeType.getName() + "下"), ("".equals(nodeCode) ? "根节点" : nodeCode), upstreamType.getDescription());
+                            //throw new CustomException(ResultCode.EXPRESSION_ERROR, null, null, null == treeType ? "" : treeType.getName(), "".equals(nodeCode) ? "根节点" : nodeCode, upstreamType.getDescription());
+                            //通过影子副本获取数据
+                            upstreamTree = shadowCopyService.findDataByUpstreamTypeAndType(upstreamType.getId(), type, upstreamType.getDomain());
                         }
 
                         //验证树的合法性
@@ -983,34 +1000,34 @@ public class NodeRulesCalculationServiceImpl {
 
                     //存放异常信息的容器
                     ArrayList<ErrorData> list = new ArrayList<>();
-                    String deptTreeName = null;
-                    String treeBeanName = null;
-                    String treeBeanCode = null;
+                    //String deptTreeName = null;
+                    //String treeBeanName = null;
+                    //String treeBeanCode = null;
                     String treeName = null;
                     String treeCode = null;
 
-                    String deptTreeNameM = null;
-                    String treeBeanNameM = null;
-                    String treeBeanCodeM = null;
+                    //String deptTreeNameM = null;
+                    //String treeBeanNameM = null;
+                    //String treeBeanCodeM = null;
                     String treeNameM = null;
                     String treeCodeM = null;
 
-                    DeptTreeType deptTreeType = deptTreeTypeDao.findByCode(bean.getTreeType(), domainInfo.getId());
+                    DeptTreeType deptTreeType = deptTreeTypeService.findByCode(bean.getTreeType(), domainInfo.getId());
 
                     if (("API".equals(bean.getDataSource())) || ("BUILTIN".equals(bean.getDataSource())) || ("ENTERPRISE".equals(bean.getDataSource()))) {
-                        deptTreeName = (null == deptTreeType ? "" : deptTreeType.getName());
-                        treeBeanName = "".equals(bean.getCode()) ? "根节点" : bean.getName();
-                        treeBeanCode = bean.getCode();
+                        //deptTreeName = (null == deptTreeType ? "" : deptTreeType.getName());
+                        //treeBeanName = "".equals(bean.getCode()) ? "根节点" : bean.getName();
+                        //treeBeanCode = bean.getCode();
                         treeName = bean.getName();
                         treeCode = bean.getCode();
                         list.add(new ErrorData((null == deptTreeType ? "" : deptTreeType.getId()), bean.getRuleId(), bean.getCode()));
                     } else {
 
-                        NodeRules nodeRules = rulesDao.findNodeRulesById(bean.getRuleId(), status);
-                        List<Node> nodes = nodeDao.findById(nodeRules.getNodeId());
-                        deptTreeName = (null == deptTreeType ? "" : deptTreeType.getName());
-                        treeBeanName = "".equals(nodes.get(0).getNodeCode()) ? "根节点" : mergeDeptMap.get(nodes.get(0).getNodeCode()).getName();
-                        treeBeanCode = nodes.get(0).getNodeCode();
+                        NodeRules nodeRules = rulesService.findNodeRulesById(bean.getRuleId(), status);
+                        List<Node> nodes = nodeService.findById(nodeRules.getNodeId());
+                        //deptTreeName = (null == deptTreeType ? "" : deptTreeType.getName());
+                        //treeBeanName = "".equals(nodes.get(0).getNodeCode()) ? "根节点" : mergeDeptMap.get(nodes.get(0).getNodeCode()).getName();
+                        //treeBeanCode = nodes.get(0).getNodeCode();
                         treeName = bean.getName();
                         treeCode = bean.getCode();
                         list.add(new ErrorData((null == deptTreeType ? "" : deptTreeType.getId()), bean.getRuleId(), nodes.get(0).getNodeCode()));
@@ -1020,20 +1037,20 @@ public class NodeRulesCalculationServiceImpl {
                     if (null == treeBean.getTreeType()) {
                         treeBean.setTreeType("");
                     }
-                    DeptTreeType deptTreeType2 = deptTreeTypeDao.findByCode(treeBean.getTreeType(), domainInfo.getId());
+                    DeptTreeType deptTreeType2 = deptTreeTypeService.findByCode(treeBean.getTreeType(), domainInfo.getId());
                     if (("API".equals(treeBean.getDataSource())) || ("BUILTIN".equals(treeBean.getDataSource())) || ("ENTERPRISE".equals(treeBean.getDataSource()))) {
-                        deptTreeNameM = null == deptTreeType2 ? "" : deptTreeType2.getName();
-                        treeBeanNameM = "".equals(treeBean.getCode()) ? "根节点" : treeBean.getName();
-                        treeBeanCodeM = treeBean.getCode();
+                        //deptTreeNameM = null == deptTreeType2 ? "" : deptTreeType2.getName();
+                        //treeBeanNameM = "".equals(treeBean.getCode()) ? "根节点" : treeBean.getName();
+                        //treeBeanCodeM = treeBean.getCode();
                         treeNameM = treeBean.getName();
                         treeCodeM = treeBean.getCode();
                         list.add(new ErrorData((null == deptTreeType2 ? "" : deptTreeType2.getId()), treeBean.getRuleId(), treeBean.getCode()));
                     } else {
-                        NodeRules nodeRules2 = rulesDao.findNodeRulesById(treeBean.getRuleId(), status);
-                        List<Node> nodes2 = nodeDao.findById(nodeRules2.getNodeId());
-                        deptTreeNameM = null == deptTreeType2 ? "" : deptTreeType2.getName();
-                        treeBeanNameM = "".equals(nodes2.get(0).getNodeCode()) ? "根节点" : mergeDeptMap.get(nodes2.get(0).getNodeCode()).getName();
-                        treeBeanCodeM = nodes2.get(0).getNodeCode();
+                        NodeRules nodeRules2 = rulesService.findNodeRulesById(treeBean.getRuleId(), status);
+                        List<Node> nodes2 = nodeService.findById(nodeRules2.getNodeId());
+                        //deptTreeNameM = null == deptTreeType2 ? "" : deptTreeType2.getName();
+                        //treeBeanNameM = "".equals(nodes2.get(0).getNodeCode()) ? "根节点" : mergeDeptMap.get(nodes2.get(0).getNodeCode()).getName();
+                        //treeBeanCodeM = nodes2.get(0).getNodeCode();
                         treeNameM = treeBean.getName();
                         treeCodeM = treeBean.getCode();
                         list.add(new ErrorData((null == deptTreeType2 ? "" : deptTreeType2.getId()), treeBean.getRuleId(), nodes2.get(0).getNodeCode()));
@@ -1077,7 +1094,7 @@ public class NodeRulesCalculationServiceImpl {
                     String treeNameM = null;
                     String treeCodeM = null;
 
-                    DeptTreeType deptTreeType = deptTreeTypeDao.findByCode(bean.getTreeType(), domainInfo.getId());
+                    DeptTreeType deptTreeType = deptTreeTypeService.findByCode(bean.getTreeType(), domainInfo.getId());
 
                     if (("API".equals(bean.getDataSource())) || ("BUILTIN".equals(bean.getDataSource())) || ("ENTERPRISE".equals(bean.getDataSource()))) {
                         deptTreeName = (null == deptTreeType ? "" : deptTreeType.getName());
@@ -1090,8 +1107,8 @@ public class NodeRulesCalculationServiceImpl {
                         list.add(new ErrorData((null == deptTreeType ? "" : deptTreeType.getId()), bean.getRuleId(), bean.getCode()));
                     } else {
 
-                        NodeRules nodeRules = rulesDao.findNodeRulesById(bean.getRuleId(), status);
-                        List<Node> nodes = nodeDao.findById(nodeRules.getNodeId());
+                        NodeRules nodeRules = rulesService.findNodeRulesById(bean.getRuleId(), status);
+                        List<Node> nodes = nodeService.findById(nodeRules.getNodeId());
 //                        ex = new StringBuffer((null == deptTreeType ? "" : deptTreeType.getName()) + "节点 (").append("".equals(nodes.get(0).getNodeCode()) ? "根节点" : mergeMap.get(nodes.get(0).getNodeCode()).getName())
 //                                .append("(").append(nodes.get(0).getNodeCode()).append("))" + "中的数据").append(bean.getName()).append("(").append(bean.getCode()).append(")").append(" 与");
                         deptTreeName = (null == deptTreeType ? "" : deptTreeType.getName());
@@ -1106,7 +1123,7 @@ public class NodeRulesCalculationServiceImpl {
                     if (null == treeBean.getTreeType()) {
                         treeBean.setTreeType("");
                     }
-                    DeptTreeType deptTreeType2 = deptTreeTypeDao.findByCode(treeBean.getTreeType(), domainInfo.getId());
+                    DeptTreeType deptTreeType2 = deptTreeTypeService.findByCode(treeBean.getTreeType(), domainInfo.getId());
                     if (("API".equals(treeBean.getDataSource())) || ("BUILTIN".equals(treeBean.getDataSource())) || ("ENTERPRISE".equals(treeBean.getDataSource()))) {
 //                        ex.append(null == deptTreeType2 ? "" : deptTreeType2.getName()).append("节点 (").append("".equals(treeBean.getCode()) ? "根节点" : treeBean.getName())
 //                                .append("(").append(treeBean.getCode()).append("))").append("中的数据").append(treeBean.getName()).append("(").append(treeBean.getCode())
@@ -1118,8 +1135,8 @@ public class NodeRulesCalculationServiceImpl {
                         treeCodeM = treeBean.getCode();
                         list.add(new ErrorData((null == deptTreeType2 ? "" : deptTreeType2.getId()), treeBean.getRuleId(), treeBean.getCode()));
                     } else {
-                        NodeRules nodeRules2 = rulesDao.findNodeRulesById(treeBean.getRuleId(), status);
-                        List<Node> nodes2 = nodeDao.findById(nodeRules2.getNodeId());
+                        NodeRules nodeRules2 = rulesService.findNodeRulesById(treeBean.getRuleId(), status);
+                        List<Node> nodes2 = nodeService.findById(nodeRules2.getNodeId());
 //                        ex.append(null == deptTreeType2 ? "" : deptTreeType2.getName()).append("节点 (").append("".equals(nodes2.get(0).getNodeCode()) ? "根节点" : mergeMap.get(nodes2.get(0).getNodeCode()).getName())
 //                                .append("(").append(nodes2.get(0).getNodeCode()).append("))").append("中的数据").append(treeBean.getName()).append("(")
 //                                .append(treeBean.getCode()).append(")").append("循环依赖");
@@ -1200,7 +1217,7 @@ public class NodeRulesCalculationServiceImpl {
                     if (null == treeBean1.getTreeType()) {
                         treeBean1.setTreeType("");
                     }
-                    DeptTreeType deptTreeType = deptTreeTypeDao.findByCode(treeBean1.getTreeType(), domainInfo.getId());
+                    DeptTreeType deptTreeType = deptTreeTypeService.findByCode(treeBean1.getTreeType(), domainInfo.getId());
                     if (("API".equals(treeBean1.getDataSource())) || ("BUILTIN".equals(treeBean1.getDataSource())) || ("ENTERPRISE".equals(treeBean1.getDataSource()))) {
 
                         //deptTreeName = (null == deptTreeType ? "" : deptTreeType.getName());
@@ -1212,8 +1229,8 @@ public class NodeRulesCalculationServiceImpl {
 
                     } else {
 
-                        NodeRules nodeRules = rulesDao.findNodeRulesById(treeBean1.getRuleId(), null);
-                        List<Node> nodes = nodeDao.findById(nodeRules.getNodeId());
+                        NodeRules nodeRules = rulesService.findNodeRulesById(treeBean1.getRuleId(), null);
+                        List<Node> nodes = nodeService.findById(nodeRules.getNodeId());
                         //deptTreeName = (null == deptTreeType ? "" : deptTreeType.getName());
                         //treeBeanName = StringUtils.isBlank(nodes.get(0).getNodeCode()) ? "根节点" : resultBeans.get(nodes.get(0).getNodeCode()).get(0).getName();
                         //treeBeanCode = nodes.get(0).getNodeCode();
@@ -1226,7 +1243,7 @@ public class NodeRulesCalculationServiceImpl {
                     if (null == treeBean.getTreeType()) {
                         treeBean.setTreeType("");
                     }
-                    DeptTreeType deptTreeType2 = deptTreeTypeDao.findByCode(treeBean.getTreeType(), domainInfo.getId());
+                    DeptTreeType deptTreeType2 = deptTreeTypeService.findByCode(treeBean.getTreeType(), domainInfo.getId());
                     if (("API".equals(treeBean.getDataSource())) || ("BUILTIN".equals(treeBean.getDataSource())) || ("ENTERPRISE".equals(treeBean.getDataSource()))) {
                         //deptTreeNameM = null == deptTreeType2 ? "" : deptTreeType2.getName();
                         //treeBeanNameM = StringUtils.isBlank(treeBean.getCode()) ? "根节点" : treeBean.getName();
@@ -1235,8 +1252,8 @@ public class NodeRulesCalculationServiceImpl {
                         treeCodeM = treeBean.getCode();
                         list.add(new ErrorData((null == deptTreeType2 ? "" : deptTreeType2.getId()), treeBean.getRuleId(), treeBean.getCode()));
                     } else {
-                        NodeRules nodeRules2 = rulesDao.findNodeRulesById(treeBean.getRuleId(), null);
-                        List<Node> nodes2 = nodeDao.findById(nodeRules2.getNodeId());
+                        NodeRules nodeRules2 = rulesService.findNodeRulesById(treeBean.getRuleId(), null);
+                        List<Node> nodes2 = nodeService.findById(nodeRules2.getNodeId());
                         //deptTreeNameM = null == deptTreeType2 ? "" : deptTreeType2.getName();
                         //treeBeanNameM = StringUtils.isBlank(nodes2.get(0).getNodeCode())? "根节点" : resultBeans.get(nodes2.get(0).getNodeCode()).get(0).getName();
                         //treeBeanCodeM = nodes2.get(0).getNodeCode();
@@ -1264,34 +1281,34 @@ public class NodeRulesCalculationServiceImpl {
 
 
     }
-
-    /**
-     * @param upstreamTree
-     * @param id
-     * @Description: 将上游部门数据存入iga数据库
-     * @return: java.lang.Integer
-     */
-    @Transactional
-    Integer saveDataToDb(JSONArray upstreamTree, String id) {
-        //上游数据已有时间戳的情况
-        UpstreamDept upstreamDept = new UpstreamDept();
-        upstreamDept.setDept(upstreamTree.toJSONString());
-        upstreamDept.setUpstreamTypeId(id);
-        UpstreamDept upstreamDepts = null;
-        //查询数据库是否有数据
-        UpstreamDept upstreamDeptDb = upstreamDeptDao.findUpstreamDeptByUpstreamId(id);
-        if (null == upstreamDeptDb) {
-            upstreamDepts = upstreamDeptDao.saveUpstreamDepts(upstreamDept);
-        } else {
-            upstreamDept.setId(upstreamDeptDb.getId());
-            upstreamDept.setCreateTime(new Timestamp(System.currentTimeMillis()));
-            upstreamDepts = upstreamDeptDao.updateUpstreamDepts(upstreamDept);
-
-        }
-
-        return null == upstreamDepts ? 0 : 1;
-
-    }
+    //
+    ///**
+    // * @param upstreamTree
+    // * @param id
+    // * @Description: 将上游部门数据存入iga数据库
+    // * @return: java.lang.Integer
+    // */
+    //@Transactional
+    //Integer saveDataToDb(JSONArray upstreamTree, String id) {
+    //    //上游数据已有时间戳的情况
+    //    UpstreamDept upstreamDept = new UpstreamDept();
+    //    upstreamDept.setDept(upstreamTree.toJSONString());
+    //    upstreamDept.setUpstreamTypeId(id);
+    //    UpstreamDept upstreamDepts = null;
+    //    //查询数据库是否有数据
+    //    UpstreamDept upstreamDeptDb = upstreamDeptDao.findUpstreamDeptByUpstreamId(id);
+    //    if (null == upstreamDeptDb) {
+    //        upstreamDepts = upstreamDeptDao.saveUpstreamDepts(upstreamDept);
+    //    } else {
+    //        upstreamDept.setId(upstreamDeptDb.getId());
+    //        upstreamDept.setCreateTime(new Timestamp(System.currentTimeMillis()));
+    //        upstreamDepts = upstreamDeptDao.updateUpstreamDepts(upstreamDept);
+    //
+    //    }
+    //
+    //    return null == upstreamDepts ? 0 : 1;
+    //
+    //}
 
     /**
      * 增量数据数据库内存对比

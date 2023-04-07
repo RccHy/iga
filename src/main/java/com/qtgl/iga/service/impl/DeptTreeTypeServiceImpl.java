@@ -81,4 +81,9 @@ public class DeptTreeTypeServiceImpl implements DeptTreeTypeService {
         return deptTreeTypeDao.findById(deptTreeTypeId);
     }
 
+    @Override
+    public DeptTreeType findByCode(String treeType, String domainId) {
+        return deptTreeTypeDao.findByCode(treeType,domainId);
+    }
+
 }

@@ -269,6 +269,11 @@ public class NodeRulesServiceImpl implements NodeRulesService {
         return nodeRulesDao.findNodeRulesByNodeIds(nodeIds);
     }
 
+    @Override
+    public NodeRules findNodeRulesById(String ruleId, Integer status) {
+        return nodeRulesDao.findNodeRulesById(ruleId, status);
+    }
+
     public NodeRules deleteRules(NodeRules rules, String domain) {
         //查询是否有range需要删除
         List<NodeRulesRange> ranges = nodeRulesRangeService.getByRulesId(rules.getId(), null);

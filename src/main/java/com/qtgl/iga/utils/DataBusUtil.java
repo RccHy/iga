@@ -11,6 +11,7 @@ import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.DomainInfoService;
 import com.qtgl.iga.service.IncrementalTaskService;
+import com.qtgl.iga.service.ShadowCopyService;
 import com.qtgl.iga.service.UpstreamTypeService;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
@@ -39,12 +40,14 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import javax.annotation.Resource;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import javax.script.SimpleBindings;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.ZoneOffset;
 import java.util.*;
@@ -78,6 +81,8 @@ public class DataBusUtil {
     OccupyDao occupyDao;
     @Autowired
     IncrementalTaskService incrementalTaskService;
+    @Resource
+    ShadowCopyService shadowCopyService;
 
     @Value("${app.scope}")
     private String appScope;
@@ -128,7 +133,6 @@ public class DataBusUtil {
             log.info("无法内省 catalog 服务地址");
             dataMap = getDataMap(dataMapUrl + "?access_token=" + key + "&domain=" + serverName);
         }
-
         // 如果upstreamType 是自定义json ，则不用调用接口。
         if (upstreamType.getSynWay() == 2) {
             return invokeForData(null, upstreamType, serverName, dataMap);
@@ -138,10 +142,24 @@ public class DataBusUtil {
             String dataUrl = invokeUrl(dealUrl, split[2]);
             //请求获取资源
             String u = dataUrl + "/" + "?access_token=" + key + "&domain=" + serverName;
-            return invokeForData(UrlUtil.getUrl(u), upstreamType, serverName, dataMap);
+            JSONArray jsonArray = invokeForData(UrlUtil.getUrl(u), upstreamType, serverName, dataMap);
+
+            //处理影子副本数据
+            dealWithShadowCopy(upstreamType, jsonArray);
+
+            return jsonArray;
         }
 
 
+    }
+
+    private void dealWithShadowCopy(UpstreamType upstreamType, JSONArray jsonArray) {
+        ShadowCopy shadowCopy = new ShadowCopy();
+        shadowCopy.setDomain(upstreamType.getDomain());
+        shadowCopy.setType(upstreamType.getSynType());
+        shadowCopy.setUpstreamTypeId(upstreamType.getId());
+        shadowCopy.setData(jsonArray.toJSONString().getBytes(StandardCharsets.UTF_8));
+        shadowCopyService.save(shadowCopy);
     }
 
     public String getToken(String serverName) {

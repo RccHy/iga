@@ -722,6 +722,11 @@ public class NodeServiceImpl implements NodeService {
     }
 
     @Override
+    public List<Node> findById(String nodeId) {
+        return nodeDao.findById(nodeId);
+    }
+
+    @Override
     public List<Node> nodeStatus(Map<String, Object> arguments, String domain) {
         Integer status = (Integer) arguments.get("status");
         String type = (String) arguments.get("type");

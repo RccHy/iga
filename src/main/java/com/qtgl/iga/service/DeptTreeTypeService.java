@@ -18,4 +18,6 @@ public interface DeptTreeTypeService {
     DeptTreeType updateDeptTreeType(DeptTreeType deptTreeType) throws Exception;
 
     DeptTreeType findById(String deptTreeTypeId);
+
+    DeptTreeType findByCode(String treeType, String domainId);
 }

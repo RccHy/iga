@@ -89,6 +89,8 @@ public class PersonServiceImpl implements PersonService {
     AvatarDao avatarDao;
     @Resource
     FileUtil fileUtil;
+    @Resource
+    ShadowCopyService shadowCopyService;
 
     public static ConcurrentHashMap<String, List<JSONObject>> personErrorData = null;
     //
@@ -107,6 +109,9 @@ public class PersonServiceImpl implements PersonService {
     private final String EMAIL = "EMAIL";
     //手机号
     private final String CELLPHONE = "CELLPHONE";
+    //iga 对应type
+    private final String synType = "person";
+
 
     /**
      * <p>
@@ -152,7 +157,7 @@ public class PersonServiceImpl implements PersonService {
         // 获取规则  (不为sub则获取所有规则)
         if (CollectionUtils.isEmpty(userRules)) {
 
-            List<NodeDto> nodes = nodeService.findNodes(domain.getId(), 0, "person", true);
+            List<NodeDto> nodes = nodeService.findNodes(domain.getId(), 0, synType, true);
             if (CollectionUtils.isEmpty(nodes)) {
                 log.error("无人员管理规则信息");
                 return null;
@@ -188,7 +193,7 @@ public class PersonServiceImpl implements PersonService {
             List<String> ids = upstreams.stream().map(Upstream::getId).collect(Collectors.toList());
 
             //根据权威源和类型获取需要执行的规则
-            rules = rulesService.findNodeRulesByUpStreamIdAndType(ids, "person", domain.getId(), 0);
+            rules = rulesService.findNodeRulesByUpStreamIdAndType(ids, synType, domain.getId(), 0);
             //获取除了该租户以外的所有权威源(用于sub模式)
             List<UpstreamDto> otherDomains = upstreamService.findByOtherUpstream(ids, domain.getId());
             if (!CollectionUtils.isEmpty(otherDomains)) {
@@ -506,7 +511,7 @@ public class PersonServiceImpl implements PersonService {
 
             String suffix = SuffixUtil.getByteSuffix(avatar.getAvatar());
             JSONObject jsonObject = fileUtil.putFileByGql(avatar.getAvatar(), avatar.getIdentityId() + "_avatar." + suffix, domain);
-            if(null!=jsonObject){
+            if (null != jsonObject) {
                 url = jsonObject.getString("uri");
             }
         } catch (Exception e) {
@@ -671,16 +676,28 @@ public class PersonServiceImpl implements PersonService {
             try {
                 dataByBus = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
             } catch (CustomException e) {
-                e.printStackTrace();
+                //e.printStackTrace();
+                //if (new Long("1085").equals(e.getCode())) {
+                //    throw new CustomException(ResultCode.INVOKE_URL_ERROR, "请求资源地址失败,请检查权威源:" + upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")" + "下的权威源类型:" + upstreamType.getDescription());
+                //} else {
+                //    throw e;
+                //}
+
                 if (new Long("1085").equals(e.getCode())) {
-                    throw new CustomException(ResultCode.INVOKE_URL_ERROR, "请求资源地址失败,请检查权威源:" + upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")" + "下的权威源类型:" + upstreamType.getDescription());
+                    log.error("请求资源地址失败,请检查权威源:{}下的权威源类型:{},通过影子副本获取数据", upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")", upstreamType.getDescription());
                 } else {
-                    throw e;
+                    e.printStackTrace();
+                    log.error("{}:获取上游数据失败:{},通过影子副本获取数据", synType, e.getErrorMsg());
                 }
+                //通过影子副本获取数据
+                dataByBus = shadowCopyService.findDataByUpstreamTypeAndType(upstreamType.getId(), synType, upstreamType.getDomain());
+
             } catch (Exception e) {
                 e.printStackTrace();
-                log.error("人员治理中类型 : " + upstreamType.getUpstreamId() + "表达式异常");
-                throw new CustomException(ResultCode.PERSON_ERROR, null, null, upstreamType.getDescription(), e.getMessage());
+                log.error("人员治理中类型 : " + upstreamType.getUpstreamId() + "表达式异常,通过影子副本获取数据");
+                //throw new CustomException(ResultCode.PERSON_ERROR, null, null, upstreamType.getDescription(), e.getMessage());
+                //通过影子副本获取数据
+                dataByBus = shadowCopyService.findDataByUpstreamTypeAndType(upstreamType.getId(), synType, upstreamType.getDomain());
             }
             //获取人员类型合重主体
             String personCharacteristic = upstreamType.getPersonCharacteristic();
@@ -804,7 +821,7 @@ public class PersonServiceImpl implements PersonService {
         IncrementalTask incrementalTask = new IncrementalTask();
         incrementalTask.setId(UUID.randomUUID().toString());
         incrementalTask.setMainTaskId(currentTask.getId());
-        incrementalTask.setType("person");
+        incrementalTask.setType(synType);
         incrementalTask.setMainTaskId(currentTask.getId());
         log.info("类型:{},权威源类型:{},上游增量最大修改时间:{} -> {},当前时刻:{}", upstreamType.getSynType(), upstreamType.getId(), collect1.get(0).getUpdateTime(), collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
         long min = Math.min(collect1.get(0).getUpdateTime().toInstant(ZoneOffset.ofHours(+8)).toEpochMilli(), System.currentTimeMillis());
@@ -1242,11 +1259,11 @@ public class PersonServiceImpl implements PersonService {
         JSONObject jsonObject = JSONObject.parseObject(JSONObject.toJSONString(personUpstream));
         if (personErrorData.containsKey(domain.getId())) {
             jsonObject.put("reason", reason);
-            jsonObject.put("type", "person");
+            jsonObject.put("type", synType);
             personErrorData.get(domain.getId()).add(jsonObject);
         } else {
             jsonObject.put("reason", reason);
-            jsonObject.put("type", "person");
+            jsonObject.put("type", synType);
             personErrorData.put(domain.getId(), new ArrayList<JSONObject>() {{
                 this.add(jsonObject);
             }});
@@ -2137,10 +2154,10 @@ public class PersonServiceImpl implements PersonService {
             viewTask.setTaskId(UUID.randomUUID().toString());
             viewTask.setStatus("doing");
             viewTask.setDomain(domain.getId());
-            viewTask.setType("person");
+            viewTask.setType(synType);
         }
         //查询进行中的刷新人员任务数
-        Integer count = preViewTaskService.findByTypeAndStatus("person", "doing", domain);
+        Integer count = preViewTaskService.findByTypeAndStatus(synType, "doing", domain);
         if (count <= 10) {
             viewTask = preViewTaskService.saveTask(viewTask);
         } else {
@@ -2442,7 +2459,7 @@ public class PersonServiceImpl implements PersonService {
         }
 
         // 获取规则
-        List<NodeDto> nodes = nodeService.findNodes(domain.getId(), 0, "person", true);
+        List<NodeDto> nodes = nodeService.findNodes(domain.getId(), 0, synType, true);
         if (CollectionUtils.isEmpty(nodes)) {
             log.error("无人员管理规则信息");
             return;
