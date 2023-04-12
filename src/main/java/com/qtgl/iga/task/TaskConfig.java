@@ -5,7 +5,6 @@ import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.config.TaskThreadPool;
-import com.qtgl.iga.dao.TenantDao;
 import com.qtgl.iga.service.*;
 import com.qtgl.iga.utils.DataBusUtil;
 import com.qtgl.iga.utils.FileUtil;
@@ -13,12 +12,12 @@ import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.util.CollectionUtils;
 
+import javax.annotation.Resource;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -33,32 +32,28 @@ public class TaskConfig {
     @Value("${iga.hostname}")
     String hostname;
 
-    @Autowired
+    @Resource
     DomainInfoService domainInfoService;
-
-
-    @Autowired
+    @Resource
     DeptService deptService;
-
-    @Autowired
+    @Resource
     PersonService personService;
-
-    @Autowired
+    @Resource
     PostService postService;
-    @Autowired
+    @Resource
     OccupyService occupyService;
-    @Autowired
+    @Resource
     TaskLogService taskLogService;
-    @Autowired
+    @Resource
     NodeRulesService nodeRulesService;
-    @Autowired
+    @Resource
     DataBusUtil dataBusUtil;
-    @Autowired
+    @Resource
     FileUtil fileUtil;
-    @Autowired
+    @Resource
     DsConfigService dsConfigService;
-    @Autowired
-    TenantDao tenantDao;
+    @Resource
+    TenantService tenantService;
 
     public static Map<String, String> errorData = new HashMap<>();
 
@@ -111,7 +106,7 @@ public class TaskConfig {
 
                 if (aBoolean) {
                     errorData.remove(domainInfo.getId());
-                    Tenant tenant = tenantDao.findByDomainName(domainInfo.getDomainName());
+                    Tenant tenant = tenantService.findByDomainName(domainInfo.getDomainName());
                     //判断sso是否有定时任务
                     if (!CollectionUtils.isEmpty(dsConfigs) && finalCollect.containsKey(tenant.getId())) {
                         DsConfig dsConfig = finalCollect.get(tenant.getId());

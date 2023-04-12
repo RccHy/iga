@@ -26,9 +26,7 @@ public class ShadowCopyServiceImpl implements ShadowCopyService {
 
     @Override
     public ShadowCopy save(ShadowCopy shadowCopy) {
-        if ("person".equals(shadowCopy.getType())) {
-            System.out.println(1);
-        }
+
         System.out.println("------------开始压缩" + LocalDateTime.now());
         //通过deflater 压缩数据
         Deflater deflater = new Deflater(8); // 0 ~ 9 压缩等级 低到高

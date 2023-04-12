@@ -8,6 +8,7 @@ import com.qtgl.iga.bean.DataMapNode;
 import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
+import com.qtgl.iga.config.ShadowCopyThreadPool;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.DomainInfoService;
 import com.qtgl.iga.service.IncrementalTaskService;
@@ -52,6 +53,8 @@ import java.sql.Timestamp;
 import java.time.ZoneOffset;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -143,9 +146,8 @@ public class DataBusUtil {
             //请求获取资源
             String u = dataUrl + "/" + "?access_token=" + key + "&domain=" + serverName;
             JSONArray jsonArray = invokeForData(UrlUtil.getUrl(u), upstreamType, serverName, dataMap);
-
             //处理影子副本数据
-            dealWithShadowCopy(upstreamType, jsonArray);
+            dealWithShadowCopy(upstreamType, jsonArray, serverName);
 
             return jsonArray;
         }
@@ -153,13 +155,27 @@ public class DataBusUtil {
 
     }
 
-    private void dealWithShadowCopy(UpstreamType upstreamType, JSONArray jsonArray) {
-        ShadowCopy shadowCopy = new ShadowCopy();
-        shadowCopy.setDomain(upstreamType.getDomain());
-        shadowCopy.setType(upstreamType.getSynType());
-        shadowCopy.setUpstreamTypeId(upstreamType.getId());
-        shadowCopy.setData(jsonArray.toJSONString().getBytes(StandardCharsets.UTF_8));
-        shadowCopyService.save(shadowCopy);
+    private void dealWithShadowCopy(UpstreamType upstreamType, JSONArray jsonArray, String domainName) {
+        log.info("租户:{}-----开始异步处理影子副本", domainName);
+        if (!ShadowCopyThreadPool.executorServiceMap.containsKey(domainName)) {
+            ShadowCopyThreadPool.builderExecutor(domainName);
+        }
+        ExecutorService executorService = ShadowCopyThreadPool.executorServiceMap.get(domainName);
+        try {
+            executorService.execute(() -> {
+                ShadowCopy shadowCopy = new ShadowCopy();
+                shadowCopy.setDomain(upstreamType.getDomain());
+                shadowCopy.setType(upstreamType.getSynType());
+                shadowCopy.setUpstreamTypeId(upstreamType.getId());
+                shadowCopy.setData(jsonArray.toJSONString().getBytes(StandardCharsets.UTF_8));
+                shadowCopyService.save(shadowCopy);
+            });
+        } catch (RejectedExecutionException e) {
+            log.error("当前线程正在进行备份处理,请稍后再试");
+        } catch (Exception e) {
+            log.error("租户:{} ----权威源类型:{},备份处理失败{},", domainName, upstreamType.getId() + ":" + upstreamType.getDescription(), e.getMessage());
+        }
+        log.info("租户:{} ----异步处理{}:影子副本结束", domainName, "(" + upstreamType.getId() + ":" + upstreamType.getDescription() + ")");
     }
 
     public String getToken(String serverName) {

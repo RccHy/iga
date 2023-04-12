@@ -73,7 +73,7 @@ public class UpstreamServiceImpl implements UpstreamService {
             //覆盖判断
             if (map.containsKey(upstreamDto.getAppCode())) {
                 if (!upstream.getDomain().equals(AutoUpRunner.superDomainId)) {
-                    map.put( upstreamDto.getAppCode(), upstreamDto);
+                    map.put(upstreamDto.getAppCode(), upstreamDto);
                 }
             } else {
                 map.put(upstreamDto.getAppCode(), upstreamDto);
@@ -155,7 +155,7 @@ public class UpstreamServiceImpl implements UpstreamService {
             throw new CustomException(ResultCode.REPEAT_UPSTREAM_ERROR, null, null, upstream.getAppCode(), upstream.getAppName());
         }
         if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
-
+            //若与超级租户code相同,忽略表插入数据
             Upstream superUpstream = upstreamDao.findByCodeAndDomain(upstream.getAppCode(), AutoUpRunner.superDomainId);
             if (null != superUpstream) {
                 //将超级租户的权威源置为禁用
@@ -227,7 +227,7 @@ public class UpstreamServiceImpl implements UpstreamService {
         //查询权威源类型
         if (!CollectionUtils.isEmpty(upstreamList)) {
 
-           List<UpstreamDto> upstreamDtoList = distinctSuperUpstream(upstreamList, domainId);
+            List<UpstreamDto> upstreamDtoList = distinctSuperUpstream(upstreamList, domainId);
             for (UpstreamDto upstreamDto : upstreamDtoList) {
                 List<UpstreamType> byUpstreamId = upstreamTypeService.findByUpstreamId(upstreamDto.getId());
                 upstreamDto.setUpstreamTypes(byUpstreamId);
@@ -310,37 +310,41 @@ public class UpstreamServiceImpl implements UpstreamService {
     @Transactional
     public void saveRoleBing(List<UpstreamType> upstreamTypes, List<Node> nodes, List<NodeRules> nodeRulesList, DomainInfo domainInfo) {
 
-        //添加roleBing
-        ArrayList<String> deptPermissions = new ArrayList<>();
-        deptPermissions.add("departments");
-        deptPermissions.add("addDepartment");
-        deptPermissions.add("editDepartment");
-        deptPermissions.add("deleteDepartment");
-        ArrayList<String> postPermissions = new ArrayList<>();
-        postPermissions.add("posts");
-        postPermissions.add("addPost");
-        postPermissions.add("editPost");
-        postPermissions.add("deletePost");
-        ArrayList<String> personPermissions = new ArrayList<>();
-        personPermissions.add("users");
-        personPermissions.add("addUser");
-        personPermissions.add("editUser");
-        personPermissions.add("deleteUser");
-        ArrayList<String> occupyPermissions = new ArrayList<>();
-        occupyPermissions.add("triples");
-        occupyPermissions.add("addTriple");
-        occupyPermissions.add("editTriple");
-        occupyPermissions.add("deleteTriple");
-
         if (!CollectionUtils.isEmpty(nodes) && !CollectionUtils.isEmpty(nodeRulesList)) {
-            Map<String, List<NodeRules>> collect = nodeRulesList.stream().collect(Collectors.groupingBy(nodeRules -> nodeRules.getNodeId()));
-            Map<String, UpstreamType> upstreamTypeMap = upstreamTypes.stream().collect(Collectors.toMap((upstreamType -> upstreamType.getId()), (upstreamType -> upstreamType)));
+            //添加roleBing
+            ArrayList<String> deptPermissions = new ArrayList<>();
+            deptPermissions.add("departments");
+            deptPermissions.add("addDepartment");
+            deptPermissions.add("editDepartment");
+            deptPermissions.add("deleteDepartment");
+            ArrayList<String> postPermissions = new ArrayList<>();
+            postPermissions.add("posts");
+            postPermissions.add("addPost");
+            postPermissions.add("editPost");
+            postPermissions.add("deletePost");
+            ArrayList<String> personPermissions = new ArrayList<>();
+            personPermissions.add("users");
+            personPermissions.add("addUser");
+            personPermissions.add("editUser");
+            personPermissions.add("deleteUser");
+            ArrayList<String> occupyPermissions = new ArrayList<>();
+            occupyPermissions.add("triples");
+            occupyPermissions.add("addTriple");
+            occupyPermissions.add("editTriple");
+            occupyPermissions.add("deleteTriple");
+
+            Map<String, List<NodeRules>> collect = nodeRulesList.stream().collect(Collectors.groupingBy(NodeRules::getNodeId));
+            Map<String, UpstreamType> upstreamTypeMap = upstreamTypes.stream().collect(Collectors.toMap((UpstreamType::getId), (upstreamType -> upstreamType)));
             for (Node node : nodes) {
                 if ("dept".equals(node.getType())) {
                     //组织机构
                     List<NodeRules> nodeRules = collect.get(node.getId());
                     if (!CollectionUtils.isEmpty(nodeRules)) {
                         for (NodeRules nodeRule : nodeRules) {
+                            //仅处理推送规则
+                            if (1 != nodeRule.getType()) {
+                                continue;
+                            }
 
                             HashMap<String, String> deptMap = new HashMap<>();
 
@@ -357,6 +361,10 @@ public class UpstreamServiceImpl implements UpstreamService {
                     List<NodeRules> nodeRules = collect.get(node.getId());
                     if (!CollectionUtils.isEmpty(nodeRules)) {
                         for (NodeRules nodeRule : nodeRules) {
+                            //仅处理推送规则
+                            if (1 != nodeRule.getType()) {
+                                continue;
+                            }
                             HashMap<String, String> postMap = new HashMap<>();
                             if (!StringUtils.isBlank(node.getNodeCode())) {
                                 postMap.put("parent", node.getNodeCode());
@@ -371,6 +379,10 @@ public class UpstreamServiceImpl implements UpstreamService {
                     List<NodeRules> nodeRules = collect.get(node.getId());
                     if (!CollectionUtils.isEmpty(nodeRules)) {
                         for (NodeRules nodeRule : nodeRules) {
+                            //仅处理推送规则
+                            if (1 != nodeRule.getType()) {
+                                continue;
+                            }
                             roleBingUtil.addRoleBinding(upstreamTypeMap.get(nodeRule.getServiceKey()).getServiceCode(), domainInfo.getDomainName(), "person", null, personPermissions);
                         }
                     }
@@ -379,6 +391,10 @@ public class UpstreamServiceImpl implements UpstreamService {
                     List<NodeRules> nodeRules = collect.get(node.getId());
                     if (!CollectionUtils.isEmpty(nodeRules)) {
                         for (NodeRules nodeRule : nodeRules) {
+                            //仅处理推送规则
+                            if (1 != nodeRule.getType()) {
+                                continue;
+                            }
                             roleBingUtil.addRoleBinding(upstreamTypeMap.get(nodeRule.getServiceKey()).getServiceCode(), domainInfo.getDomainName(), "occupy", null, occupyPermissions);
                         }
                     }
@@ -394,20 +410,20 @@ public class UpstreamServiceImpl implements UpstreamService {
         ArrayList<UpstreamDto> upstreamDtos = new ArrayList<>();
 
         //获取被覆盖的权威源
-       List<Upstream> upstreams =  upstreamDao.findByRecover(domain);
-       if(!CollectionUtils.isEmpty(upstreams)){
-           List<String> ids = upstreams.stream().map(Upstream::getId).collect(Collectors.toList());
-           //获取被覆盖权威源所涉及的权威源类型
-           List<UpstreamType> byUpstreamIds = upstreamTypeService.findByUpstreamIds(ids, domain);
-           if(!CollectionUtils.isEmpty(byUpstreamIds)){
-               Map<String, List<UpstreamType>> typesMap = byUpstreamIds.stream().collect(Collectors.groupingBy(UpstreamType::getUpstreamId));
-               for (Upstream upstream : upstreams) {
-                   UpstreamDto upstreamDto = new UpstreamDto(upstream);
-                   upstreamDto.setUpstreamTypes(typesMap.get(upstream.getId()));
-                   upstreamDtos.add(upstreamDto);
-               }
-           }
-       }
+        List<Upstream> upstreams = upstreamDao.findByRecover(domain);
+        if (!CollectionUtils.isEmpty(upstreams)) {
+            List<String> ids = upstreams.stream().map(Upstream::getId).collect(Collectors.toList());
+            //获取被覆盖权威源所涉及的权威源类型
+            List<UpstreamType> byUpstreamIds = upstreamTypeService.findByUpstreamIds(ids, domain);
+            if (!CollectionUtils.isEmpty(byUpstreamIds)) {
+                Map<String, List<UpstreamType>> typesMap = byUpstreamIds.stream().collect(Collectors.groupingBy(UpstreamType::getUpstreamId));
+                for (Upstream upstream : upstreams) {
+                    UpstreamDto upstreamDto = new UpstreamDto(upstream);
+                    upstreamDto.setUpstreamTypes(typesMap.get(upstream.getId()));
+                    upstreamDtos.add(upstreamDto);
+                }
+            }
+        }
         return upstreamDtos;
     }
 

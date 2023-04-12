@@ -433,7 +433,6 @@ public class PersonDaoImpl implements PersonDao {
         return igaTemplate.execute(transactionStatus -> {
             try {
 
-
                 if (personMap.containsKey("keep")) {
                     final List<Person> list = personMap.get("keep");
                     if (!CollectionUtils.isEmpty(list)) {
@@ -486,7 +485,6 @@ public class PersonDaoImpl implements PersonDao {
                         }
                     }
                 }
-
 
                 if (personMap.containsKey("insert")) {
                     final List<Person> list = personMap.get("insert");
@@ -541,6 +539,7 @@ public class PersonDaoImpl implements PersonDao {
                         }
                     }
                 }
+
                 if (personMap.containsKey("update")) {
                     final List<Person> list = personMap.get("update");
                     if (!CollectionUtils.isEmpty(list)) {
@@ -648,7 +647,6 @@ public class PersonDaoImpl implements PersonDao {
 
                 }
 
-
                 if (personMap.containsKey("invalid")) {
                     final List<Person> list = personMap.get("invalid");
                     if (!CollectionUtils.isEmpty(list)) {
@@ -701,10 +699,6 @@ public class PersonDaoImpl implements PersonDao {
                         }
                     }
                 }
-
-
-
-
 
 
                /* if (personMap.containsKey("password")) {
@@ -851,17 +845,23 @@ public class PersonDaoImpl implements PersonDao {
                 if (!CollectionUtils.isEmpty(mergeAttrRules)) {
                     for (MergeAttrRule mergeAttrRule : mergeAttrRules) {
                         if (StringUtils.isNotBlank(mergeAttrRule.getDynamicAttrId())) {
-                            String sql = "update from dynamic_value set value=(select value from dynamic_value where entity_id=?) where entity_id=?";
-                            jdbcSSO.update(sql, mergeAttrRule.getFromEntityId(), mergeAttrRule.getEntityId());
-
+                            String sql = "update  dynamic_value set value=(select a.`value` from (SELECT `value` FROM dynamic_value WHERE entity_id = ? and attr_id=?)  a) where entity_id=? and attr_id=?";
+                            int update = jdbcIGA.update(sql, new Object[]{mergeAttrRule.getFromEntityId(), mergeAttrRule.getDynamicAttrId(), mergeAttrRule.getEntityId(), mergeAttrRule.getDynamicAttrId()});
+                            if (update <= 0) {
+                                //修改操作无数据则新增
+                                String insertSql = "INSERT INTO `dynamic_value` ( `id`, `attr_id`, `entity_id`, `value`, `tenant_id` ) VALUES" +
+                                        " (uuid( ),?,?,( SELECT a.`value` FROM ( SELECT `value` FROM dynamic_value WHERE entity_id = ? AND attr_id = ? ) a ), " +
+                                        " ?)";
+                                jdbcIGA.update(insertSql, mergeAttrRule.getDynamicAttrId(), mergeAttrRule.getEntityId(), mergeAttrRule.getFromEntityId(), mergeAttrRule.getDynamicAttrId(), tenantId);
+                            }
                         } else {
                             // 非动态属性
                             if (columnBlacklist.contains(mergeAttrRule.getAttrName())) {
                                 // 如果是黑名单属性，不进行合重
                                 continue;
                             }
-                            String sql = "update from identity set " + mergeAttrRule.getAttrName() + "=(select " + mergeAttrRule.getAttrName() + " from identity where id=?) where id=?";
-                            jdbcSSO.update(sql, mergeAttrRule.getFromEntityId(), mergeAttrRule.getEntityId());
+                            String sql = "update  identity set " + mergeAttrRule.getAttrName() + "=( select a." + mergeAttrRule.getAttrName() + " from (select " + mergeAttrRule.getAttrName() + " from identity where id=?) a ) where id=?";
+                            jdbcIGA.update(sql, mergeAttrRule.getFromEntityId(), mergeAttrRule.getEntityId());
                         }
                     }
 

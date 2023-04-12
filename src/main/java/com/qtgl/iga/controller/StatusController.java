@@ -117,8 +117,6 @@ public class StatusController {
     }
 
 
-
-
     @Autowired
     NodeService nodeService;
     @Autowired
@@ -133,8 +131,8 @@ public class StatusController {
     @PostMapping(value = "/bootstrap")
     @ResponseBody
     public JSONObject postBootstrap(HttpServletRequest request,
-                              @RequestParam String resource,
-                              @RequestParam(required = false) String context) {
+                                    @RequestParam String resource,
+                                    @RequestParam(required = false) String context) {
 
         logger.info(resource);
         JSONObject result = new JSONObject();
@@ -159,7 +157,7 @@ public class StatusController {
                 if (domainInfo == null) {
                     logger.error("[bootstrap] 租户:{} 匹配不到", tenant);
                     result.put("code", ResultCode.FAILED.getCode());
-                    result.put("message", "租户"+tenant+"匹配不到");
+                    result.put("message", "租户" + tenant + "匹配不到");
                     return result;
                 }
             }
@@ -177,7 +175,7 @@ public class StatusController {
             if (update) {
                 upstreamService.updateUpstream(upstream);
                 log.info("[bootstrap] {}-{}更新权威源完成", upstream.getAppCode(), domainInfo.getDomainName());
-                upstreamService. delAboutNode(upstream, domainInfo);
+                upstreamService.delAboutNode(upstream, domainInfo);
                 log.info("[bootstrap] {}-{}删除权威源相关规则节点完成", upstream.getAppCode(), domainInfo.getDomainName());
                 // qUserSource.getSources 所有name集合
                 List<String> codes = qUserSource.getSources().stream().map(Sources::getName).collect(Collectors.toList());
@@ -209,12 +207,13 @@ public class StatusController {
                 // 保存node 信息
                 statusCode = upstreamService.saveUpstreamAboutNodes(nodes, nodeRulesList, nodeRulesRangeList, domainInfo);
                 log.info("[bootstrap] {}-{}保存权威源相关规则节点完成", upstream.getAppCode(), domainInfo.getDomainName());
-                // todo 推送才需要 rolebinding
-//                if (statusCode != -1) {
-//                    upstreamService.saveRoleBing(upstreamTypes, nodes, nodeRulesList, domainInfo);
-//                }else{
-//                    log.error("[bootstrap] {}-{}保存权威源相关规则节点失败", upstream.getAppCode(), domainInfo.getDomainName());
-//                }
+                //  推送才需要 roleBinding
+                if (statusCode != -1) {
+
+                    upstreamService.saveRoleBing(upstreamTypes, nodes, nodeRulesList, domainInfo);
+                } else {
+                    log.error("[bootstrap] {}-{}保存权威源相关规则节点失败", upstream.getAppCode(), domainInfo.getDomainName());
+                }
                 // 兼容旧版本升级情况下，会先有本地租户信息，再创建超级租户信息。 所以进行验证，如果本次创建的upstream是超级租户并且本地租住存在同appCode的upstream，则记录忽略信息
 
                 result.put("code", ResultCode.SUCCESS.getCode());
@@ -240,8 +239,8 @@ public class StatusController {
     @PutMapping(value = "/bootstrap")
     @ResponseBody
     public JSONObject putBootstrap(HttpServletRequest request,
-                             @RequestParam String resource,
-                             @RequestParam(required = false) String context) {
+                                   @RequestParam String resource,
+                                   @RequestParam(required = false) String context) {
         return postBootstrap(request, resource, context);
     }
 
@@ -431,8 +430,6 @@ public class StatusController {
         log.info("[bootstrap] {}-{}-{}开始处理权威源类型及node", domainInfo.getDomainName(), upstream.getAppCode(), source.getText());
 
     }
-
-
 
 
 }

@@ -691,13 +691,18 @@ public class PersonServiceImpl implements PersonService {
                 }
                 //通过影子副本获取数据
                 dataByBus = shadowCopyService.findDataByUpstreamTypeAndType(upstreamType.getId(), synType, upstreamType.getDomain());
-
+                if (CollectionUtils.isEmpty(dataByBus)) {
+                    throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, "上游拉取数据失败,通过影子副本获取数据为空,终止当前同步");
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 log.error("人员治理中类型 : " + upstreamType.getUpstreamId() + "表达式异常,通过影子副本获取数据");
                 //throw new CustomException(ResultCode.PERSON_ERROR, null, null, upstreamType.getDescription(), e.getMessage());
                 //通过影子副本获取数据
                 dataByBus = shadowCopyService.findDataByUpstreamTypeAndType(upstreamType.getId(), synType, upstreamType.getDomain());
+                if (CollectionUtils.isEmpty(dataByBus)) {
+                    throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, "上游拉取数据失败,通过影子副本获取数据为空,终止当前同步");
+                }
             }
             //获取人员类型合重主体
             String personCharacteristic = upstreamType.getPersonCharacteristic();
@@ -1949,7 +1954,7 @@ public class PersonServiceImpl implements PersonService {
                                     hashMap.put(personFromSSO.getId(), avatar);
                                     avatarTempResult.put("delete", hashMap);
                                 }
-                                log.error("人员{}头像对比后删除", newPerson);
+                                log.warn("人员{}头像对比后删除", newPerson);
                             }
                         }
 

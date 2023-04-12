@@ -1,7 +1,6 @@
 package com.qtgl.iga.utils;
 
-import com.qtgl.iga.utils.enumerate.ResultCode;
-import com.qtgl.iga.utils.exception.CustomException;
+
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.mountcloud.graphql.GraphqlClient;
@@ -13,7 +12,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,7 +26,7 @@ public class RoleBingUtil {
     @Resource
     DataBusUtil dataBusUtil;
 
-    public void addRoleBinding(String clientId, String serviceName, String type, Map<String, String> igaRules, ArrayList<String> permissions) {
+    public void addRoleBinding(String clientId, String serviceName, String type, Map<String, String> igaRules, List<String> permissions) {
         try {
             if (StringUtils.isEmpty(busUrl)) {
                 log.error("BusUrl IS NULL");

@@ -219,11 +219,10 @@ public class NodeRulesCalculationServiceImpl {
      * @param childrenMap
      * @param nodeRulesRanges
      * @param mergeDeptMap
-     * @throws Exception
      */
     public void mountRules(String nodeCode, List<TreeBean> mainTree, Map<String, TreeBean> upstreamMap,
                            Map<String, List<TreeBean>> childrenMap, List<NodeRulesRange> nodeRulesRanges,
-                           Map<String, TreeBean> mergeDeptMap, String source, DomainInfo domain, DeptTreeType treeType) throws Exception {
+                           Map<String, TreeBean> mergeDeptMap, String source, DeptTreeType treeType) {
         for (NodeRulesRange nodeRulesRange : nodeRulesRanges) {
             //配置的节点
             String rangeNodeCode = nodeRulesRange.getNode();
@@ -643,12 +642,18 @@ public class NodeRulesCalculationServiceImpl {
                             }
                             //通过影子副本获取数据
                             upstreamTree = shadowCopyService.findDataByUpstreamTypeAndType(upstreamType.getId(), type, upstreamType.getDomain());
+                            if (CollectionUtils.isEmpty(upstreamTree)) {
+                                throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, "上游拉取数据失败,通过影子副本获取数据为空,终止当前同步");
+                            }
                         } catch (Exception e) {
                             e.printStackTrace();
                             logger.error("{}{} 中的类型 【{}】 表达式异常, 通过影子副本获取数据", (null == treeType ? "" : treeType.getName() + "下"), ("".equals(nodeCode) ? "根节点" : nodeCode), upstreamType.getDescription());
                             //throw new CustomException(ResultCode.EXPRESSION_ERROR, null, null, null == treeType ? "" : treeType.getName(), "".equals(nodeCode) ? "根节点" : nodeCode, upstreamType.getDescription());
                             //通过影子副本获取数据
                             upstreamTree = shadowCopyService.findDataByUpstreamTypeAndType(upstreamType.getId(), type, upstreamType.getDomain());
+                            if (CollectionUtils.isEmpty(upstreamTree)) {
+                                throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, "上游拉取数据失败,通过影子副本获取数据为空,终止当前同步");
+                            }
                         }
 
                         //验证树的合法性
@@ -755,7 +760,7 @@ public class NodeRulesCalculationServiceImpl {
                         mergeDeptMap = new ConcurrentHashMap<>();
                         logger.info("节点'{}'开始运行挂载", code);
                         //获取并检测 需要挂载的树， add 进入 待合并的树集合 mergeDept
-                        mountRules(nodeCode, mainTree, upstreamMap, childrenMap, nodeRulesRanges, mergeDeptMap, upstream.getAppName() + "(" + upstream.getAppCode() + ")", domain, treeType);
+                        mountRules(nodeCode, mainTree, upstreamMap, childrenMap, nodeRulesRanges, mergeDeptMap, upstream.getAppName() + "(" + upstream.getAppCode() + ")", treeType);
                         //在挂载基础上进行排除
                         excludeRules(nodeCode, mergeDeptMap, childrenMap, nodeRulesRanges, domain, treeType, mainTree);
                         logger.info("节点'{}'开始运行排除", code);
