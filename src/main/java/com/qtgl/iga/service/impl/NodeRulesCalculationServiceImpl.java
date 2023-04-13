@@ -643,7 +643,7 @@ public class NodeRulesCalculationServiceImpl {
                             //通过影子副本获取数据
                             upstreamTree = shadowCopyService.findDataByUpstreamTypeAndType(upstreamType.getId(), type, upstreamType.getDomain());
                             if (CollectionUtils.isEmpty(upstreamTree)) {
-                                throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, "上游拉取数据失败,通过影子副本获取数据为空,终止当前同步");
+                                throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, null, null, type, upstreamType.getDescription());
                             }
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -652,7 +652,7 @@ public class NodeRulesCalculationServiceImpl {
                             //通过影子副本获取数据
                             upstreamTree = shadowCopyService.findDataByUpstreamTypeAndType(upstreamType.getId(), type, upstreamType.getDomain());
                             if (CollectionUtils.isEmpty(upstreamTree)) {
-                                throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, "上游拉取数据失败,通过影子副本获取数据为空,终止当前同步");
+                                throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, null, null, type, upstreamType.getDescription());
                             }
                         }
 

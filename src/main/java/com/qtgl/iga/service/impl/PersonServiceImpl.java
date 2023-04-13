@@ -692,7 +692,7 @@ public class PersonServiceImpl implements PersonService {
                 //通过影子副本获取数据
                 dataByBus = shadowCopyService.findDataByUpstreamTypeAndType(upstreamType.getId(), synType, upstreamType.getDomain());
                 if (CollectionUtils.isEmpty(dataByBus)) {
-                    throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, "上游拉取数据失败,通过影子副本获取数据为空,终止当前同步");
+                    throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, null, null, synType, upstreamType.getDescription());
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -701,7 +701,7 @@ public class PersonServiceImpl implements PersonService {
                 //通过影子副本获取数据
                 dataByBus = shadowCopyService.findDataByUpstreamTypeAndType(upstreamType.getId(), synType, upstreamType.getDomain());
                 if (CollectionUtils.isEmpty(dataByBus)) {
-                    throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, "上游拉取数据失败,通过影子副本获取数据为空,终止当前同步");
+                    throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, null, null, synType, upstreamType.getDescription());
                 }
             }
             //获取人员类型合重主体
