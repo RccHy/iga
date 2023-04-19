@@ -54,19 +54,19 @@ public class TaskLogDaoImpl implements TaskLogDao {
         int update = 0;
         if ("skip".equals(type)) {
             String sql = "INSERT INTO t_mgr_task_log (id, status,  create_time,update_time, reason,domain,data,syn_way)" +
-                    " VALUES (?, ?, now(),now(), ?,?,?,?);";
+                    " VALUES (?, ?, now(),now(), ?,?,?,?)";
             update = jdbcIGA.update(sql, taskLog.getId(), "skip", taskLog.getReason(), domain, taskLog.getData(), taskLog.getSynWay());
         } else if ("skip-error".equals(type)) {
             String sql = "INSERT INTO t_mgr_task_log (id, status,  create_time,update_time, reason,domain,data,syn_way)" +
-                    " VALUES (?, ?, now(),now(), ?,?,?,?);";
+                    " VALUES (?, ?, now(),now(), ?,?,?,?)";
             update = jdbcIGA.update(sql, taskLog.getId(), "failed", taskLog.getReason(), domain, taskLog.getData(), taskLog.getSynWay());
         } else if ("save".equals(type)) {
             String sql = "INSERT INTO t_mgr_task_log (id, status,  create_time, domain,data,syn_way )" +
-                    " VALUES ( ?, ?, now(), ? ,?,? );";
+                    " VALUES ( ?, ?, now(), ? ,?,? )";
             update = jdbcIGA.update(sql, taskLog.getId(), "doing", domain, taskLog.getData(), taskLog.getSynWay());
         } else {
             String sql = "UPDATE t_mgr_task_log " +
-                    "SET reason=?,status = ?, dept_no = ?, post_no = ?, person_no = ?, occupy_no = ?, update_time = now(),data =?,syn_way=?  WHERE id = ?;";
+                    "SET reason=?,status = ?, dept_no = ?, post_no = ?, person_no = ?, occupy_no = ?, update_time = now(),data =?,syn_way=?  WHERE id = ?";
 
             update = jdbcIGA.update(sql, taskLog.getReason(), taskLog.getStatus(), taskLog.getDeptNo(), taskLog.getPostNo(),
                     taskLog.getPersonNo(), taskLog.getOccupyNo(), taskLog.getData(), taskLog.getSynWay(), taskLog.getId());

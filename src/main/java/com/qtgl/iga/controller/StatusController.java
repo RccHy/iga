@@ -8,6 +8,7 @@ import com.qtgl.iga.bean.QUserSource.Rule;
 import com.qtgl.iga.bean.QUserSource.Sources;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.service.*;
+import com.qtgl.iga.utils.CertifiedConnector;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
 import lombok.extern.slf4j.Slf4j;
@@ -140,6 +141,9 @@ public class StatusController {
         JSONObject jsonObject = JSONObject.parseObject(resource);
 
         try {
+            //获取当前操作的租户  (添加权限时使用)
+            DomainInfo currentDomain = CertifiedConnector.getDomain();
+
             QUserSource qUserSource = jsonObject.getJSONObject("spec").toJavaObject(QUserSource.class);
 
             // 验证json格式是否合法
@@ -210,7 +214,7 @@ public class StatusController {
                 //  推送才需要 roleBinding
                 if (statusCode != -1) {
 
-                    upstreamService.saveRoleBing(upstreamTypes, nodes, nodeRulesList, domainInfo);
+                    upstreamService.saveRoleBing(upstreamTypes, nodes, nodeRulesList, currentDomain);
                 } else {
                     log.error("[bootstrap] {}-{}保存权威源相关规则节点失败", upstream.getAppCode(), domainInfo.getDomainName());
                 }
@@ -398,16 +402,7 @@ public class StatusController {
             }
             node.setNodeCode("");
 
-            // 构建rulesRange
-            NodeRulesRange nodeRulesRange = new NodeRulesRange();
-            nodeRulesRange.setId(UUID.randomUUID().toString());
-            nodeRulesRange.setNodeRulesId(nodeRulesId);
-            //  规则类型 0 挂载 1 排除
-            nodeRulesRange.setType(0);
-            nodeRulesRange.setRange(0);
-            nodeRulesRange.setCreateTime(now);
-            nodeRulesRange.setStatus(0);
-            nodeRulesRange.setNode("=*");
+
             // source 下 rule 不为空时, 覆盖默认值
             if (null != source.getRule()) {
                 Rule rule = source.getRule();
@@ -420,10 +415,26 @@ public class StatusController {
                     String code = source.getRule().getMount().getPath();
                     node.setNodeCode(null != code ? code : "");
                 }
-                nodeRulesRange.setType(source.getRule().getKind().equals("exclude") ? 1 : 0);
 
             }
-            nodeRulesRangeList.add(nodeRulesRange);
+            // 构建rulesRange
+            if (!source.getMode().equals("push")) {
+                NodeRulesRange nodeRulesRange = new NodeRulesRange();
+                nodeRulesRange.setId(UUID.randomUUID().toString());
+                nodeRulesRange.setNodeRulesId(nodeRulesId);
+                //  规则类型 0 挂载 1 排除
+                nodeRulesRange.setType(0);
+                nodeRulesRange.setRange(0);
+                nodeRulesRange.setCreateTime(now);
+                nodeRulesRange.setStatus(0);
+                nodeRulesRange.setNode("=*");
+                if (null != source.getRule()) {
+                    nodeRulesRange.setType(source.getRule().getKind().equals("exclude") ? 1 : 0);
+                }
+                nodeRulesRangeList.add(nodeRulesRange);
+
+            }
+
         }
         nodes.add(node);
 
@@ -432,4 +443,23 @@ public class StatusController {
     }
 
 
+
+    //
+    //@Resource
+    //SubTaskService subTaskService;
+    //
+    //
+    //@RequestMapping(value = "/testSub")
+    //@ResponseBody
+    //public Integer testSub(@Param("id")String id,@Param("type")String type){
+    //    DomainInfo domainInfo = new DomainInfo();
+    //    domainInfo.setId("17ff54ac-e0d1-4fa6-9e54-71a38b9c9099");
+    //    domainInfo.setDomainName("devel.ketanyun.cn");
+    //    NodeRules nodeRules = new NodeRules();
+    //    nodeRules.setUpstreamTypesId(id);
+    //    ArrayList<NodeRules> nodeRules1 = new ArrayList<>();
+    //    nodeRules1.add(nodeRules);
+    //    subTaskService.subTask(type,domainInfo,nodeRules1);
+    //    return 1;
+    //}
 }

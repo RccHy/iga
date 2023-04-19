@@ -32,7 +32,8 @@ public class RoleBingUtil {
                 log.error("BusUrl IS NULL");
                 throw new Exception("BusUrl IS NULL");
             }
-            GraphqlClient graphqlClient = GraphqlClient.buildGraphqlClient(busUrl);
+            String url = busUrl + "?tenant=" + serviceName;
+            GraphqlClient graphqlClient = GraphqlClient.buildGraphqlClient(url);
             Map<String, String> map = new HashMap<>();
             map.put("Authorization", "Bearer " + dataBusUtil.getToken(serviceName));
             //map.put("Authorization", "Bearer 3426299750c494733395edd6b4b889d3");
@@ -117,11 +118,11 @@ public class RoleBingUtil {
             roleBindings.add(roleBinding);
             graphqlMutation.getRequestParameter().addObjectParameter("roleBindings", roleBindings).addObjectParameter("overlay", true);
             graphqlMutation.addResultAttributes("id");
-            GraphqlResponse graphqlResponse = graphqlResponse = graphqlClient.doMutation(graphqlMutation);
+            GraphqlResponse graphqlResponse = graphqlClient.doMutation(graphqlMutation);
 
             Map result = graphqlResponse.getData();
             if (result.containsKey("errors")) {
-                log.error("addRoleBinding result error", result.get("errors").toString());
+                log.error("addRoleBinding result error{}", result.get("errors").toString());
             } else {
                 Map data = (Map) result.get("data");
                 ArrayList services = (ArrayList) data.get("addRoleBinding");

@@ -342,7 +342,7 @@ public class UpstreamServiceImpl implements UpstreamService {
                     if (!CollectionUtils.isEmpty(nodeRules)) {
                         for (NodeRules nodeRule : nodeRules) {
                             //仅处理推送规则
-                            if (1 != nodeRule.getType()) {
+                            if (0 != nodeRule.getType()) {
                                 continue;
                             }
 
@@ -362,7 +362,7 @@ public class UpstreamServiceImpl implements UpstreamService {
                     if (!CollectionUtils.isEmpty(nodeRules)) {
                         for (NodeRules nodeRule : nodeRules) {
                             //仅处理推送规则
-                            if (1 != nodeRule.getType()) {
+                            if (0 != nodeRule.getType()) {
                                 continue;
                             }
                             HashMap<String, String> postMap = new HashMap<>();
@@ -380,7 +380,7 @@ public class UpstreamServiceImpl implements UpstreamService {
                     if (!CollectionUtils.isEmpty(nodeRules)) {
                         for (NodeRules nodeRule : nodeRules) {
                             //仅处理推送规则
-                            if (1 != nodeRule.getType()) {
+                            if (0 != nodeRule.getType()) {
                                 continue;
                             }
                             roleBingUtil.addRoleBinding(upstreamTypeMap.get(nodeRule.getServiceKey()).getServiceCode(), domainInfo.getDomainName(), "person", null, personPermissions);
@@ -392,7 +392,7 @@ public class UpstreamServiceImpl implements UpstreamService {
                     if (!CollectionUtils.isEmpty(nodeRules)) {
                         for (NodeRules nodeRule : nodeRules) {
                             //仅处理推送规则
-                            if (1 != nodeRule.getType()) {
+                            if (0 != nodeRule.getType()) {
                                 continue;
                             }
                             roleBingUtil.addRoleBinding(upstreamTypeMap.get(nodeRule.getServiceKey()).getServiceCode(), domainInfo.getDomainName(), "occupy", null, occupyPermissions);

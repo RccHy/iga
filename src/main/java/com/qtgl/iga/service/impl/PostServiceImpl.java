@@ -56,7 +56,15 @@ public class PostServiceImpl implements PostService {
 
     final String TYPE = "post";
 
-
+    /**
+     * @param domain      租户信息
+     * @param lastTaskLog 上次同步的任务
+     * @param currentTask 本次同步的任务
+     * @param postRules   用以区分是否为sub同步
+     * @return
+     * @throws Exception
+     * @Description: 根据权威源下权威源类型配置的对应规则拉取对应岗位数据, 以SSO中非PULL数据作为基准, 遍历对应节点配置的规则, 覆盖方式 以PULL源覆盖API源
+     */
     @Override
     @Transactional
     public Map<TreeBean, String> buildPostUpdateResult(DomainInfo domain, TaskLog lastTaskLog, TaskLog currentTask, List<NodeRules> postRules) throws Exception {

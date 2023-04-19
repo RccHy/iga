@@ -441,11 +441,33 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
     @Override
     public List<NodeRulesVo> findNodeRulesByUpStreamTypeIdsAndType(List<String> ids, String type, String domain, Integer status) {
 
-        //拼接sql
-        StringBuffer stb = new StringBuffer("select r.id,r.node_id as nodeId,r.type as type,r.active as active," +
-                "r.create_time as createTime,r.service_key as serviceKey,r.upstream_types_id as upstreamTypesId,r.inherit_id as inheritId," +
-                "r.active_time as activeTime,r.update_time as updateTime,r.sort,r.status from t_mgr_node_rules r,t_mgr_node n where 1 = 1 and r.type = 1 and  r.node_id = n.id and n.type =? " +
-                "and r.status= ?  and r.upstream_types_id in ( ");
+        StringBuffer stb = new StringBuffer("SELECT " +
+                " r.id, " +
+                " r.node_id AS nodeId, " +
+                " r.type AS type, " +
+                " r.active AS active, " +
+                " r.create_time AS createTime, " +
+                " r.service_key AS serviceKey, " +
+                " r.upstream_types_id AS upstreamTypesId, " +
+                " r.inherit_id AS inheritId, " +
+                " r.active_time AS activeTime, " +
+                " r.update_time AS updateTime, " +
+                " r.sort, " +
+                " r.STATUS, " +
+                "CASE " +
+                " WHEN di1.upstream_id IS NOT NULL THEN  1" +
+                " WHEN di2.node_rule_id IS NOT NULL THEN 2 " +
+                " WHEN u.active = FALSE THEN 3" +
+                " WHEN r.active = FALSE THEN 4 " +
+                " ELSE 0  " +
+                " END AS runningStatus  " +
+                "FROM " +
+                " t_mgr_node_rules r " +
+                " JOIN t_mgr_node n ON r.node_id = n.id  " +
+                " AND r.type = 1  " +
+                " AND n.type = ?" +
+                " AND r.STATUS = ?" +
+                " AND r.upstream_types_id IN ( ");
         //存入参数
         List<Object> param = new ArrayList<>();
         param.add(type);
@@ -462,6 +484,11 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
             param.add(AutoUpRunner.superDomainId);
         }
         stb.append(" ) ");
+        stb.append("JOIN t_mgr_upstream_types ut ON ( r.upstream_types_id = ut.id OR r.service_key = ut.id ) " +
+                " JOIN t_mgr_upstream u ON ut.upstream_id = u.id " +
+                "LEFT JOIN t_mgr_domain_ignore di1 ON di1.upstream_id = u.id " +
+                "LEFT JOIN t_mgr_domain_ignore di2 ON di2.node_rule_id = r.id");
+        stb.append(" order by r.sort");
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
         if (null != mapList && mapList.size() > 0) {
             List<NodeRulesVo> nodeRules = new ArrayList<>();
@@ -543,7 +570,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
             param.add(id);
         }
         stb.replace(stb.length() - 1, stb.length(), " ) ");
-
+        stb.append(" order by nr.sort");
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
         if (!CollectionUtils.isEmpty(mapList)) {
             List<NodeRulesVo> nodeRulesVos = new ArrayList<>();

@@ -50,7 +50,7 @@ public class SubTaskServiceImpl implements SubTaskService {
                 case "DEPT":
                     try {
                         //租户,最后一次日志情况, 当前日志  记录为sub, 需要添加入参   当前规则
-                        Map<TreeBean, String> deptResult = deptService.buildDeptUpdateResult(domain, lastTaskLog, taskLog, null);
+                        Map<TreeBean, String> deptResult = deptService.buildDeptUpdateResult(domain, lastTaskLog, taskLog, nodeRules);
                         Map<String, List<Map.Entry<TreeBean, String>>> deptResultMap = deptResult.entrySet().stream().collect(Collectors.groupingBy(Map.Entry::getValue));
                         //处理数据
                         Integer recoverDept = deptResultMap.containsKey("recover") ? deptResultMap.get("recover").size() : 0;
@@ -70,7 +70,7 @@ public class SubTaskServiceImpl implements SubTaskService {
                 case "POST":
                     try {
                         //租户,最后一次日志情况, 当前日志  记录为sub, 需要添加入参   当前规则
-                        final Map<TreeBean, String> postResult = postService.buildPostUpdateResult(domain, lastTaskLog, taskLog, null);
+                        final Map<TreeBean, String> postResult = postService.buildPostUpdateResult(domain, lastTaskLog, taskLog, nodeRules);
                         Map<String, List<Map.Entry<TreeBean, String>>> postResultMap = postResult.entrySet().stream().collect(Collectors.groupingBy(Map.Entry::getValue));
                         Integer recoverPost = postResultMap.containsKey("recover") ? postResultMap.get("recover").size() : 0;
                         Integer insertPost = (postResultMap.containsKey("insert") ? postResultMap.get("insert").size() : 0) + recoverPost;

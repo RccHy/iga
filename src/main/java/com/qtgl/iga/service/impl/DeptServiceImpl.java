@@ -247,13 +247,13 @@ public class DeptServiceImpl implements DeptService {
             attrMap = dynamicAttrs.stream().collect(Collectors.toMap(DynamicAttr::getCode, DynamicAttr::getId));
         }
         if (!CollectionUtils.isEmpty(dynamicAttrs)) {
-            dynamicCodes = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getCode()).collect(Collectors.toList());
+            dynamicCodes = dynamicAttrs.stream().map(DynamicAttr::getCode).collect(Collectors.toList());
             //获取扩展value
-            List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getId()).collect(Collectors.toList());
+            List<String> attrIds = dynamicAttrs.stream().map(DynamicAttr::getId).collect(Collectors.toList());
 
             List<DynamicValue> dynamicValues = dynamicValueService.findAllByAttrId(attrIds, tenant.getId());
             if (!CollectionUtils.isEmpty(dynamicValues)) {
-                valueMap = dynamicValues.stream().collect(Collectors.groupingBy(dynamicValue -> dynamicValue.getEntityId()));
+                valueMap = dynamicValues.stream().collect(Collectors.groupingBy(DynamicValue::getEntityId));
             }
         }
 
