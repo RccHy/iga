@@ -48,10 +48,6 @@ SET FOREIGN_KEY_CHECKS = 1;
 
 
 
-
-
-
-
 -- 20230216
 ALTER TABLE `t_mgr_post_type`
     ADD COLUMN `formal` tinyint(1) NULL COMMENT '是否身份岗' AFTER `type_index`;
@@ -223,17 +219,6 @@ ALTER TABLE `iga`.`t_mgr_pre_view_task`
 ADD COLUMN `reason` varchar(255) NULL COMMENT '详情(失败的原因)' AFTER `statistics`;
 
 
-
-
-
-
-
-
-
-
-
-
-
 --20221026
 update  t_mgr_upstream_types set person_characteristic='USERNAME' where  person_characteristic='ACCOUNT_NO';
 
@@ -243,7 +228,6 @@ update  t_mgr_upstream_types set person_characteristic='USERNAME' where syn_type
 update  t_mgr_upstream_types set person_characteristic='CARD_TYPE_NO' where syn_type='person' and id in (select upstream_type_id from t_mgr_upstream_types_field where source_field='cardNo');
 update  t_mgr_upstream_types set person_characteristic='USERNAME' where syn_type='occupy' and id in (select upstream_type_id from t_mgr_upstream_types_field where source_field='accountNo');
 update  t_mgr_upstream_types set person_characteristic='CARD_TYPE_NO' where syn_type='occupy' and id in (select upstream_type_id from t_mgr_upstream_types_field where source_field='personCardNo');
-
 
 
 
@@ -364,11 +348,6 @@ CREATE TABLE `person_temp`
 SET
 FOREIGN_KEY_CHECKS = 1;
 
-
-
-
-
-
 --20220513
 ALTER TABLE `t_mgr_task_log`
     ADD COLUMN `syn_way` int(11) NULL COMMENT '同步方式 :1为手动同步' AFTER `data`;
@@ -383,6 +362,7 @@ UPDATE t_mgr_upstream_types_field SET source_field = 'type' WHERE source_field =
 
 -- 20211203
 alter table t_mgr_dept_type add type_index int null comment '排序' after domain;
+alter table t_mgr_post_type add type_index int null comment '排序' after domain;
 
 
 -- 20211022
