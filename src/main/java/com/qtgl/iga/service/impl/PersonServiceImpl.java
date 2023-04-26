@@ -685,7 +685,9 @@ public class PersonServiceImpl implements PersonService {
 
                 if (new Long("1085").equals(e.getCode())) {
                     log.error("请求资源地址失败,请检查权威源:{}下的权威源类型:{},通过影子副本获取数据", upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")", upstreamType.getDescription());
-                } else {
+                } else if(new Long("1087").equals(e.getCode())) {
+                    throw  e;
+                }else {
                     e.printStackTrace();
                     log.error("{}:获取上游数据失败:{},通过影子副本获取数据", synType, e.getErrorMsg());
                 }

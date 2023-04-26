@@ -967,7 +967,11 @@ public class DataBusUtil {
         Map deptMap = (Map) dataMap.get(upstreamType.getSynType());
         JSONArray deptArray = (JSONArray) JSONArray.toJSON(deptMap.get("edges"));
         Integer totalCount = (Integer) deptMap.get("totalCount");
+
         if (null != deptArray) {
+            if(deptArray.size()>5000){
+                throw new CustomException(ResultCode.UPSTREAM_PAGE_ERROR,null,null,upstreamType.getSynType()+":"+upstreamType.getDescription());
+            }
             for (Object deptOb : deptArray) {
                 JSONObject nodeJson = (JSONObject) deptOb;
                 JSONObject node1 = nodeJson.getJSONObject("node");
