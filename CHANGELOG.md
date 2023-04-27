@@ -1,3 +1,25 @@
+### 20230427
+
+**数据库**
+- 执行iga/update/update.sql下 20230427的sql
+
+**new：**
+- 影子副本相关功能(从上游获取失败后通过副本获取数据)
+- 权威源数据分页获取异常的逻辑处理
+**bug fix**
+- 默认监控百分比功能表达式异常 bug fix
+- bootstrap推送规则权限添加 bug fix
+- 20211203的sql丢失补充
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20230427
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20230427
+
+
 
 ### 20230406
 

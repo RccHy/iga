@@ -1,4 +1,4 @@
--- 未发布
+-- 20230427
 CREATE TABLE `t_mgr_shadow_copy`  (
                                    `id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '主键',
                                    `data` mediumblob NULL COMMENT '数据',
@@ -8,6 +8,24 @@ CREATE TABLE `t_mgr_shadow_copy`  (
                                    `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
                                    PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
+
+-- # 老的版本，可能存在表达式异常，一并修复。
+UPDATE t_mgr_monitor_rules
+SET rules = REPLACE(REPLACE(rules, '$count', '@temp@'), '$result', '$count')
+WHERE rules LIKE '%$count/%result>%';
+
+UPDATE t_mgr_monitor_rules
+SET rules = REPLACE(rules, '@temp@', '$result')
+WHERE rules LIKE '%@temp@/$count>%';
+
+-- # 修复百分比规则错误问题
+UPDATE t_mgr_monitor_rules
+SET rules = CONCAT(
+        SUBSTRING_INDEX(rules, '>', 1), '>',
+        SUBSTRING_INDEX(rules, '>', -1) / 100
+    )
+WHERE rules LIKE '%$result/$count>%'
+  and SUBSTRING_INDEX(rules, '>', -1) >= 1;
 
 --20230406
 ALTER TABLE `t_mgr_merge_attr_rule`
