@@ -685,9 +685,9 @@ public class PersonServiceImpl implements PersonService {
 
                 if (new Long("1085").equals(e.getCode())) {
                     log.error("请求资源地址失败,请检查权威源:{}下的权威源类型:{},通过影子副本获取数据", upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")", upstreamType.getDescription());
-                } else if(new Long("1087").equals(e.getCode())) {
-                    throw  e;
-                }else {
+                } else if (new Long("1087").equals(e.getCode())) {
+                    throw e;
+                } else {
                     e.printStackTrace();
                     log.error("{}:获取上游数据失败:{},通过影子副本获取数据", synType, e.getErrorMsg());
                 }
@@ -1131,7 +1131,7 @@ public class PersonServiceImpl implements PersonService {
                 if (personFromUpstreamByPersonCharacteristic.containsKey(personUpstream.getAccountNo())) {
                     if (personUpstream.getActive() == 1) {
                         Person person = personFromUpstreamByPersonCharacteristic.get(personUpstream.getAccountNo());
-                        if (person.getUpdateTime().isBefore(personUpstream.getUpdateTime())) {
+                        if (!person.getUpdateTime().isAfter(personUpstream.getUpdateTime())) {
                             log.error("数据丢弃:{},原因 : 数据覆盖", person);
                             extracted(domain, person, "数据覆盖");
                             personFromUpstreamByPersonCharacteristic.put(personUpstream.getAccountNo(), personUpstream);
@@ -1158,7 +1158,7 @@ public class PersonServiceImpl implements PersonService {
                     //有效则进行覆盖
                     if (personUpstream.getActive() == 1) {
                         Person person = personFromUpstreamByPersonCharacteristic.get(personUpstream.getCardType() + ":" + personUpstream.getCardNo());
-                        if (person.getUpdateTime().isBefore(personUpstream.getUpdateTime())) {
+                        if (!person.getUpdateTime().isAfter(personUpstream.getUpdateTime())) {
                             log.error("数据丢弃:{},原因 : 数据覆盖", person);
                             extracted(domain, person, "数据覆盖");
                             personFromUpstreamByPersonCharacteristic.put(personUpstream.getCardType() + ":" + personUpstream.getCardNo(), personUpstream);
@@ -1185,7 +1185,7 @@ public class PersonServiceImpl implements PersonService {
                 if (personFromUpstreamByPersonCharacteristic.containsKey(personUpstream.getCardNo())) {
                     if (personUpstream.getActive() == 1) {
                         Person person = personFromUpstreamByPersonCharacteristic.get(personUpstream.getCardNo());
-                        if (person.getUpdateTime().isBefore(personUpstream.getUpdateTime())) {
+                        if (!person.getUpdateTime().isAfter(personUpstream.getUpdateTime())) {
                             log.error("数据丢弃:{},原因 : 数据覆盖", person);
                             extracted(domain, person, "数据覆盖");
                             personFromUpstreamByPersonCharacteristic.put(personUpstream.getCardNo(), personUpstream);
@@ -1212,7 +1212,7 @@ public class PersonServiceImpl implements PersonService {
                 if (personFromUpstreamByPersonCharacteristic.containsKey(personUpstream.getEmail())) {
                     if (personUpstream.getActive() == 1) {
                         Person person = personFromUpstreamByPersonCharacteristic.get(personUpstream.getEmail());
-                        if (person.getUpdateTime().isBefore(personUpstream.getUpdateTime())) {
+                        if (!person.getUpdateTime().isAfter(personUpstream.getUpdateTime())) {
                             log.error("数据丢弃:{},原因 : 数据覆盖", person);
                             extracted(domain, person, "数据覆盖");
                             personFromUpstreamByPersonCharacteristic.put(personUpstream.getEmail(), personUpstream);
@@ -1238,7 +1238,7 @@ public class PersonServiceImpl implements PersonService {
                 if (personFromUpstreamByPersonCharacteristic.containsKey(personUpstream.getCellphone())) {
                     if (personUpstream.getActive() == 1) {
                         Person person = personFromUpstreamByPersonCharacteristic.get(personUpstream.getCellphone());
-                        if (person.getUpdateTime().isBefore(personUpstream.getUpdateTime())) {
+                        if (!person.getUpdateTime().isAfter(personUpstream.getUpdateTime())) {
                             log.error("数据丢弃:{},原因 : 数据覆盖", person);
                             extracted(domain, person, "数据覆盖");
                             personFromUpstreamByPersonCharacteristic.put(personUpstream.getCellphone(), personUpstream);
