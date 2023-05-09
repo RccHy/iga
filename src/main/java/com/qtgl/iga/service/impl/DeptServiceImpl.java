@@ -302,7 +302,7 @@ public class DeptServiceImpl implements DeptService {
             List<NodeDto> nodeDtos = nodesMap.get(deptType.getCode());
             Map<String, List<NodeDto>> nodesMapByNodeCode = new ConcurrentHashMap<>();
             if (!CollectionUtils.isEmpty(nodeDtos)) {
-                nodesMapByNodeCode = nodes.stream().collect(Collectors.groupingBy(Node::getNodeCode));
+                nodesMapByNodeCode = nodeDtos.stream().collect(Collectors.groupingBy(Node::getNodeCode));
             }
             // 提前获取来自API的数据, 以防有规则信息 是挂载在 API节点上
             List<TreeBean> ssoApiBeans = deptDao.findBySourceAndTreeType("API", deptType.getCode(), tenant.getId());
