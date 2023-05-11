@@ -1,3 +1,24 @@
+### 20230511
+
+**数据库**
+- 无
+
+**new：**
+- 无
+  **bug fix**
+- 人员同步对于 同一权威源类型提供相同特征人员的和合重 bug fix
+- 组织机构同步(跟节点规则重复执行) bug fix
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20230511
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20230511
+
+
+
 ### 20230427
 
 **数据库**
