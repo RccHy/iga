@@ -598,8 +598,14 @@ public class PostServiceImpl implements PostService {
                                                 activeFlag = true;
                                             }
                                             if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
-                                                //从失效恢复,赋值有效时间
-                                                ssoBean.setActiveTime(now);
+                                                //如果不为孤儿再做失效恢复
+                                                if (0 == ssoBean.getOrphan()) {
+                                                    //从失效恢复,赋值有效时间
+                                                    ssoBean.setActiveTime(now);
+                                                } else {
+                                                    logger.warn("岗位{}为孤儿节点,跳过本次失效恢复", ssoBean.getCode());
+                                                    continue;
+                                                }
                                             }
 
                                             //将值更新到sso对象
@@ -689,26 +695,32 @@ public class PostServiceImpl implements PostService {
                                     }
                                     //上游未提供active并且sso与上游源该字段值不一致
                                     if (!activeFlag && (!ssoBean.getActive().equals(pullBean.getActive()))) {
-                                        ssoBean.setUpdateTime(now);
-                                        ssoBean.setActive(pullBean.getActive());
-                                        ssoBean.setActiveTime(now);
-                                        //将数据放入修改集合
-                                        if (null != occupyMonitors) {
-                                            occupyMonitors.add(ssoBean);
-                                        }
-                                        ssoCollect.put(ssoBean.getCode(), ssoBean);
-                                        logger.info("手动从失效中恢复{}", ssoBean);
-                                        if (dyFlag) {
-                                            //上游的扩展字段
-                                            Map<String, String> dynamic = pullBean.getDynamic();
-                                            List<DynamicValue> dyValuesFromSSO = null;
-                                            //数据库的扩展字段
-                                            if (!CollectionUtils.isEmpty(valueMap)) {
-                                                dyValuesFromSSO = valueMap.get(ssoBean.getId());
+                                        if (0 == ssoBean.getOrphan()) {
+                                            ssoBean.setUpdateTime(now);
+                                            ssoBean.setActive(pullBean.getActive());
+                                            ssoBean.setActiveTime(now);
+                                            //将数据放入修改集合
+                                            if (null != occupyMonitors) {
+                                                occupyMonitors.add(ssoBean);
                                             }
-                                            dynamicProcessing(valueUpdate, valueInsert, attrMap, ssoBean, dynamic, dyValuesFromSSO);
-                                            dyFlag = false;
+                                            ssoCollect.put(ssoBean.getCode(), ssoBean);
+                                            logger.info("手动从失效中恢复{}", ssoBean);
+                                            if (dyFlag) {
+                                                //上游的扩展字段
+                                                Map<String, String> dynamic = pullBean.getDynamic();
+                                                List<DynamicValue> dyValuesFromSSO = null;
+                                                //数据库的扩展字段
+                                                if (!CollectionUtils.isEmpty(valueMap)) {
+                                                    dyValuesFromSSO = valueMap.get(ssoBean.getId());
+                                                }
+                                                dynamicProcessing(valueUpdate, valueInsert, attrMap, ssoBean, dynamic, dyValuesFromSSO);
+                                                dyFlag = false;
+                                            }
+                                        } else {
+                                            logger.warn("岗位{}为孤儿节点,跳过本次手动失效恢复", ssoBean.getCode());
                                         }
+
+
                                     }
 
                                     //上游未提供delmark并且sso与上游源该字段值不一致

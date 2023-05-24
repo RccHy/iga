@@ -45,7 +45,7 @@ public class DeptDaoImpl implements DeptDao {
 
     @Override
     public Dept findById(String id) {
-        String sql = "select id, code, name,independent, type_id as typeId,create_time as createTime,abbreviation,relation_type as relationType,dept_en_name as enName,dept_index as 'index',active_time as activeTime  from dept where id= ? ";
+        String sql = "select id, code, name,independent, type_id as typeId,create_time as createTime,abbreviation,relation_type as relationType,dept_en_name as enName,dept_index as 'index',active_time as activeTime,orphan  from dept where id= ? ";
 
         List<Map<String, Object>> mapList = jdbcSSOAPI.queryForList(sql, id);
         Dept dept = new Dept();
@@ -63,7 +63,7 @@ public class DeptDaoImpl implements DeptDao {
     @Override
     public List<TreeBean> findByTenantId(String id, String treeType, Integer delMark) {
         String sql = "select id ,dept_code as code , dept_name as name , parent_code as parentCode ,independent,dept_en_name as enName, " +
-                " create_time as createTime , source, tree_type as treeType,data_source as dataSource, abbreviation,tags,type,update_time as updateTime,del_mark as delMark,active,relation_type as relationType,dept_en_name as enName,dept_index as 'index',active_time as activeTime  from dept where tenant_id = ? ";
+                " create_time as createTime , source, tree_type as treeType,data_source as dataSource, abbreviation,tags,type,update_time as updateTime,del_mark as delMark,active,relation_type as relationType,dept_en_name as enName,dept_index as 'index',active_time as activeTime,orphan  from dept where tenant_id = ? ";
         List<Object> param = new ArrayList<>();
         param.add(id);
         if (null != treeType) {
@@ -660,7 +660,7 @@ public class DeptDaoImpl implements DeptDao {
     @Override
     public List<TreeBean> findBySourceAndTreeType(String api, String treeType, String tenantId) {
         String sql = "select dept_code as code , dept_name as name ,independent,dept_en_name as enName , parent_code as parentCode ,relation_type as relationType ," +
-                " create_time as createTime , source, tree_type as treeType,data_source as dataSource, abbreviation,tags,type,update_time as updateTime,del_mark as delMark,active,dept_index as 'index',active_time as activeTime  from dept where tenant_id = ? and data_source=?  and del_mark=0 ";
+                " create_time as createTime , source, tree_type as treeType,data_source as dataSource, abbreviation,tags,type,update_time as updateTime,del_mark as delMark,active,dept_index as 'index',active_time as activeTime,orphan from dept where tenant_id = ? and data_source=?  and del_mark=0 ";
         List<Object> param = new ArrayList<>();
         param.add(tenantId);
         param.add(api);
@@ -679,7 +679,7 @@ public class DeptDaoImpl implements DeptDao {
     @Override
     public List<TreeBean> findActiveDataByTenantId(String tenantId) {
         String sql = "select dept_code as code , dept_name as name ,independent,dept_en_name as enName , parent_code as parentCode ,relation_type as relationType , " +
-                " create_time as createTime , source, tree_type as treeType,data_source as dataSource, abbreviation,tags,type,update_time as updateTime,del_mark as delMark,active,dept_index as 'index',active_time as activeTime  from dept where tenant_id = ? " +
+                " create_time as createTime , source, tree_type as treeType,data_source as dataSource, abbreviation,tags,type,update_time as updateTime,del_mark as delMark,active,dept_index as 'index',active_time as activeTime ,orphan from dept where tenant_id = ? " +
                 " and active=true and del_mark=false ";
         List<Object> param = new ArrayList<>();
         param.add(tenantId);

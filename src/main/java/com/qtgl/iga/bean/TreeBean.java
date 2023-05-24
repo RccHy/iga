@@ -135,6 +135,11 @@ public class TreeBean implements Serializable {
      */
     private String createDataSource;
 
+    /**
+     * 是否孤儿节点
+     */
+    private  Integer orphan;
+
 //    private String deptTreeTypeId;
 //    public DeptBean(Dept dept) {
 //        this.setCode(dept.getDeptCode());

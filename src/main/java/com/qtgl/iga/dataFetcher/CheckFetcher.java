@@ -25,8 +25,8 @@ public class CheckFetcher {
     private String  busUrl;
     @Value("${server.origin}")
     private String  serverOrigin;
-    @Value("${file.url}")
-    private String  fileUrl;
+    //@Value("${file.url}")
+    //private String  fileUrl;
 
     private String DOMAIN_CHECK = "租户";
     private String TOKEN_URL_CHECK = "OAUTH_TOKEN_URL";

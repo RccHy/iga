@@ -10,12 +10,10 @@ import org.apache.http.client.fluent.Request;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.io.File;
-import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 
@@ -23,8 +21,8 @@ import java.nio.file.Files;
 @Component
 public class FileUtil {
 
-    @Value("${file.url}")
-    String fileUrl;
+    //@Value("${file.url}")
+    //String fileUrl;
 
 
     //String clientId = "SKvpw2Nm1ZOSifdDeNUk";
@@ -39,40 +37,40 @@ public class FileUtil {
     DataBusUtil dataBusUtil;
 
 
-    public String putFile(byte[] file, String fileName, DomainInfo domainInfo) {
-        try {
-            MultipartEntityBuilder builder = MultipartEntityBuilder.create()
-                    .setMode(HttpMultipartMode.BROWSER_COMPATIBLE)
-                    .setCharset(Charset.forName("utf-8"));
-            builder.addBinaryBody("file", file, ContentType.MULTIPART_FORM_DATA, fileName);
-            //处理路径
-            //if (!(fileApi.startsWith("https://") || fileApi.startsWith("http://"))) {
-            //    URL url = new URL(ssoUrl);
-            //    fileApi = url.getProtocol() + "://" + url.getPath() + fileApi;
-            //}
-            fileUrl = UrlUtil.getUrl(fileUrl);
-            //String url = fileUrl.replace("/file", "");
-            //getApiToken();
-            //获取token
-            token = dataBusUtil.getToken(domainInfo.getDomainName());
-            System.out.println(fileUrl + "?access_token=" + token);
-            String content = Request.Put(fileUrl + "?access_token=" + token)
-                    .body(builder.build())
-                    .execute().returnContent().asString();
-            if (null != content && 0 == JSONObject.parseObject(content).getInteger("errno")) {
-                JSONObject object = JSONObject.parseObject(content);
-                //String uri = url + object.getJSONArray("entities").getJSONObject(0).getString("uri");
-                //System.out.println(uri);
-                return content;
-            }
-        } catch (IOException ioException) {
-            ioException.printStackTrace();
-            log.error("put file error:{}", ioException);
-            throw new CustomException(ResultCode.FAILED, "上传文件失败,上传路径为:" + fileUrl);
-        }
-        return null;
-
-    }
+    //public String putFile(byte[] file, String fileName, DomainInfo domainInfo) {
+    //    try {
+    //        MultipartEntityBuilder builder = MultipartEntityBuilder.create()
+    //                .setMode(HttpMultipartMode.BROWSER_COMPATIBLE)
+    //                .setCharset(Charset.forName("utf-8"));
+    //        builder.addBinaryBody("file", file, ContentType.MULTIPART_FORM_DATA, fileName);
+    //        //处理路径
+    //        //if (!(fileApi.startsWith("https://") || fileApi.startsWith("http://"))) {
+    //        //    URL url = new URL(ssoUrl);
+    //        //    fileApi = url.getProtocol() + "://" + url.getPath() + fileApi;
+    //        //}
+    //        fileUrl = UrlUtil.getUrl(fileUrl);
+    //        //String url = fileUrl.replace("/file", "");
+    //        //getApiToken();
+    //        //获取token
+    //        token = dataBusUtil.getToken(domainInfo.getDomainName());
+    //        System.out.println(fileUrl + "?access_token=" + token);
+    //        String content = Request.Put(fileUrl + "?access_token=" + token)
+    //                .body(builder.build())
+    //                .execute().returnContent().asString();
+    //        if (null != content && 0 == JSONObject.parseObject(content).getInteger("errno")) {
+    //            JSONObject object = JSONObject.parseObject(content);
+    //            //String uri = url + object.getJSONArray("entities").getJSONObject(0).getString("uri");
+    //            //System.out.println(uri);
+    //            return content;
+    //        }
+    //    } catch (IOException ioException) {
+    //        ioException.printStackTrace();
+    //        log.error("put file error:{}", ioException);
+    //        throw new CustomException(ResultCode.FAILED, "上传文件失败,上传路径为:" + fileUrl);
+    //    }
+    //    return null;
+    //
+    //}
 
     public String putFile(File file, String fileName, DomainInfo domainInfo) {
         String fileGqlUrl = null;
