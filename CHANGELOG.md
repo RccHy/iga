@@ -1,3 +1,25 @@
+### 20230525
+
+**数据库**
+- 无
+
+**new：**
+- 组织机构及岗位治理兼容孤儿节点相关逻辑
+- 环境变量file_url去除,本版本后不再依赖该变量
+
+**bug fix**
+- 无
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20230525
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20230525
+
+
+
 ### 20230511
 
 **数据库**
