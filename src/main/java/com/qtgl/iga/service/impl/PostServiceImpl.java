@@ -599,7 +599,7 @@ public class PostServiceImpl implements PostService {
                                             }
                                             if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
                                                 //如果不为孤儿再做失效恢复
-                                                if (0 == ssoBean.getOrphan()) {
+                                                if (null != ssoBean.getOrphan() && 0 == ssoBean.getOrphan()) {
                                                     //从失效恢复,赋值有效时间
                                                     ssoBean.setActiveTime(now);
                                                 } else {
@@ -695,7 +695,7 @@ public class PostServiceImpl implements PostService {
                                     }
                                     //上游未提供active并且sso与上游源该字段值不一致
                                     if (!activeFlag && (!ssoBean.getActive().equals(pullBean.getActive()))) {
-                                        if (0 == ssoBean.getOrphan()) {
+                                        if (null != ssoBean.getOrphan() && 0 == ssoBean.getOrphan()) {
                                             ssoBean.setUpdateTime(now);
                                             ssoBean.setActive(pullBean.getActive());
                                             ssoBean.setActiveTime(now);
