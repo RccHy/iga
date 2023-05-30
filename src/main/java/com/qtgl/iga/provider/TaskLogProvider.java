@@ -26,7 +26,8 @@ public class TaskLogProvider {
 
     public TypeRuntimeWiring.Builder buildMutationRuntimeWiring() {
         return newTypeWiring("Mutation")
-                .dataFetcher("markLogs", dataFetcher.markLogs());
+                .dataFetcher("markLogs", dataFetcher.markLogs())
+                .dataFetcher("invokeTask", dataFetcher.invokeTask());
 
     }
 

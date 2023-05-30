@@ -6,6 +6,7 @@ import com.qtgl.iga.bean.TreeBean;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.config.TaskThreadPool;
 import com.qtgl.iga.service.*;
+import com.qtgl.iga.utils.CertifiedConnector;
 import com.qtgl.iga.utils.DataBusUtil;
 import com.qtgl.iga.utils.FileUtil;
 import com.qtgl.iga.utils.enumerate.ResultCode;
@@ -21,6 +22,7 @@ import javax.annotation.Resource;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.stream.Collectors;
 
 
@@ -300,6 +302,46 @@ public class TaskConfig {
             log.error("上传文件失败:{}", e);
             e.printStackTrace();
         }
+    }
+
+    /**
+     * 手动触发同步任务
+     * @return
+     */
+    public JSONObject invokeTask() {
+        JSONObject jsonObject = new JSONObject();
+
+        try {
+            DomainInfo domainInfo = CertifiedConnector.getDomain();
+
+            //TaskLog lastTaskLog = taskLogService.last(domainInfo.getId());
+            Boolean flag = taskLogService.checkTaskStatus(domainInfo.getId());
+            //if((null != lastTaskLog && lastTaskLog.getStatus().equals("failed"))){
+            //    jsonObject.put("code","FAILED");
+            //    jsonObject.put("message","最近一次同步任务状态异常,请处理后再进行同步");
+            //    return jsonObject;
+            //}
+            if (!flag) {
+                jsonObject.put("code", "FAILED");
+                jsonObject.put("message", "最近三次同步状态均为失败,请处理后再进行同步");
+                return jsonObject;
+            }
+            this.executeTask(domainInfo);
+
+        } catch (RejectedExecutionException e) {
+            e.printStackTrace();
+            jsonObject.put("code", "FAILED");
+            jsonObject.put("message", "当前线程正在进行数据同步,请稍后再试");
+            return jsonObject;
+        } catch (Exception e) {
+            e.printStackTrace();
+            jsonObject.put("code", "FAILED");
+            jsonObject.put("message", e.getMessage());
+            return jsonObject;
+        }
+        jsonObject.put("code", "SUCCESS");
+        jsonObject.put("message", "触发成功");
+        return jsonObject;
     }
 
 }

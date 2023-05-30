@@ -5,6 +5,8 @@ extend type Query {
 extend type Mutation {
     #给日志打标记
     markLogs(id:ID!,status:String!):TaskLog
+    #手动触发同步任务
+    invokeTask:String
 }
 
 type TaskLog{

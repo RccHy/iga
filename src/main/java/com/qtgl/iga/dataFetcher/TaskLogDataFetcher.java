@@ -5,15 +5,16 @@ import com.qtgl.iga.bean.TaskLogConnection;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.TaskLog;
 import com.qtgl.iga.service.TaskLogService;
+import com.qtgl.iga.task.TaskConfig;
 import com.qtgl.iga.utils.CertifiedConnector;
-import com.qtgl.iga.utils.exception.GraphqlExceptionUtils;
 import com.qtgl.iga.utils.exception.CustomException;
+import com.qtgl.iga.utils.exception.GraphqlExceptionUtils;
 import graphql.schema.DataFetcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Resource;
 import java.util.Map;
 
 @Component
@@ -22,8 +23,11 @@ public class TaskLogDataFetcher {
     public static Logger logger = LoggerFactory.getLogger(TaskLogDataFetcher.class);
 
 
-    @Autowired
+    @Resource
     TaskLogService taskLogService;
+
+    @Resource
+    TaskConfig taskConfig;
 
     /**
      * 查询定时任务日志
@@ -71,6 +75,15 @@ public class TaskLogDataFetcher {
                 return GraphqlExceptionUtils.getObject("修改定时任务日志失败", e);
             }
         };
+    }
+
+    /**
+     * 修改定时任务日志状态
+     *
+     * @return
+     */
+    public DataFetcher invokeTask() {
+        return dataFetchingEvn -> taskConfig.invokeTask();
     }
 
 }
