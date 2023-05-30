@@ -67,6 +67,9 @@ public class PostDaoImpl implements PostDao {
                 if (null == dept.getParentCode()) {
                     dept.setParentCode("");
                 }
+                if (null == dept.getOrphan()) {
+                    dept.setOrphan(0);
+                }
                 list.add(dept);
             }
             return list;

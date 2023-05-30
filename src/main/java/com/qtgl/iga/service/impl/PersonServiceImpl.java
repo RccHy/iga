@@ -1563,7 +1563,7 @@ public class PersonServiceImpl implements PersonService {
                                 if (sourceField.equals("delMark") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
                                     if (!CollectionUtils.isEmpty(distinctPersonMap) && distinctPersonMap.containsKey(newPerson.getId())) {
                                         //临时赋值
-                                        newPerson.setDelMark(0);
+                                        newPerson.setDelMark(1);
                                         continue;
                                     }
                                 }
@@ -1650,7 +1650,7 @@ public class PersonServiceImpl implements PersonService {
                                 log.info("人员对比后应删除{},但检测到对应权威源已无效或规则未启用,跳过该数据", newPerson.getId());
                             }
                         }
-                        if (updateFlag && personFromSSO.getDelMark() != 1) {
+                        if (updateFlag ) {
                             //if (updateFlag) {
                             //personFromSSO.setSource(newPerson.getSource());
                             //personFromSSO.setUpdateTime(newPerson.getUpdateTime());
@@ -1749,7 +1749,7 @@ public class PersonServiceImpl implements PersonService {
                         }
 
                         // 对比后，权威源提供的"映射字段"数据和sso中没有差异。（active字段不提供）
-                        if (!updateFlag && personFromSSO.getDelMark() != 1) {
+                        if (!updateFlag ) {
                             //if (!updateFlag) {
 
                             if (!personFromSSO.getActive().equals(newPerson.getActive())) {

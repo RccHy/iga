@@ -316,7 +316,7 @@ public class PostServiceImpl implements PostService {
             upstreamMap = upstreams.stream().collect(Collectors.toMap((upstream -> upstream.getAppName() + "(" + upstream.getAppCode() + ")"), (upstream -> upstream)));
         }
         //获取岗位治理下所有的运行中规则
-        List<NodeDto> nodes = nodeService.findNodes(domain.getId(), 0, TYPE, true);
+        List<NodeDto> nodes = nodeService.findNodes(domain.getId(), status, TYPE, true);
         Map<String, List<NodeDto>> nodesMapByNodeCode = new ConcurrentHashMap<>();
         if (!CollectionUtils.isEmpty(nodes)) {
             nodesMapByNodeCode = nodes.stream().collect(Collectors.groupingBy(Node::getNodeCode));
