@@ -6,7 +6,6 @@ import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.TaskLog;
 import com.qtgl.iga.service.TaskLogService;
 import com.qtgl.iga.task.TaskConfig;
-import com.qtgl.iga.task.bo.TaskResult;
 import com.qtgl.iga.utils.CertifiedConnector;
 import com.qtgl.iga.utils.exception.CustomException;
 import com.qtgl.iga.utils.exception.GraphqlExceptionUtils;
@@ -17,7 +16,6 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
 import java.util.Map;
-import java.util.concurrent.RejectedExecutionException;
 
 @Component
 public class TaskLogDataFetcher {
@@ -85,36 +83,7 @@ public class TaskLogDataFetcher {
      * @return
      */
     public DataFetcher invokeTask() {
-        return dataFetchingEvn -> {
-            TaskResult taskResult = new TaskResult();
-
-            try {
-                DomainInfo domainInfo = CertifiedConnector.getDomain();
-
-                Boolean flag = taskLogService.checkTaskStatus(domainInfo.getId());
-
-                if (!flag) {
-                    taskResult.setCode("FAILED");
-                    taskResult.setMessage("最近三次同步状态均为失败,请处理后再进行同步");
-                    return taskResult;
-                }
-                taskConfig.executeTask(domainInfo);
-
-            } catch (RejectedExecutionException e) {
-                e.printStackTrace();
-                taskResult.setCode("FAILED");
-                taskResult.setMessage("当前线程正在进行数据同步,请稍后再试");
-                return taskResult;
-            } catch (Exception e) {
-                e.printStackTrace();
-                taskResult.setCode("FAILED");
-                taskResult.setMessage(e.getMessage());
-                return taskResult;
-            }
-            taskResult.setCode("SUCCESS");
-            taskResult.setMessage("触发成功");
-            return taskResult;
-        };
+        return dataFetchingEvn -> taskConfig.invokeTask();
     }
 
 }
