@@ -45,6 +45,10 @@ public class NodeServiceImpl implements NodeService {
 
     @Override
     public NodeDto saveNode(NodeDto node, String domain) {
+        if(CollectionUtils.isEmpty(node.getNodeRules())){
+            logger.warn("保存的node节点不包含rules,跳过报存");
+            return node;
+        }
 
         if (null != node.getId()) {
             //判断当前节点是否为当前租户的
