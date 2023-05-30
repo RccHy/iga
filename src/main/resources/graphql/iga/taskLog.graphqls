@@ -6,7 +6,7 @@ extend type Mutation {
     #给日志打标记
     markLogs(id:ID!,status:String!):TaskLog
     #手动触发同步任务
-    invokeTask:String
+    invokeTask:TaskResult
 }
 
 type TaskLog{
@@ -43,6 +43,10 @@ type TaskLog{
 
 }
 
+type TaskResult{
+   code:String
+   message:String
+}
 
 # 节点规则明细作用域入参
 input InputTaskLog{
