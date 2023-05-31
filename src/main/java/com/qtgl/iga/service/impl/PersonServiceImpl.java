@@ -615,7 +615,7 @@ public class PersonServiceImpl implements PersonService {
                 } else if (StringUtils.isNotBlank(mergeAttrRule.getDynamicAttrId())) {
                     list.add(mergeAttrRule.getDynamicAttrId());
                 }
-                mergeFieldMap.put(mergeAttrRule.getEntityId(),list);
+                mergeFieldMap.put(mergeAttrRule.getEntityId(), list);
             }
         }
 
@@ -1410,6 +1410,25 @@ public class PersonServiceImpl implements PersonService {
 
                 if (backUpPersonMap.containsKey(personFromSSO.getId())) {
                     personFromSSO = backUpPersonMap.get(personFromSSO.getId());
+                    //同时清空之前的对应操作
+                    //如果之前源头对比有操作,则将其移除以保证单条数据同步时仅有一次有效操作
+                    if (tempResult.containsKey("invalid")) {
+                        tempResult.get("invalid").remove(personFromSSO.getId());
+                    }
+                    if (tempResult.containsKey("update")) {
+                        log.info("人员同步中获取的{}->{},被后续数据覆盖", personFromSSO.getId(), personFromSSO);
+                        tempResult.get("update").remove(personFromSSO.getId());
+                    }
+                    if (tempResult.containsKey("delete")) {
+                        tempResult.get("delete").remove(personFromSSO.getId());
+                    }
+                    //人员头像
+                    if (avatarTempResult.containsKey("update")) {
+                        avatarTempResult.get("update").remove(personFromSSO.getId());
+                    }
+                    if (avatarTempResult.containsKey("delete")) {
+                        avatarTempResult.get("delete").remove(personFromSSO.getId());
+                    }
                 }
 
                 //判断是否都为已删除的数据并且不是合重导致的删除(是则跳过)
@@ -1418,32 +1437,7 @@ public class PersonServiceImpl implements PersonService {
 
                 } else {
                     //保证多源提供同一数据时,每次同步仅有一条操作记录
-                    if (backUpPersonMap.containsKey(personFromSSO.getId())) {
-                        //personFromSSO = backUpPersonMap.get(personFromSSO.getId());
-
-                        //同时清空之前的对应操作
-                        //如果之前源头对比有操作,则将其移除以保证单条数据同步时仅有一次有效操作
-                        if (tempResult.containsKey("invalid")) {
-                            tempResult.get("invalid").remove(personFromSSO.getId());
-                        }
-                        if (tempResult.containsKey("update")) {
-                            log.info("人员同步中获取的{}->{},被后续数据覆盖", personFromSSO.getId(), personFromSSO);
-                            tempResult.get("update").remove(personFromSSO.getId());
-                        }
-                        if (tempResult.containsKey("delete")) {
-                            tempResult.get("delete").remove(personFromSSO.getId());
-                        }
-                        //人员头像
-                        if (avatarTempResult.containsKey("update")) {
-                            avatarTempResult.get("update").remove(personFromSSO.getId());
-                        }
-                        if (avatarTempResult.containsKey("delete")) {
-                            avatarTempResult.get("delete").remove(personFromSSO.getId());
-                        }
-
-                    } else {
-
-                        //Person clone = (Person) personFromSSO.clone();
+                    if (!backUpPersonMap.containsKey(personFromSSO.getId())) {
                         backUpPersonMap.put(personFromSSO.getId(), personFromSSO);
                     }
 
@@ -1657,7 +1651,7 @@ public class PersonServiceImpl implements PersonService {
                                 log.info("人员对比后应删除{},但检测到对应权威源已无效或规则未启用,跳过该数据", newPerson.getId());
                             }
                         }
-                        if (updateFlag ) {
+                        if (updateFlag) {
                             //if (updateFlag) {
                             //personFromSSO.setSource(newPerson.getSource());
                             //personFromSSO.setUpdateTime(newPerson.getUpdateTime());
@@ -1756,7 +1750,7 @@ public class PersonServiceImpl implements PersonService {
                         }
 
                         // 对比后，权威源提供的"映射字段"数据和sso中没有差异。（active字段不提供）
-                        if (!updateFlag ) {
+                        if (!updateFlag) {
                             //if (!updateFlag) {
 
                             if (!personFromSSO.getActive().equals(newPerson.getActive())) {
