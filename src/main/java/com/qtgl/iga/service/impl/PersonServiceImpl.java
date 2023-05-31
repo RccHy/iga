@@ -1560,13 +1560,23 @@ public class PersonServiceImpl implements PersonService {
 //                        }
 //                    }
 
-                                //合重删除特殊处理
                                 if (sourceField.equals("delMark") && (Integer) oldValue == 1 && (Integer) newValue == 0) {
+                                    //合重删除特殊处理
                                     if (!CollectionUtils.isEmpty(distinctPersonMap) && distinctPersonMap.containsKey(newPerson.getId())) {
                                         //临时赋值
                                         newPerson.setDelMark(1);
                                         continue;
                                     }
+                                }
+                                if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
+                                    //合重删除特殊处理
+                                    if (!CollectionUtils.isEmpty(distinctPersonMap) && distinctPersonMap.containsKey(newPerson.getId())) {
+                                        //临时赋值
+                                        newPerson.setActive(0);
+                                        continue;
+                                    }
+                                    log.info("人员信息{}从失效恢复", newPerson.getId());
+                                    continue;
                                 }
                                 if (sourceField.equalsIgnoreCase("delMark") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
                                     delFlag = true;
@@ -1580,11 +1590,7 @@ public class PersonServiceImpl implements PersonService {
                                     log.info("人员信息{}失效", newPerson.getId());
                                     // continue;
                                 }
-                                if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
 
-                                    log.info("人员信息{}从失效恢复", newPerson.getId());
-                                    continue;
-                                }
                                 if (sourceField.equalsIgnoreCase("password") && null != newValue) {
                                     //   if (StringUtils.isBlank((String) oldValue) && !StringUtils.isBlank((String) newValue)) {
                                     //加密方式调整
