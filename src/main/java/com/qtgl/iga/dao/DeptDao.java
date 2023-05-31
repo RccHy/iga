@@ -16,16 +16,21 @@ public interface DeptDao {
 
     List<TreeBean> findByTenantId(String id, String treeTypeId, Integer delMark);
 
-    ArrayList<TreeBean> updateDept(ArrayList<TreeBean> list, String tenantId);
+    List<TreeBean> updateDeptBatch(List<TreeBean> list, String tenantId);
 
     ArrayList<TreeBean> saveDept(ArrayList<TreeBean> list, String tenantId);
 
     ArrayList<TreeBean> deleteDept(ArrayList<TreeBean> list);
 
-    Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, ArrayList<TreeBean> invalidList, List<DynamicValue> valueUpdate,List<DynamicValue> valueInsert, String tenantId);
+    Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, ArrayList<TreeBean> invalidList, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, String tenantId);
+
     Integer renewDataTest(ArrayList<TreeBean> keepList, ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, ArrayList<TreeBean> invalidList, List<DynamicValue> valueUpdate,
                           List<DynamicValue> valueInsert, List<DynamicAttr> attrList, String tenantId);
+
     List<TreeBean> findBySourceAndTreeType(String api, String code, String tenantId);
 
     List<TreeBean> findActiveDataByTenantId(String tenantId);
+
+    List<TreeBean> findByTenantIdAndDelMarkIsFalse(String tenantId);
+
 }

@@ -79,11 +79,11 @@ public class PostDaoImpl implements PostDao {
     }
 
     @Override
-    public ArrayList<TreeBean> updateDept(ArrayList<TreeBean> list, String tenantId) {
+    public List<TreeBean> updatePostBatch(List<TreeBean> list, String tenantId) {
 
         String str = "update user_type set  name=?, parent_code=?, del_mark=? ,tenant_id =?" +
                 ", data_source=?, description=?,update_time=?,tags=?,source=?" +
-                ", user_type_index = ?,del_mark =0,active_time=?  where user_type =?";
+                ", user_type_index = ?,del_mark =?,active_time=?,orphan=?  where id =?";
         boolean contains = false;
 
         int[] ints = jdbcSSO.batchUpdate(str, new BatchPreparedStatementSetter() {
@@ -91,16 +91,17 @@ public class PostDaoImpl implements PostDao {
             public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
                 preparedStatement.setObject(1, list.get(i).getName());
                 preparedStatement.setObject(2, list.get(i).getParentCode());
-                preparedStatement.setObject(3, 0);
+                preparedStatement.setObject(3, list.get(i).getDelMark());
                 preparedStatement.setObject(4, tenantId);
-                preparedStatement.setObject(5, "PULL");
+                preparedStatement.setObject(5, list.get(i).getDataSource());
                 preparedStatement.setObject(6, list.get(i).getDescription());
                 preparedStatement.setObject(7, list.get(i).getUpdateTime() == null ? LocalDateTime.now() : list.get(i).getUpdateTime());
                 preparedStatement.setObject(8, list.get(i).getTags());
                 preparedStatement.setObject(9, list.get(i).getSource());
                 preparedStatement.setObject(10, null == list.get(i).getIndex() ? null : list.get(i).getIndex());
                 preparedStatement.setObject(11, list.get(i).getActiveTime());
-                preparedStatement.setObject(12, list.get(i).getCode());
+                preparedStatement.setObject(12, list.get(i).getOrphan());
+                preparedStatement.setObject(13, list.get(i).getId());
 
             }
 
@@ -645,6 +646,16 @@ public class PostDaoImpl implements PostDao {
                 " create_time as createTime," +
                 "source,data_source as dataSource,user_type_index as deptIndex,del_mark as delMark,update_time as updateTime,post_type as type,active,active_time as activeTime,formal,orphan from user_type where tenant_id = ? and " +
                 " active = true and del_mark = false and client_id is null or client_id = '' ";
+        List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId);
+        return getUserTypes(mapList);
+    }
+
+    @Override
+    public List<TreeBean> findByTenantIdAndDelMarkIsFalse(String tenantId) {
+        String sql = "select  id,user_type as code , name, parent_code as parentCode , " +
+                " create_time as createTime," +
+                "source,data_source as dataSource,user_type_index as deptIndex,del_mark as delMark,update_time as updateTime,post_type as type,active,active_time as activeTime,formal,orphan from user_type where tenant_id = ? and " +
+                " del_mark = false and client_id is null or client_id = '' ";
         List<Map<String, Object>> mapList = jdbcSSO.queryForList(sql, tenantId);
         return getUserTypes(mapList);
     }

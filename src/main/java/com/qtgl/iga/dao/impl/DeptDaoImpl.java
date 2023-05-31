@@ -61,11 +61,11 @@ public class DeptDaoImpl implements DeptDao {
     }
 
     @Override
-    public List<TreeBean> findByTenantId(String id, String treeType, Integer delMark) {
+    public List<TreeBean> findByTenantId(String tenantId, String treeType, Integer delMark) {
         String sql = "select id ,dept_code as code , dept_name as name , parent_code as parentCode ,independent,dept_en_name as enName, " +
                 " create_time as createTime , source, tree_type as treeType,data_source as dataSource, abbreviation,tags,type,update_time as updateTime,del_mark as delMark,active,relation_type as relationType,dept_en_name as enName,dept_index as 'index',active_time as activeTime,orphan  from dept where tenant_id = ? ";
         List<Object> param = new ArrayList<>();
-        param.add(id);
+        param.add(tenantId);
         if (null != treeType) {
             sql = sql + " and tree_type=? ";
             param.add(treeType);
@@ -119,11 +119,11 @@ public class DeptDaoImpl implements DeptDao {
     }
 
     @Override
-    public ArrayList<TreeBean> updateDept(ArrayList<TreeBean> list, String tenantId) {
+    public List<TreeBean> updateDeptBatch(List<TreeBean> list, String tenantId) {
         String str = "update dept set  dept_name=?,dept_en_name=?, parent_code=?, del_mark=? ,tenant_id =?" +
                 ",source =?, data_source=?, description=?,update_time=?,tags=?,tree_type= ?,active=? ,abbreviation=?,del_mark=0 ," +
-                " type = ?,relation_type=?,dept_en_name=?,independent=? ,active_time=?  " +
-                " where dept_code =? and update_time< ? ";
+                " type = ?,relation_type=?,dept_en_name=?,independent=? ,active_time=?, orphan=? " +
+                " where id =? ";
         boolean contains = false;
 
         int[] ints = jdbcSSOAPI.batchUpdate(str, new BatchPreparedStatementSetter() {
@@ -132,23 +132,24 @@ public class DeptDaoImpl implements DeptDao {
                 preparedStatement.setObject(1, list.get(i).getName());
                 preparedStatement.setObject(2, list.get(i).getEnName());
                 preparedStatement.setObject(3, list.get(i).getParentCode());
-                preparedStatement.setObject(4, 0);
+                preparedStatement.setObject(4, list.get(i).getDelMark());
                 preparedStatement.setObject(5, tenantId);
                 preparedStatement.setObject(6, list.get(i).getSource());
-                preparedStatement.setObject(7, "PULL");
+                preparedStatement.setObject(7, list.get(i).getDataSource());
                 preparedStatement.setObject(8, list.get(i).getDescription());
-                preparedStatement.setObject(9, list.get(i).getCreateTime() == null ? LocalDateTime.now() : list.get(i).getCreateTime());
+                preparedStatement.setObject(9, list.get(i).getUpdateTime() == null ? LocalDateTime.now() : list.get(i).getUpdateTime());
                 preparedStatement.setObject(10, list.get(i).getTags());
                 preparedStatement.setObject(11, list.get(i).getTreeType());
-                preparedStatement.setObject(12, 0);
+                preparedStatement.setObject(12, list.get(i).getActive());
                 preparedStatement.setObject(13, null == list.get(i).getAbbreviation() ? null : list.get(i).getAbbreviation());
                 preparedStatement.setObject(14, null == list.get(i).getType() ? null : list.get(i).getType());
                 preparedStatement.setObject(15, list.get(i).getRelationType());
                 preparedStatement.setObject(16, list.get(i).getEnName());
                 preparedStatement.setObject(17, null == list.get(i).getIndependent() ? 0 : list.get(i).getIndependent());
                 preparedStatement.setObject(18, list.get(i).getActiveTime());
-                preparedStatement.setObject(19, list.get(i).getCode());
-                preparedStatement.setObject(20, list.get(i).getUpdateTime() == null ? LocalDateTime.now() : list.get(i).getUpdateTime());
+                preparedStatement.setObject(19, list.get(i).getOrphan());
+                preparedStatement.setObject(20, list.get(i).getId());
+
 
             }
 
@@ -621,6 +622,7 @@ public class DeptDaoImpl implements DeptDao {
                             preparedStatement.setObject(11, attr.getIsSearch());
                             preparedStatement.setObject(12, attr.getAttrIndex());
                         }
+
                         @Override
                         public int getBatchSize() {
                             return dynamicValues.size();
@@ -684,6 +686,18 @@ public class DeptDaoImpl implements DeptDao {
         String sql = "select dept_code as code , dept_name as name ,independent,dept_en_name as enName , parent_code as parentCode ,relation_type as relationType , " +
                 " create_time as createTime , source, tree_type as treeType,data_source as dataSource, abbreviation,tags,type,update_time as updateTime,del_mark as delMark,active,dept_index as 'index',active_time as activeTime ,orphan from dept where tenant_id = ? " +
                 " and active=true and del_mark=false ";
+        List<Object> param = new ArrayList<>();
+        param.add(tenantId);
+
+        List<Map<String, Object>> mapList = jdbcSSOAPI.queryForList(sql, param.toArray());
+        return getDeptBeans(mapList);
+    }
+
+    @Override
+    public List<TreeBean> findByTenantIdAndDelMarkIsFalse(String tenantId) {
+        String sql = "select id,dept_code as code , dept_name as name ,independent,dept_en_name as enName , parent_code as parentCode ,relation_type as relationType , " +
+                " create_time as createTime , source, tree_type as treeType,data_source as dataSource, abbreviation,tags,type,update_time as updateTime,del_mark as delMark,active,dept_index as 'index',active_time as activeTime ,orphan from dept where tenant_id = ? " +
+                " and del_mark=false ";
         List<Object> param = new ArrayList<>();
         param.add(tenantId);
 

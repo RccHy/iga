@@ -54,6 +54,8 @@ public class TaskConfig {
     DsConfigService dsConfigService;
     @Resource
     TenantService tenantService;
+    @Resource
+    OrphanTask orphanTask;
 
     public static Map<String, String> errorData = new HashMap<>();
 
@@ -107,6 +109,10 @@ public class TaskConfig {
                 if (aBoolean) {
                     errorData.remove(domainInfo.getId());
                     Tenant tenant = tenantService.findByDomainName(domainInfo.getDomainName());
+
+                    //运行孤儿监控
+                    orphanTask.orphanTask(tenant);
+
                     //判断sso是否有定时任务
                     if (!CollectionUtils.isEmpty(dsConfigs) && finalCollect.containsKey(tenant.getId())) {
                         DsConfig dsConfig = finalCollect.get(tenant.getId());

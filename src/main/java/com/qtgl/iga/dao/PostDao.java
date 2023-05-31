@@ -13,7 +13,7 @@ public interface PostDao {
 
     List<TreeBean> findByTenantId(String id);
 
-    ArrayList<TreeBean> updateDept(ArrayList<TreeBean> list, String tenantId);
+    List<TreeBean> updatePostBatch(List<TreeBean> list, String tenantId);
 
     ArrayList<TreeBean> saveDept(ArrayList<TreeBean> list, String tenantId);
 
@@ -24,8 +24,11 @@ public interface PostDao {
     List<TreeBean> findPostType(String id);
 
     Integer renewData(ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList, ArrayList<TreeBean> invalidList, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, String tenantId);
+
     Integer renewDataTest(ArrayList<TreeBean> keepList, ArrayList<TreeBean> insertList, ArrayList<TreeBean> updateList, ArrayList<TreeBean> deleteList,
                           ArrayList<TreeBean> invalidList, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, List<DynamicAttr> attrList, String tenantId);
 
     List<TreeBean> findActiveDataByTenantId(String tenantId);
+
+    List<TreeBean> findByTenantIdAndDelMarkIsFalse(String tenantId);
 }
