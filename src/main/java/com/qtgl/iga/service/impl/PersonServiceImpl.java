@@ -615,6 +615,7 @@ public class PersonServiceImpl implements PersonService {
                 } else if (StringUtils.isNotBlank(mergeAttrRule.getDynamicAttrId())) {
                     list.add(mergeAttrRule.getDynamicAttrId());
                 }
+                mergeFieldMap.put(mergeAttrRule.getEntityId(),list);
             }
         }
 
