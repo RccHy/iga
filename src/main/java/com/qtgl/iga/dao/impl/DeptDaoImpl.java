@@ -120,9 +120,9 @@ public class DeptDaoImpl implements DeptDao {
 
     @Override
     public List<TreeBean> updateDeptBatch(List<TreeBean> list, String tenantId) {
-        String str = "update dept set  dept_name=?,dept_en_name=?, parent_code=?, del_mark=? ,tenant_id =?" +
+        String str = "update dept set  dept_name=?,dept_en_name=?, parent_code=?, tenant_id =?" +
                 ",source =?, data_source=?, description=?,update_time=?,tags=?,tree_type= ?,active=? ,abbreviation=?,del_mark=0 ," +
-                " type = ?,relation_type=?,dept_en_name=?,independent=? ,active_time=?, orphan=? " +
+                " type = ?,relation_type=?,independent=? ,active_time=?, orphan=? " +
                 " where id =? ";
         boolean contains = false;
 
@@ -132,23 +132,21 @@ public class DeptDaoImpl implements DeptDao {
                 preparedStatement.setObject(1, list.get(i).getName());
                 preparedStatement.setObject(2, list.get(i).getEnName());
                 preparedStatement.setObject(3, list.get(i).getParentCode());
-                preparedStatement.setObject(4, list.get(i).getDelMark());
-                preparedStatement.setObject(5, tenantId);
-                preparedStatement.setObject(6, list.get(i).getSource());
-                preparedStatement.setObject(7, list.get(i).getDataSource());
-                preparedStatement.setObject(8, list.get(i).getDescription());
-                preparedStatement.setObject(9, list.get(i).getUpdateTime() == null ? LocalDateTime.now() : list.get(i).getUpdateTime());
-                preparedStatement.setObject(10, list.get(i).getTags());
-                preparedStatement.setObject(11, list.get(i).getTreeType());
-                preparedStatement.setObject(12, list.get(i).getActive());
-                preparedStatement.setObject(13, null == list.get(i).getAbbreviation() ? null : list.get(i).getAbbreviation());
-                preparedStatement.setObject(14, null == list.get(i).getType() ? null : list.get(i).getType());
-                preparedStatement.setObject(15, list.get(i).getRelationType());
-                preparedStatement.setObject(16, list.get(i).getEnName());
-                preparedStatement.setObject(17, null == list.get(i).getIndependent() ? 0 : list.get(i).getIndependent());
-                preparedStatement.setObject(18, list.get(i).getActiveTime());
-                preparedStatement.setObject(19, list.get(i).getOrphan());
-                preparedStatement.setObject(20, list.get(i).getId());
+                preparedStatement.setObject(4, tenantId);
+                preparedStatement.setObject(5, list.get(i).getSource());
+                preparedStatement.setObject(6, list.get(i).getDataSource());
+                preparedStatement.setObject(7, list.get(i).getDescription());
+                preparedStatement.setObject(8, list.get(i).getUpdateTime() == null ? LocalDateTime.now() : list.get(i).getUpdateTime());
+                preparedStatement.setObject(9, list.get(i).getTags());
+                preparedStatement.setObject(10, list.get(i).getTreeType());
+                preparedStatement.setObject(11, list.get(i).getActive());
+                preparedStatement.setObject(12, null == list.get(i).getAbbreviation() ? null : list.get(i).getAbbreviation());
+                preparedStatement.setObject(13, null == list.get(i).getType() ? null : list.get(i).getType());
+                preparedStatement.setObject(14, list.get(i).getRelationType());
+                preparedStatement.setObject(15, null == list.get(i).getIndependent() ? 0 : list.get(i).getIndependent());
+                preparedStatement.setObject(16, list.get(i).getActiveTime());
+                preparedStatement.setObject(17, list.get(i).getOrphan());
+                preparedStatement.setObject(18, list.get(i).getId());
 
 
             }
