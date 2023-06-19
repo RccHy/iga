@@ -5,6 +5,7 @@ import com.qtgl.iga.bo.TaskLog;
 import com.qtgl.iga.dao.TaskLogDao;
 import com.qtgl.iga.service.TaskLogService;
 import com.qtgl.iga.utils.FileUtil;
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import lombok.extern.slf4j.Slf4j;
@@ -38,18 +39,24 @@ public class TaskLogServiceImpl implements TaskLogService {
 
     @Override
     public Integer save(TaskLog taskLog, String domain, String type) {
-        if(null!=taskLog.getStatus()&&taskLog.getStatus().equals("failed")){
-            meterRegistry.counter("iga_sync_error_task",Tags.of("dept",  null!=taskLog.getDeptNo()?taskLog.getDeptNo():"",
-                    "post", null!=taskLog.getPostNo()?taskLog.getPostNo():"",
-                    "user",null!=taskLog.getPersonNo()?taskLog.getPersonNo():"",
-                    "occupy",null!=taskLog.getOccupyNo()?taskLog.getOccupyNo():""));
-            //meterRegistry.gauge("iga_sync_task", Tags.of("dept", taskLog.getDeptNo(), "post", taskLog.getPersonNo(),"user",taskLog.getPersonNo(),"occupy",taskLog.getOccupyNo()), -1);
+        Integer count = taskLogDao.save(taskLog, domain, type);
+        switch (type) {
+            case "update":
+                if(taskLog.getStatus().equals("failed")){
+                    Counter.builder("triple_tasks_total").tags(Tags.of("result", "error")).register(meterRegistry).increment();
+                    break;
+                }
+                if(taskLog.getStatus().equals("done")){
+                    Counter.builder("triple_tasks_total").tags(Tags.of("result", "success")).register(meterRegistry).increment();
+                    break;
+                }
+            case "skip":
+                Counter.builder("triple_tasks_total").tags(Tags.of("result", "skip")).register(meterRegistry).increment();
+                break;
+            default:
+                break;
         }
-//        if(null!=taskLog.getStatus()&&taskLog.getStatus().equals("done")){
-//            meterRegistry.gauge("iga_sync_success_task", Tags.of("dept", taskLog.getDeptNo(), "post", taskLog.getPersonNo(),"user",taskLog.getPersonNo(),"occupy",taskLog.getOccupyNo()), 1);
-//        }
-
-        return taskLogDao.save(taskLog, domain, type);
+        return count;
     }
 
     @Override
