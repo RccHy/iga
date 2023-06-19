@@ -77,6 +77,7 @@ public class DomainInfoServiceImpl implements DomainInfoService {
                 //  监控规则
                 monitorRulesDao.initialization(domainInfo.getId());
                 // 人员证件类型
+                cardTypeDao.initialization(domainInfo.getId());
 
             }
         }
