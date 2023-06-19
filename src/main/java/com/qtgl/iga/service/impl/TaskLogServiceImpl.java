@@ -43,15 +43,15 @@ public class TaskLogServiceImpl implements TaskLogService {
         switch (type) {
             case "update":
                 if(taskLog.getStatus().equals("failed")){
-                    Counter.builder("triple_tasks_total").tags(Tags.of("result", "error")).register(meterRegistry).increment();
+                    Counter.builder("triple_tasks_total").tags(Tags.of("result", "error").and("tenant",domain)).register(meterRegistry).increment();
                     break;
                 }
                 if(taskLog.getStatus().equals("done")){
-                    Counter.builder("triple_tasks_total").tags(Tags.of("result", "success")).register(meterRegistry).increment();
+                    Counter.builder("triple_tasks_total").tags(Tags.of("result", "success").and("tenant",domain)).register(meterRegistry).increment();
                     break;
                 }
             case "skip":
-                Counter.builder("triple_tasks_total").tags(Tags.of("result", "skip")).register(meterRegistry).increment();
+                Counter.builder("triple_tasks_total").tags(Tags.of("result", "skip").and("tenant",domain)).register(meterRegistry).increment();
                 break;
             default:
                 break;
