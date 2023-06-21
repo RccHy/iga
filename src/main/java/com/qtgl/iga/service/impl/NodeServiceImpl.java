@@ -45,7 +45,7 @@ public class NodeServiceImpl implements NodeService {
 
     @Override
     public NodeDto saveNode(NodeDto node, String domain) {
-        if(CollectionUtils.isEmpty(node.getNodeRules())){
+        if (CollectionUtils.isEmpty(node.getNodeRules())) {
             logger.warn("保存的node节点不包含rules,跳过报存");
             return node;
         }
@@ -231,7 +231,7 @@ public class NodeServiceImpl implements NodeService {
         List<String> ignoreUpstreamTypeIds = new ArrayList<>();
         if (StringUtils.isNotBlank(AutoUpRunner.superDomainId)) {
             List<UpstreamType> ignoreUpstreamTypes = new ArrayList<>();
-            //获取呗本租户覆盖的权威源类型
+            //获取被本租户覆盖的权威源类型
             List<UpstreamDto> byRecover = upstreamService.findByRecover(domain);
             //装配涉及的权威源类型来忽略返回
             if (!CollectionUtils.isEmpty(byRecover)) {
@@ -315,8 +315,9 @@ public class NodeServiceImpl implements NodeService {
                     //来自超级租户的规则node 标识为非本租户
                     nodeDto.setLocal(false);
                     if (rulesMap.containsKey(node.getId())) {
-                        dealWithNodeRules(nodeDto, nodeRulesVos, false, ignoreUpstreamTypeIds);
-                        nodeDto.setNodeRules(nodeRulesVos);
+                        List<NodeRulesVo> resultRules = rulesMap.get(node.getId());
+                        dealWithNodeRules(nodeDto, resultRules, false, ignoreUpstreamTypeIds);
+                        nodeDto.setNodeRules(resultRules);
                     }
                     nodeDos.add(nodeDto);
                 }
@@ -728,6 +729,11 @@ public class NodeServiceImpl implements NodeService {
     @Override
     public List<Node> findById(String nodeId) {
         return nodeDao.findById(nodeId);
+    }
+
+    @Override
+    public List<Node> findNodesByDomain(String domainId) {
+        return nodeDao.findNodesByDomain(domainId);
     }
 
     @Override

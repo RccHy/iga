@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -28,6 +29,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -182,7 +184,8 @@ public class StatusController {
                 upstreamService.delAboutNode(upstream, domainInfo);
                 log.info("[bootstrap] {}-{}删除权威源相关规则节点完成", upstream.getAppCode(), domainInfo.getDomainName());
                 // qUserSource.getSources 所有name集合
-                List<String> codes = qUserSource.getSources().stream().map(Sources::getName).collect(Collectors.toList());
+                //List<String> codes = qUserSource.getSources().stream().map(Sources::getName).collect(Collectors.toList());
+                List<String> codes = qUserSource.getSources().stream().map(sources -> upstream.getAppCode() + "_" + sources.getName()).collect(Collectors.toList());
                 // 删除权威源类型
                 upstreamTypeService.deleteUpstreamTypeByCods(codes, domainInfo.getId());
             } else {
@@ -201,8 +204,34 @@ public class StatusController {
             List<NodeRulesRange> nodeRulesRangeList = new ArrayList<>();
 
             long now = System.currentTimeMillis();
+            // 防止重复租户的 同nodeCode 创建重复的 node节点
+            Map<String, Map<String, Node>> mapFromDb = new ConcurrentHashMap<>();
+            List<Node> nodeFromDb = nodeService.findNodesByDomain(domainInfo.getId());
+            if (!CollectionUtils.isEmpty(nodeFromDb)) {
+                for (Node node : nodeFromDb) {
+                    String type = node.getType();
+                    String key = StringUtils.isNotBlank(node.getNodeCode()) ? node.getNodeCode() : "*";
+                    //组织机构额外处理
+                    if ("dept".equals(type)) {
+                        key = key + "_" + node.getDeptTreeType();
+                    }
+                    Map<String, Node> map = new ConcurrentHashMap<>();
+
+                    if (mapFromDb.containsKey(type)) {
+                        map = mapFromDb.get(node.getType());
+                        if (map.containsKey(key)) {
+
+                            map.put(key, node);
+                        }
+                    } else {
+                        map.put(key, node);
+                    }
+                    mapFromDb.put(type, map);
+                }
+            }
+
             for (Sources source : qUserSource.getSources()) {
-                dealUpstreamTypeAndNodes(source, now, domainInfo, upstreamTypes, updateUpstreamTypes, fields, nodes, nodeRulesList, nodeRulesRangeList, upstream);
+                dealUpstreamTypeAndNodes(source, now, domainInfo, upstreamTypes, updateUpstreamTypes, fields, nodes, nodeRulesList, nodeRulesRangeList, upstream, mapFromDb);
             }
             // 权威源类型处理完成,保存权威源类型
             Integer statusCode = upstreamService.saveUpstreamTypesAndFields(upstreamTypes, updateUpstreamTypes, fields, domainInfo);
@@ -275,14 +304,19 @@ public class StatusController {
     }
 
     private void dealUpstreamTypeAndNodes(Sources source, long now, DomainInfo domainInfo, List<UpstreamType> upstreamTypes, List<UpstreamType> updateUpstreamTypes,
-                                          List<UpstreamTypeField> fields, List<Node> nodes, List<NodeRules> nodeRulesList, List<NodeRulesRange> nodeRulesRangeList, Upstream upstream) {
+                                          List<UpstreamTypeField> fields, List<Node> nodes, List<NodeRules> nodeRulesList, List<NodeRulesRange> nodeRulesRangeList,
+                                          Upstream upstream, Map<String, Map<String, Node>> mapFromDb) {
 
         log.info("[bootstrap] {}-{}-{}开始处理权威源类型及node", domainInfo.getDomainName(), upstream.getAppCode(), source.getText());
+        String kind = source.getKind();
+
+
         UpstreamType upstreamType = new UpstreamType();
         upstreamType.setId(UUID.randomUUID().toString());
-        upstreamType.setCode(source.getName());
+        //添加权威源code减少 code字段冲突
+        upstreamType.setCode(upstream.getAppCode() + "_" + source.getName());
         upstreamType.setUpstreamId(upstream.getId());
-        upstreamType.setSynType(source.getKind().equals("user") ? "person" : source.getKind());
+        upstreamType.setSynType(kind.equals("user") ? "person" : kind);
         upstreamType.setActive(true);
         // 如果定义了 app 信息则为推送模式 , 定义了service 则为拉取模式. 0拉取 1推送 2自定义json
         switch (source.getMode()) {
@@ -308,7 +342,7 @@ public class StatusController {
         if ("push".equals(source.getMode())) {
             mode = "推送";
         }
-        upstreamType.setDescription(StringUtils.isNotBlank(source.getText()) ? source.getText() : source.getKind() + mode);
+        upstreamType.setDescription(StringUtils.isNotBlank(source.getText()) ? source.getText() : kind + mode);
         upstreamType.setIsPage(true);
         if (null != source.getService() && null != source.getService().getOperation()) {
             String serviceName = source.getService().getName();
@@ -329,7 +363,7 @@ public class StatusController {
             upstreamType.setIsIncremental(source.getStrategies().getIncremental());
         }
         // 如果kind 为person or occupy 时, 需要定义合重依据
-        if ("user".equals(source.getKind()) || "occupy".equals(source.getKind())) {
+        if ("user".equals(kind) || "occupy".equals(kind)) {
             upstreamType.setPersonCharacteristic(null != source.getPrincipal().getName() ? source.getPrincipal().getName() : "CARD_NO");
         }
         // 判断upstreamType 是否需要更新,
@@ -390,14 +424,14 @@ public class StatusController {
             nodeRules.setType(1);
         }
         nodeRules.setStatus(0);
-        nodeRulesList.add(nodeRules);
 
-        if (source.getKind().equals("dept") || source.getKind().equals("post")) {
+
+        if (kind.equals("dept") || kind.equals("post")) {
             //  source 下 rule 可为空, 则默认挂载到 [dept]单位类型/根节点 or [post]身份岗/根节点
             //  monut 可能为空, 为空则默认分配
             // todo 定义类型,默认01
             node.setDeptTreeType("01");
-            if ("post".equals(source.getKind())) {
+            if ("post".equals(kind)) {
                 node.setDeptTreeType(null);
             }
             node.setNodeCode("");
@@ -407,7 +441,7 @@ public class StatusController {
             if (null != source.getRule()) {
                 Rule rule = source.getRule();
                 if (null != rule.getMount()) {
-                    if ("dept".equals(source.getKind())) {
+                    if ("dept".equals(kind)) {
                         String treeType = rule.getMount().getCategory();
                         node.setDeptTreeType(treeType);
                     }
@@ -436,12 +470,45 @@ public class StatusController {
             }
 
         }
-        nodes.add(node);
+        Boolean nodeFlag = true;
+        String type = node.getType();
+        //判断node是否已存在
+        if (mapFromDb.containsKey(type)) {
+            Map<String, Node> map = mapFromDb.get(type);
+            String key = StringUtils.isBlank(node.getNodeCode()) ? "*" : node.getNodeCode();
+            if ("dept".equals(type)) {
+                key = key + "_" + node.getDeptTreeType();
+            }
+            if (map.containsKey(key)) {
+                Node node1 = map.get(key);
+                nodeRules.setNodeId(node1.getId());
+                nodeFlag = false;
+            } else {
+                map.put(key, node);
+                mapFromDb.put(type, map);
+            }
+
+        } else {
+            //如果数据库不包含该数据,
+            String key = StringUtils.isNotBlank(node.getNodeCode()) ? node.getNodeCode() : "*";
+            //组织机构额外处理
+            if ("dept".equals(type)) {
+                key = key + "_" + node.getDeptTreeType();
+            }
+            Map<String, Node> map = new ConcurrentHashMap<>();
+
+            map.put(key, node);
+
+            mapFromDb.put(type, map);
+        }
+        nodeRulesList.add(nodeRules);
+        if (nodeFlag) {
+            nodes.add(node);
+        }
 
         log.info("[bootstrap] {}-{}-{}开始处理权威源类型及node", domainInfo.getDomainName(), upstream.getAppCode(), source.getText());
 
     }
-
 
 
     //

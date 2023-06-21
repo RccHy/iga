@@ -502,7 +502,7 @@ public class NodeDaoImpl implements NodeDao {
         String sql = "select id,manual,node_code as nodeCode,create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status,type" +
                 " from t_mgr_node where id= ?  and domain=?   ";
         log.info("sql:{}", sql);
-        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id,domain);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, id, domain);
 
         if (!CollectionUtils.isEmpty(mapList) && mapList.size() == 1) {
             for (Map<String, Object> map : mapList) {
@@ -517,6 +517,29 @@ public class NodeDaoImpl implements NodeDao {
         }
 
         return null;
+    }
+
+    @Override
+    public List<Node> findNodesByDomain(String domainId) {
+        List<Node> nodes = new ArrayList<>();
+        String sql = "select id,manual,node_code as nodeCode,create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status,type" +
+                " from t_mgr_node where domain= ?    ";
+        log.info("sql:{}", sql);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql, domainId);
+
+        if (!CollectionUtils.isEmpty(mapList)) {
+            for (Map<String, Object> map : mapList) {
+                try {
+                    Node node = new Node();
+                    MyBeanUtils.populate(node, map);
+                    nodes.add(node);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return nodes;
     }
 
 
