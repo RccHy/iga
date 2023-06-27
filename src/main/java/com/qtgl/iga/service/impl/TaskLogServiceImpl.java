@@ -8,6 +8,7 @@ import com.qtgl.iga.utils.FileUtil;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -43,15 +44,31 @@ public class TaskLogServiceImpl implements TaskLogService {
         switch (type) {
             case "update":
                 if(taskLog.getStatus().equals("failed")){
-                    Counter.builder("triple_tasks_total").tags(Tags.of("result", "error").and("tenant",domain)).register(meterRegistry).increment();
+                    // 如果相同容器存在 则+1 否则创建
+                    if(meterRegistry.find("triple_tasks_total").tags("result", "error").tags("tenant",domain).counter() == null){
+                        Counter.builder("triple_tasks_total").tags(Tags.of("result", "error").and("tenant",domain)).register(meterRegistry).increment();
+                    }else {
+                        meterRegistry.get("triple_tasks_total").tags("result", "error").tags("tenant",domain).counter().increment();
+                    }
                     break;
                 }
                 if(taskLog.getStatus().equals("done")){
-                    Counter.builder("triple_tasks_total").tags(Tags.of("result", "success").and("tenant",domain)).register(meterRegistry).increment();
+
+                    if(meterRegistry.find("triple_tasks_total").tags("result", "success").tags("tenant",domain).counter() == null){
+                        Counter.builder("triple_tasks_total").tags(Tags.of("result", "success").and("tenant",domain)).register(meterRegistry).increment();
+                    }else {
+                        meterRegistry.get("triple_tasks_total").tags("result", "success").tags("tenant",domain).counter().increment();
+                    }
                     break;
                 }
             case "skip":
-                Counter.builder("triple_tasks_total").tags(Tags.of("result", "skip").and("tenant",domain)).register(meterRegistry).increment();
+
+                if(meterRegistry.find("triple_tasks_total").tags("result", "skip").tags("tenant",domain).counter() == null){
+                    Counter.builder("triple_tasks_total").tags(Tags.of("result", "skip").and("tenant",domain)).register(meterRegistry).increment();
+                }else {
+                    meterRegistry.get("triple_tasks_total").tags("result", "skip").tags("tenant",domain).counter().increment();
+                }
+
                 break;
             default:
                 break;

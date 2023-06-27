@@ -40,7 +40,7 @@ public class SubWebSocket {
 
     public void listening(DomainInfo domainInfo) throws Exception {
         String key = dataBusUtil.getToken(domainInfo.getDomainName());
-        String url = new StringBuffer(UrlUtil.getUrl(busUrl).replace("https", "wss")).append("?access_token=").append(key)
+        String url = new StringBuffer(UrlUtil.getUrl(busUrl).replace("https", "wss").replace("http", "wss")).append("?access_token=").append(key)
                 .append("&domain=").append(domainInfo.getDomainName()).toString();
         // 2023-02-28 增加 websocket 监听
         ReConnectWebSocketClient client =
