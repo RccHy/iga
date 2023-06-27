@@ -316,13 +316,16 @@ SET FOREIGN_KEY_CHECKS = 1;
 CREATE TABLE `incremental_task`  (
                                      `id` varchar(36) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '主键id',
                                      `type` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '类型 组织机构、岗位、人、身份',
-                                     `time` timestamp NULL DEFAULT NULL COMMENT '下次同步查询时间戳。（max9:_then:10。 返回数据 最小时间小于max 则取max。最大时间大于then 则取10）',
-                                     `create_time` timestamp NULL DEFAULT NULL COMMENT '数据获取完成时间',
+                                     `time` timestamp(0) NULL DEFAULT NULL COMMENT '下次同步查询时间戳。（max9:_then:10。 返回数据 最小时间小于max 则取max。最大时间大于then 则取10）',
+                                     `create_time` timestamp(0) NULL DEFAULT NULL COMMENT '数据获取完成时间',
                                      `upstream_type_id` varchar(32) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '权威源类型ID',
                                      `domain` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '所属租户',
+                                     `operation_no` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '本次操作数量',
+                                     `main_task_id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '主任务id',
                                      PRIMARY KEY (`id`) USING BTREE,
                                      INDEX `type_index`(`type`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
+
 SET FOREIGN_KEY_CHECKS = 1;
 
     -- 20221220

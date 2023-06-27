@@ -1,3 +1,15 @@
+-- 20230619
+--# 返回为null则执行alter语句,为1则不执行
+SELECT 1 FROM information_schema.COLUMNS WHERE table_name = 'incremental_task' AND column_name = 'operation_no';
+--#上一句sql 返回为null则执行,否则忽略执行
+ALTER TABLE `incremental_task` ADD COLUMN `operation_no` varchar(50) NULL COMMENT '本次操作数量' AFTER `domain`;
+
+--# 返回为null则执行alter语句,为1则不执行
+SELECT 1 FROM information_schema.COLUMNS WHERE table_name = 'incremental_task' AND column_name = 'main_task_id';
+--#上一句sql 返回为null则执行,否则忽略执行
+ALTER TABLE `incremental_task` ADD COLUMN `main_task_id` varchar(50) NULL COMMENT '主任务id' AFTER `operation_no`;
+
+
 -- 20230427
 CREATE TABLE `t_mgr_shadow_copy`  (
                                    `id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '主键',

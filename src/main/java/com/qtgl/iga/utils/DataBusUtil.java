@@ -963,6 +963,7 @@ public class DataBusUtil {
             throw new CustomException(ResultCode.GET_DATA_ERROR, null, null, upstreamType.getDescription(), result.get("errors").toString());
 
         }
+        log.info("获取数据成功");
         Map dataMap = (Map) result.get("data");
         Map deptMap = (Map) dataMap.get(upstreamType.getSynType());
         JSONArray deptArray = (JSONArray) JSONArray.toJSON(deptMap.get("edges"));

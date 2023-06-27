@@ -48,4 +48,6 @@ public interface NodeDao {
     List<Node> findNodeById(String id);
 
     Node findNodeByIdAndDomain(String id, String domain);
+
+    List<Node> findNodesByDomain(String domainId);
 }

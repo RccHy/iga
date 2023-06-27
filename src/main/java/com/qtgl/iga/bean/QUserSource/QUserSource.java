@@ -11,33 +11,38 @@ public class QUserSource {
     private String color;
     private List<Sources> sources;
     private Tenant tenant;
+
     public void setName(String name) {
-         this.name = name;
-     }
-     public String getName() {
-         return name;
-     }
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
 
     public void setText(String text) {
-         this.text = text;
-     }
-     public String getText() {
-         return text;
-     }
+        this.text = text;
+    }
+
+    public String getText() {
+        return text;
+    }
 
     public void setColor(String color) {
-         this.color = color;
-     }
-     public String getColor() {
-         return color;
-     }
+        this.color = color;
+    }
+
+    public String getColor() {
+        return color;
+    }
 
     public void setSources(List<Sources> sources) {
-         this.sources = sources;
-     }
-     public List<Sources> getSources() {
-         return sources;
-     }
+        this.sources = sources;
+    }
+
+    public List<Sources> getSources() {
+        return sources;
+    }
 
     public Tenant getTenant() {
         return tenant;
