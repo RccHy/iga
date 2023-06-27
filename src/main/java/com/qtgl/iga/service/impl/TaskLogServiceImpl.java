@@ -1,7 +1,9 @@
 package com.qtgl.iga.service.impl;
 
 import com.qtgl.iga.bean.TaskLogConnection;
+import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.TaskLog;
+import com.qtgl.iga.dao.DomainInfoDao;
 import com.qtgl.iga.dao.TaskLogDao;
 import com.qtgl.iga.service.TaskLogService;
 import com.qtgl.iga.utils.FileUtil;
@@ -28,6 +30,8 @@ public class TaskLogServiceImpl implements TaskLogService {
     @Autowired
     TaskLogDao taskLogDao;
     @Autowired
+    DomainInfoDao domainInfoDao;
+    @Autowired
     FileUtil fileUtil;
 
     @Autowired
@@ -40,33 +44,36 @@ public class TaskLogServiceImpl implements TaskLogService {
 
     @Override
     public Integer save(TaskLog taskLog, String domain, String type) {
+
         Integer count = taskLogDao.save(taskLog, domain, type);
+        DomainInfo domainInfo = domainInfoDao.findById(domain);
+        String domainName = domainInfo.getDomainName();
         switch (type) {
             case "update":
                 if(taskLog.getStatus().equals("failed")){
                     // 如果相同容器存在 则+1 否则创建
-                    if(meterRegistry.find("triple_tasks_total").tags("result", "error").tags("tenant",domain).counter() == null){
-                        Counter.builder("triple_tasks_total").tags(Tags.of("result", "error").and("tenant",domain)).register(meterRegistry).increment();
+                    if(meterRegistry.find("triple_tasks_total").tags("result", "error").tags("tenant",domainName).counter() == null){
+                        Counter.builder("triple_tasks_total").tags(Tags.of("result", "error").and("tenant",domainName)).register(meterRegistry).increment();
                     }else {
-                        meterRegistry.get("triple_tasks_total").tags("result", "error").tags("tenant",domain).counter().increment();
+                        meterRegistry.get("triple_tasks_total").tags("result", "error").tags("tenant",domainName).counter().increment();
                     }
                     break;
                 }
                 if(taskLog.getStatus().equals("done")){
 
-                    if(meterRegistry.find("triple_tasks_total").tags("result", "success").tags("tenant",domain).counter() == null){
-                        Counter.builder("triple_tasks_total").tags(Tags.of("result", "success").and("tenant",domain)).register(meterRegistry).increment();
+                    if(meterRegistry.find("triple_tasks_total").tags("result", "success").tags("tenant",domainName).counter() == null){
+                        Counter.builder("triple_tasks_total").tags(Tags.of("result", "success").and("tenant",domainName)).register(meterRegistry).increment();
                     }else {
-                        meterRegistry.get("triple_tasks_total").tags("result", "success").tags("tenant",domain).counter().increment();
+                        meterRegistry.get("triple_tasks_total").tags("result", "success").tags("tenant",domainName).counter().increment();
                     }
                     break;
                 }
             case "skip":
 
-                if(meterRegistry.find("triple_tasks_total").tags("result", "skip").tags("tenant",domain).counter() == null){
-                    Counter.builder("triple_tasks_total").tags(Tags.of("result", "skip").and("tenant",domain)).register(meterRegistry).increment();
+                if(meterRegistry.find("triple_tasks_total").tags("result", "skip").tags("tenant",domainName).counter() == null){
+                    Counter.builder("triple_tasks_total").tags(Tags.of("result", "skip").and("tenant",domainName)).register(meterRegistry).increment();
                 }else {
-                    meterRegistry.get("triple_tasks_total").tags("result", "skip").tags("tenant",domain).counter().increment();
+                    meterRegistry.get("triple_tasks_total").tags("result", "skip").tags("tenant",domainName).counter().increment();
                 }
 
                 break;
