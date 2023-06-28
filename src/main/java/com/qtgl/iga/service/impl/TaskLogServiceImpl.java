@@ -68,6 +68,7 @@ public class TaskLogServiceImpl implements TaskLogService {
                     }
                     break;
                 }
+                break;
             case "skip":
 
                 if(meterRegistry.find("triple_tasks_total").tags("result", "skip").tags("tenant",domainName).counter() == null){

@@ -245,26 +245,10 @@ public class TaskConfig {
                                 log.info("{}本次同步无异常数据", domainInfo.getDomainName());
                             }
                             log.info("{}同步结束,task:{}", domainInfo.getDomainName(), taskLog.getId());
-                        } catch (CustomException e) {
-                            log.error("定时同步异常：" + e);
-                            taskLog.setStatus("failed");
-                            taskLog.setReason(e.getErrorMsg());
-                            //taskLog.setData(JSON.toJSONString(JSON.toJSON(e.getData())));
-                            //if (StringUtils.isNotBlank(TaskConfig.errorData.get(domainInfo.getId()))) {
-                            //    this.upload(domainInfo, taskLog);
-                            //} else {
-                            //    taskLogService.save(taskLog, domainInfo.getDomainId(), "update");
-                            //}
-                            e.printStackTrace();
                         } catch (Exception e) {
                             log.error("定时同步异常：" + e);
                             taskLog.setStatus("failed");
                             taskLog.setReason(e.getMessage());
-                            //if (StringUtils.isNotBlank(TaskConfig.errorData.get(domainInfo.getId()))) {
-                            //    this.upload(domainInfo, taskLog);
-                            //} else {
-                            //    taskLogService.save(taskLog, domainInfo.getDomainId(), "update");
-                            //}
                             e.printStackTrace();
                         } finally {
                             if (StringUtils.isNotBlank(TaskConfig.errorData.get(domainInfo.getId()))) {
@@ -292,14 +276,14 @@ public class TaskConfig {
             if (null != jsonObject) {
                 taskLog.setData(jsonObject.toJSONString());
             }
-            taskLogService.save(taskLog, domainInfo.getId(), "update");
+            taskLogService.save(taskLog, domainInfo.getId(), "upload-update");
             log.info("上传文件{}成功", fileName);
 
         } catch (CustomException e) {
             if (StringUtils.isBlank(taskLog.getReason())) {
                 taskLog.setReason(e.getErrorMsg());
             }
-            taskLogService.save(taskLog, domainInfo.getId(), "update");
+            taskLogService.save(taskLog, domainInfo.getId(), "upload-update");
             log.error("上传文件失败:{}", e.getErrorMsg());
             e.printStackTrace();
         } catch (Exception e) {
