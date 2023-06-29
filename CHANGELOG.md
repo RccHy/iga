@@ -1,3 +1,24 @@
+### 20230629
+
+**数据库**
+- 执行iga/update/update.sql下 20230619的sql
+
+**new：**
+- bootstrap初始化支持默认岗位初始化
+  
+**bug fix**
+- 孤儿节点监控 bug fix
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20230629
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20230629
+
+
+
 ### 20230601
 
 **数据库**
