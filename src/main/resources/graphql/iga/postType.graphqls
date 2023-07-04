@@ -7,10 +7,10 @@ extend type Mutation {
     savePostType(entity:InputPostType!):PostType
     #根据id删除岗位类型
     deletePostType(id:ID!): PostType
-    #更新岗位类型
     """
     @log ="更新岗位类型:$createUser" W
     """
+    #更新岗位类型
     updatePostType(entity:InputPostType!):PostType
 }
 
