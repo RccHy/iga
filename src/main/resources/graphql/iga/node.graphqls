@@ -25,7 +25,7 @@ extend type Mutation {
     #更新节点规则
     updateNode(entity:InputNode!):Node
     """
-    @log ="if($mark){'应用'}else{'回滚'}  $type 规则 " I
+    @log ="应用  $type 规则 " I
     """
     #应用规则     mark为true 则为回滚  false为应用
     applyNode(version:Timestamp,mark:Boolean,type:String!):Node

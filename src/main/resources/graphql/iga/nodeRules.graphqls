@@ -3,12 +3,24 @@ extend type Query {
     nodeRules(id:ID,status:Int!,filter:NodeRulesFilter):[NodeRules]
 }
 extend type Mutation {
+    """
+    @log ="新增节点规则明细 $entity " I
+    """
     #新增节点规则明细
     saveRules(entity:InputNodeRules!):NodeRules
+    """
+    @log ="删除节点规则明细 $id" I
+    """
     #根据id删除节点规则明细
     deleteRules(id:ID!,codes:[String],type:String!): NodeRules
+    """
+    @log ="删除节点规则明细(批删) $ids" I
+    """
     #根据id删除节点规则明细(批删)
     deleteBatchRules(ids:[String]!,type:String!): [NodeRules]
+    """
+    @log ="更新节点规则明细 $entity" I
+    """
     #更新节点规则明细
     updateRules(entity:InputNodeRules!):NodeRules
 }

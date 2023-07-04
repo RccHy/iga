@@ -3,10 +3,19 @@ extend type Query {
     nodeRulesRanges(id:ID,status:Int,filter:NodeRulesRangeFilter):[NodeRulesRange]
 }
 extend type Mutation {
+    """
+    @log ="新增节点规则明细作用域 $entity " I
+    """
     #新增节点规则明细作用域
     saveNodeRulesRange(entity:InputNodeRulesRange!):NodeRulesRange
+    """
+    @log ="删除节点规则明细作用域 $id " I
+    """
     #根据id删除节点规则明细作用域
     deleteNodeRulesRange(id:ID!): NodeRulesRange
+    """
+    @log ="更新节点规则明细作用域 $entity " I
+    """
     #更新节点规则明细作用域
     updateNodeRulesRange(entity:InputNodeRulesRange!):NodeRulesRange
 }

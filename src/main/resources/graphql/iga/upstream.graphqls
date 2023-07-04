@@ -10,17 +10,20 @@ extend type Query {
 extend type Mutation {
 
     """
-    @log ="新增权威源注册:$createUser" W
+    @log ="新增权威源注册 $entity" I
     """
     #新增权威源注册
     saveUpstream(entity:InputUpstream!):Upstream
 
     #新版权威源注册(带类型)
     #    saveUpstreamAndTypes(entity:InputUpstream!):upstream
+    """
+    @log ="删除权威源注册 $id" I
+    """
     #根据id删除权威源注册
     deleteUpstream(id:ID!): Upstream
     """
-    @log ="更新权威源注册:" W
+    @log ="更新权威源注册 $entity" I
     """
     #更新权威源注册
     updateUpstream(entity:InputUpstream!):Upstream

@@ -7,11 +7,19 @@ extend type Query {
 }
 extend type Mutation {
 
-
+    """
+    @log ="新增权威源类型 $entity" I
+    """
     #新增权威源类型
     saveUpstreamType(entity:InputUpstreamType!):UpstreamType
+    """
+    @log ="删除权威源类型 $id" I
+    """
     #根据id删除权威源类型
     deleteUpstreamType(id:ID!): UpstreamType
+    """
+    @log ="更新权威源类型 $entity" I
+    """
     #更新权威源类型
     updateUpstreamType(entity:InputUpstreamType!):UpstreamType
 }
