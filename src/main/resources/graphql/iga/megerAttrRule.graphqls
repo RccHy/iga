@@ -3,8 +3,14 @@ extend type Query {
     mergeAttrRules(userId:ID):[MergeAttrRule]
 }
 extend type Mutation {
+    """
+    @log ="新增手工合重属性 $entity " I
+    """
     #新增手工合重属性
     saveMergeAttrRule(entity:[InputMergeAttrRule]!):[MergeAttrRule]
+    """
+    @log ="删除手工合重属性 $userId " I
+    """
     #删除手工合重属性
     deleteMergeAttrRule(userId:ID!):[MergeAttrRule]
 }

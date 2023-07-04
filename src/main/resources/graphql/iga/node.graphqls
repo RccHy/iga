@@ -9,12 +9,24 @@ extend type Query {
     nodeStatus(status:Int,type:String):[Node]
 }
 extend type Mutation {
+    """
+    @log ="新增节点规则 $entity " I
+    """
     #新增节点规则
     saveNode(entity:InputNode!):Node
+    """
+    @log ="删除节点规则 $id " I
+    """
     #根据id删除节点规则
     deleteNode(id:ID!): Node
+    """
+    @log ="更新节点规则 $entity " I
+    """
     #更新节点规则
     updateNode(entity:InputNode!):Node
+    """
+    @log ="if($mark){'应用'}else{'回滚'}  $type 规则 " I
+    """
     #应用规则     mark为true 则为回滚  false为应用
     applyNode(version:Timestamp,mark:Boolean,type:String!):Node
     #    #回滚规则

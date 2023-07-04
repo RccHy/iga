@@ -3,10 +3,19 @@ extend type Query {
     monitorRules(type:String!):[MonitorRules]
 }
 extend type Mutation {
+    """
+    @log ="新增监控规则明细 $entity " I
+    """
     #新增监控规则明细
     saveMonitorRules(entity:InputMonitorRules!):MonitorRules
+    """
+    @log ="删除监控规则明细 $id " I
+    """
     #根据id删除监控规则明细
     deleteMonitorRules(id:ID!): MonitorRules
+    """
+    @log ="更新监控规则明细 $entity " I
+    """
     #更新监控规则明细
     updateMonitorRules(entity:InputMonitorRules!):MonitorRules
 }

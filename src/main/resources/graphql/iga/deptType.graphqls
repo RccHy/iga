@@ -14,7 +14,7 @@ extend type Mutation {
     #根据id删除组织机构类型类型
     deleteDeptTypes(id:ID!): DeptType
     """
-    @log ="更新组织机构类型类型 $code $name " I
+    @log ="if($code=='001'){'应用'}else{'回滚'}  测试表达式
     """
     #更新组织机构类型类型
     updateDeptTypes(entity:InputDeptType!):DeptType
