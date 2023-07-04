@@ -3,10 +3,19 @@ extend type Query {
     deptTypes(id:ID,filter:DeptTypeFilter):[DeptType]
 }
 extend type Mutation {
+    """
+    @log ="新增组织机构类型类型 $entity " I
+    """
     #新增组织机构类型类型
     saveDeptTypes(entity:InputDeptType!):DeptType
+    """
+    @log ="删除组织机构类型类型 $id " I
+    """
     #根据id删除组织机构类型类型
     deleteDeptTypes(id:ID!): DeptType
+    """
+    @log ="更新组织机构类型类型 $code,$name " I
+    """
     #更新组织机构类型类型
     updateDeptTypes(entity:InputDeptType!):DeptType
 }

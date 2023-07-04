@@ -3,10 +3,19 @@ extend type Query {
     deptTreeTypes(id:ID,filter:DeptTreeTypeFilter):[DeptTreeType]
 }
 extend type Mutation {
+    """
+    @log ="新增组织机构树 $entity " I
+    """
     #新增组织机构树
     saveDeptTreeType(entity:InputDeptTreeType!):DeptTreeType
+    """
+    @log ="删除组织机构树 $id " I
+    """
     #根据id删除组织机构树
     deleteDeptTreeType(id:ID!): DeptTreeType
+    """
+    @log ="更新组织机构树 $entity " I
+    """
     #更新组织机构树
     updateDeptTreeType(entity:InputDeptTreeType!):DeptTreeType
 }
