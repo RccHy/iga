@@ -11,6 +11,9 @@ extend type Mutation {
 
 
     #新增权威源注册
+    """
+    @log ="新增权威源注册:$createUser" W
+    """
     saveUpstream(entity:InputUpstream!):Upstream
 
     #新版权威源注册(带类型)
@@ -18,6 +21,9 @@ extend type Mutation {
     #根据id删除权威源注册
     deleteUpstream(id:ID!): Upstream
     #更新权威源注册
+    """
+    @log ="更新权威源注册:" W
+    """
     updateUpstream(entity:InputUpstream!):Upstream
 
     #更新权威源及类型
