@@ -11,7 +11,7 @@ extend type Mutation {
     #更新岗位类型
 
     """
-    @log ="更新岗位类型" I
+    @log ="更新岗位类型:($code:$name)" I
     """
     updatePostType(entity:InputPostType!):PostType
 }
