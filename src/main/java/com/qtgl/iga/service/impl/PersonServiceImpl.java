@@ -1058,33 +1058,91 @@ public class PersonServiceImpl implements PersonService {
                 log.error("人员是否删除字段不合法:{}", personUpstream.getDelMark());
                 continue;
             }
-            // 人员标识 证件类型、证件号码   OR    用户名 accountNo  必提供一个
-            if (StringUtils.isBlank(personUpstream.getCardNo()) && StringUtils.isBlank(personUpstream.getCardType())) {
+
+
+            if (ACCOUNT_NO.equals(personCharacteristic)) {
+                //用户名处理
                 if (StringUtils.isBlank(personUpstream.getAccountNo())) {
-                    extracted(domain, personUpstream, "未提供标识信息:证件类型、证件号码或者用户名");
-                    log.error("{}未提供标识信息:证件类型、证件号码或者用户名", personUpstream.getName());
+                    extracted(domain, personUpstream, "未提供标识信息:用户名");
+                    log.error("{}未提供标识信息:用户名", personUpstream.getName());
+                    continue;
+                }
+            } else if (CARD_TYPE_NO.equals(personCharacteristic)) {
+                //证件类型+证件号码
+                if (StringUtils.isBlank(personUpstream.getCardNo()) && StringUtils.isBlank(personUpstream.getCardType())) {
+                    extracted(domain, personUpstream, "未提供标识信息:证件类型、证件号码");
+                    log.error("{}未提供标识信息:证件类型、证件号码", personUpstream.getName());
+                    continue;
+                }
+                if (!StringUtils.isBlank(personUpstream.getCardType()) && cardTypeMap.containsKey(personUpstream.getCardType())) {
+                    String cardTypeReg = cardTypeMap.get(personUpstream.getCardType()).getCardTypeReg();
+                    if (StringUtils.isNotBlank(cardTypeReg) && !Pattern.matches(cardTypeReg, personUpstream.getCardNo())) {
+                        extracted(domain, personUpstream, "证件号码不符合规则");
+                        log.error("证件号码不符合规则:{}", personUpstream.getCardNo());
+                        continue;
+                    }
+                } else if (!StringUtils.isBlank(personUpstream.getCardType()) && !cardTypeMap.containsKey(personUpstream.getCardType())) {
+                    extracted(domain, personUpstream, "证件类型无效");
+                    log.error("证件类型无效:{}", personUpstream.getCardType());
                     continue;
                 }
 
-            }
-            // 如果提供证件类型,提供的证件号码为空
-            if (StringUtils.isBlank(personUpstream.getCardNo()) && !StringUtils.isBlank(personUpstream.getCardType())) {
-                extracted(domain, personUpstream, "提供证件类型但对应的证件号码为空");
-                log.error("{}-{}提供证件类型但对应的证件号码为空", personUpstream.getCardNo(), personUpstream.getAccountNo());
-                continue;
-            }
-            if (!StringUtils.isBlank(personUpstream.getCardType()) && cardTypeMap.containsKey(personUpstream.getCardType())) {
-                String cardTypeReg = cardTypeMap.get(personUpstream.getCardType()).getCardTypeReg();
-                if (StringUtils.isNotBlank(cardTypeReg) && !Pattern.matches(cardTypeReg, personUpstream.getCardNo())) {
-                    extracted(domain, personUpstream, "证件号码不符合规则");
-                    log.error("证件号码不符合规则:{}", personUpstream.getCardNo());
+            } else if (CARD_NO.equals(personCharacteristic)) {
+                //仅证件号码
+                if (StringUtils.isBlank(personUpstream.getCardNo()) && StringUtils.isBlank(personUpstream.getCardType())) {
+                    extracted(domain, personUpstream, "未提供标识信息:证件号码");
+                    log.error("{}未提供标识信息:证件号码", personUpstream.getName());
                     continue;
                 }
-            } else if (!StringUtils.isBlank(personUpstream.getCardType()) && !cardTypeMap.containsKey(personUpstream.getCardType())) {
-                extracted(domain, personUpstream, "证件类型无效");
-                log.error("证件类型无效:{}", personUpstream.getCardType());
-                continue;
+            } else if (EMAIL.equals(personCharacteristic)) {
+                //邮箱
+                if (StringUtils.isBlank(personUpstream.getEmail())) {
+                    extracted(domain, personUpstream, "未提供标识信息:邮箱");
+                    log.error("{}未提供标识信息:邮箱", personUpstream.getName());
+                    continue;
+                }
+            } else if (CELLPHONE.equals(personCharacteristic)) {
+                //手机号
+                if (StringUtils.isBlank(personUpstream.getCellphone())) {
+                    extracted(domain, personUpstream, "未提供标识信息:手机号");
+                    log.error("{}未提供标识信息:手机号", personUpstream.getName());
+                    continue;
+                }
+            } else if (OPENID.equals(personCharacteristic)) {
+                //openId
+                if (StringUtils.isBlank(personUpstream.getOpenId())) {
+                    extracted(domain, personUpstream, "未提供标识信息:openId");
+                    log.error("{}未提供标识信息:openId", personUpstream.getName());
+                    continue;
+                }
             }
+            //// 人员标识 证件类型、证件号码   OR    用户名 accountNo  必提供一个
+            //if (StringUtils.isBlank(personUpstream.getCardNo()) && StringUtils.isBlank(personUpstream.getCardType())) {
+            //    if (StringUtils.isBlank(personUpstream.getAccountNo())) {
+            //        extracted(domain, personUpstream, "未提供标识信息:证件类型、证件号码或者用户名");
+            //        log.error("{}未提供标识信息:证件类型、证件号码或者用户名", personUpstream.getName());
+            //        continue;
+            //    }
+            //
+            //}
+            // 如果提供证件类型,提供的证件号码为空
+            //if (StringUtils.isBlank(personUpstream.getCardNo()) && !StringUtils.isBlank(personUpstream.getCardType())) {
+            //    extracted(domain, personUpstream, "提供证件类型但对应的证件号码为空");
+            //    log.error("{}-{}提供证件类型但对应的证件号码为空", personUpstream.getCardNo(), personUpstream.getAccountNo());
+            //    continue;
+            //}
+            //if (!StringUtils.isBlank(personUpstream.getCardType()) && cardTypeMap.containsKey(personUpstream.getCardType())) {
+            //    String cardTypeReg = cardTypeMap.get(personUpstream.getCardType()).getCardTypeReg();
+            //    if (StringUtils.isNotBlank(cardTypeReg) && !Pattern.matches(cardTypeReg, personUpstream.getCardNo())) {
+            //        extracted(domain, personUpstream, "证件号码不符合规则");
+            //        log.error("证件号码不符合规则:{}", personUpstream.getCardNo());
+            //        continue;
+            //    }
+            //} else if (!StringUtils.isBlank(personUpstream.getCardType()) && !cardTypeMap.containsKey(personUpstream.getCardType())) {
+            //    extracted(domain, personUpstream, "证件类型无效");
+            //    log.error("证件类型无效:{}", personUpstream.getCardType());
+            //    continue;
+            //}
 
             if (StringUtils.isBlank(personUpstream.getName())) {
                 extracted(domain, personUpstream, "姓名为空");
