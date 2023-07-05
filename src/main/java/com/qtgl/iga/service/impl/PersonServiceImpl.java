@@ -109,6 +109,8 @@ public class PersonServiceImpl implements PersonService {
     private final String EMAIL = "EMAIL";
     //手机号
     private final String CELLPHONE = "CELLPHONE";
+
+    private final String OPENID = "OPENID";
     //iga 对应type
     private final String synType = "person";
 
@@ -935,6 +937,18 @@ public class PersonServiceImpl implements PersonService {
             personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
                 calculateInsert(personFromSSOMapByCellphone, result, key, val, avatarResult, personCharacteristic);
             });
+        } else if (OPENID.equals(personCharacteristic)) {
+            // openId
+            Map<String, Person> personFromSSOMapByOpenId = new ArrayList<>(preViewPersonMap.values()).stream()
+                    .filter(person -> !StringUtils.isBlank(person.getOpenId())).sorted(Comparator.comparing(Person::getUpdateTime))
+                    .collect(Collectors.toMap(Person::getOpenId, person -> person, (v1, v2) -> v2));
+
+            personFromSSOMapByOpenId.forEach((key, personFromSSO) -> {
+                calculate(personFromUpstreamByPersonCharacteristic, result, key, personFromSSO, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, fieldsMap, dynamicSSOValues, keepPersonMap, finalAvatarMap, avatarTempResult, personCharacteristic, mergeFieldMap);
+            });
+            personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
+                calculateInsert(personFromSSOMapByOpenId, result, key, val, avatarResult, personCharacteristic);
+            });
         }
     }
 
@@ -1259,6 +1273,34 @@ public class PersonServiceImpl implements PersonService {
                 log.error("数据丢弃:{},原因 : 数据没有身份标识,该人员数据指定的身份标识字段为:{}", personUpstream, personCharacteristic);
                 extracted(domain, personUpstream, "数据没有身份标识");
             }
+        } else if (OPENID.equals(personCharacteristic)) {
+            //openId
+            if (StringUtils.isNotEmpty(personUpstream.getOpenId())) {
+
+                //并且合重容器中包含该openId
+                if (personFromUpstreamByPersonCharacteristic.containsKey(personUpstream.getOpenId())) {
+                    if (personUpstream.getActive() == 1) {
+                        Person person = personFromUpstreamByPersonCharacteristic.get(personUpstream.getOpenId());
+                        if (!person.getUpdateTime().isAfter(personUpstream.getUpdateTime())) {
+                            log.error("数据丢弃:{},原因 : 数据覆盖", person);
+                            extracted(domain, person, "数据覆盖");
+                            personFromUpstreamByPersonCharacteristic.put(personUpstream.getOpenId(), personUpstream);
+                        }
+
+
+                    } else {
+                        log.error("数据丢弃:{},原因 : 该标识用户已有数据,忽略无效数据", personUpstream);
+                        extracted(domain, personUpstream, "该标识用户已有数据,忽略无效数据");
+                    }
+                } else {
+                    //合重容器中没有对应openId标识数据,则添加进容器
+                    personFromUpstreamByPersonCharacteristic.put(personUpstream.getOpenId(), personUpstream);
+                }
+
+            } else {
+                log.error("数据丢弃:{},原因 : 数据没有身份标识,该人员数据指定的身份标识字段为:{}", personUpstream, personCharacteristic);
+                extracted(domain, personUpstream, "数据没有身份标识");
+            }
         }
     }
 
@@ -1294,7 +1336,9 @@ public class PersonServiceImpl implements PersonService {
                 //新增逻辑字段赋默认值
                 String id = UUID.randomUUID().toString();
                 val.setId(id);
-                val.setOpenId(RandomStringUtils.randomAlphabetic(20));
+                if (!OPENID.equals(personCharacteristic)) {
+                    val.setOpenId(RandomStringUtils.randomAlphabetic(20));
+                }
                 val.setValidStartTime(OccupyServiceImpl.DEFAULT_START_TIME);
                 val.setValidEndTime(OccupyServiceImpl.DEFAULT_END_TIME);
 
