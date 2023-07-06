@@ -1,3 +1,27 @@
+
+### 20230706
+
+**数据库**
+- 无
+
+**new：**
+- 人员同步支持身份主体为openid
+- 添加接口日志@log
+
+**bug fix**
+- 无
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20230706
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20230706
+
+
+
+
 ### 20230629
 
 **数据库**
