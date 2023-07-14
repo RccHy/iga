@@ -10,7 +10,6 @@ import com.qtgl.iga.utils.FileUtil;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -47,6 +46,7 @@ public class TaskLogServiceImpl implements TaskLogService {
 
         Integer count = taskLogDao.save(taskLog, domain, type);
         DomainInfo domainInfo = domainInfoDao.findById(domain);
+        log.info("获取租户的id为:{},租户具体信息为:{}",domain,domainInfo);
         String domainName = domainInfo.getDomainName();
         switch (type) {
             case "update":

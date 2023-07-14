@@ -6,16 +6,15 @@ import com.qtgl.iga.bo.DeptTreeType;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.service.DeptTreeTypeService;
 import com.qtgl.iga.utils.CertifiedConnector;
-import com.qtgl.iga.utils.exception.GraphqlExceptionUtils;
 import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.exception.CustomException;
+import com.qtgl.iga.utils.exception.GraphqlExceptionUtils;
 import graphql.schema.DataFetcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Map;
 
 @Component
@@ -40,8 +39,7 @@ public class DeptTreeTypeDataFetcher {
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
             //2。解析查询参数  进行查询
             try {
-                List<DeptTreeType> all = deptTreeTypeService.findAll(arguments, domain.getId());
-                return all;
+                return deptTreeTypeService.findAll(arguments, domain.getId());
             } catch (CustomException e) {
                 e.printStackTrace();
                 logger.error(domain.getDomainName() + e.getMessage());

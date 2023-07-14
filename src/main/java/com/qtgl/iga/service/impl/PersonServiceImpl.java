@@ -870,6 +870,7 @@ public class PersonServiceImpl implements PersonService {
                               NodeRules rules, Map<String, List<String>> mergeFieldMap) {
         //当前权威源类型映射字段
         List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(upstreamTypeId);
+        log.info("权威源类型:{},对应的映射字段:{}",upstreamTypeId,fields);
         Map<String, UpstreamTypeField> fieldsMap = fields.stream().collect(Collectors.toMap(UpstreamTypeField::getSourceField, sourceFiled -> sourceFiled, (v1, v2) -> v2));
         if (fieldsMap.containsKey("avatar")) {
             avatarRules.add(rules);

@@ -1,3 +1,12 @@
+
+--待发布
+
+TRUNCATE identity;
+
+ALTER TABLE `identity` MODIFY COLUMN `birthday` datetime NULL DEFAULT NULL AFTER `gender`;
+
+
+
 -- 20230619
 --# 返回为null则执行alter语句,为1则不执行
 SELECT 1 FROM information_schema.COLUMNS WHERE table_name = 'incremental_task' AND column_name = 'operation_no';

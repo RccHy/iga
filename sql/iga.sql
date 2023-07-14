@@ -440,7 +440,7 @@ CREATE TABLE `identity` (
                             `source` varchar(100) DEFAULT '',
                             `data_source` varchar(100) DEFAULT NULL,
                             `sex` varchar(50) DEFAULT NULL,
-                            `birthday` varchar(10) DEFAULT NULL,
+                            `birthday` datetime DEFAULT NULL,
                             `avatar_url` text DEFAULT null,
                             `tags` varchar(255) DEFAULT NULL,
                             `active` tinyint(1) DEFAULT 1,

@@ -330,6 +330,7 @@ public class DataBusUtil {
         List<UpstreamTypeField> fields = upstreamTypeService.findFields(upstreamType.getId());
         Map<String, String> collect = fields.stream().collect(Collectors.toMap(UpstreamTypeField::getSourceField, UpstreamTypeField::getTargetField));
         typeFields.put(upstreamType.getId(), fields);
+        log.info("---------获取上游映射字段并存入容器权威源类型id:{},fields:{}",upstreamType.getId(),fields);
         Map<String, Object> result = null;
         JSONArray objects = new JSONArray();
 
