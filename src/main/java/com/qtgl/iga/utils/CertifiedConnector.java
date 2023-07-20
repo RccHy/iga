@@ -54,12 +54,13 @@ public class CertifiedConnector {
 
 
 
-    public void set(DomainInfoService domainInfoService, String url, String clientId, String clientSecret, DeptRelationTypeService deptRelationTypeService) {
+    public void set(DomainInfoService domainInfoService, String url, String clientId, String clientSecret, DeptRelationTypeService deptRelationTypeService,SubWebSocket subWebSocket) {
         this.domainInfoService = domainInfoService;
         this.url = url;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.deptRelationTypeService = deptRelationTypeService;
+        this.subWebSocket= subWebSocket;
     }
 
     @PostConstruct
@@ -70,6 +71,7 @@ public class CertifiedConnector {
         certifiedConnector.clientId = this.clientId;
         certifiedConnector.clientSecret = this.clientSecret;
         certifiedConnector.deptRelationTypeService = this.deptRelationTypeService;
+        certifiedConnector.subWebSocket= this.subWebSocket;
     }
 
     /**
@@ -108,7 +110,7 @@ public class CertifiedConnector {
             try {
                 certifiedConnector.domainInfoService.install(byDomainName);
                 // 租户初始化完成后,开启监听
-                subWebSocket.listening(byDomainName);
+                certifiedConnector.subWebSocket.listening(byDomainName);
                 //todo 指定运行 权威源为console的 同步
 
                 //GraphQLService.setDomainGraphQLMap(certifiedConnector.runner.buildGraphql());

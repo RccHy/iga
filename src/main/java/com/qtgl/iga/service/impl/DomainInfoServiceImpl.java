@@ -62,27 +62,24 @@ public class DomainInfoServiceImpl implements DomainInfoService {
         // 判断是否有超级租户信息
         DomainInfo superDomain = dao.getByDomainName("localhost");
         // 如果没有则新增超级租户信息
-        superDomain = new DomainInfo("localhost", null, new Timestamp(System.currentTimeMillis()), 0, domainInfo.getClientId(), domainInfo.getClientSecret());
-        Integer superSave = dao.save(superDomain);
-        if (superSave > 0) {
-            // 插入租户信息
-            Integer save = dao.save(domainInfo);
-            if (save > 0) {
-                // 组织机构类型
-                deptTreeTypeDao.initialization(domainInfo.getId());
-                // 组织机构关系类型
-                deptRelationTypeDao.initialization(domainInfo.getId());
-                // 岗位类型
-                postTypeDao.initialization(domainInfo.getId());
-                //  监控规则
-                monitorRulesDao.initialization(domainInfo.getId());
-                // 人员证件类型
-                cardTypeDao.initialization(domainInfo.getId());
-
-            }
+        if (superDomain == null) {
+            superDomain = new DomainInfo("localhost", null, new Timestamp(System.currentTimeMillis()), 0, domainInfo.getClientId(), domainInfo.getClientSecret());
+            dao.save(superDomain);
         }
-
-
+        // 插入租户信息
+        Integer save = dao.save(domainInfo);
+        if (save > 0) {
+            // 组织机构类型
+            deptTreeTypeDao.initialization(domainInfo.getId());
+            // 组织机构关系类型
+            deptRelationTypeDao.initialization(domainInfo.getId());
+            // 岗位类型
+            postTypeDao.initialization(domainInfo.getId());
+            //  监控规则
+            monitorRulesDao.initialization(domainInfo.getId());
+            // 人员证件类型
+            cardTypeDao.initialization(domainInfo.getId());
+        }
     }
 
     @Override
