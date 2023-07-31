@@ -93,12 +93,18 @@ public class PostServiceImpl implements PostService {
         //    throw new CustomException(ResultCode.FAILED, "请在‘身份管理->岗位管理’中进行岗位数据初始化导入后再进行治理");
         //}
         //获取完整的非PULL根数据以及加入逻辑根节点
-        rootBeans.addAll(ssoBeans);
+        if (!CollectionUtils.isEmpty(ssoBeans)) {
+            rootBeans.addAll(ssoBeans);
+        }
         //通过tenantId查询ssoApis库中的数据
         List<TreeBean> beans = postDao.findByTenantId(tenant.getId());
 
         //map做增量处理值传递
-        Map<String, TreeBean> ssoBeansMap = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
+        Map<String, TreeBean> ssoBeansMap = new ConcurrentHashMap<>();
+
+        if (!CollectionUtils.isEmpty(beans)) {
+            ssoBeansMap = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (post -> post)));
+        }
 
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
@@ -136,7 +142,9 @@ public class PostServiceImpl implements PostService {
                 valueMap = dynamicValues.stream().collect(Collectors.groupingBy(DynamicValue::getEntityId));
             }
         }
-        mainTreeBeans.addAll(ssoBeans);
+        if (!CollectionUtils.isEmpty(ssoBeans)) {
+            mainTreeBeans.addAll(ssoBeans);
+        }
         //获取岗位治理下所有的运行中规则
         List<NodeDto> nodes = nodeService.findNodes(domain.getId(), 0, TYPE, true);
         List<UpstreamDto> upstreams;
@@ -261,14 +269,19 @@ public class PostServiceImpl implements PostService {
         //    throw new CustomException(ResultCode.FAILED, "请在‘ 身份管理->岗位管理 ’中进行岗位数据初始化导入后再进行治理");
         //}
         //获取完整的非PULL根数据以及加入逻辑根节点
-        rootBeans.addAll(ssoBeans);
+        if (!CollectionUtils.isEmpty(ssoBeans)) {
+            rootBeans.addAll(ssoBeans);
+        }
 
         //通过tenantId查询ssoApis库中的数据
         List<TreeBean> beans = postDao.findByTenantId(tenant.getId());
 
         //map做增量处理值传递
-        Map<String, TreeBean> ssoBeansMap = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
+        Map<String, TreeBean> ssoBeansMap = new ConcurrentHashMap<>();
 
+        if (!CollectionUtils.isEmpty(beans)) {
+            ssoBeansMap = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (post -> post)));
+        }
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
         //ArrayList<TreeBean> treeBeans = new ArrayList<>();
@@ -308,7 +321,9 @@ public class PostServiceImpl implements PostService {
 
         Map<String, TreeBean> rootBeansMap = rootBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
 
-        mainTreeBeans.addAll(ssoBeans);
+        if (!CollectionUtils.isEmpty(ssoBeans)) {
+            mainTreeBeans.addAll(ssoBeans);
+        }
         //获取该租户下的当前类型的无效权威源
         List<UpstreamDto> upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
         Map<String, UpstreamDto> upstreamMap = new ConcurrentHashMap<>();
