@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: iga
-        image: docker.qtgl.com.cn/product/iga:latest
+        image: oci.ketanyun.cn/product/images/iga:latest
         imagePullPolicy: Always
         envFrom:
           - secretRef:
@@ -119,5 +119,6 @@ spec:
         - containerPort: 8080
       imagePullSecrets:
         - name: gitlab-registry-qtgl
+        - name: gitlab-registry-product
 
 
