@@ -85,11 +85,10 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
                     nodeRules.setUpdateTime(null);
                 }
                 nodeRules.setNodeId(nodeDto.getId());
-
-
+                nodeRules.setStatus(nodeDto.getStatus());
             }
         }
-        //todo 修改时间
+        // 修改时间
         List<NodeRulesVo> nodeRules = nodeDto.getNodeRules();
         int[] ints = jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
             @Override

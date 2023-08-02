@@ -214,4 +214,30 @@ public class NodeDataFetcher {
             return nodeService.nodeStatus(arguments, domain.getId());
         };
     }
+
+    /**
+     * 增量添加规则
+     * @return
+     */
+    public DataFetcher saveIncrementNode() {
+        return dataFetchingEvn -> {
+            //1。更具token信息验证是否合法，并判断其租户
+            DomainInfo domain = CertifiedConnector.getDomain();
+            // 获取传入参数
+            Map<String, Object> arguments = dataFetchingEvn.getArguments();
+            NodeDto nodeDto = JSON.parseObject(JSON.toJSONString(arguments.get("entity")), NodeDto.class);
+            try {
+                NodeDto data = nodeService.saveIncrementNode(nodeDto, domain.getId());
+                if (null != data) {
+                    return data;
+                }
+                throw new CustomException(ResultCode.FAILED, "添加节点规则失败");
+            } catch (CustomException e) {
+                e.printStackTrace();
+                logger.error(domain.getDomainName() + e.getMessage());
+
+                return GraphqlExceptionUtils.getObject("添加节点规则失败", e);
+            }
+        };
+    }
 }

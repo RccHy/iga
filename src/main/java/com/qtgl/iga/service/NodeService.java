@@ -55,4 +55,6 @@ public interface NodeService {
     List<Node> findById(String nodeId);
 
     List<Node> findNodesByDomain(String domainId);
+
+    NodeDto saveIncrementNode(NodeDto nodeDto, String id);
 }

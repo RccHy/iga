@@ -542,6 +542,70 @@ public class NodeDaoImpl implements NodeDao {
         return nodes;
     }
 
+    @Override
+    public Node findNodeByCodeAndDeptTreeTypeAndDomain(String nodeCode, String domainId, String type, String deptTreeType) {
+        StringBuffer sql = new StringBuffer("select id,manual," +
+                "node_code as nodeCode," +
+                "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status,type" +
+                " from t_mgr_node where domain= ?  and node_code =? and type=?  ");
+        //存入参数
+        List<Object> param = new ArrayList<>();
+        param.add(domainId);
+        param.add(nodeCode);
+        param.add(type);
+        if ("dept".equals(type)) {
+            sql.append("and dept_tree_type = ?");
+            param.add(deptTreeType);
+        }
+        sql.append(" order by create_time desc limit 1");
+
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql.toString(), param.toArray());
+        log.info("sql:{}", sql);
+
+        if (!CollectionUtils.isEmpty(mapList) && mapList.size() == 1) {
+            for (Map<String, Object> map : mapList) {
+                try {
+                    Node node = new Node();
+                    MyBeanUtils.populate(node, map);
+                    return node;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return null;
+    }
+
+    @Override
+    public Node findCreateTimeByType(String domainId, String type) {
+        StringBuffer sql = new StringBuffer("select id,manual," +
+                "node_code as nodeCode," +
+                "create_time as createTime,update_time as updateTime,domain,dept_tree_type as deptTreeType,status,type" +
+                " from t_mgr_node where domain= ?  and type=?  order by create_time desc limit 1 ");
+        //存入参数
+        List<Object> param = new ArrayList<>();
+        param.add(domainId);
+        param.add(type);
+
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(sql.toString(), param.toArray());
+        log.info("sql:{}", sql);
+
+        if (!CollectionUtils.isEmpty(mapList) && mapList.size() == 1) {
+            for (Map<String, Object> map : mapList) {
+                try {
+                    Node node = new Node();
+                    MyBeanUtils.populate(node, map);
+                    return node;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return null;
+    }
+
 
     private String handleSql(String sql, List<String> codes, List<Object> param) {
         StringBuffer stb = new StringBuffer(sql);

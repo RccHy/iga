@@ -50,4 +50,8 @@ public interface NodeDao {
     Node findNodeByIdAndDomain(String id, String domain);
 
     List<Node> findNodesByDomain(String domainId);
+
+    Node findNodeByCodeAndDeptTreeTypeAndDomain(String nodeCode, String domainId, String type, String deptTreeType);
+
+    Node findCreateTimeByType(String domainId, String type);
 }

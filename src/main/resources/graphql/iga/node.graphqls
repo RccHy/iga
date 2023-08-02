@@ -29,6 +29,12 @@ extend type Mutation {
     """
     #应用规则     mark为true 则为回滚  false为应用
     applyNode(version:Timestamp,mark:Boolean,type:String!):Node
+
+    """
+    @log ="新增增量节点规则 $entity " I
+    """
+    #新增增量节点规则
+    saveIncrementNode(entity:InputNode!):Node
     #    #回滚规则
     #    rollbackNode(version:Timestamp!):Node
 }

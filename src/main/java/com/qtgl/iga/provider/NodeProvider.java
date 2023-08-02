@@ -32,7 +32,8 @@ public class NodeProvider {
                 .dataFetcher("deleteNode", dataFetcher.deleteNode())
                 .dataFetcher("updateNode", dataFetcher.updateNode())
                 .dataFetcher("applyNode", dataFetcher.applyNode())
-                .dataFetcher("rollbackNode", dataFetcher.rollbackNode());
+                .dataFetcher("rollbackNode", dataFetcher.rollbackNode())
+                .dataFetcher("saveIncrementNode", dataFetcher.saveIncrementNode());
 
     }
 

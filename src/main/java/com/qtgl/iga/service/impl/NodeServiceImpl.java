@@ -790,4 +790,52 @@ public class NodeServiceImpl implements NodeService {
         nodeDao.deleteNodeById(nodeId, domain);
     }
 
+    @Override
+    public NodeDto saveIncrementNode(NodeDto node, String domainId) {
+        //
+        if (CollectionUtils.isEmpty(node.getNodeRules())) {
+            logger.warn("保存的node节点不包含rules,跳过报存");
+            return node;
+        }
+        //查询是否包含 该节点的node (有则顺延,没有则重新创建)
+        Node nodesByCode = nodeDao.findNodeByCodeAndDeptTreeTypeAndDomain(node.getNodeCode(), domainId, node.getType(), node.getDeptTreeType());
+        if (null != nodesByCode) {
+            node.setId(nodesByCode.getId());
+            node.setCreateTime(nodesByCode.getCreateTime());
+            node.setStatus(nodesByCode.getStatus());
+        } else {
+            node.setId(UUID.randomUUID().toString());
+            //根据type 查询最新时间的node
+            Node timeByCodeAndType = nodeDao.findCreateTimeByType(domainId, node.getType());
+            if (null != timeByCodeAndType) {
+                node.setCreateTime(timeByCodeAndType.getCreateTime());
+                node.setStatus(timeByCodeAndType.getStatus());
+
+            } else {
+                node.setCreateTime(System.currentTimeMillis());
+                node.setStatus(0);
+            }
+            node.setDomain(domainId);
+            node = nodeDao.save(node);
+            if (null == node) {
+                throw new CustomException(ResultCode.FAILED, "添加规则失败");
+            }
+        }
+
+        if (!CollectionUtils.isEmpty(node.getNodeRules())) {
+            //添加节点规则明细
+            NodeDto nodeRule = nodeRulesService.saveNodeRules(node);
+            if (null == nodeRule) {
+                throw new CustomException(ResultCode.FAILED, "添加规则明细失败");
+            }
+            //添加节点规则明细作用域
+            NodeDto range = nodeRulesRangeService.saveNodeRuleRange(nodeRule);
+            if (null == range) {
+                throw new CustomException(ResultCode.FAILED, "添加规则明细作用域失败");
+            }
+            return range;
+        }
+        return node;
+    }
+
 }
