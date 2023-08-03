@@ -184,19 +184,19 @@ public class StatusController {
                 upstreamService.delAboutNode(upstream, domainInfo);
                 log.info("[bootstrap] {}-{}删除权威源相关规则节点完成", upstream.getAppCode(), domainInfo.getDomainName());
                 // qUserSource.getSources 所有name集合
-                List<String> codes;
-                try {
-                    //建荣之前初始化 code取值没有加权威源前缀的数据
-                    Map<String, Sources> collect = qUserSource.getSources().stream().collect(Collectors.toMap(Sources::getName, sources -> sources));
-                    codes = new ArrayList<>(collect.keySet());
-
-                } catch (Exception e) {
-                    throw new CustomException(ResultCode.FAILED, "包含重复名称配置,请检查[sources]下的[name]节点");
-                }
+//                List<String> codes;
+//                try {
+//                    //建荣之前初始化 code取值没有加权威源前缀的数据
+//                    Map<String, Sources> collect = qUserSource.getSources().stream().collect(Collectors.toMap(Sources::getName, sources -> sources));
+//                    codes = new ArrayList<>(collect.keySet());
+//
+//                } catch (Exception e) {
+//                    throw new CustomException(ResultCode.FAILED, "包含重复名称配置,请检查[sources]下的[name]节点");
+//                }
                 List<String> codeList = qUserSource.getSources().stream().map(sources -> upstream.getAppCode() + "_" + sources.getName()).collect(Collectors.toList());
-                codes.addAll(codeList);
+                //codes.addAll(codeList);
                 // 删除权威源类型
-                upstreamTypeService.deleteUpstreamTypeByCods(codes, domainInfo.getId());
+                upstreamTypeService.deleteUpstreamTypeByCods(codeList, domainInfo.getId());
             } else {
                 upstreamService.saveUpstream(upstream, domainInfo.getId());
                 log.info("[bootstrap] {}-{}新增权威源完成", upstream.getAppCode(), domainInfo.getDomainName());
