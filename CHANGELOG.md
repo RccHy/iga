@@ -1,4 +1,25 @@
 
+### 20230803
+
+**数据库**
+- 无
+
+**new：**
+- 岗位同步在根结构为空的情况下,同步逻辑兼容优化
+
+**bug fix**
+- 无
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20230803
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20230803
+
+
+
 ### 20230706
 
 **数据库**
