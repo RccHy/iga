@@ -1,9 +1,8 @@
-
 --待发布
 
 TRUNCATE identity;
 
-ALTER TABLE `identity` MODIFY COLUMN `birthday` datetime NULL DEFAULT NULL AFTER `gender`;
+ALTER TABLE `identity` MODIFY COLUMN `birthday` datetime NULL DEFAULT NULL ;
 
 
 
