@@ -144,7 +144,7 @@ public class StatusController {
 
         try {
             //获取当前操作的租户  (添加权限时使用)
-            DomainInfo currentDomain = CertifiedConnector.getDomain();
+            //DomainInfo currentDomain = CertifiedConnector.getDomain();
 
             QUserSource qUserSource = jsonObject.getJSONObject("spec").toJavaObject(QUserSource.class);
 
@@ -251,7 +251,8 @@ public class StatusController {
                 log.info("[bootstrap] {}-{}保存权威源相关规则节点完成", upstream.getAppCode(), domainInfo.getDomainName());
                 //  推送才需要 roleBinding
                 if (statusCode != -1) {
-
+                    //获取当前操作的租户  (添加权限时使用)
+                    DomainInfo currentDomain = CertifiedConnector.getDomain();
                     upstreamService.saveRoleBing(upstreamTypes, nodes, nodeRulesList, currentDomain);
                 } else {
                     log.error("[bootstrap] {}-{}保存权威源相关规则节点失败", upstream.getAppCode(), domainInfo.getDomainName());
