@@ -634,10 +634,12 @@ public class NodeRulesCalculationServiceImpl {
                             //} else {
                             //    throw e;
                             //}
+
                             if (new Long("1085").equals(e.getCode())) {
                                 log.error("请求资源地址失败,请检查权威源:{}下的权威源类型:{},通过影子副本获取数据", upstream.getAppName() + "(" + upstream.getAppCode() + ")", upstreamType.getDescription());
-                            }else if(new Long("1087").equals(e.getCode())) {
-                                throw  e;
+                            } else if (new Long("1087").equals(e.getCode())) {
+                                e.setData(mainTree);
+                                throw e;
                             } else {
                                 e.printStackTrace();
                                 log.error("{}:获取上游数据失败:{} ,通过影子副本获取数据", type, e.getErrorMsg());
@@ -645,7 +647,7 @@ public class NodeRulesCalculationServiceImpl {
                             //通过影子副本获取数据
                             upstreamTree = shadowCopyService.findDataByUpstreamTypeAndType(upstreamType.getId(), type, upstreamType.getDomain());
                             if (CollectionUtils.isEmpty(upstreamTree)) {
-                                throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, null, null, type, upstreamType.getDescription());
+                                throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, null, mainTree, type, upstreamType.getDescription());
                             }
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -654,7 +656,7 @@ public class NodeRulesCalculationServiceImpl {
                             //通过影子副本获取数据
                             upstreamTree = shadowCopyService.findDataByUpstreamTypeAndType(upstreamType.getId(), type, upstreamType.getDomain());
                             if (CollectionUtils.isEmpty(upstreamTree)) {
-                                throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, null, null, type, upstreamType.getDescription());
+                                throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, null, mainTree, type, upstreamType.getDescription());
                             }
                         }
 
