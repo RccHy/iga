@@ -29,7 +29,7 @@ public class UrlUtil implements InitializingBean {
     public static String getUrl(String url) {
 
         String personalUrl = url;
-        log.info("url:{}", originUrl);
+        log.info("url:{}", personalUrl);
         log.info("originUrl:{}", originUrl);
         if (!isUrl(personalUrl)) {
             ServletRequestAttributes requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
