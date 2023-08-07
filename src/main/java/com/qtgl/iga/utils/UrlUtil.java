@@ -29,7 +29,8 @@ public class UrlUtil implements InitializingBean {
     public static String getUrl(String url) {
 
         String personalUrl = url;
-
+        log.info("url:{}", originUrl);
+        log.info("originUrl:{}", originUrl);
         if (!isUrl(personalUrl)) {
             ServletRequestAttributes requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             //如果为外部请求则通过request对象转化绝对路径
@@ -63,7 +64,7 @@ public class UrlUtil implements InitializingBean {
         if (StringUtils.isEmpty(url)) {
             return "";
         }
-
+        log.info("return Url:{}", personalUrl);
         return personalUrl;
     }
 
