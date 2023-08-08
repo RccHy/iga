@@ -511,7 +511,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
         //拼接sql
         StringBuffer stb = new StringBuffer("select r.id,r.node_id as nodeId,r.type as type,r.active as active," +
                 "r.create_time as createTime,r.service_key as serviceKey,r.upstream_types_id as upstreamTypesId,r.inherit_id as inheritId," +
-                "r.active_time as activeTime,r.update_time as updateTime,r.sort,r.status from t_mgr_node_rules r,t_mgr_node n where 1 = 1 and r.type = 1 and  r.node_id = n.id and n.type =? " +
+                "r.active_time as activeTime,r.update_time as updateTime,r.sort,r.status from t_mgr_node_rules r,t_mgr_node n where 1 = 1  and  r.node_id = n.id and n.type =? " +
                 "and r.status= ? and n.domain=? ");
         //存入参数
         List<Object> param = new ArrayList<>();
