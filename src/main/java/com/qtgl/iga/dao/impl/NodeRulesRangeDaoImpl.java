@@ -75,7 +75,7 @@ public class NodeRulesRangeDaoImpl implements NodeRulesRangeDao {
                             nodeRulesRange.setUpdateTime(null);
                         }
                         nodeRulesRange.setNodeRulesId(nodeRule.getId());
-
+                        nodeRulesRange.setStatus(nodeRule.getStatus());
                     }
                     int[] ints = jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
                         @Override
