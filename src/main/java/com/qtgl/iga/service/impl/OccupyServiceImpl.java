@@ -1135,6 +1135,12 @@ public class OccupyServiceImpl implements OccupyService {
         }
         //上游提供了删除字段 并且最新为删除
         }*/
+                // active字段不一致  调整修改及最终有效期计算标记  (主要处理上游不提供active字段且映射字段对比无修改的数据)
+                if (!occupyFromSSO.getActive().equals(newOccupy.getActive())) {
+                    log.info("人员身份:{}是否有效标识变更:  {}->{}", occupyFromSSO.getOccupyId(), occupyFromSSO.getActive(), newOccupy.getActive());
+                    updateFlag = true;
+                    timeFlag = true;
+                }
                 Map<String, String> map = occupyTypeFields.get(newOccupy.getUpstreamType());
 
                 if (delFlag) {
@@ -1204,9 +1210,8 @@ public class OccupyServiceImpl implements OccupyService {
                             log.info("人员身份信息失效{},但检测到对应权威源已无效或规则未启用,跳过该数据", occupyFromSSO.getOccupyId());
                         }
                     } else {
-                        log.info("----------------------人员身份对比完映射字段有区别,对标识字段进行对比");
-                        //上游未提供active或  提供了active 将数据库数据由无效变为有效
-                        //失效标识为false且sso的状态为无效
+                        log.info("----------------------人员身份----> 对标识字段进行对比");
+                        //对标识字段进行对比 重新计算最终有效期
                         if (timeFlag) {
                             //上有没有提供startTime
                             if (!map.containsKey("startTime")) {

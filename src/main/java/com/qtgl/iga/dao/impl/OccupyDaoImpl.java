@@ -56,6 +56,7 @@ public class OccupyDaoImpl implements OccupyDao {
                 "       u.dept_code               as deptCode," +
                 "       i.card_type               as personCardType," +
                 "       i.card_no               as personCardNo," +
+                "       i.open_id               as openId," +
                 "       u.card_type               as identityCardType," +
                 "       u.user_code                 as identityCardNo," +
                 "       u.del_mark                  as delMark," +

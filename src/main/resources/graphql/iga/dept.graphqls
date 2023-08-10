@@ -98,6 +98,8 @@ type Person{
     createSource:String
     # 创建数据来源
     createDataSource:String
+    # 人员唯一标识
+    openId:String
 }
 
 
@@ -153,6 +155,8 @@ type Occupy{
     createSource:String
     # 创建数据来源
     createDataSource:String
+    # 人员唯一标识
+    openId: String
 
 }
 
