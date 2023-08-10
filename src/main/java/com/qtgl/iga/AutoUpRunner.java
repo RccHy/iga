@@ -42,10 +42,9 @@ public class AutoUpRunner implements CommandLineRunner {
             }
         }
         //获取超级租户id 放入全局变量
-        DomainInfo localhost = domainInfoService.getByDomainName("localhost");
-        if(null!=localhost){
-            superDomainId=localhost.getId();
-        }
+        DomainInfo localhost = domainInfoService.getLocalhost();
+        superDomainId=localhost.getId();
+
 
     }
 }

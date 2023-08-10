@@ -5,6 +5,7 @@ import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.dao.*;
 import com.qtgl.iga.service.DomainInfoService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +33,11 @@ public class DomainInfoServiceImpl implements DomainInfoService {
     DeptRelationTypeDao deptRelationTypeDao;
     @Autowired
     CardTypeDao cardTypeDao;
+    @Value("${app.client}")
+    private String client;
+    @Value("${app.secret}")
+    private String secret;
+
 
     @Override
     public List<DomainInfo> findAll() {
@@ -59,13 +65,7 @@ public class DomainInfoServiceImpl implements DomainInfoService {
             e.printStackTrace();
             throw new CustomException(ResultCode.FAILED, "请勿重复初始化");
         }*/
-        // 判断是否有超级租户信息
-        DomainInfo superDomain = dao.getByDomainName("localhost");
-        // 如果没有则新增超级租户信息
-        if (superDomain == null) {
-            superDomain = new DomainInfo("localhost", null, new Timestamp(System.currentTimeMillis()), 0, domainInfo.getClientId(), domainInfo.getClientSecret());
-            dao.save(superDomain);
-        }
+
         // 插入租户信息
         Integer save = dao.save(domainInfo);
         if (save > 0) {
@@ -81,6 +81,19 @@ public class DomainInfoServiceImpl implements DomainInfoService {
             cardTypeDao.initialization(domainInfo.getId());
         }
     }
+
+    @Override
+    public DomainInfo getLocalhost() {
+        // 判断是否有超级租户信息
+        DomainInfo superDomain = dao.getByDomainName("localhost");
+
+        if (superDomain == null) {
+            superDomain = new DomainInfo("localhost", null, new Timestamp(System.currentTimeMillis()), 0, client, secret);
+            dao.save(superDomain);
+        }
+        return superDomain;
+    }
+
 
     @Override
     public DomainInfo getByDomainName(String name) {

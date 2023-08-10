@@ -12,5 +12,6 @@ public interface DomainInfoService {
     void install(DomainInfo domainInfo) throws Exception;
 
     DomainInfo getByDomainName(String name);
+    DomainInfo getLocalhost();
 
 }
