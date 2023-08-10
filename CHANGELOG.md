@@ -1,4 +1,25 @@
 
+### 20230810
+
+**数据库**
+- 无
+
+**new：**
+- 增量添加规则接口(支持中间库自动化配置权威源)
+
+**bug fix**
+- bootstrap 安装删除权威源类型code处理逻辑 bug fix
+
+**image：**
+
+- docker.qtgl.com.cn/product/iga:20230810
+
+**依赖其他项目：**
+
+- docker.qtgl.com.cn/product/console:20230810
+
+
+
 ### 20230803
 
 **数据库**
