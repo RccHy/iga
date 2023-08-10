@@ -469,7 +469,7 @@ public class OccupyServiceImpl implements OccupyService {
                 //通过影子副本获取数据
                 dataByBus = shadowCopyService.findDataByUpstreamTypeAndType(upstreamType.getId(), synType, upstreamType.getDomain());
                 if (CollectionUtils.isEmpty(dataByBus)) {
-                    throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, null, null, synType, upstreamType.getDescription());
+                    throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, null, null, synType, upstreamType.getDescription(), e.getMessage());
                 }
 
             } catch (Exception e) {
@@ -480,7 +480,7 @@ public class OccupyServiceImpl implements OccupyService {
                 //通过影子副本获取数据
                 dataByBus = shadowCopyService.findDataByUpstreamTypeAndType(upstreamType.getId(), synType, upstreamType.getDomain());
                 if (CollectionUtils.isEmpty(dataByBus)) {
-                    throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, null, null, synType, upstreamType.getDescription());
+                    throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, null, null, synType, upstreamType.getDescription(), e.getMessage());
                 }
             }
             List<OccupyDto> occupies = new ArrayList<>();

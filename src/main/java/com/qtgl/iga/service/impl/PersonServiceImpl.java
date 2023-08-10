@@ -697,7 +697,7 @@ public class PersonServiceImpl implements PersonService {
                 //通过影子副本获取数据
                 dataByBus = shadowCopyService.findDataByUpstreamTypeAndType(upstreamType.getId(), synType, upstreamType.getDomain());
                 if (CollectionUtils.isEmpty(dataByBus)) {
-                    throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, null, null, synType, upstreamType.getDescription());
+                    throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, null, null, synType, upstreamType.getDescription(), e.getErrorMsg());
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -706,7 +706,7 @@ public class PersonServiceImpl implements PersonService {
                 //通过影子副本获取数据
                 dataByBus = shadowCopyService.findDataByUpstreamTypeAndType(upstreamType.getId(), synType, upstreamType.getDomain());
                 if (CollectionUtils.isEmpty(dataByBus)) {
-                    throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, null, null, synType, upstreamType.getDescription());
+                    throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, null, null, synType, upstreamType.getDescription(), e.getMessage());
                 }
             }
             //获取人员类型合重主体
@@ -870,7 +870,7 @@ public class PersonServiceImpl implements PersonService {
                               NodeRules rules, Map<String, List<String>> mergeFieldMap) {
         //当前权威源类型映射字段
         List<UpstreamTypeField> fields = DataBusUtil.typeFields.get(upstreamTypeId);
-        log.info("权威源类型:{},对应的映射字段:{}",upstreamTypeId,fields);
+        log.info("权威源类型:{},对应的映射字段:{}", upstreamTypeId, fields);
         Map<String, UpstreamTypeField> fieldsMap = fields.stream().collect(Collectors.toMap(UpstreamTypeField::getSourceField, sourceFiled -> sourceFiled, (v1, v2) -> v2));
         if (fieldsMap.containsKey("avatar")) {
             avatarRules.add(rules);
