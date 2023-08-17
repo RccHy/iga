@@ -33,7 +33,7 @@ public enum ResultCode {
     UPDATE_UPSTREAM_ERROR(1083, "修改权威源%s失败"),
     REPEAT_UPSTREAM_ERROR(1084, "appCode不能重复,请修改后重新保存%s---%s"),
     INVOKE_URL_ERROR(1085, "请求资源地址失败,请检查权威源类型"),
-    SHADOW_GET_DATA_ERROR(1086, "%s类型权威源类型(%s)上游拉取数据失败,通过影子副本获取数据为空,终止当前同步"),
+    SHADOW_GET_DATA_ERROR(1086, "%s类型权威源类型(%s)上游拉取数据失败(%s),通过影子副本获取数据为空,终止当前同步"),
     UPSTREAM_PAGE_ERROR(1087, "权威源类型(%s)数据分页异常"),
     INVALID_PARAMETER(500, "无效的参数"),
     FAILED(1100, "操作失败");

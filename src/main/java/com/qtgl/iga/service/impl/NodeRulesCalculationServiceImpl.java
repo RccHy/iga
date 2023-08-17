@@ -647,7 +647,7 @@ public class NodeRulesCalculationServiceImpl {
                             //通过影子副本获取数据
                             upstreamTree = shadowCopyService.findDataByUpstreamTypeAndType(upstreamType.getId(), type, upstreamType.getDomain());
                             if (CollectionUtils.isEmpty(upstreamTree)) {
-                                throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, null, mainTree, type, upstreamType.getDescription());
+                                throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, null, mainTree, type, upstreamType.getDescription(), e.getErrorMsg());
                             }
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -656,7 +656,7 @@ public class NodeRulesCalculationServiceImpl {
                             //通过影子副本获取数据
                             upstreamTree = shadowCopyService.findDataByUpstreamTypeAndType(upstreamType.getId(), type, upstreamType.getDomain());
                             if (CollectionUtils.isEmpty(upstreamTree)) {
-                                throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, null, mainTree, type, upstreamType.getDescription());
+                                throw new CustomException(ResultCode.SHADOW_GET_DATA_ERROR, null, mainTree, type, upstreamType.getDescription(), e.getMessage());
                             }
                         }
 
