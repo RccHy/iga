@@ -441,7 +441,7 @@ CREATE TABLE `identity` (
                             `data_source` varchar(100) DEFAULT NULL,
                             `sex` varchar(50) DEFAULT NULL,
                             `birthday` datetime DEFAULT NULL,
-                            `avatar_url` text DEFAULT null,
+                            `avatar` text DEFAULT null,
                             `tags` varchar(255) DEFAULT NULL,
                             `active` tinyint(1) DEFAULT 1,
                             `active_time` datetime DEFAULT NULL,
