@@ -1,4 +1,6 @@
---待发布
+-- 20230817
+alter table identity   change avatar_url avatar varchar(500) null;
+-- 待发布
 
 TRUNCATE identity;
 
