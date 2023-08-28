@@ -952,7 +952,7 @@ public class NodeRulesCalculationServiceImpl {
                     ArrayList<TreeBean> treeBeans = new ArrayList<>(mergeDeptMap.values());
                     if (null != treeBeans && treeBeans.size() > 0) {
                         for (TreeBean treeBean : treeBeans) {
-                            if (!mergeDeptMap.containsKey(treeBean.getParentCode())) {
+                            if (!mainTreeMap.containsKey(treeBean.getParentCode())) {
                                 treeBean.setParentCode(nodeCode);
                                 mergeDeptMap.put(treeBean.getCode(), treeBean);
                             }
