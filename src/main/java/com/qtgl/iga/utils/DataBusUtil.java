@@ -168,7 +168,7 @@ public class DataBusUtil {
                 shadowCopy.setType(upstreamType.getSynType());
                 shadowCopy.setUpstreamTypeId(upstreamType.getId());
                 shadowCopy.setData(jsonArray.toJSONString().getBytes(StandardCharsets.UTF_8));
-                //shadowCopyService.save(shadowCopy);
+                shadowCopyService.save(shadowCopy);
             });
         } catch (RejectedExecutionException e) {
             log.error("当前线程正在进行备份处理,请稍后再试");
