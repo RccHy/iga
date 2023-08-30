@@ -926,6 +926,17 @@ public class NodeRulesCalculationServiceImpl {
                         mainTree = new ArrayList<>(mainTreeMap.values());
 
                         if (null != mergeDeptMap) {
+                            //处理父节点
+                            ArrayList<TreeBean> treeBeans = new ArrayList<>(mergeDeptMap.values());
+                            if (null != treeBeans && treeBeans.size() > 0) {
+                                for (TreeBean treeBean : treeBeans) {
+                                    if (!mergeDeptMap.containsKey(treeBean.getParentCode())) {
+                                        treeBean.setParentCode(nodeCode);
+                                        mergeDeptMap.put(treeBean.getCode(), treeBean);
+                                    }
+                                }
+                            }
+
                             Collection<TreeBean> values = mergeDeptMap.values();
 
                             mainTree.addAll(new ArrayList<>(values));
@@ -947,18 +958,18 @@ public class NodeRulesCalculationServiceImpl {
                         /*========================规则运算完成=============================*/
                     }
                 }
-                if (null != mergeDeptMap) {
-                    //处理父节点
-                    ArrayList<TreeBean> treeBeans = new ArrayList<>(mergeDeptMap.values());
-                    if (null != treeBeans && treeBeans.size() > 0) {
-                        for (TreeBean treeBean : treeBeans) {
-                            if (!mergeDeptMap.containsKey(treeBean.getParentCode())) {
-                                treeBean.setParentCode(nodeCode);
-                                mergeDeptMap.put(treeBean.getCode(), treeBean);
-                            }
-                        }
-                    }
-                }
+                //if (null != mergeDeptMap) {
+                //    //处理父节点
+                //    ArrayList<TreeBean> treeBeans = new ArrayList<>(mergeDeptMap.values());
+                //    if (null != treeBeans && treeBeans.size() > 0) {
+                //        for (TreeBean treeBean : treeBeans) {
+                //            if (!mergeDeptMap.containsKey(treeBean.getParentCode())) {
+                //                treeBean.setParentCode(nodeCode);
+                //                mergeDeptMap.put(treeBean.getCode(), treeBean);
+                //            }
+                //        }
+                //    }
+                //}
 
 
                 if (null == nodeRules && (!"".equals(nodeCode))) {
