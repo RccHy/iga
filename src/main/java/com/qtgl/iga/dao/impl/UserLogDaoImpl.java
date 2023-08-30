@@ -9,7 +9,6 @@ import org.springframework.stereotype.Repository;
 import javax.annotation.Resource;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -25,7 +24,7 @@ public class UserLogDaoImpl implements UserLogDao {
 
 
     @Override
-    public ArrayList<OccupyDto> saveUserLog(ArrayList<OccupyDto> list, String tenantId) {
+    public List<OccupyDto> saveUserLog(List<OccupyDto> list, String tenantId) {
         if (null != list && list.size() > 0) {
             // 没有同样时间区间的再新增  EXISTS
             String str = "insert into user_log (id,user_id, start_time, end_time, create_time , source, data_source,tenant_id) " +

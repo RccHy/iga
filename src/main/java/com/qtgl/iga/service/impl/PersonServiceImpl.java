@@ -654,7 +654,7 @@ public class PersonServiceImpl implements PersonService {
             if (1 != rules.getType()) {
                 continue;
             }
-            if (0 != rules.getRunningStatus()) {
+            if (0 != rules.getRunningStatus() && 3 != rules.getRunningStatus()) {
                 //todo 忽略提示
                 log.info("当前规则被忽略,跳过执行");
                 continue;

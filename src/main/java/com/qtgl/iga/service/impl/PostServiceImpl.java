@@ -8,6 +8,7 @@ import com.qtgl.iga.bean.UpstreamDto;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.PostDao;
 import com.qtgl.iga.service.*;
+import com.qtgl.iga.task.OccupyOrphanTask;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
 import com.qtgl.iga.utils.enumerate.ResultCode;
@@ -50,6 +51,8 @@ public class PostServiceImpl implements PostService {
     UpstreamService upstreamService;
     @Resource
     UserLogService userLogService;
+    @Resource
+    OccupyOrphanTask occupyOrphanTask;
 
     @Value("${iga.hostname}")
     String hostname;
@@ -213,8 +216,12 @@ public class PostServiceImpl implements PostService {
         //    incrementalTaskDao.saveAll(incrementalTasks, domain);
         //}
         if (!CollectionUtils.isEmpty(occupyMonitors)) {
-            //处理因组织机构变化影响的历史身份有效期
-            ArrayList<OccupyDto> occupyDtos = occupyProcessing(occupyMonitors, tenant.getId());
+            //处理因岗位变化影响的历史身份有效期
+            //ArrayList<OccupyDto> occupyDtos = occupyProcessing(occupyMonitors, tenant.getId());
+            List<OccupyDto> occupyFromSSO = occupyService.findAll(tenant.getId(), null, null);
+            ArrayList<OccupyDto> occupyDtos = new ArrayList<>();
+            occupyOrphanTask.handleByUserType(occupyFromSSO, occupyMonitors, occupyDtos);
+
             if (!CollectionUtils.isEmpty(occupyDtos)) {
                 Map<String, List<OccupyDto>> octResult = new HashMap<>();
                 octResult.put("update", occupyDtos);
@@ -916,7 +923,7 @@ public class PostServiceImpl implements PostService {
         ArrayList<OccupyDto> resultOccupies = new ArrayList<>();
         //包含失效,恢复,新增的岗位数据
         List<OccupyDto> occupyDtos = occupyService.findAll(tenantId, null, null);
-        Map<String, List<OccupyDto>> collect = occupyDtos.stream().collect(Collectors.groupingBy(OccupyDto::getDeptCode));
+        Map<String, List<OccupyDto>> collect = occupyDtos.stream().collect(Collectors.groupingBy(OccupyDto::getPostCode));
         LocalDateTime now = LocalDateTime.now();
         for (TreeBean treeBean : occupyMonitors) {
             if (collect.containsKey(treeBean.getCode())) {

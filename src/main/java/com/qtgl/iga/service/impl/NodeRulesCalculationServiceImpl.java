@@ -585,7 +585,8 @@ public class NodeRulesCalculationServiceImpl {
                         if (1 != nodeRule.getType()) {
                             continue;
                         }
-                        if (0 != nodeRule.getRunningStatus()) {
+                        if (0 != nodeRule.getRunningStatus() && 3 != nodeRule.getRunningStatus()) {
+
                             //todo 忽略提示
                             log.info("当前规则被忽略,跳过执行");
                             continue;

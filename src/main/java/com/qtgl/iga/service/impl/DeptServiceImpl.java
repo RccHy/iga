@@ -8,6 +8,7 @@ import com.qtgl.iga.bean.UpstreamDto;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.DeptDao;
 import com.qtgl.iga.service.*;
+import com.qtgl.iga.task.OccupyOrphanTask;
 import com.qtgl.iga.utils.ClassCompareUtil;
 import com.qtgl.iga.utils.DataBusUtil;
 import com.qtgl.iga.utils.enumerate.ResultCode;
@@ -55,6 +56,8 @@ public class DeptServiceImpl implements DeptService {
     NodeRulesService nodeRulesService;
     @Resource
     UserLogService userLogService;
+    @Resource
+    OccupyOrphanTask occupyOrphanTask;
 
     @Value("${iga.hostname}")
     String hostname;
@@ -342,7 +345,10 @@ public class DeptServiceImpl implements DeptService {
         //}
         if (!CollectionUtils.isEmpty(occupyMonitors)) {
             //处理因组织机构变化影响的历史身份有效期
-            ArrayList<OccupyDto> occupyDtos = occupyProcessing(occupyMonitors, tenant.getId());
+            //ArrayList<OccupyDto> occupyDtos = occupyProcessing(occupyMonitors, tenant.getId());
+            List<OccupyDto> occupyFromSSO = occupyService.findAll(tenant.getId(), null, null);
+            ArrayList<OccupyDto> occupyDtos = new ArrayList<>();
+            occupyOrphanTask.handleByDept(occupyFromSSO, occupyMonitors, occupyDtos);
             if (!CollectionUtils.isEmpty(occupyDtos)) {
                 Map<String, List<OccupyDto>> octResult = new HashMap<>();
                 octResult.put("update", occupyDtos);
@@ -601,7 +607,7 @@ public class DeptServiceImpl implements DeptService {
                                             }
                                             if (sourceField.equalsIgnoreCase("active") && (Integer) oldValue == 0 && (Integer) newValue == 1) {
                                                 //如果不为孤儿再做失效恢复
-                                                if (null!=ssoBean.getOrphan() && 0 == ssoBean.getOrphan()) {
+                                                if (null != ssoBean.getOrphan() && 0 == ssoBean.getOrphan()) {
                                                     //从失效恢复,赋值有效时间
                                                     ssoBean.setActiveTime(now);
                                                 } else {
