@@ -1,4 +1,5 @@
 package com.qtgl.iga.dao.impl;
+
 import com.qtgl.iga.bean.OccupyDto;
 import com.qtgl.iga.dao.UserLogDao;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
@@ -40,7 +41,8 @@ public class UserLogDaoImpl implements UserLogDao {
                     " FROM " +
                     " DUAL " +
                     " WHERE " +
-                    " NOT EXISTS ( SELECT * FROM user_log WHERE user_id = ? AND start_time = ? AND end_time = ? ) ";
+                    " NOT EXISTS ( SELECT * FROM user_log WHERE id = ( SELECT id FROM user_log WHERE user_id = ? ORDER BY create_time DESC LIMIT 1 )" +
+                    " AND start_time = ? AND end_time = ? )  ";
             boolean contains = false;
             // 对 list 分批执行，每批次5000条,不足5000按足量执行
             int batchSize = 5000;
@@ -71,7 +73,6 @@ public class UserLogDaoImpl implements UserLogDao {
                 });
                 contains = Arrays.toString(ints).contains("-1");
             }
-
 
 
             return contains ? null : list;
