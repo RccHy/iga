@@ -268,7 +268,7 @@ public class NodeServiceImpl implements NodeService {
 
             //获取所有规则
             List<String> nodeIds = allNodes.stream().map(Node::getId).collect(Collectors.toList());
-            List<NodeRulesVo> nodeRulesVos = nodeRulesService.findNodeRulesByNodeIds(nodeIds);
+            List<NodeRulesVo> nodeRulesVos = nodeRulesService.findNodeRulesByNodeIds(nodeIds,domain);
 
             if (!CollectionUtils.isEmpty(nodeRulesVos)) {
                 //根据node分组
@@ -306,7 +306,7 @@ public class NodeServiceImpl implements NodeService {
             //当前租户下没有规则,根据超级租户的node 处理rules
             List<String> nodeIds = superNodeList.stream().map(Node::getId).collect(Collectors.toList());
             //获取规则
-            List<NodeRulesVo> nodeRulesVos = nodeRulesService.findNodeRulesByNodeIds(nodeIds);
+            List<NodeRulesVo> nodeRulesVos = nodeRulesService.findNodeRulesByNodeIds(nodeIds,domain);
             if (!CollectionUtils.isEmpty(nodeRulesVos)) {
                 //根据node分组
                 Map<String, List<NodeRulesVo>> rulesMap = nodeRulesVos.stream().collect(Collectors.groupingBy(NodeRules::getNodeId));

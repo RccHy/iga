@@ -538,7 +538,7 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
     }
 
     @Override
-    public List<NodeRulesVo> findNodeRulesByNodeIds(List<String> nodeIds) {
+    public List<NodeRulesVo> findNodeRulesByNodeIds(List<String> nodeIds,String domain) {
         StringBuffer stb = new StringBuffer("SELECT nr.id, " +
                 " nr.node_id AS nodeId, " +
                 " nr.type AS type, " +
@@ -559,11 +559,13 @@ public class NodeRulesDaoImpl implements NodeRulesDao {
                 " FROM t_mgr_node_rules nr " +
                 "         JOIN t_mgr_upstream_types ut ON (nr.upstream_types_id = ut.id or nr.service_key = ut.id  ) " +
                 "         JOIN t_mgr_upstream u ON ut.upstream_id = u.id " +
-                "         LEFT JOIN t_mgr_domain_ignore di1 ON di1.upstream_id = u.id " +
-                "         LEFT JOIN t_mgr_domain_ignore di2 ON di2.node_rule_id = nr.id " +
+                "         LEFT JOIN t_mgr_domain_ignore di1 ON di1.upstream_id = u.id and di1.domain=?" +
+                "         LEFT JOIN t_mgr_domain_ignore di2 ON di2.node_rule_id = nr.id and di2.domain=?" +
                 " where nr.node_id in ( ");
         //存入参数
         List<Object> param = new ArrayList<>();
+        param.add(domain);
+        param.add(domain);
         for (String id : nodeIds) {
             stb.append("?,");
             param.add(id);

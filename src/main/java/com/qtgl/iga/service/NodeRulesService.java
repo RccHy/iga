@@ -45,7 +45,7 @@ public interface NodeRulesService {
 
     List<NodeRulesVo> findSuperNodeRulesByNodeId(String nodeId, Integer status, String domainId);
 
-    List<NodeRulesVo> findNodeRulesByNodeIds(List<String> nodeIds);
+    List<NodeRulesVo> findNodeRulesByNodeIds(List<String> nodeIds,String domain);
 
     NodeRules findNodeRulesById(String ruleId, Integer status);
 }

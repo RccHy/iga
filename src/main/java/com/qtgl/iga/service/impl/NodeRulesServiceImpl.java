@@ -265,8 +265,8 @@ public class NodeRulesServiceImpl implements NodeRulesService {
     }
 
     @Override
-    public List<NodeRulesVo> findNodeRulesByNodeIds(List<String> nodeIds) {
-        return nodeRulesDao.findNodeRulesByNodeIds(nodeIds);
+    public List<NodeRulesVo> findNodeRulesByNodeIds(List<String> nodeIds,String domain) {
+        return nodeRulesDao.findNodeRulesByNodeIds(nodeIds,domain);
     }
 
     @Override
