@@ -43,5 +43,5 @@ public interface NodeRulesDao {
 
     List<NodeRules> findNodeRulesByDomain(String superDomainId, Integer status, String type);
 
-    List<NodeRulesVo> findNodeRulesByNodeIds(List<String> nodeIds);
+    List<NodeRulesVo> findNodeRulesByNodeIds(List<String> nodeIds,String domain);
 }
