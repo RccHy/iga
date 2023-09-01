@@ -2,8 +2,8 @@ package com.qtgl.iga.service;
 
 import com.qtgl.iga.bean.OccupyDto;
 
-import java.util.ArrayList;
+import java.util.List;
 
 public interface UserLogService {
-    void saveUserLog(ArrayList<OccupyDto> occupyDtos, String tenantId);
+    void saveUserLog(List<OccupyDto> occupyDtos, String tenantId);
 }

@@ -6,7 +6,7 @@ import com.qtgl.iga.service.UserLogService;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
-import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class UserLogServiceImpl implements UserLogService {
@@ -14,7 +14,7 @@ public class UserLogServiceImpl implements UserLogService {
     UserLogDao userLogDao;
 
     @Override
-    public void saveUserLog(ArrayList<OccupyDto> occupyDtos, String tenantId) {
+    public void saveUserLog(List<OccupyDto> occupyDtos, String tenantId) {
         userLogDao.saveUserLog(occupyDtos, tenantId);
     }
 }

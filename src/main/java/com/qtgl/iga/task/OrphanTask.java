@@ -26,6 +26,8 @@ public class OrphanTask {
     DeptDao deptDao;
     @Resource
     PostDao postDao;
+    @Resource
+    OccupyOrphanTask occupyOrphanTask;
 
     public static ConcurrentHashMap<String, List<TreeBean>> deptResult = new ConcurrentHashMap<>();
 
@@ -54,6 +56,7 @@ public class OrphanTask {
 
 
         log.info("租户:{}--------本次孤儿节点监控任务结束----------------", tenant.getDomain());
+        occupyOrphanTask.occupyOrphanTask(tenant);
 
     }
 

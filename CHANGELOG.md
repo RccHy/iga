@@ -1,4 +1,25 @@
 
+### 20230831
+
+**数据库**
+- 无
+
+**new：**
+- 无
+
+**bug fix**
+- 组织机构同步父节点指定 bug fix
+- 孤儿节点对身份有效状态影响 bug fix
+
+**image：**
+
+- oci.ketanyun.cn/product/images/iga:20230831
+
+**依赖其他项目：**
+
+- oci.ketanyun.cn/product/images/console:20230831
+
+
 ### 20230810
 
 **数据库**
