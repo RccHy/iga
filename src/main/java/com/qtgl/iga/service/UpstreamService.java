@@ -47,4 +47,6 @@ public interface UpstreamService {
     void saveRoleBing(List<UpstreamType> upstreamTypes, List<Node> nodes, List<NodeRules> nodeRulesList, DomainInfo domainInfo);
 
     List<UpstreamDto> findByRecover(String domain);
+
+    Upstream deleteBootstrap(String appCode, String domain) throws Exception;
 }

@@ -111,7 +111,7 @@ public class UpstreamServiceImpl implements UpstreamService {
                         List<NodeRules> oldNodeRules = nodeRulesService.findNodeRulesByUpStreamTypeId(upstreamType.getId(), 2);
                         //编辑和正式的规则提示
                         if (null != nodeRules && nodeRules.size() > 0) {
-                            throw new CustomException(ResultCode.FAILED, "有绑定的nodeRules规则,请查看后再删除");
+                            throw new CustomException(ResultCode.FAILED, "该权威源已有绑定的治理规则,请删除对应的治理规则后再进行本次操作！");
                         }
                         //历史版本,提示
                         if (null != oldNodeRules && oldNodeRules.size() > 0) {
@@ -144,6 +144,51 @@ public class UpstreamServiceImpl implements UpstreamService {
         } else {
             throw new CustomException(ResultCode.FAILED, "当前标识无对应权威源");
         }
+    }
+
+    @Override
+    @Transactional
+    public Upstream deleteBootstrap(String appCode, String domain) throws Exception {
+        //查看是否来自超级租户
+        Upstream byId = upstreamDao.findByCodeAndDomain(appCode, domain);
+        String id=byId.getId();
+        if (null != byId) {
+            //查看是否有关联node_rules
+            List<UpstreamType> byUpstreamId = upstreamTypeService.findByUpstreamId(id);
+            if (null != byUpstreamId && byUpstreamId.size() > 0) {
+                for (UpstreamType upstreamType : byUpstreamId) {
+                    List<NodeRules> nodeRules = nodeRulesService.findNodeRulesByUpStreamTypeId(upstreamType.getId(), null);
+                    List<NodeRules> oldNodeRules = nodeRulesService.findNodeRulesByUpStreamTypeId(upstreamType.getId(), 2);
+                    //编辑和正式的规则提示
+                    if (null != nodeRules && nodeRules.size() > 0) {
+                        nodeRulesService.deleteBatchRules(nodeRules, domain);
+                    }
+                    //历史版本,提示
+                    if (null != oldNodeRules && oldNodeRules.size() > 0) {
+                        //删除历史版本
+                        nodeRulesService.deleteBatchRules(oldNodeRules, domain);
+                    }
+
+                }
+            }
+            //删除权威源数据类型
+            if (null != byUpstreamId && byUpstreamId.size() > 0) {
+                Integer integer = upstreamTypeService.deleteByUpstreamId(id, domain);
+                if (integer < 0) {
+                    throw new CustomException(ResultCode.FAILED, "删除权威源类型失败");
+                }
+            }
+            //删除权威源数据
+            Integer flag = upstreamDao.deleteUpstream(id);
+            if (flag > 0) {
+                return new Upstream();
+            } else {
+                throw new CustomException(ResultCode.FAILED, "删除权威源失败");
+            }
+        } else {
+            throw new CustomException(ResultCode.FAILED, "当前标识无对应权威源");
+        }
+
     }
 
     @Override

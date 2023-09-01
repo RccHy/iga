@@ -249,11 +249,11 @@ public class StatusController {
                 // 保存node 信息
                 statusCode = upstreamService.saveUpstreamAboutNodes(nodes, nodeRulesList, nodeRulesRangeList, domainInfo);
                 log.info("[bootstrap] {}-{}保存权威源相关规则节点完成", upstream.getAppCode(), domainInfo.getDomainName());
-                //  推送才需要 roleBinding
+                //  推送对应的 role权限，应该有由应用自己去做，这里不做处理
                 if (statusCode != -1) {
-                    //获取当前操作的租户  (添加权限时使用)
-                    DomainInfo currentDomain = CertifiedConnector.getDomain();
-                    upstreamService.saveRoleBing(upstreamTypes, nodes, nodeRulesList, currentDomain);
+                    // 获取当前操作的租户  (添加权限时使用)
+                    // DomainInfo currentDomain = CertifiedConnector.getDomain();
+                   //  upstreamService.saveRoleBing(upstreamTypes, nodes, nodeRulesList, currentDomain);
                 } else {
                     log.error("[bootstrap] {}-{}保存权威源相关规则节点失败", upstream.getAppCode(), domainInfo.getDomainName());
                 }
@@ -292,6 +292,54 @@ public class StatusController {
                                    @RequestParam(required = false) String context) {
         return postBootstrap(request, resource, context);
     }
+    @DeleteMapping(value = "/bootstrap")
+    @ResponseBody
+    public JSONObject delBootstrap(HttpServletRequest request,
+                                   @RequestParam String resource,
+                                   @RequestParam(required = false) String context) {
+        logger.info(resource);
+        JSONObject result = new JSONObject();
+
+        JSONObject jsonObject = JSONObject.parseObject(resource);
+
+        try {
+            //获取当前操作的租户  (添加权限时使用)
+            //DomainInfo currentDomain = CertifiedConnector.getDomain();
+
+            QUserSource qUserSource = jsonObject.getJSONObject("spec").toJavaObject(QUserSource.class);
+
+            // 验证json格式是否合法
+
+            String tenant = qUserSource.getTenant().getName();
+            DomainInfo domainInfo = null;
+            //检查租户
+            if (StringUtils.isBlank(tenant)) {
+                logger.error("[bootstrap] 租户信息为空");
+                result.put("code", ResultCode.FAILED.getCode());
+                result.put("message", "租户信息为空");
+                return result;
+            } else {
+                domainInfo = domainInfoService.getByDomainName(tenant);
+                if (domainInfo == null) {
+                    logger.error("[bootstrap] 租户:{} 匹配不到", tenant);
+                    result.put("code", ResultCode.FAILED.getCode());
+                    result.put("message", "租户" + tenant + "匹配不到");
+                    return result;
+                }
+            }
+            // 删除权威源
+            upstreamService.deleteBootstrap(qUserSource.getName(),domainInfo.getId());
+        }catch (Exception e){
+            e.printStackTrace();
+            logger.error("[delBootstrap]"+e);
+            result.put("code", ResultCode.FAILED.getCode());
+            result.put("message",e);
+            return result;
+        }
+        return result;
+    }
+
+
 
     private Upstream setUpstream(QUserSource qUserSource, DomainInfo domainInfo) {
         // 机读
