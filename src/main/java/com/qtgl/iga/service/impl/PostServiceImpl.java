@@ -544,8 +544,8 @@ public class PostServiceImpl implements PostService {
                     //遍历数据库数据
                     for (TreeBean ssoBean : ssoBeans) {
                         if (pullBean.getCode().equals(ssoBean.getCode())) {
-                            if (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource())) {
-                                logger.warn("权威源:{}未启用,跳过该数据:{}对比", ssoBean.getSource(),ssoBean);
+                            if (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(pullBean.getSource())) {
+                                logger.warn("权威源:{}未启用,跳过该数据:{}对比", pullBean.getSource(),pullBean);
                                 flag = false;
                                 continue;
                             }

@@ -542,7 +542,7 @@ public class OccupyServiceImpl implements OccupyService {
     }
 
     private void calculateInsert(Tenant tenant, Map<String, List<OccupyDto>> result, Map<String, OccupyDto> occupyDtoFromUpstream, Map<String, DynamicValue> valueInsertMap, Map<String, String> finalAttrReverseMap, Map<String, OccupyDto> occupiesFromSSOMap, LocalDateTime now, String key, OccupyDto val, Map<String, UpstreamDto> upstreamMap) {
-        if (!occupiesFromSSOMap.containsKey(key) && (occupyDtoFromUpstream.get(key).getDelMark() != 1) && CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(val.getSource())) {
+        if (!occupiesFromSSOMap.containsKey(key) && (occupyDtoFromUpstream.get(key).getDelMark() != 1) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(val.getSource()))) {
             if (val.getRuleStatus()) {
                 val.setOccupyId(UUID.randomUUID().toString());
 
@@ -1028,8 +1028,8 @@ public class OccupyServiceImpl implements OccupyService {
         // 对比出需要修改的occupy
         if (occupyDtoFromUpstream.containsKey(key) &&
                 occupyDtoFromUpstream.get(key).getUpdateTime().isAfter(occupyFromSSO.getUpdateTime())) {
-            if (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(occupyFromSSO.getSource())) {
-                OccupyDto newOccupy = occupyDtoFromUpstream.get(key);
+            OccupyDto newOccupy = occupyDtoFromUpstream.get(key);
+            if (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(newOccupy.getSource())) {
                 //当前数据来源规则为启用再进行处理
                 if (newOccupy.getRuleStatus()) {
 

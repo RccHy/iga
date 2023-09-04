@@ -1509,8 +1509,8 @@ public class PersonServiceImpl implements PersonService {
             Person newPerson = personFromUpstream.get(key);
 
             if (!personFromUpstream.get(key).getUpdateTime().isBefore(personFromSSO.getUpdateTime())) {
-                if (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(personFromSSO.getSource())) {
-                    log.warn("权威源:{}未启用,跳过该数据:{}对比", personFromSSO.getSource(),personFromSSO);
+                if (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(newPerson.getSource())) {
+                    log.warn("权威源:{}未启用,跳过该数据:{}对比", newPerson.getSource(),newPerson);
                 } else {
                     if (backUpPersonMap.containsKey(personFromSSO.getId())) {
                         personFromSSO = backUpPersonMap.get(personFromSSO.getId());

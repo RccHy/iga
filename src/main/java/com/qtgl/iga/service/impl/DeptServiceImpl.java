@@ -530,8 +530,8 @@ public class DeptServiceImpl implements DeptService {
                     for (TreeBean ssoBean : ssoBeans) {
                         //来源数据规则是启用的再进行对比
                         if (pullBean.getCode().equals(ssoBean.getCode())) {
-                            if (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource())) {
-                                logger.warn("权威源:{}未启用,跳过该数据:{}对比", ssoBean.getSource(),ssoBean);
+                            if (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(pullBean.getSource())) {
+                                logger.warn("权威源:{}未启用,跳过该数据:{}对比", pullBean.getSource(),pullBean);
                                 flag = false;
                                 continue;
                             }
