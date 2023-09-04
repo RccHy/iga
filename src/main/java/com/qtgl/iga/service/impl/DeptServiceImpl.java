@@ -530,6 +530,12 @@ public class DeptServiceImpl implements DeptService {
                     for (TreeBean ssoBean : ssoBeans) {
                         //来源数据规则是启用的再进行对比
                         if (pullBean.getCode().equals(ssoBean.getCode())) {
+                            if (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource())) {
+                                logger.warn("权威源:{}未启用,跳过该数据:{}对比", ssoBean.getSource(),ssoBean);
+                                flag = false;
+                                continue;
+                            }
+
                             ssoBean.setIsRuled(pullBean.getIsRuled());
                             ssoBean.setColor(pullBean.getColor());
                             if (null != pullBean.getUpdateTime()) {
@@ -792,7 +798,7 @@ public class DeptServiceImpl implements DeptService {
                     logger.info("组织机构{},对应规则未启用,本次跳过该数据", pullBean);
                 }
                 //没有相等的应该是新增(对比code没有对应的标识为新增)  并且当前数据的来源规则是启用的
-                if (flag && pullBean.getRuleStatus()) {
+                if (flag && pullBean.getRuleStatus() && !CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(pullBean.getSource())) {
                     //新增
 //                    insert.add(pullBean);
                     pullBean.setDataSource("PULL");
@@ -806,7 +812,7 @@ public class DeptServiceImpl implements DeptService {
             } else {
                 //数据库数据为空的话且数据来源规则是启用的,则默认新增
 //                insert.add(pullBean);
-                if (pullBean.getRuleStatus()) {
+                if (pullBean.getRuleStatus() && !CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(pullBean.getSource())) {
                     pullBean.setDataSource("PULL");
                     ssoCollect.put(pullBean.getCode(), pullBean);
                     if (null != occupyMonitors) {

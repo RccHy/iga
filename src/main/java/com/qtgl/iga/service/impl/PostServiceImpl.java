@@ -544,6 +544,11 @@ public class PostServiceImpl implements PostService {
                     //遍历数据库数据
                     for (TreeBean ssoBean : ssoBeans) {
                         if (pullBean.getCode().equals(ssoBean.getCode())) {
+                            if (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource())) {
+                                logger.warn("权威源:{}未启用,跳过该数据:{}对比", ssoBean.getSource(),ssoBean);
+                                flag = false;
+                                continue;
+                            }
 
                             if (null != pullBean.getUpdateTime()) {
                                 //修改
@@ -805,7 +810,7 @@ public class PostServiceImpl implements PostService {
                 }
 
                 //没有相等的应该是新增(对比code没有对应的标识为新增)  并且当前数据的来源规则是启用的
-                if (flag && pullBean.getRuleStatus()) {
+                if (flag && pullBean.getRuleStatus() && !CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(pullBean.getSource())) {
                     pullBean.setDataSource("PULL");
 
                     if (null != occupyMonitors) {
@@ -817,7 +822,7 @@ public class PostServiceImpl implements PostService {
                 }
             } else {
                 //数据库数据为空的话且数据来源规则是启用的,则默认新增
-                if (pullBean.getRuleStatus()) {
+                if (pullBean.getRuleStatus() && !CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(pullBean.getSource())) {
                     pullBean.setDataSource("PULL");
                     if (null != occupyMonitors) {
                         occupyMonitors.add(pullBean);
