@@ -79,7 +79,7 @@ build:prod:
     - export COMMIT_TIME=$(date +%Y%m%d)
     - export ISO_8601=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
     - export JIB_FROM_IMAGE=oci.ketanyun.cn/open/openjdk:8-jre-alpine
-    - export JIB_TO_IMAGE=oci.ketanyun.cn/product/images/iga:20230831
+    - export JIB_TO_IMAGE=oci.ketanyun.cn/product/images/iga:${COMMIT_TIME}
   script:
     - "mvn package  $MAVEN_CLI_OPTS -DJIB_TO_IMAGE=${JIB_TO_IMAGE} -Dcommit.time=${COMMIT_TIME}   -Djib.to.auth.username=${OCI_JIB_TO_USER} -Djib.to.auth.password=${OCI_JIB_TO_PASSWORD} -DJIB_FROM_IMAGE=${JIB_FROM_IMAGE} -Djib.from.auth.username='' -Djib.from.auth.password='' -DISO_8601=${ISO_8601}"
   only:
