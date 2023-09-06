@@ -849,8 +849,7 @@ public class PostServiceImpl implements PostService {
                         }
                     }
                     if (flag) {
-                        //移除集合中失效对象
-                        ssoCollect.remove(ssoBean.getCode());
+
                         //排除逻辑根节点
                         if (!("".equals(ssoBean.getCode()))) {
                             //如果为有效的再走失效并更新修改时间,
@@ -860,6 +859,9 @@ public class PostServiceImpl implements PostService {
                                     result.put(ssoBean, "obsolete");
                                     logger.info("岗位对比后应置为失效{},但检测到对应权威源已无效或规则未启用,跳过该数据", ssoBean.getId());
                                 } else {
+                                    //移除集合中失效对象
+                                    ssoCollect.remove(ssoBean.getCode());
+
                                     ssoBean.setActive(0);
                                     ssoBean.setUpdateTime(now);
                                     ssoBean.setActiveTime(now);
@@ -871,7 +873,9 @@ public class PostServiceImpl implements PostService {
                                     logger.info("岗位对比后需要置为失效{}", ssoBean.getId());
                                 }
 
-
+                            } else {
+                                //移除集合中失效对象
+                                ssoCollect.remove(ssoBean.getCode());
                             }
                         }
                     }

@@ -799,7 +799,7 @@ public class DeptServiceImpl implements DeptService {
                 }
                 //没有相等的应该是新增(对比code没有对应的标识为新增)  并且当前数据的来源规则是启用的
                 //if (flag && pullBean.getRuleStatus() && !CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(pullBean.getSource())) {
-                if (flag && pullBean.getRuleStatus() ) {
+                if (flag && pullBean.getRuleStatus()) {
                     //新增
 //                    insert.add(pullBean);
                     pullBean.setDataSource("PULL");
@@ -840,14 +840,16 @@ public class DeptServiceImpl implements DeptService {
                         }
                     }
                     if (flag) {
-                        //移除集合中失效对象
-                        ssoCollect.remove(ssoBean.getCode());
+
                         //只处理有效的置为无效, 本身就无效的忽略
                         if (ssoBean.getActive() == 1) {
                             if ((null != ssoBean.getRuleStatus() && !ssoBean.getRuleStatus()) || (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(ssoBean.getSource()))) {
                                 result.put(ssoBean, "obsolete");
                                 logger.info("部门对比后应置为失效{},但检测到对应权威源已无效或规则未启用,跳过该数据", ssoBean.getId());
                             } else {
+                                //移除集合中失效对象
+                                ssoCollect.remove(ssoBean.getCode());
+
                                 ssoBean.setActive(0);
                                 ssoBean.setUpdateTime(now);
                                 ssoBean.setActiveTime(now);
@@ -858,6 +860,9 @@ public class DeptServiceImpl implements DeptService {
                                 result.put(ssoBean, "invalid");
                                 logger.info("部门对比后需要置为失效{}", ssoBean.getId());
                             }
+                        } else {
+                            //移除集合中失效对象
+                            ssoCollect.remove(ssoBean.getCode());
                         }
 
                     }
