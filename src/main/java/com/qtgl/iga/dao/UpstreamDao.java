@@ -38,4 +38,6 @@ public interface UpstreamDao {
     List<Upstream> findByUpstreamTypeIds(ArrayList<String> ids, String domainId);
 
     List<Upstream> findByRecover(String domain);
+
+    List<Upstream> findByDomainAndIgnore(String domainId);
 }

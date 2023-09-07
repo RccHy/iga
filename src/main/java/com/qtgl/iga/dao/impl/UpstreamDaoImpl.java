@@ -576,6 +576,29 @@ public class UpstreamDaoImpl implements UpstreamDao {
         return null;
     }
 
+    @Override
+    public List<Upstream> findByDomainAndIgnore(String domainId) {
+        //拼接sql
+        StringBuffer stb = new StringBuffer("SELECT  * FROM t_mgr_upstream  WHERE " +
+                "id IN ( SELECT upstream_id FROM t_mgr_domain_ignore WHERE domain = ? AND upstream_id IS NOT NULL )");
+        //存入参数
+        List<Object> param = new ArrayList<>();
+        param.add(domainId);
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
+
+        ArrayList<Upstream> list = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(mapList)) {
+            for (Map<String, Object> map : mapList) {
+                Upstream upstream = new Upstream();
+                BeanMap beanMap = BeanMap.create(upstream);
+                beanMap.putAll(map);
+                list.add(upstream);
+            }
+            return list;
+        }
+        return null;
+    }
+
 
     private void dealData(Map<String, Object> arguments, StringBuffer stb, List<Object> param) {
         Iterator<Map.Entry<String, Object>> it = arguments.entrySet().iterator();

@@ -151,7 +151,7 @@ public class UpstreamServiceImpl implements UpstreamService {
     public Upstream deleteBootstrap(String appCode, String domain) throws Exception {
         //查看是否来自超级租户
         Upstream byId = upstreamDao.findByCodeAndDomain(appCode, domain);
-        String id=byId.getId();
+        String id = byId.getId();
         if (null != byId) {
             //查看是否有关联node_rules
             List<UpstreamType> byUpstreamId = upstreamTypeService.findByUpstreamId(id);
@@ -472,10 +472,24 @@ public class UpstreamServiceImpl implements UpstreamService {
         return upstreamDtos;
     }
 
-
+    /**
+     * 查询当前租户未启用的权威源以及 当前租户下禁用的超级租户的权威源
+     *
+     * @param domainId
+     * @return
+     */
     @Override
     public List<UpstreamDto> findByDomainAndActiveIsFalse(String domainId) {
-        ArrayList<Upstream> upstreams = upstreamDao.findByDomainAndActiveIsFalse(domainId);
+        List<Upstream> upstreams = new ArrayList<>();
+        List<Upstream> upstreamList = upstreamDao.findByDomainAndActiveIsFalse(domainId);
+        //获取当前租户下被禁用的超级租户的权威源
+        List<Upstream> ignoreUpstreamList = upstreamDao.findByDomainAndIgnore(domainId);
+        if (!CollectionUtils.isEmpty(upstreamList)) {
+            upstreams.addAll(upstreamList);
+        }
+        if (!CollectionUtils.isEmpty(ignoreUpstreamList)) {
+            upstreams.addAll(ignoreUpstreamList);
+        }
         if (!CollectionUtils.isEmpty(upstreams)) {
             return distinctSuperUpstream(upstreams, domainId);
         }
