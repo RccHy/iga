@@ -579,7 +579,9 @@ public class UpstreamDaoImpl implements UpstreamDao {
     @Override
     public List<Upstream> findByDomainAndIgnore(String domainId) {
         //拼接sql
-        StringBuffer stb = new StringBuffer("SELECT  * FROM t_mgr_upstream  WHERE " +
+        StringBuffer stb = new StringBuffer("SELECT id,app_code as appCode,app_name as appName,data_code as dataCode," +
+                " create_time as createTime,create_user as createUser,active,color,domain , " +
+                "  active_time as activeTime,update_time as updateTime FROM t_mgr_upstream  WHERE " +
                 "id IN ( SELECT upstream_id FROM t_mgr_domain_ignore WHERE domain = ? AND upstream_id IS NOT NULL )");
         //存入参数
         List<Object> param = new ArrayList<>();
