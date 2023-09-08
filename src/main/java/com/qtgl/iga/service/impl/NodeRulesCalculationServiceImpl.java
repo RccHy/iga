@@ -748,8 +748,8 @@ public class NodeRulesCalculationServiceImpl {
 
                         ////循环引用判断
                         //this.circularData(upstreamTree, status, mainTree,domain);
-                        // 判断权威源拉取数据是否有重复性问题
-                        this.groupByCode(upstreamDept, status, domain);
+                        //// 判断权威源拉取数据是否有重复性问题
+                        //this.groupByCode(upstreamDept, status, domain);
 
 
                         //判断上游是否给出时间戳
@@ -782,7 +782,8 @@ public class NodeRulesCalculationServiceImpl {
                         this.judgeData(mergeDeptMap);
                         //循环引用判断
                         this.circularData(mergeDeptMap, status, mainTree, domain);
-
+                        // 判断权威源拉取数据是否有重复性问题
+                        this.groupByCode(upstreamDept, status, mainTree, domain, true);
 
 
             /*
@@ -945,7 +946,7 @@ public class NodeRulesCalculationServiceImpl {
                         }
 
                         //拼接到mainTree后校验总树是否有重复
-                        this.groupByCode(mainTree, status, domain);
+                        this.groupByCode(mainTree, status, mainTree, domain, false);
                         mainTreeMap = mainTree.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
                         mainDept = mainTreeMap.values();
                         mainTreeChildren = TreeUtil.groupChildren(new ArrayList<>(mainDept));
@@ -1210,7 +1211,14 @@ public class NodeRulesCalculationServiceImpl {
      * @Description: code重复性校验
      * @return: void
      */
-    public void groupByCode(List<TreeBean> treeBeans, Integer status, DomainInfo domainInfo) {
+    /**
+     * @param treeBeans  校验集合
+     * @param status
+     * @param mainTree   主树
+     * @param domainInfo
+     * @param flag       异常是否需要合并mainTree
+     */
+    public void groupByCode(List<TreeBean> treeBeans, Integer status, List<TreeBean> mainTree, DomainInfo domainInfo, Boolean flag) {
         HashMap<String, List<TreeBean>> resultBeans = new HashMap<>();
         ArrayList<TreeBean> mergeList = new ArrayList<>();
         if (null != treeBeans && treeBeans.size() > 0) {
@@ -1220,16 +1228,16 @@ public class NodeRulesCalculationServiceImpl {
                 if (null != beans && beans.size() > 0) {
                     //存放异常信息的容器
                     ArrayList<ErrorData> list = new ArrayList<>();
-
-                    String deptTreeName = null;
-                    String treeBeanName = null;
-                    String treeBeanCode = null;
+                    //
+                    //String deptTreeName = null;
+                    //String treeBeanName = null;
+                    //String treeBeanCode = null;
                     String treeName = null;
                     String treeCode = null;
-
-                    String deptTreeNameM = null;
-                    String treeBeanNameM = null;
-                    String treeBeanCodeM = null;
+                    //
+                    //String deptTreeNameM = null;
+                    //String treeBeanNameM = null;
+                    //String treeBeanCodeM = null;
                     String treeNameM = null;
                     String treeCodeM = null;
 
@@ -1284,13 +1292,16 @@ public class NodeRulesCalculationServiceImpl {
                         list.add(new ErrorData((null == deptTreeType2 ? "" : deptTreeType2.getId()), treeBean.getRuleId(), nodes2.get(0).getNodeCode()));
                     }
 
+                    if (flag && !CollectionUtils.isEmpty(mergeList)) {
+                        mainTree.addAll(mergeList);
+                    }
                     logger.error(" {} 节点 {}   规则{} 中的 数据 {} code:{} 与 机构{} 节点 {}   规则{} 中的 数据 {} code:{} 重复 ",
                             null == deptTreeType ? "" : deptTreeType.getName(), ("".equals(treeBean1.getCode()) ? "根节点" : treeBean1.getCode()), null == treeBean1.getRuleId() ? " " : treeBean1.getRuleId(), treeBean1.getName(), treeBean1.getCode(),
                             null == deptTreeType2 ? "" : deptTreeType2.getName(), ("".equals(treeBean.getCode()) ? "根节点" : treeBean.getCode()), null == treeBean1.getRuleId() ? " " : treeBean1.getRuleId(), treeBean.getName(), treeBean.getCode());
 //
 //                    throw new CustomException(ResultCode.REPEAT_ERROR, list, mergeList, deptTreeName, treeBeanName, treeBeanCode, treeName, treeCode
 //                            , deptTreeNameM, treeBeanNameM, treeBeanCodeM, treeNameM, treeCodeM);
-                    throw new CustomException(ResultCode.REPEAT_ERROR, list, mergeList, treeName, treeCode
+                    throw new CustomException(ResultCode.REPEAT_ERROR, list, mainTree, treeName, treeCode
                             , treeNameM, treeCodeM);
                 }
                 mergeList.add(treeBean);

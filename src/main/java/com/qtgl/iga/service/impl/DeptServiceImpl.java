@@ -158,7 +158,7 @@ public class DeptServiceImpl implements DeptService {
             if (null != ssoApiBeans && ssoApiBeans.size() > 0) {
                 mainTreeBeans.addAll(ssoApiBeans);
                 //重复性校验
-                calculationService.groupByCode(mainTreeBeans, status, domain);
+                calculationService.groupByCode(mainTreeBeans, status, mainTreeBeans, domain, false);
                 for (TreeBean ssoApiBean : ssoApiBeans) {
                     mainTreeBeans = calculationService.nodeRules(domain, deptType, ssoApiBean.getCode(), mainTreeBeans, status, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, result, nodesMapByNodeCode, null);
                 }
@@ -178,7 +178,7 @@ public class DeptServiceImpl implements DeptService {
 //            beans.addAll(insert);
 //        }
         //code重复性校验
-        calculationService.groupByCode(beans, status, domain);
+        calculationService.groupByCode(beans, status, beans, domain, false);
         // 无效规则筛选标记
         List<NodeDto> nodeList = nodeService.findNodesByStatusAndType(status, TYPE, domain.getId(), null);
         if (!CollectionUtils.isEmpty(nodeList)) {
@@ -312,7 +312,7 @@ public class DeptServiceImpl implements DeptService {
 
             if (null != ssoApiBeans && ssoApiBeans.size() > 0) {
                 mainTreeBeans.addAll(ssoApiBeans);
-                calculationService.groupByCode(mainTreeBeans, 0, domain);
+                calculationService.groupByCode(mainTreeBeans, 0, mainTreeBeans, domain, false);
                 for (TreeBean ssoApiBean : ssoApiBeans) {
                     mainTreeBeans = calculationService.nodeRules(domain, deptType, ssoApiBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, result, nodesMapByNodeCode, currentTask);
                 }
@@ -329,7 +329,7 @@ public class DeptServiceImpl implements DeptService {
         beans = dataProcessing(mainTreeMap, beans, result, treeBeans, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, occupyMonitors);
 
         //code重复性校验
-        calculationService.groupByCode(beans, 0, domain);
+        calculationService.groupByCode(beans, 0, beans, domain, false);
 
         //  检测删除该部门 对 人员身份造成的影响。若影响范围过大，则停止操作。
         Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));

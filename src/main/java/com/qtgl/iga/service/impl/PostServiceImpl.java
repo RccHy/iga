@@ -185,7 +185,7 @@ public class PostServiceImpl implements PostService {
 
         }
         // 判断重复(code)
-        calculationService.groupByCode(mainTreeBeans, 0, domain);
+        calculationService.groupByCode(mainTreeBeans, 0, mainTreeBeans, domain, false);
 
         Map<String, TreeBean> mainTreeMap = mainTreeBeans.stream().collect(Collectors.toMap(TreeBean::getCode, deptBean -> deptBean));
 
@@ -202,7 +202,7 @@ public class PostServiceImpl implements PostService {
 //        }
 
         // 判断重复(code)
-        calculationService.groupByCode(beans, 0, domain);
+        calculationService.groupByCode(beans, 0, beans, domain, false);
         //
 
         Map<String, List<Map.Entry<TreeBean, String>>> collect = result.entrySet().stream().collect(Collectors.groupingBy(c -> c.getValue()));
@@ -376,7 +376,7 @@ public class PostServiceImpl implements PostService {
 //        }
 
         // 判断重复(code)
-        calculationService.groupByCode(beans, status, domain);
+        calculationService.groupByCode(beans, status, beans, domain, false);
         List<NodeDto> nodeList = nodeService.findNodesByStatusAndType(status, TYPE, domain.getId(), null);
         if (!CollectionUtils.isEmpty(nodeList)) {
             nodeService.updateNodeAndRules(nodeList, beans);
