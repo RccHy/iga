@@ -362,6 +362,9 @@ public class StatusController {
         upstream.setColor(color);
         upstream.setCreateUser("installer");
         upstream.setActive(true);
+        if(null!=qUserSource.getEnabled()){
+            upstream.setActive(qUserSource.getEnabled());
+        }
         upstream.setDomain(domainInfo.getId());
 
         return upstream;

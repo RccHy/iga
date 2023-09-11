@@ -10,6 +10,9 @@ public class QUserSource {
     private String text;
     private String color;
     private List<Sources> sources;
+
+    private Boolean enabled;
+
     private Tenant tenant;
 
     public void setName(String name) {
@@ -50,5 +53,13 @@ public class QUserSource {
 
     public void setTenant(Tenant tenant) {
         this.tenant = tenant;
+    }
+
+    public Boolean getEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(Boolean enabled) {
+        this.enabled = enabled;
     }
 }
