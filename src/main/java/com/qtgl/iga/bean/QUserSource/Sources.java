@@ -18,7 +18,7 @@ public class Sources {
     private Principal principal;
     private App app;
     private List<Field> fields;
-    private Rule rule;
+    private List<Rule> rules;
 
     public void setText(String text) {
         this.text = text;
@@ -68,13 +68,12 @@ public class Sources {
         return fields;
     }
 
-    public Rule getRule() {
-        return rule;
-
+    public List<Rule> getRules() {
+        return rules;
     }
 
-    public void setRule(Rule rule) {
-        this.rule = rule;
+    public void setRules(List<Rule> rules) {
+        this.rules = rules;
     }
 
     public App getApp() {

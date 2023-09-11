@@ -253,7 +253,7 @@ public class StatusController {
                 if (statusCode != -1) {
                     // 获取当前操作的租户  (添加权限时使用)
                     // DomainInfo currentDomain = CertifiedConnector.getDomain();
-                   //  upstreamService.saveRoleBing(upstreamTypes, nodes, nodeRulesList, currentDomain);
+                    //  upstreamService.saveRoleBing(upstreamTypes, nodes, nodeRulesList, currentDomain);
                 } else {
                     log.error("[bootstrap] {}-{}保存权威源相关规则节点失败", upstream.getAppCode(), domainInfo.getDomainName());
                 }
@@ -292,6 +292,7 @@ public class StatusController {
                                    @RequestParam(required = false) String context) {
         return postBootstrap(request, resource, context);
     }
+
     @DeleteMapping(value = "/bootstrap")
     @ResponseBody
     public JSONObject delBootstrap(HttpServletRequest request,
@@ -328,17 +329,16 @@ public class StatusController {
                 }
             }
             // 删除权威源
-            upstreamService.deleteBootstrap(qUserSource.getName(),domainInfo.getId());
-        }catch (Exception e){
+            upstreamService.deleteBootstrap(qUserSource.getName(), domainInfo.getId());
+        } catch (Exception e) {
             e.printStackTrace();
-            logger.error("[delBootstrap]"+e);
+            logger.error("[delBootstrap]" + e);
             result.put("code", ResultCode.FAILED.getCode());
-            result.put("message",e);
+            result.put("message", e);
             return result;
         }
         return result;
     }
-
 
 
     private Upstream setUpstream(QUserSource qUserSource, DomainInfo domainInfo) {
@@ -459,116 +459,151 @@ public class StatusController {
         }
 
         // 构造规则信息
-
-        //构造 node
-        Node node = new Node();
-        node.setId(UUID.randomUUID().toString());
-        node.setCreateTime(now);
-        node.setDomain(domainInfo.getId());
-        node.setNodeCode("");
-        node.setStatus(0);
-        node.setType(upstreamType.getSynType());
-
-        String nodeRulesId = UUID.randomUUID().toString();
-        //构造 nodeRule
-        NodeRules nodeRules = new NodeRules();
-        nodeRules.setId(nodeRulesId);
-        nodeRules.setNodeId(node.getId());
-        nodeRules.setType(0);
-        nodeRules.setActive(false);
-        if (null != source.getRule()) {
-            nodeRules.setActive(source.getRule().getEnabled());
-        }
-        nodeRules.setActiveTime(now);
-        // 如果是推送服务,则需要定义serviceKey, 拉取服务则定义upstreamType
-        if (source.getMode().equals("push")) {
-            nodeRules.setServiceKey(upstreamType.getId());
-        } else {
-            nodeRules.setUpstreamTypesId(upstreamType.getId());
-            nodeRules.setType(1);
-        }
-        nodeRules.setStatus(0);
-
-
-        if (kind.equals("dept") || kind.equals("post")) {
-            //  source 下 rule 可为空, 则默认挂载到 [dept]单位类型/根节点 or [post]身份岗/根节点
-            //  monut 可能为空, 为空则默认分配
-            // todo 定义类型,默认01
-            node.setDeptTreeType("01");
-            if ("post".equals(kind)) {
-                node.setDeptTreeType(null);
-            }
+        List<Rule> rules = source.getRules();
+        for (Rule rule : rules) {
+            //构造 node
+            Node node = new Node();
+            node.setId(UUID.randomUUID().toString());
+            node.setCreateTime(now);
+            node.setDomain(domainInfo.getId());
             node.setNodeCode("");
+            node.setStatus(0);
+            node.setType(upstreamType.getSynType());
 
+            String nodeRulesId = UUID.randomUUID().toString();
+            //构造 nodeRule
+            NodeRules nodeRules = new NodeRules();
+            nodeRules.setId(nodeRulesId);
+            nodeRules.setNodeId(node.getId());
+            nodeRules.setType(0);
+            nodeRules.setActive(false);
+            nodeRules.setActive(rule.getEnabled());
+            nodeRules.setActiveTime(now);
 
-            // source 下 rule 不为空时, 覆盖默认值
-            if (null != source.getRule()) {
-                Rule rule = source.getRule();
+            // 如果是推送服务,则需要定义serviceKey, 拉取服务则定义upstreamType
+            if (source.getMode().equals("push")) {
+                nodeRules.setServiceKey(upstreamType.getId());
+            } else {
+                nodeRules.setUpstreamTypesId(upstreamType.getId());
+                nodeRules.setType(1);
+            }
+            nodeRules.setStatus(0);
+
+            if ("dept".equals(kind) || "post".equals(kind)) {
+                //  source 下 rule 可为空, 则默认挂载到 [dept]单位类型/根节点 or [post]身份岗/根节点
+                //  monut 可能为空, 为空则默认分配
+                // todo 定义类型,默认01
+                node.setDeptTreeType("01");
+                if ("post".equals(kind)) {
+                    node.setDeptTreeType(null);
+                }
+                node.setNodeCode("");
                 if (null != rule.getMount()) {
                     if ("dept".equals(kind)) {
                         String treeType = rule.getMount().getCategory();
                         node.setDeptTreeType(treeType);
                     }
                     // 挂载路径, 为空则是根节点
-                    String code = source.getRule().getMount().getPath();
+                    String code = rule.getMount().getPath();
                     node.setNodeCode(null != code ? code : "");
                 }
 
-            }
-            // 构建rulesRange
-            if (!source.getMode().equals("push")) {
-                NodeRulesRange nodeRulesRange = new NodeRulesRange();
-                nodeRulesRange.setId(UUID.randomUUID().toString());
-                nodeRulesRange.setNodeRulesId(nodeRulesId);
-                //  规则类型 0 挂载 1 排除
-                nodeRulesRange.setType(0);
-                nodeRulesRange.setRange(0);
-                nodeRulesRange.setCreateTime(now);
-                nodeRulesRange.setStatus(0);
-                nodeRulesRange.setNode("=*");
-                if (null != source.getRule()) {
-                    nodeRulesRange.setType(source.getRule().getKind().equals("exclude") ? 1 : 0);
+                // 构建rulesRange
+                if (!source.getMode().equals("push")) {
+                    NodeRulesRange nodeRulesRange = new NodeRulesRange();
+                    nodeRulesRange.setId(UUID.randomUUID().toString());
+                    nodeRulesRange.setNodeRulesId(nodeRulesId);
+                    //  规则类型 0 挂载 1 排除
+                    nodeRulesRange.setType(0);
+                    nodeRulesRange.setRange(0);
+                    nodeRulesRange.setCreateTime(now);
+                    nodeRulesRange.setStatus(0);
+                    nodeRulesRange.setNode("=*");
+                    nodeRulesRange.setType(rule.getKind().equals("exclude") ? 1 : 0);
+                    nodeRulesRangeList.add(nodeRulesRange);
                 }
-                nodeRulesRangeList.add(nodeRulesRange);
-
             }
 
-        }
-        Boolean nodeFlag = true;
-        String type = node.getType();
-        //判断node是否已存在
-        if (mapFromDb.containsKey(type)) {
-            Map<String, Node> map = mapFromDb.get(type);
-            String key = StringUtils.isBlank(node.getNodeCode()) ? "*" : node.getNodeCode();
-            if ("dept".equals(type)) {
-                key = key + "_" + node.getDeptTreeType();
-            }
-            if (map.containsKey(key)) {
-                Node node1 = map.get(key);
-                nodeRules.setNodeId(node1.getId());
-                nodeFlag = false;
+            /*if (kind.equals("dept") || kind.equals("post")) {
+                //  source 下 rule 可为空, 则默认挂载到 [dept]单位类型/根节点 or [post]身份岗/根节点
+                //  monut 可能为空, 为空则默认分配
+                // todo 定义类型,默认01
+                node.setDeptTreeType("01");
+                if ("post".equals(kind)) {
+                    node.setDeptTreeType(null);
+                }
+                node.setNodeCode("");
+                // source 下 rule 不为空时, 覆盖默认值
+                if (null != source.getRule()) {
+                    Rule rule = source.getRule();
+                    if (null != rule.getMount()) {
+                        if ("dept".equals(kind)) {
+                            String treeType = rule.getMount().getCategory();
+                            node.setDeptTreeType(treeType);
+                        }
+                        // 挂载路径, 为空则是根节点
+                        String code = source.getRule().getMount().getPath();
+                        node.setNodeCode(null != code ? code : "");
+                    }
+
+                }
+                // 构建rulesRange
+                if (!source.getMode().equals("push")) {
+                    NodeRulesRange nodeRulesRange = new NodeRulesRange();
+                    nodeRulesRange.setId(UUID.randomUUID().toString());
+                    nodeRulesRange.setNodeRulesId(nodeRulesId);
+                    //  规则类型 0 挂载 1 排除
+                    nodeRulesRange.setType(0);
+                    nodeRulesRange.setRange(0);
+                    nodeRulesRange.setCreateTime(now);
+                    nodeRulesRange.setStatus(0);
+                    nodeRulesRange.setNode("=*");
+                    if (null != source.getRule()) {
+                        nodeRulesRange.setType(source.getRule().getKind().equals("exclude") ? 1 : 0);
+                    }
+                    nodeRulesRangeList.add(nodeRulesRange);
+
+                }
+
+            }*/
+            Boolean nodeFlag = true;
+            String type = node.getType();
+            //判断node是否已存在
+            if (mapFromDb.containsKey(type)) {
+                Map<String, Node> map = mapFromDb.get(type);
+                String key = StringUtils.isBlank(node.getNodeCode()) ? "*" : node.getNodeCode();
+                if ("dept".equals(type)) {
+                    key = key + "_" + node.getDeptTreeType();
+                }
+                if (map.containsKey(key)) {
+                    Node node1 = map.get(key);
+                    nodeRules.setNodeId(node1.getId());
+                    nodeFlag = false;
+                } else {
+                    map.put(key, node);
+                    mapFromDb.put(type, map);
+                }
+
             } else {
+                //如果数据库不包含该数据,
+                String key = StringUtils.isNotBlank(node.getNodeCode()) ? node.getNodeCode() : "*";
+                //组织机构额外处理
+                if ("dept".equals(type)) {
+                    key = key + "_" + node.getDeptTreeType();
+                }
+                Map<String, Node> map = new ConcurrentHashMap<>();
+
                 map.put(key, node);
+
                 mapFromDb.put(type, map);
             }
-
-        } else {
-            //如果数据库不包含该数据,
-            String key = StringUtils.isNotBlank(node.getNodeCode()) ? node.getNodeCode() : "*";
-            //组织机构额外处理
-            if ("dept".equals(type)) {
-                key = key + "_" + node.getDeptTreeType();
+            nodeRulesList.add(nodeRules);
+            if (nodeFlag) {
+                nodes.add(node);
             }
-            Map<String, Node> map = new ConcurrentHashMap<>();
 
-            map.put(key, node);
+        }
 
-            mapFromDb.put(type, map);
-        }
-        nodeRulesList.add(nodeRules);
-        if (nodeFlag) {
-            nodes.add(node);
-        }
 
         log.info("[bootstrap] {}-{}-{}开始处理权威源类型及node", domainInfo.getDomainName(), upstream.getAppCode(), source.getText());
 

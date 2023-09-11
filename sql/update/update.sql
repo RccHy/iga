@@ -1,11 +1,13 @@
 -- 20230817
-alter table identity   change avatar_url avatar varchar(500) null;
--- 待发布
+-- #新安装的版本字段名不对，升级的版本不受影响。故执行失败时可忽略
+
+alter table identity change avatar_url avatar varchar(500) null;
+
+-- 20230720
 
 TRUNCATE identity;
 
-ALTER TABLE `identity` MODIFY COLUMN `birthday` datetime NULL DEFAULT NULL ;
-
+ALTER TABLE `identity` MODIFY COLUMN `birthday` datetime NULL DEFAULT NULL;
 
 
 -- 20230619
@@ -20,15 +22,17 @@ SELECT 1 FROM information_schema.COLUMNS WHERE table_name = 'incremental_task' A
 ALTER TABLE `incremental_task` ADD COLUMN `main_task_id` varchar(50) NULL COMMENT '主任务id' AFTER `operation_no`;
 
 
+
 -- 20230427
+
 CREATE TABLE `t_mgr_shadow_copy`  (
-                                   `id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '主键',
-                                   `data` mediumblob NULL COMMENT '数据',
-                                   `upstream_type_id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '权威源类型id',
-                                   `type` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '同步类型  dept/post/person/occupy',
-                                   `domain` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '租户',
-                                   `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
-                                   PRIMARY KEY (`id`) USING BTREE
+                                      `id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '主键',
+                                      `data` mediumblob NULL COMMENT '数据',
+                                      `upstream_type_id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '权威源类型id',
+                                      `type` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '同步类型  dept/post/person/occupy',
+                                      `domain` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '租户',
+                                      `create_time` datetime NULL DEFAULT NULL COMMENT '创建时间',
+                                      PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
 
 -- # 老的版本，可能存在表达式异常，一并修复。
@@ -49,7 +53,7 @@ SET rules = CONCAT(
 WHERE rules LIKE '%$result/$count>%'
   and SUBSTRING_INDEX(rules, '>', -1) >= 1;
 
---20230406
+-- 20230406
 ALTER TABLE `t_mgr_merge_attr_rule`
     MODIFY COLUMN `create_time` datetime NULL DEFAULT NULL AFTER `dynamic_attr_id`;
 
@@ -57,6 +61,7 @@ UPDATE t_mgr_task_log SET `data` = CONCAT( '{"name": "', create_time, '","uri":"
 WHERE `data` NOT LIKE '{%' and `data` is not null;
 
 -- 20230323
+
 alter table t_mgr_domain_info add unique (domain_name);
 
 alter table t_mgr_upstream_types add code varchar(50) null comment '机读代码' AFTER `description`;
@@ -77,11 +82,11 @@ create table t_mgr_merge_attr_rule
     comment '手工合重属性';
 
 CREATE TABLE `t_mgr_domain_ignore`  (
-  `id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '主键',
-  `domain` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '租户',
-  `upstream_id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '需要忽略的权威源',
-  `node_rule_id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '需要忽略的规则',
-  PRIMARY KEY (`id`) USING BTREE
+                                        `id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '主键',
+                                        `domain` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '租户',
+                                        `upstream_id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '需要忽略的权威源',
+                                        `node_rule_id` varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '需要忽略的规则',
+                                        PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
 
 SET FOREIGN_KEY_CHECKS = 1;
@@ -256,10 +261,21 @@ CREATE TABLE `dynamic_value` (
 
 ALTER TABLE `iga`.`t_mgr_pre_view_task`
     ADD COLUMN `statistics` varchar(255) NULL COMMENT '统计变更数量  没有变化/新增/删除/修改/无效' AFTER `update_time`,
-ADD COLUMN `reason` varchar(255) NULL COMMENT '详情(失败的原因)' AFTER `statistics`;
+    ADD COLUMN `reason` varchar(255) NULL COMMENT '详情(失败的原因)' AFTER `statistics`;
 
 
---20221026
+
+
+
+
+
+
+
+
+
+
+
+-- 20221026
 update  t_mgr_upstream_types set person_characteristic='USERNAME' where  person_characteristic='ACCOUNT_NO';
 
 -- 20220930
@@ -271,6 +287,7 @@ update  t_mgr_upstream_types set person_characteristic='CARD_TYPE_NO' where syn_
 
 
 
+
 --20220830
 ALTER TABLE `incremental_task`
     ADD COLUMN `operation_no` varchar(50) NULL COMMENT '本次操作数量' AFTER `domain`,
@@ -279,7 +296,7 @@ ALTER TABLE `incremental_task`
 -- 20220805
 --删除失效继承规则的range
 DELETE FROM  t_mgr_node_rules_range WHERE node_rules_id IN ( SELECT id FROM  t_mgr_node_rules WHERE inherit_id IS NOT NULL
-  AND STATUS IN ( 0, 1 )  AND inherit_id NOT IN ( SELECT id FROM t_mgr_node_rules WHERE STATUS IN ( 1, 0 ) ) );
+                                                                                                AND STATUS IN ( 0, 1 )  AND inherit_id NOT IN ( SELECT id FROM t_mgr_node_rules WHERE STATUS IN ( 1, 0 ) ) );
 --删除失效的继承规则
 DELETE FROM	t_mgr_node_rules WHERE inherit_id IS NOT NULL 	AND STATUS IN ( 0, 1 ) 	AND inherit_id NOT IN ( SELECT a.id FROM ( SELECT id FROM t_mgr_node_rules WHERE STATUS IN ( 1, 0 ) ) a );
 
@@ -297,7 +314,7 @@ CREATE TABLE `t_mgr_pre_view_task`
 ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
 
 SET
-FOREIGN_KEY_CHECKS = 1;
+    FOREIGN_KEY_CHECKS = 1;
 
 ALTER TABLE `t_mgr_upstream_types`
     ADD COLUMN `is_incremental` bit(1) NULL DEFAULT NULL COMMENT '\r\n是否增量  0为不是增量' AFTER `syn_way`;
@@ -315,7 +332,7 @@ CREATE TABLE `incremental_task`
 ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
 
 SET
-FOREIGN_KEY_CHECKS = 1;
+    FOREIGN_KEY_CHECKS = 1;
 
 
 --20220615
@@ -386,7 +403,12 @@ CREATE TABLE `person_temp`
 ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
 
 SET
-FOREIGN_KEY_CHECKS = 1;
+    FOREIGN_KEY_CHECKS = 1;
+
+
+
+
+
 
 --20220513
 ALTER TABLE `t_mgr_task_log`
@@ -394,7 +416,7 @@ ALTER TABLE `t_mgr_task_log`
 
 UPDATE t_mgr_upstream set active = true where active is null
 
---如果执行该sql只有一条结果的话,执行下一条sql,如果有多条,请跟开发人员沟通
+                                                  --如果执行该sql只有一条结果的话,执行下一条sql,如果有多条,请跟开发人员沟通
 SELECT * FROM `t_mgr_upstream_types` WHERE syn_type = 'post' AND syn_way = 1;
 
 UPDATE t_mgr_upstream_types_field SET source_field = 'type' WHERE source_field = 'depttype' AND upstream_type_id = (SELECT id FROM `t_mgr_upstream_types` WHERE syn_type = 'post' AND syn_way = 1);
@@ -402,7 +424,6 @@ UPDATE t_mgr_upstream_types_field SET source_field = 'type' WHERE source_field =
 
 -- 20211203
 alter table t_mgr_dept_type add type_index int null comment '排序' after domain;
-alter table t_mgr_post_type add type_index int null comment '排序' after domain;
 
 
 -- 20211022

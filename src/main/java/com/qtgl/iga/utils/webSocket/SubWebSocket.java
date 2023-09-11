@@ -52,6 +52,9 @@ public class SubWebSocket {
                             // todo 字符串消息处理
                             System.out.println("字符串消息:" + msg);
                             JSONObject msgJson = JSONObject.parseObject(msg);
+                            if(!msgJson.containsKey("sub")){
+                                return;
+                            }
                             // 判断是否是 身份权威源数据发生变化 消息, 如果是,则触发同步任务\
                             String type = msgJson.getJSONObject("sub").getString("type");
                             // 获取发送消息的服务

@@ -15,7 +15,7 @@ public enum ResultCode {
     ILLEGAL_EXCLUSION(1010, "%s节点(%s)中的排除规则%s表达式非法,请检查"),
     NO_EXCLUSION(1011, "节点%s规则:%s无法找到排除节点"),
     NULL_EXCLUSION(1012, "节点%s规则的:%s 排除规则为空"),
-    MONITOR_ERROR(1020, "%s删除数量%s,超出监控设定"),
+    MONITOR_ERROR(1020, "%s删除数量%s,超出监控设定，若确认删除数据准确，可通过右上角‘监控规则’按钮，临时调整设定"),
     NO_UPSTREAM_TYPE(1030, "%s对应拉取节点(%s)无权威源类型数据"),
     NO_PERSON_CHARACTERISTIC(1030, "%s对应拉取节点(%s)无人员特征模式"),
     NO_UPSTREAM(1031, "%s对应拉取节点(%s)无权威源数据"),
