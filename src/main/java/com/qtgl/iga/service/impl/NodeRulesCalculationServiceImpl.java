@@ -774,7 +774,8 @@ public class NodeRulesCalculationServiceImpl {
                     // 对最终要挂载的树进行重命名
                     renameRules(mergeDeptMap, nodeRulesRanges, childrenMap, type);
                     logger.info("节点'{}'开始运行重命名", code);
-                    logger.info("节点'{}'的规则运算完成：{}", nodeCode, mergeDeptMap);
+                    logger.info("节点'{}'的规则运算完成", nodeCode);
+                    logger.debug("{}", mergeDeptMap);
 
 
                     logger.info("部门节点:{}的规则运算完成", nodeCode);
