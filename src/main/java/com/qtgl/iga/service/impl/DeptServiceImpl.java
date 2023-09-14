@@ -233,14 +233,8 @@ public class DeptServiceImpl implements DeptService {
         List<String> dynamicCodes = new ArrayList<>();
         //扩展字段值分组
         Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
-
         List<DynamicAttr> dynamicAttrs = dynamicAttrService.findAllByType(TYPE, tenant.getId());
-
         List<DynamicValue> valueUpdate = new ArrayList<>();
-
-        //增量日志容器
-        //List<IncrementalTask> incrementalTasks = new ArrayList<>();
-
         //扩展字段新增容器
         ArrayList<DynamicValue> valueInsert = new ArrayList<>();
 
@@ -259,9 +253,7 @@ public class DeptServiceImpl implements DeptService {
                 valueMap = dynamicValues.stream().collect(Collectors.groupingBy(DynamicValue::getEntityId));
             }
         }
-
-
-        logger.info("获取到当前租户{}的映射字段集为{}", tenant.getId(), dynamicAttrs);
+        logger.info("获取到当前租户{}的扩展字段集为{}", tenant.getId(), dynamicAttrs);
         //获取所有规则
         List<NodeDto> nodes = nodeService.findNodes(domain.getId(), 0, TYPE, true);
         List<UpstreamDto> upstreams;
@@ -271,7 +263,7 @@ public class DeptServiceImpl implements DeptService {
             //获取该租户下的当前类型的无效权威源
             upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
         } else {
-            //根据规则获取排除的权威源  及补充规则
+            //根据规则获取排除的权威源  及 补充规则？
             Set<String> strings = deptRules.stream().collect(Collectors.groupingBy(NodeRules::getUpstreamTypesId)).keySet();
 
             List<Upstream> ruleUpstreams = upstreamService.findByUpstreamTypeIds(new ArrayList<>(strings), domain.getId());
@@ -300,6 +292,7 @@ public class DeptServiceImpl implements DeptService {
             //List<Node> nodes = nodeService.getByTreeType(domain.getId(), deptType.getCode(), 0, TYPE);
             //获取当前组织机构树类型下所有的规则
             if (!nodesMap.containsKey(deptType.getCode())) {
+                // 没有规则则跳过
                 continue;
             }
             List<NodeDto> nodeDtos = nodesMap.get(deptType.getCode());

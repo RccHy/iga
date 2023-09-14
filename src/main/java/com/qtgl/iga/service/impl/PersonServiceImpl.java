@@ -657,7 +657,7 @@ public class PersonServiceImpl implements PersonService {
             //if (0 != rules.getRunningStatus() && 3 != rules.getRunningStatus()) {
             if (0 != rules.getRunningStatus()) {
                 //todo 忽略提示
-                log.info("当前规则被忽略,跳过执行");
+                log.info("rule：{}被忽略,跳过执行",rules.getId());
                 continue;
             }
             //根据人员主体合重的容器
@@ -686,7 +686,6 @@ public class PersonServiceImpl implements PersonService {
                 //} else {
                 //    throw e;
                 //}
-
                 if (new Long("1085").equals(e.getCode())) {
                     log.error("请求资源地址失败,请检查权威源:{}下的权威源类型:{},通过影子副本获取数据", upstreams.get(0).getAppName() + "(" + upstreams.get(0).getAppCode() + ")", upstreamType.getDescription());
                 } else if (new Long("1087").equals(e.getCode())) {
