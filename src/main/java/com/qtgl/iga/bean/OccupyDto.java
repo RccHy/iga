@@ -11,7 +11,7 @@ import java.util.Map;
  * @author 1
  */
 @Data
-public class OccupyDto {
+public class OccupyDto implements Cloneable {
 
     private String personId;
     private String occupyId;
@@ -60,7 +60,7 @@ public class OccupyDto {
     /**
      * 上游岗位、部门导致身份失效
      */
-    private  Integer orphan;
+    private Integer orphan;
     /**
      * 逻辑处理字段 规则是否启用
      */
@@ -75,4 +75,14 @@ public class OccupyDto {
     private Integer syncState;
 
 
+    @Override
+    public Object clone() {
+        OccupyDto occupyDto = null;
+        try {
+            occupyDto = (OccupyDto) super.clone();
+        } catch (CloneNotSupportedException e) {
+            e.printStackTrace();
+        }
+        return occupyDto;
+    }
 }

@@ -6,7 +6,7 @@ import lombok.Data;
 import java.io.Serializable;
 
 @Data
-public class DynamicValue implements Serializable {
+public class DynamicValue implements Serializable,Cloneable {
 
     private String id;
 
@@ -22,4 +22,14 @@ public class DynamicValue implements Serializable {
 
     private String code;
 
+    @Override
+    public Object clone()  {
+        DynamicValue dynamicValue= null;
+        try {
+            dynamicValue = (DynamicValue) super.clone();
+        } catch (CloneNotSupportedException e) {
+            e.printStackTrace();
+        }
+        return dynamicValue;
+    }
 }
