@@ -889,15 +889,26 @@ public class PersonDaoImpl implements PersonDao {
 
 
     @Override
-    public Integer saveToTemp(List<Person> personList, DomainInfo domainInfo) {
-        String str = "insert into person_temp (id, `name`, account_no,open_id,  del_mark, create_time, update_time, tenant_id, card_type, card_no, cellphone, email, data_source, tags,  `active`, active_time,`source`,valid_start_time,valid_end_time,freeze_time)" +
-                " values  (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+    public Integer saveToTemp(Map<String, Person> userTemp, DomainInfo domainInfo) {
+        List<Person> personList = new ArrayList<>();
+        if (null != userTemp) {
+            userTemp.forEach((k, v) -> {
+                personList.add(v);
+            });
+        }
 
+
+        String str = "insert into person_temp (id, `name`, account_no,open_id,  del_mark, create_time, update_time, tenant_id, card_type, card_no, cellphone, email, " +
+                "data_source, tags,  `active`, active_time,`source`,valid_start_time,valid_end_time,freeze_time,upstreamDataStatus,upstreamDataReason,storage,upstreamRuleId)" +
+                " values  (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+
+        String sql = " delete from  `person_temp` where tenant_id =? ";
+        jdbcIGA.update(sql, domainInfo.getId());
 
         int[] ints = jdbcIGA.batchUpdate(str, new BatchPreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                preparedStatement.setObject(1, personList.get(i).getId());
+                preparedStatement.setObject(1, UUID.randomUUID().toString());
                 preparedStatement.setObject(2, personList.get(i).getName());
                 preparedStatement.setObject(3, personList.get(i).getAccountNo());
                 preparedStatement.setObject(4, personList.get(i).getOpenId());
@@ -917,6 +928,10 @@ public class PersonDaoImpl implements PersonDao {
                 preparedStatement.setObject(18, personList.get(i).getValidStartTime());
                 preparedStatement.setObject(19, personList.get(i).getValidEndTime());
                 preparedStatement.setObject(20, personList.get(i).getFreezeTime());
+                preparedStatement.setObject(21, personList.get(i).getUpstreamDataStatus());
+                preparedStatement.setObject(22, personList.get(i).getUpstreamDataReason());
+                preparedStatement.setObject(23, personList.get(i).getStorage());
+                preparedStatement.setObject(24, personList.get(i).getUpstreamRuleId());
             }
 
             @Override

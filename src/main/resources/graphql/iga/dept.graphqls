@@ -10,14 +10,19 @@ extend type Query {
     #查询人员身份详情  offset:跳过几条  first:取几条
     occupies(upstreamTypeId:String,offset:Int,first:Int):OccupyConnection
     #预览人员  offset:跳过几条  first:取几条
+    @deprecated(reason: "已废弃")
     preViewPersons(type:String,filter:PersonFilter ,offset:Int,first:Int):PersonConnection
     #预览人员身份  offset:跳过几条  first:取几条
+    @deprecated(reason: "已废弃")
     preViewOccupies(type:String,filter:OccupyFilter,offset:Int,first:Int):OccupyConnection
     #刷新  type表示类型(person)
+    @deprecated(reason: "已废弃")
     reFreshPersons(type:String):PreViewTask
     #刷新  type表示类型(occupy)
+    @deprecated(reason: "已废弃")
     reFreshOccupies(type:String):PreViewTask
     #通过任务标识获取任务进行状态
+    @deprecated(reason: "已废弃")
     reFreshTaskStatus(taskId:String):PreViewTask
 }
 

@@ -142,14 +142,15 @@ public class DeptDataFetcher {
         };
     }
 
+
+    @Deprecated
     public DataFetcher preViewPersons() {
         return dataFetchingEvn -> {
-            //1。更具token信息验证是否合法，并判断其租户
+            return null;
+            /*//1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
             // 获取传入参数
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
-
-
             try {
                 PersonConnection persons = personService.preViewPersons(arguments, domain);
                 return persons;
@@ -158,15 +159,14 @@ public class DeptDataFetcher {
                 logger.error(domain.getDomainName() + e.getMessage());
 
                 return GraphqlExceptionUtils.getObject("预览人员失败", e);
-
-            }
-
-
+            }*/
         };
     }
-
+    @Deprecated
     public DataFetcher preViewOccupies() {
         return dataFetchingEvn -> {
+            return null;
+            /*
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
             // 获取传入参数
@@ -181,13 +181,15 @@ public class DeptDataFetcher {
 
                 return GraphqlExceptionUtils.getObject("预览人员身份失败", e);
             }
-
+*/
 
         };
     }
-
+    @Deprecated
     public DataFetcher reFreshPersons() {
         return dataFetchingEvn -> {
+            return  null;
+           /*
             //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
             // 获取传入参数
@@ -204,14 +206,15 @@ public class DeptDataFetcher {
                 return GraphqlExceptionUtils.getObject("刷新人员失败", e);
 
             }
-
+*/
 
         };
     }
-
+    @Deprecated
     public DataFetcher reFreshOccupies() {
         return dataFetchingEvn -> {
-            //1。更具token信息验证是否合法，并判断其租户
+            return null;
+          /*  //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
             // 获取传入参数
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
@@ -227,14 +230,18 @@ public class DeptDataFetcher {
                 return GraphqlExceptionUtils.getObject("刷新人员身份失败", e);
 
             }
-
+*/
 
         };
     }
 
+    @Deprecated
     public DataFetcher reFreshTaskStatus() {
+
         return dataFetchingEvn -> {
-            //1。更具token信息验证是否合法，并判断其租户
+            return null;
+
+      /*      //1。更具token信息验证是否合法，并判断其租户
             DomainInfo domain = CertifiedConnector.getDomain();
             // 获取传入参数
             Map<String, Object> arguments = dataFetchingEvn.getArguments();
@@ -249,7 +256,7 @@ public class DeptDataFetcher {
 
                 return GraphqlExceptionUtils.getObject("查询任务失败", e);
 
-            }
+            }*/
 
 
         };

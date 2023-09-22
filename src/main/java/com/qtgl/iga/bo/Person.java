@@ -172,6 +172,12 @@ public class Person implements Serializable, Cloneable {
      */
     private Boolean storage;
 
+    /**
+     * 权威源来自具体规则
+     * @return
+     */
+    public String upstreamRuleId;
+
     @Override
     public Object clone() {
         Person person = null;

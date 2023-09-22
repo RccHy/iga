@@ -319,10 +319,8 @@ public class OccupyServiceImpl implements OccupyService {
         // 获取sso中人员身份信息
         List<OccupyDto> occupiesFromSSO = occupyDao.findAll(tenant.getId(), null, null);
         log.info("数据库中人员身份数据获取完成:{}", occupiesFromSSO.size());
-
         //处理数据库重复身份数据
         ConcurrentHashMap<String, OccupyDto> concurrentHashMap = dealWithSsoOccupy(deleteFromSSO, occupiesFromSSO);
-
         occupiesFromSSO = new ArrayList<>(concurrentHashMap.values());
         final Map<String, OccupyDto> occupiesFromSSOIdentityMap = occupiesFromSSO.stream().filter(occupyDto ->
                 StringUtils.isNotBlank(occupyDto.getIdentityCardType()) && StringUtils.isNotBlank(occupyDto.getIdentityCardNo()))
@@ -1564,10 +1562,11 @@ public class OccupyServiceImpl implements OccupyService {
         }
     }
 
-
     @Override
+    @Deprecated
     public OccupyConnection preViewOccupies(Map<String, Object> arguments, DomainInfo domain) throws Exception {
-        Integer i = occupyDao.findOccupyTempCount(null, domain);
+        return  null;
+        /*Integer i = occupyDao.findOccupyTempCount(null, domain);
 
         //判断数据库是否有数据
         if (i <= 0) {
@@ -1579,10 +1578,19 @@ public class OccupyServiceImpl implements OccupyService {
         OccupyConnection occupyConnection = new OccupyConnection();
         List<OccupyEdge> upstreamDept = new ArrayList<>();
         if (!CollectionUtils.isEmpty(occupyDtos)) {
-
+            //Boolean active = (Boolean) arguments.get("active");
+            ////是否有效过滤
+            //if (null != active) {
+            //    occupyDtos = occupyDtos.stream().filter(occupyDto -> active.equals((occupyDto.getActive() == 1 ? true : false))).collect(Collectors.toList());
+            //}
+            //Integer offset = (Integer) arguments.get("offset");
+            //Integer first = (Integer) arguments.get("first");
             Integer occupyTempCount = occupyDao.findOccupyTempCount(arguments, domain);
             occupyConnection.setTotalCount(occupyTempCount);
-
+            //if (null != offset && null != first) {
+            //    occupyDtos = occupyDtos.stream().sorted(Comparator.comparing(OccupyDto::getUpdateTime).thenComparing(OccupyDto::getCreateTime)).skip(offset).limit(first).collect(Collectors.toList());
+            //
+            //}
             for (OccupyDto occupyDto : occupyDtos) {
                 OccupyEdge occupyEdge = new OccupyEdge();
                 occupyEdge.setNode(occupyDto);
@@ -1590,13 +1598,15 @@ public class OccupyServiceImpl implements OccupyService {
             }
             occupyConnection.setEdges(upstreamDept);
         }
-        return occupyConnection;
+        return occupyConnection;*/
     }
 
     @Override
+    @Deprecated
     public PreViewTask reFreshOccupies(Map<String, Object> arguments, DomainInfo domain, PreViewTask viewTask) {
+        return  null;
 
-        if (null == viewTask) {
+       /* if (null == viewTask) {
             viewTask = new PreViewTask();
             viewTask.setTaskId(UUID.randomUUID().toString());
             viewTask.setStatus("doing");
@@ -1609,7 +1619,15 @@ public class OccupyServiceImpl implements OccupyService {
         if (count <= 10) {
             viewTask = preViewTaskService.saveTask(viewTask);
         } else {
+            //Optional<String> first = PersonServiceImpl.preViewTask.keySet().stream().findFirst();
+            //String s = first.get();
+            //if (null != PersonServiceImpl.preViewTask.get(s) && PersonServiceImpl.preViewTask.get(s).getStatus().equals("done")) {
+            //    PersonServiceImpl.preViewTask.remove(s);
+            //    PersonServiceImpl.preViewTask.put(viewResult.getTaskId(), viewResult);
+            //} else {
             throw new CustomException(ResultCode.FAILED, "当前任务数量已达上限,无法创建新的刷新任务,请耐心等待");
+            //}
+
         }
 
         if (PreViewOccupyThreadPool.executorServiceMap.containsKey(domain.getDomainName())) {
@@ -1625,7 +1643,7 @@ public class OccupyServiceImpl implements OccupyService {
             reFreshOccupies(arguments, domain, viewTask);
         }
 
-        return viewTask;
+        return viewTask;*/
     }
 
     private void executePreView(Map<String, Object> arguments, DomainInfo domain, PreViewTask viewTask) {

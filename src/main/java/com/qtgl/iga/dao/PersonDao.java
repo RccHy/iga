@@ -18,7 +18,7 @@ public interface PersonDao {
 
     Integer saveToSsoTest(Map<String, List<Person>> personMap, String tenantId, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, List<DynamicAttr> attrList, List<Certificate> certificates, List<DynamicValue> dynamicValues);
 
-    Integer saveToTemp(List<Person> personList, DomainInfo domainInfo);
+    Integer saveToTemp(Map<String, Person> tempUsers, DomainInfo domainInfo);
 
     List<Person> findPersonTemp(Map<String, Object> arguments, DomainInfo domain);
 

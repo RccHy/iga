@@ -225,8 +225,11 @@ public class PersonServiceImpl implements PersonService {
         //获取 手工合重属性相关信息
         List<MergeAttrRule> mergeAttrRules = mergeAttrRuleService.findOriginalMergeAttrRulesByTenantId(tenant.getId());
 
+        // 2023-09-18 新增容器，用于存储上游返回的所有数据，便于统计上游数据最终流向
+        // key ->uuid ; val ->  person
+        Map<String, Person> allPersonFromUpstream = new ConcurrentHashMap<>();
 
-        dataProcessing(rules, domain, tenant, valueUpdateMap, valueInsertMap, result, currentTask, avatarResult, upstreamMap, avatarRules, mergeAttrRules);
+        dataProcessing(rules, domain, tenant, valueUpdateMap, valueInsertMap, result, currentTask, avatarResult, upstreamMap, avatarRules, mergeAttrRules,allPersonFromUpstream);
         // 验证监控规则
         dealMonitorRule(domain, taskLog, tenant, result);
 
@@ -246,6 +249,9 @@ public class PersonServiceImpl implements PersonService {
 
         //插入数据库
         personDao.saveToSso(result, tenant.getId(), valueUpdate, valueInsert, certificates, mergeAttrRules);
+
+        //2023-09-22 权威源数据状态处理后入库
+        personDao.saveToTemp(allPersonFromUpstream,domain);
 
         //判断是否需要处理头像
         List<Avatar> insertAvatars = avatarResult.get("insert");
@@ -528,7 +534,9 @@ public class PersonServiceImpl implements PersonService {
         return url;
     }
 
-    private List<Person> dataProcessing(List<NodeRulesVo> userRules, DomainInfo domain, Tenant tenant, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap, Map<String, List<Person>> result, TaskLog currentTask, Map<String, List<Avatar>> avatarResult, Map<String, UpstreamDto> upstreamMap, List<NodeRules> avatarRules, List<MergeAttrRule> mergeAttrRules) {
+    private List<Person> dataProcessing(List<NodeRulesVo> userRules, DomainInfo domain, Tenant tenant, Map<String, DynamicValue> valueUpdateMap, Map<String, DynamicValue> valueInsertMap,
+                                        Map<String, List<Person>> result, TaskLog currentTask, Map<String, List<Avatar>> avatarResult,
+                                        Map<String, UpstreamDto> upstreamMap, List<NodeRules> avatarRules, List<MergeAttrRule> mergeAttrRules,Map<String, Person> allPersonFromUpstream) {
         final LocalDateTime now = LocalDateTime.now();
         List<Person> people = new ArrayList<>();
 
@@ -652,9 +660,7 @@ public class PersonServiceImpl implements PersonService {
 
         Map<String, Person> finalDistinctPersonMap = distinctPersonMap;
         Map<String, Avatar> finalAvatarMap = avatarMap;
-        // 2023-09-18 新增容器，用于存储上游返回的所有数据，便于统计上游数据最终流向
-        // key ->uuid ; val ->  person
-        Map<String, Person> allPersonFromUpstream = new ConcurrentHashMap<>();
+
         ///////////循环规则开始//////////////
         for (NodeRulesVo rules : userRules) {
             if (1 != rules.getType()) {
@@ -840,6 +846,7 @@ public class PersonServiceImpl implements PersonService {
         if (!CollectionUtils.isEmpty(result.get("insert"))) {
             people.addAll(result.get("insert"));
         }
+
         return people;
     }
 
@@ -936,101 +943,9 @@ public class PersonServiceImpl implements PersonService {
                     finalAvatarMap, avatarTempResult, personCharacteristic, mergeFieldMap, allPersonFromUpstream);
         });
         for (Map.Entry<String, Person> entry : personFromUpstreamByPersonCharacteristic.entrySet()) {
-            calculateInsert(personFromSSOMapByCharacteristic, result, tempResult,entry.getKey(), entry.getValue(), avatarResult, personCharacteristic);
+            calculateInsert(personFromSSOMapByCharacteristic, result, tempResult, entry.getKey(), entry.getValue(), avatarResult, personCharacteristic);
         }
 
-        /*
-        if (ACCOUNT_NO.equals(personCharacteristic)) {
-            //todo 性能待优化
-            // 用户名
-            Map<String, Person> personFromSSOMapByAccount = new ArrayList<>(preViewPersonMap.values()).stream().filter(person ->
-                    !StringUtils.isBlank(person.getAccountNo())).sorted(Comparator.comparing(Person::getUpdateTime)).collect(Collectors.toMap(Person::getAccountNo, person -> person, (v1, v2) -> v2));
-            personFromSSOMapByAccount.forEach((key, personFromSSO) -> {
-                calculate(personFromUpstreamByPersonCharacteristic, result, key, personFromSSO, finalAttrMap, finalValueMap,
-                        valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, finalDistinctPersonMap,
-                        invalidPersonMap, tempResult, backUpPersonMap, fields, fieldsMap, dynamicSSOValues, keepPersonMap,
-                        finalAvatarMap, avatarTempResult, personCharacteristic, mergeFieldMap,allPersonFromUpstream);
-            });
-            personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
-                calculateInsert(personFromSSOMapByAccount, result, key, val, avatarResult, personCharacteristic);
-            });
-        } else if (CARD_TYPE_NO.equals(personCharacteristic)) {
-            // 证件类型+证件号码
-            // 覆盖逻辑调整
-            log.info("---------------------------------start2:" + System.currentTimeMillis());
-            Map<String, Person> personFromSSOMapByCardTypeAndNo = new ArrayList<>(preViewPersonMap.values()).stream()
-                    .filter(person -> !StringUtils.isBlank(person.getCardType()) && !StringUtils.isBlank(person.getCardNo())).sorted(Comparator.comparing(Person::getUpdateTime))
-                    .collect(Collectors.toMap(person -> (person.getCardType() + ":" + person.getCardNo()), person -> person, (v1, v2) -> v2));
-            log.info("---------------------------------end2:" + System.currentTimeMillis());
-
-            personFromSSOMapByCardTypeAndNo.forEach((key, personFromSSO) -> {
-                calculate(personFromUpstreamByPersonCharacteristic, result, key, personFromSSO, finalAttrMap, finalValueMap,
-                        valueUpdateMap, valueInsertMap, finalUpstreamMap, preViewPersonMap, finalDistinctPersonMap,
-                        invalidPersonMap, tempResult, backUpPersonMap, fields, fieldsMap, dynamicSSOValues, keepPersonMap,
-                        finalAvatarMap, avatarTempResult, personCharacteristic, mergeFieldMap,allPersonFromUpstream);
-            });
-            personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
-                calculateInsert(personFromSSOMapByCardTypeAndNo, result, key, val, avatarResult, personCharacteristic);
-            });
-        } else if (CARD_NO.equals(personCharacteristic)) {
-            // 证件号码
-            Map<String, Person> personFromSSOMapByCardNo = new ArrayList<>(preViewPersonMap.values()).stream()
-                    .filter(person -> !StringUtils.isBlank(person.getCardNo())).sorted(Comparator.comparing(Person::getUpdateTime))
-                    .collect(Collectors.toMap(Person::getCardNo, person -> person, (v1, v2) -> v2));
-
-            personFromSSOMapByCardNo.forEach((key, personFromSSO) -> {
-                calculate(personFromUpstreamByPersonCharacteristic, result, key, personFromSSO, finalAttrMap, finalValueMap, valueUpdateMap,
-                        valueInsertMap, finalUpstreamMap, preViewPersonMap, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap,
-                        fields, fieldsMap, dynamicSSOValues, keepPersonMap, finalAvatarMap, avatarTempResult, personCharacteristic, mergeFieldMap,allPersonFromUpstream);
-            });
-            personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
-                calculateInsert(personFromSSOMapByCardNo, result, key, val, avatarResult, personCharacteristic);
-            });
-
-        } else if (EMAIL.equals(personCharacteristic)) {
-            // 邮箱
-            Map<String, Person> personFromSSOMapByEmail = new ArrayList<>(preViewPersonMap.values()).stream()
-                    .filter(person -> !StringUtils.isBlank(person.getEmail())).sorted(Comparator.comparing(Person::getUpdateTime))
-                    .collect(Collectors.toMap(Person::getEmail, person -> person, (v1, v2) -> v2));
-
-            personFromSSOMapByEmail.forEach((key, personFromSSO) -> {
-                calculate(personFromUpstreamByPersonCharacteristic, result, key, personFromSSO, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap,
-                        finalUpstreamMap, preViewPersonMap, finalDistinctPersonMap, invalidPersonMap, tempResult,
-                        backUpPersonMap, fields, fieldsMap, dynamicSSOValues, keepPersonMap, finalAvatarMap, avatarTempResult,
-                        personCharacteristic, mergeFieldMap,allPersonFromUpstream);
-            });
-            personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
-                calculateInsert(personFromSSOMapByEmail, result, key, val, avatarResult, personCharacteristic);
-            });
-        } else if (CELLPHONE.equals(personCharacteristic)) {
-            // 手机号
-            Map<String, Person> personFromSSOMapByCellphone = new ArrayList<>(preViewPersonMap.values()).stream()
-                    .filter(person -> !StringUtils.isBlank(person.getCellphone())).sorted(Comparator.comparing(Person::getUpdateTime))
-                    .collect(Collectors.toMap(Person::getCellphone, person -> person, (v1, v2) -> v2));
-
-            personFromSSOMapByCellphone.forEach((key, personFromSSO) -> {
-                calculate(personFromUpstreamByPersonCharacteristic, result, key, personFromSSO, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap,
-                        finalUpstreamMap, preViewPersonMap, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, fieldsMap,
-                        dynamicSSOValues, keepPersonMap, finalAvatarMap, avatarTempResult, personCharacteristic, mergeFieldMap,allPersonFromUpstream);
-            });
-            personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
-                calculateInsert(personFromSSOMapByCellphone, result, key, val, avatarResult, personCharacteristic);
-            });
-        } else if (OPENID.equals(personCharacteristic)) {
-            // openId
-            Map<String, Person> personFromSSOMapByOpenId = new ArrayList<>(preViewPersonMap.values()).stream()
-                    .filter(person -> !StringUtils.isBlank(person.getOpenId())).sorted(Comparator.comparing(Person::getUpdateTime))
-                    .collect(Collectors.toMap(Person::getOpenId, person -> person, (v1, v2) -> v2));
-
-            personFromSSOMapByOpenId.forEach((key, personFromSSO) -> {
-                calculate(personFromUpstreamByPersonCharacteristic, result, key, personFromSSO, finalAttrMap, finalValueMap, valueUpdateMap, valueInsertMap,
-                        finalUpstreamMap, preViewPersonMap, finalDistinctPersonMap, invalidPersonMap, tempResult, backUpPersonMap, fields, fieldsMap,
-                        dynamicSSOValues, keepPersonMap, finalAvatarMap, avatarTempResult, personCharacteristic, mergeFieldMap,allPersonFromUpstream);
-            });
-            personFromUpstreamByPersonCharacteristic.forEach((key, val) -> {
-                calculateInsert(personFromSSOMapByOpenId, result, key, val, avatarResult, personCharacteristic);
-            });
-        }*/
     }
 
     private void dealDynamicValueInsert(Tenant tenant, Map<String, DynamicValue> valueInsertMap, Map<String, List<Person>> result, Map<String, String> finalAttrReverseMap) {
@@ -1130,6 +1045,7 @@ public class PersonServiceImpl implements PersonService {
             }
             Person personUpstream = personObj.toJavaObject(Person.class);
             if (null != allPersonFromUpstream) {
+                personUpstream.setUpstreamRuleId(rules.getId());
                 allPersonFromUpstream.put(personUpstream.get_uuid(), personUpstream);
             }
 
@@ -1482,7 +1398,7 @@ public class PersonServiceImpl implements PersonService {
      * @param avatarResult
      * @param personCharacteristic
      */
-    private void calculateInsert(Map<String, Person> personFromSSOMap, Map<String, List<Person>> result,  Map<String, Map<String, Person>> tempResult,String key, Person val, Map<String, List<Avatar>> avatarResult, String personCharacteristic) {
+    private void calculateInsert(Map<String, Person> personFromSSOMap, Map<String, List<Person>> result, Map<String, Map<String, Person>> tempResult, String key, Person val, Map<String, List<Avatar>> avatarResult, String personCharacteristic) {
         //sso没有并且未删除标记的数据才进行新增
         //if (!personFromSSOMap.containsKey(key) && (val.getDelMark() == 0) && (CollectionUtils.isEmpty(upstreamMap) || !upstreamMap.containsKey(val.getSource()))) {
         if (!personFromSSOMap.containsKey(key)) {
@@ -1533,44 +1449,44 @@ public class PersonServiceImpl implements PersonService {
             }
        /*     //TODO ??? 根据主键判断新增还是修改
             if (id.equals(val.getId())) {*/
-                if (result.containsKey("insert")) {
-                    //tempResult.get("insert").put(val.getId(), val);
-                    result.get("insert").add(val);
-                } else {
+            if (result.containsKey("insert")) {
+                //tempResult.get("insert").put(val.getId(), val);
+                result.get("insert").add(val);
+            } else {
                    /* Map<String,Person> personMap=new HashMap<>();
                     personMap.put(val.getId(), val);
                     tempResult.put("insert",personMap);*/
-                    result.put("insert", new ArrayList<Person>() {{
-                        this.add(val);
+                result.put("insert", new ArrayList<Person>() {{
+                    this.add(val);
+                }});
+            }
+
+            //处理头像
+            if (null != val.getAvatar() || null != val.getAvatarUrl()) {
+                Avatar avatar = new Avatar();
+                avatar.setCardNo(val.getCardNo());
+                avatar.setCardType(val.getCardType());
+                avatar.setCellphone(val.getCellphone());
+                avatar.setEmail(val.getEmail());
+                avatar.setAccountNo(val.getAccountNo());
+                avatar.setPersonCharacteristic(personCharacteristic);
+
+                //avatar.setId(UUID.randomUUID().toString());
+                //avatar.setAvatar(val.getAvatar().getBytes(StandardCharsets.UTF_8));
+                avatar.setAvatarUrl(val.getAvatarUrl());
+                avatar.setAvatarHashCode(val.getAvatarHashCode());
+                avatar.setAvatarUpdateTime(val.getAvatarUpdateTime());
+                avatar.setIdentityId(val.getId());
+                if (avatarResult.containsKey("insert")) {
+                    avatarResult.get("insert").add(avatar);
+                } else {
+                    avatarResult.put("insert", new ArrayList<Avatar>() {{
+                        this.add(avatar);
                     }});
                 }
-
-                //处理头像
-                if (null != val.getAvatar() || null != val.getAvatarUrl()) {
-                    Avatar avatar = new Avatar();
-                    avatar.setCardNo(val.getCardNo());
-                    avatar.setCardType(val.getCardType());
-                    avatar.setCellphone(val.getCellphone());
-                    avatar.setEmail(val.getEmail());
-                    avatar.setAccountNo(val.getAccountNo());
-                    avatar.setPersonCharacteristic(personCharacteristic);
-
-                    //avatar.setId(UUID.randomUUID().toString());
-                    //avatar.setAvatar(val.getAvatar().getBytes(StandardCharsets.UTF_8));
-                    avatar.setAvatarUrl(val.getAvatarUrl());
-                    avatar.setAvatarHashCode(val.getAvatarHashCode());
-                    avatar.setAvatarUpdateTime(val.getAvatarUpdateTime());
-                    avatar.setIdentityId(val.getId());
-                    if (avatarResult.containsKey("insert")) {
-                        avatarResult.get("insert").add(avatar);
-                    } else {
-                        avatarResult.put("insert", new ArrayList<Avatar>() {{
-                            this.add(avatar);
-                        }});
-                    }
-                }
-                val.upstreamMarkNew();
-                log.debug("人员对比后新增{}", val);
+            }
+            val.upstreamMarkNew();
+            log.debug("人员对比后新增{}", val);
          /*   } else {
                 if (result.containsKey("update")) {
                     result.get("update").add(val);
@@ -1649,6 +1565,7 @@ public class PersonServiceImpl implements PersonService {
                     }
                 }
                 personFromSSO.set_uuid(newPerson.get_uuid());
+                personFromSSO.setUpstreamRuleId(newPerson.getUpstreamRuleId());
 
                 //判断是否都为已删除的数据并且不是合重导致的删除(是则跳过)
                 if (1 == newPerson.getDelMark() && 1 == personFromSSO.getDelMark() && (CollectionUtils.isEmpty(distinctPersonMap) || (!CollectionUtils.isEmpty(distinctPersonMap) && !distinctPersonMap.containsKey(newPerson.getId())))) {
@@ -1923,7 +1840,6 @@ public class PersonServiceImpl implements PersonService {
                                     }
 
 
-
                                     //处理人员预览数据
                                     //preViewPersonMap.remove(personFromSSO.getId());
                                     //处理keep人员 数据
@@ -1987,7 +1903,7 @@ public class PersonServiceImpl implements PersonService {
                                     dynamicProcessing(valueUpdateMap, valueInsertMap, attrMap, newPerson, dynamic, dyValuesFromSSO, dynamicSSOValues, mergeFieldMap);
                                     dyFlag = false;
                                 }
-                            }else{
+                            } else {
                                 newPerson.upstreamMarkNoChange("映射字段无差异");
                             }
 
@@ -2018,8 +1934,9 @@ public class PersonServiceImpl implements PersonService {
                                         people.add(newPerson);
                                         result.put("merge", people);
                                     }
+                                    newPerson.upstreamMarkManualMerge();
                                 }
-                                newPerson.upstreamMarkManualMerge();
+
                             }
 
 
@@ -2316,6 +2233,8 @@ public class PersonServiceImpl implements PersonService {
     @Override
     @Deprecated
     public PersonConnection preViewPersons(Map<String, Object> arguments, DomainInfo domain) {
+        return null;
+        /*
         Integer i = personDao.findPersonTempCount(null, domain);
         //判断数据库是否有数据
         if (i <= 0 || CollectionUtils.isEmpty(personPreViewData) || (!CollectionUtils.isEmpty(personPreViewData) && CollectionUtils.isEmpty(personPreViewData.get(domain.getId())))) {
@@ -2370,7 +2289,7 @@ public class PersonServiceImpl implements PersonService {
             }
             personConnection.setEdges(upstreamDept);
         }
-        return personConnection;
+        return personConnection;*/
 
 
     }
@@ -2378,7 +2297,8 @@ public class PersonServiceImpl implements PersonService {
     @Override
     @Deprecated
     public PreViewTask reFreshPersons(Map<String, Object> arguments, DomainInfo domain, PreViewTask viewTask) {
-
+        return null;
+        /*
         if (null == viewTask) {
             viewTask = new PreViewTask();
             viewTask.setTaskId(UUID.randomUUID().toString());
@@ -2409,10 +2329,11 @@ public class PersonServiceImpl implements PersonService {
 
 
         return viewTask;
+        */
     }
 
     private void executePreView(Map<String, Object> arguments, DomainInfo domain, PreViewTask viewTask) {
-        //错误数据置空
+        /*//错误数据置空
         TaskConfig.errorData.put(domain.getId(), "");
         personErrorData = new ConcurrentHashMap<>();
         Tenant tenant = tenantService.findByDomainName(domain.getDomainName());
@@ -2485,13 +2406,15 @@ public class PersonServiceImpl implements PersonService {
             viewTask.setUpdateTime(new Timestamp(System.currentTimeMillis()));
             preViewTaskService.saveTask(viewTask);
             log.info("人员刷新完毕,任务id为:{}", viewTask.getTaskId());
-        }
+        }*/
     }
 
     @Override
+    @Deprecated
     public PreViewTask reFreshTaskStatus(Map<String, Object> arguments, DomainInfo domain) {
-        Object id = arguments.get("taskId");
-        return preViewTaskService.findByTaskId(id, domain);
+        return  null;
+        //Object id = arguments.get("taskId");
+        //return preViewTaskService.findByTaskId(id, domain);
     }
 
     /**
@@ -2679,6 +2602,12 @@ public class PersonServiceImpl implements PersonService {
         return viewTask;
     }
 
+
+    /**
+     * 触发 模拟运行人员同步任务
+     * @param domain
+     * @param viewTask
+     */
     private void dealTask(DomainInfo domain, PreViewTask viewTask) {
         //错误数据置空
         TaskConfig.errorData.put(domain.getId(), "");
@@ -2727,7 +2656,13 @@ public class PersonServiceImpl implements PersonService {
         //获取 手工合重属性相关信息
         List<MergeAttrRule> mergeAttrRules = mergeAttrRuleService.findOriginalMergeAttrRulesByTenantId(tenant.getId());
 
-        dataProcessing(nodeRules, domain, tenant, valueUpdateMap, valueInsertMap, result, null, avatarResult, upstreamMap, avatarRules, mergeAttrRules);
+
+        // 2023-09-18 新增容器，用于存储上游返回的所有数据，便于统计上游数据最终流向。 在此只为了兼容逻辑，最后并不会将结果入库
+        // key ->uuid ; val ->  person
+        Map<String, Person> allPersonFromUpstream = new ConcurrentHashMap<>();
+
+
+        dataProcessing(nodeRules, domain, tenant, valueUpdateMap, valueInsertMap, result, null, avatarResult, upstreamMap, avatarRules, mergeAttrRules,allPersonFromUpstream);
 
         if (!CollectionUtils.isEmpty(personErrorData.get(domain.getId()))) {
             TaskConfig.errorData.put(domain.getId(), JSONObject.toJSONString(personErrorData.get(domain.getId())));
@@ -2862,7 +2797,6 @@ public class PersonServiceImpl implements PersonService {
 
         return personConnection;
     }
-
 
 
 }

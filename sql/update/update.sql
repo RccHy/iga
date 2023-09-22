@@ -1,3 +1,17 @@
+-- 20230922 权威源状态标记
+alter table person_temp drop column upstreamDataStatus;
+alter table person_temp add upstreamDataStatus int null comment ' 权威源数据对比后的状态标记0 ：数据不过验证丢弃  1： 数据自动合重、 2: 数据手动合重、 3 数据新增、 4 数据修改 、 5 数据删除';
+alter table person_temp add upstreamDataReason varchar(500) null comment '权威源数据对比后不入库的原因';
+alter table person_temp add storage boolean null comment '权威源数据最终是否入库';
+alter table person_temp add upstreamRuleId varchar(50) null comment '权威源数据对应的具体规则ID';
+alter table person_temp drop key open_id;
+
+
+
+
+
+
+
 -- 20230817
 -- #新安装的版本字段名不对，升级的版本不受影响。故执行失败时可忽略
 
