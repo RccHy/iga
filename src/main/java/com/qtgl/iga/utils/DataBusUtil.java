@@ -650,6 +650,8 @@ public class DataBusUtil {
             if (null == innerMap.get("parentCode")) {
                 innerMap.put("parentCode", "");
             }
+            // 2023-09-15 新增UUUID字段，用作标识来源数据唯一性。 方便跟踪上游数据状态变化
+            innerMap.put("_uuid",UUID.randomUUID().toString());
             resultJson.add(innerMap);
 
         }

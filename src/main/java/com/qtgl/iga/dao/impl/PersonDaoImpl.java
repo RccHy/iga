@@ -380,7 +380,7 @@ public class PersonDaoImpl implements PersonDao {
 
                 }
 
-                // 运行属性合重规则
+                // 手工合重时候，可能设置了 扩展属性合重 也可能设置了 基础数据合重。
                 if (!CollectionUtils.isEmpty(mergeAttrRules)) {
                     for (MergeAttrRule mergeAttrRule : mergeAttrRules) {
                         if (StringUtils.isNotBlank(mergeAttrRule.getDynamicAttrId())) {
