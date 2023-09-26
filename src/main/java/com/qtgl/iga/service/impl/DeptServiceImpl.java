@@ -203,12 +203,16 @@ public class DeptServiceImpl implements DeptService {
     }
 
 
+
     /**
      * 构建部门树 并 插入进 sso-api 数据库
      * 返回操作语句记录
-     *
      * @param domain
+     * @param lastTaskLog  todo 上次同步日志 (为了判断是否跳过上次忽略的异常)
+     * @param currentTask  当前同步日志
+     * @param deptRules  是sub还是同步任务, sub情况下只跑该参数提供的规则,其余规则认为未启用,忽略上游变动
      * @return
+     * @throws Exception
      */
     @Override
     public Map<TreeBean, String> buildDeptUpdateResult(DomainInfo domain, TaskLog lastTaskLog, TaskLog currentTask, List<NodeRules> deptRules) throws Exception {
@@ -216,24 +220,30 @@ public class DeptServiceImpl implements DeptService {
         if (null == tenant) {
             throw new CustomException(ResultCode.FAILED, "租户不存在");
         }
-        //通过tenantId查询ssoApis库中的数据
+        // 通过tenantId查询sso库中的全部数据(包含删除数据)
         List<TreeBean> beans = deptDao.findByTenantId(tenant.getId(), null, null);
 
-        //map做增量处理值传递
+        //全量的sso数据(包含删除的)
         Map<String, TreeBean> ssoBeansMap = beans.stream().collect(Collectors.toMap((TreeBean::getCode), (dept -> dept)));
         //轮训比对标记(是否有主键id)
         Map<TreeBean, String> result = new HashMap<>();
-        ArrayList<TreeBean> treeBeans = new ArrayList<>();
+
+        //ArrayList<TreeBean> treeBeans = new ArrayList<>();
+
+        //  先获取基准数据(sso的API组织机构) ,然后运行规则生成结果集
         List<TreeBean> mainTreeBeans = new ArrayList<>();
 
         // 获取租户下开启的部门类型
         List<DeptTreeType> deptTreeTypes = deptTreeTypeService.findAll(new HashMap<>(), domain.getId());
+
         final LocalDateTime now = LocalDateTime.now();
         //获取扩展字段列表
         List<String> dynamicCodes = new ArrayList<>();
         //扩展字段值分组
         Map<String, List<DynamicValue>> valueMap = new ConcurrentHashMap<>();
+        //扩展字段声明的
         List<DynamicAttr> dynamicAttrs = dynamicAttrService.findAllByType(TYPE, tenant.getId());
+        //扩展字段修改容器
         List<DynamicValue> valueUpdate = new ArrayList<>();
         //扩展字段新增容器
         ArrayList<DynamicValue> valueInsert = new ArrayList<>();
@@ -254,16 +264,20 @@ public class DeptServiceImpl implements DeptService {
             }
         }
         logger.info("获取到当前租户{}的扩展字段集为{}", tenant.getId(), dynamicAttrs);
+
         //获取所有规则
         List<NodeDto> nodes = nodeService.findNodes(domain.getId(), 0, TYPE, true);
+
         List<UpstreamDto> upstreams;
         Map<String, List<NodeDto>> nodesMap = new ConcurrentHashMap<>();
         Map<String, UpstreamDto> upstreamMap = new ConcurrentHashMap<>();
+        //非sub 的情况下需获取未启用权威源 用于通过sso数据 source忽略变动判断
         if (CollectionUtils.isEmpty(deptRules)) {
-            //获取该租户下的当前类型的无效权威源
+            //获取该租户下的当前类型的未启用权威源
             upstreams = upstreamService.findByDomainAndActiveIsFalse(domain.getId());
         } else {
-            //根据规则获取排除的权威源  及 补充规则？
+            //根据规则获取排除的权威源  及 补充规则
+            // 在sub 情况下, 查询所提供的权威源下的所有规则,  否则,未提供规则拉取的数据  变动无法忽略会导致数据不一致
             Set<String> strings = deptRules.stream().collect(Collectors.groupingBy(NodeRules::getUpstreamTypesId)).keySet();
 
             List<Upstream> ruleUpstreams = upstreamService.findByUpstreamTypeIds(new ArrayList<>(strings), domain.getId());
@@ -288,8 +302,7 @@ public class DeptServiceImpl implements DeptService {
 
         for (DeptTreeType deptType : deptTreeTypes) {
 
-            //获取当前组织机构树类型下所有的规则
-            //List<Node> nodes = nodeService.getByTreeType(domain.getId(), deptType.getCode(), 0, TYPE);
+
             //获取当前组织机构树类型下所有的规则
             if (!nodesMap.containsKey(deptType.getCode())) {
                 // 没有规则则跳过
@@ -300,17 +313,20 @@ public class DeptServiceImpl implements DeptService {
             if (!CollectionUtils.isEmpty(nodeDtos)) {
                 nodesMapByNodeCode = nodeDtos.stream().collect(Collectors.groupingBy(Node::getNodeCode));
             }
+
             // 提前获取来自API的数据, 以防有规则信息 是挂载在 API节点上
             List<TreeBean> ssoApiBeans = deptDao.findBySourceAndTreeType("API", deptType.getCode(), tenant.getId());
 
             if (null != ssoApiBeans && ssoApiBeans.size() > 0) {
                 mainTreeBeans.addAll(ssoApiBeans);
+                //重复性校验
                 calculationService.groupByCode(mainTreeBeans, 0, mainTreeBeans, domain, false);
+
                 for (TreeBean ssoApiBean : ssoApiBeans) {
                     mainTreeBeans = calculationService.nodeRules(domain, deptType, ssoApiBean.getCode(), mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, result, nodesMapByNodeCode, currentTask);
                 }
             }
-            //  id 改为code
+            // todo 外层规则 应该先执行(如果有sso-api的数据先追加到mainTreeBean 然后根节点运算,然后遍历所有数据)
             mainTreeBeans = calculationService.nodeRules(domain, deptType, "", mainTreeBeans, 0, TYPE, dynamicCodes, ssoBeansMap, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, result, nodesMapByNodeCode, currentTask);
 
         }
@@ -319,7 +335,8 @@ public class DeptServiceImpl implements DeptService {
         beans = new ArrayList<>(ssoBeansMap.values());
         //监控身份
         ArrayList<TreeBean> occupyMonitors = new ArrayList<>();
-        beans = dataProcessing(mainTreeMap, beans, result, treeBeans, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, occupyMonitors);
+        //beans = dataProcessing(mainTreeMap, beans, result, treeBeans, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, occupyMonitors);
+        beans = dataProcessing(mainTreeMap, beans, result, null, now, dynamicAttrs, valueMap, valueUpdate, valueInsert, upstreamMap, occupyMonitors);
 
         //code重复性校验
         calculationService.groupByCode(beans, 0, beans, domain, false);
@@ -509,6 +526,7 @@ public class DeptServiceImpl implements DeptService {
 
         //遍历拉取数据
         for (TreeBean pullBean : pullBeans) {
+
             //来自数据库的部分主树数据没有对应规则标识,默认有效
             if (null == pullBean.getRuleStatus()) {
                 pullBean.setRuleStatus(true);
@@ -519,15 +537,12 @@ public class DeptServiceImpl implements DeptService {
             if (null != ssoBeans) {
                 //当前数据的来源规则是启用的再进行对比
                 if (pullBean.getRuleStatus()) {
+
                     //遍历数据库数据
                     for (TreeBean ssoBean : ssoBeans) {
                         //来源数据规则是启用的再进行对比
                         if (pullBean.getCode().equals(ssoBean.getCode())) {
-                            //if (!CollectionUtils.isEmpty(upstreamMap) && upstreamMap.containsKey(pullBean.getSource())) {
-                            //    logger.warn("权威源:{}未启用,跳过该数据:{}对比", pullBean.getSource(),pullBean);
-                            //    flag = false;
-                            //    continue;
-                            //}
+
 
                             ssoBean.setIsRuled(pullBean.getIsRuled());
                             ssoBean.setColor(pullBean.getColor());
@@ -754,6 +769,8 @@ public class DeptServiceImpl implements DeptService {
                                     //防止重复将数据放入
                                     if (!dyFlag) {
                                         result.put(ssoBean, "update");
+                                        logger.info("部门对比后需要修改{}", ssoBean);
+
                                     }
 
                                     //处理扩展字段对比     修改标识为false则认为主体字段没有差异
@@ -768,6 +785,8 @@ public class DeptServiceImpl implements DeptService {
                                         Boolean valueFlag = dynamicProcessing(valueUpdate, valueInsert, attrMap, ssoBean, dynamic, dyValuesFromSSO);
                                         if (valueFlag) {
                                             result.put(ssoBean, "update");
+                                            logger.info("部门对比后需要修改{}", ssoBean);
+
                                         }
 
                                     }
@@ -818,7 +837,7 @@ public class DeptServiceImpl implements DeptService {
             }
         }
 
-
+        //对比失效, 外层sso循环,内层上游数据循环
         if (null != ssoBeans) {
             //查询数据库需要置为失效的数据
             for (TreeBean ssoBean : ssoBeans) {

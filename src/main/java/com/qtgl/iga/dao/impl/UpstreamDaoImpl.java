@@ -549,7 +549,6 @@ public class UpstreamDaoImpl implements UpstreamDao {
         }
         return null;
     }
-
     @Override
     public List<Upstream> findByRecover(String domain) {
         //拼接sql

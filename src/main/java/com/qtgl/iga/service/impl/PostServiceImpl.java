@@ -275,6 +275,8 @@ public class PostServiceImpl implements PostService {
         //    logger.error("请在‘ 身份管理->岗位管理 ’中进行岗位数据初始化导入后再进行治理{}", tenant.getId());
         //    throw new CustomException(ResultCode.FAILED, "请在‘ 身份管理->岗位管理 ’中进行岗位数据初始化导入后再进行治理");
         //}
+
+
         //获取完整的非PULL根数据以及加入逻辑根节点
         if (!CollectionUtils.isEmpty(ssoBeans)) {
             rootBeans.addAll(ssoBeans);
@@ -307,11 +309,7 @@ public class PostServiceImpl implements PostService {
         //扩展字段新增容器
         ArrayList<DynamicValue> valueInsert = new ArrayList<>();
 
-        ////扩展字段id与code对应map
-        //Map<String, String> attrMap = new ConcurrentHashMap<>();
-        //if (!CollectionUtils.isEmpty(dynamicAttrs)) {
-        //    attrMap = dynamicAttrs.stream().collect(Collectors.toMap(DynamicAttr::getCode, DynamicAttr::getId));
-        //}
+
         if (!CollectionUtils.isEmpty(dynamicAttrs)) {
             dynamicCodes = dynamicAttrs.stream().map(DynamicAttr -> DynamicAttr.getCode()).collect(Collectors.toList());
             //获取扩展value

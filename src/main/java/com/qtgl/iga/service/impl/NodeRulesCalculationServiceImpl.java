@@ -545,8 +545,9 @@ public class NodeRulesCalculationServiceImpl {
      * @throws Exception
      * @Description: 规则运算。详细描述运算逻辑
      */
-    public List<TreeBean> nodeRules(DomainInfo domain, DeptTreeType treeType, String nodeCode, List<TreeBean> mainTree, Integer status, String type, List<String> dynamicCodes, Map<String, TreeBean> ssoBeansMap,
-                                    List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate, List<DynamicValue> valueInsert, Map<String, UpstreamDto> upstreamHashMap,
+    public List<TreeBean> nodeRules(DomainInfo domain, DeptTreeType treeType, String nodeCode, List<TreeBean> mainTree, Integer status, String type, List<String> dynamicCodes,
+                                    Map<String, TreeBean> ssoBeansMap, List<DynamicAttr> dynamicAttrs, Map<String, List<DynamicValue>> valueMap, List<DynamicValue> valueUpdate,
+                                    List<DynamicValue> valueInsert, Map<String, UpstreamDto> upstreamHashMap,
                                     Map<TreeBean, String> result, Map<String, List<NodeDto>> nodesMap, TaskLog currentTask) throws Exception {
         //获取根节点的规则
         //List<Node> nodes = nodeDao.getByCode(domain.getId(), treeType, nodeCode, status, type);
@@ -563,6 +564,7 @@ public class NodeRulesCalculationServiceImpl {
             if (null == node) {
                 return mainTree;
             }
+            //本次规则运算后 待合并的数据集合
             Map<String, TreeBean> mergeDeptMap = null;
             String code = node.getNodeCode();
             logger.info("开始'{}'节点规则运算", code);
@@ -593,7 +595,7 @@ public class NodeRulesCalculationServiceImpl {
                         log.info("当前规则被忽略,跳过执行");
                         continue;
                     }
-                    //是否有规则过滤非继承数据打标识
+                    //todo 是否有规则过滤非继承数据打标识
                     if (null != mainTreeMap && StringUtils.isBlank(nodeRule.getInheritId())) {
                         TreeBean treeBean = mainTreeMap.get(code);
                         if (null != treeBean) {
@@ -631,12 +633,6 @@ public class NodeRulesCalculationServiceImpl {
                     try {
                         upstreamTree = dataBusUtil.getDataByBus(upstreamType, domain.getDomainName());
                     } catch (CustomException e) {
-                        //e.setData(mainTree);
-                        //if (new Long("1085").equals(e.getCode())) {
-                        //    throw new CustomException(ResultCode.INVOKE_URL_ERROR, "请求资源地址失败,请检查权威源:" + upstream.getAppName() + "(" + upstream.getAppCode() + ")" + "下的权威源类型:" + upstreamType.getDescription(), mainTree);
-                        //} else {
-                        //    throw e;
-                        //}
 
                         if (new Long("1085").equals(e.getCode())) {
                             log.error("请求资源地址失败,请检查权威源:{}下的权威源类型:{},通过影子副本获取数据", upstream.getAppName() + "(" + upstream.getAppCode() + ")", upstreamType.getDescription());
@@ -655,7 +651,6 @@ public class NodeRulesCalculationServiceImpl {
                     } catch (Exception e) {
                         e.printStackTrace();
                         logger.error("{}{} 中的类型 【{}】 表达式异常, 通过影子副本获取数据", (null == treeType ? "" : treeType.getName() + "下"), ("".equals(nodeCode) ? "根节点" : nodeCode), upstreamType.getDescription());
-                        //throw new CustomException(ResultCode.EXPRESSION_ERROR, null, null, null == treeType ? "" : treeType.getName(), "".equals(nodeCode) ? "根节点" : nodeCode, upstreamType.getDescription());
                         //通过影子副本获取数据
                         upstreamTree = shadowCopyService.findDataByUpstreamTypeAndType(upstreamType.getId(), type, upstreamType.getDomain());
                         if (CollectionUtils.isEmpty(upstreamTree)) {
@@ -754,13 +749,14 @@ public class NodeRulesCalculationServiceImpl {
 
 
                     //判断上游是否给出时间戳
-                    this.judgeTime(upstreamTree, timestamp);
+                    //this.judgeTime(upstreamTree, timestamp);
 
                     //对树 json 转为 map
                     Map<String, TreeBean> upstreamMap = TreeUtil.toMap(upstreamDept);
 
                     //对树进行 parent 分组
                     Map<String, List<TreeBean>> childrenMap = TreeUtil.groupChildren(upstreamDept);
+
                     //查询 树 运行  规则,
                     //List<NodeRulesRange> nodeRulesRanges = rangeDao.getByRulesId(nodeRule.getId(), null);
                     List<NodeRulesRange> nodeRulesRanges = nodeRule.getNodeRulesRanges();
@@ -771,8 +767,8 @@ public class NodeRulesCalculationServiceImpl {
                     //在挂载基础上进行排除
                     excludeRules(nodeCode, mergeDeptMap, childrenMap, nodeRulesRanges, domain, treeType, mainTree);
                     logger.info("节点'{}'开始运行排除", code);
-                    // 对最终要挂载的树进行重命名
-                    renameRules(mergeDeptMap, nodeRulesRanges, childrenMap, type);
+                    // todo 对最终要挂载的树进行重命名  未启用
+                    //renameRules(mergeDeptMap, nodeRulesRanges, childrenMap, type);
                     logger.info("节点'{}'开始运行重命名", code);
                     logger.info("节点'{}'的规则运算完成", nodeCode);
                     logger.debug("{}", mergeDeptMap);
@@ -785,7 +781,10 @@ public class NodeRulesCalculationServiceImpl {
                     //循环引用判断
                     this.circularData(mergeDeptMap, status, mainTree, domain);
                     // 判断权威源拉取数据是否有重复性问题
-                    this.groupByCode(upstreamDept, status, mainTree, domain, true);
+                    //this.groupByCode(upstreamDept, status, mainTree, domain, true);
+
+                    // todo 判断权威源拉取数据是否有重复性问题
+                    this.groupByCode(new ArrayList<>(mergeDeptMap.values()), status, mainTree, domain, true);
 
 
             /*
@@ -803,11 +802,14 @@ public class NodeRulesCalculationServiceImpl {
                                 Map<String, TreeBean> mainTreeMap2 = new ConcurrentHashMap<>();
                                 mainTreeMap2.putAll(mainTreeMap);
                                 for (Map.Entry<String, TreeBean> deptEntry : mainTreeMap2.entrySet()) {
+                                    //节点code
                                     String key = deptEntry.getKey();
+                                    //实体
                                     TreeBean value = deptEntry.getValue();
+                                    TreeBean mergeBean = mergeDeptMap.get(key);
                                     if (mergeDeptMap.containsKey(key) &&
-                                            mergeDeptMap.get(key).getParentCode().equals(value.getParentCode()) &&
-                                            ((null == mergeDeptMap.get(key).getTreeType() ? "" : mergeDeptMap.get(key).getTreeType())
+                                            mergeBean.getParentCode().equals(value.getParentCode()) &&
+                                            ((null == mergeBean.getTreeType() ? "" : mergeBean.getTreeType())
                                                     .equals(null == value.getTreeType() ? "" : value.getTreeType()))
                                     ) {
 
@@ -934,6 +936,7 @@ public class NodeRulesCalculationServiceImpl {
                         //处理父节点
                         ArrayList<TreeBean> treeBeans = new ArrayList<>(mergeDeptMap.values());
                         if (null != treeBeans && treeBeans.size() > 0) {
+                            //如果当前规则拉取到的数据结果集中,有parent不存在的,则将该节点指定到当前规则所属的nodeCode下
                             for (TreeBean treeBean : treeBeans) {
                                 if (!mergeDeptMap.containsKey(treeBean.getParentCode())) {
                                     treeBean.setParentCode(nodeCode);
@@ -976,7 +979,7 @@ public class NodeRulesCalculationServiceImpl {
             //    }
             //}
 
-
+            // todo node 存在 但是没有任何规则,并且不是根节点的规则,移除当前node之前所有的子集
             if (null == nodeRules && (!"".equals(nodeCode))) {
                 TreeUtil.removeTree(code, mainTreeChildren, mainTreeMap);
                 mainTree = new ArrayList<>(mainTreeMap.values());
@@ -1213,9 +1216,9 @@ public class NodeRulesCalculationServiceImpl {
      * @return: void
      */
     /**
-     * @param treeBeans  校验集合
+     * @param treeBeans  被校验集合
      * @param status
-     * @param mainTree   主树
+     * @param mainTree   异常情况下  合并数据到主树返回显示
      * @param domainInfo
      * @param flag       异常是否需要合并mainTree
      */

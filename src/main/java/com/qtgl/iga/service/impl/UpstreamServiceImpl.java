@@ -454,8 +454,9 @@ public class UpstreamServiceImpl implements UpstreamService {
     public List<UpstreamDto> findByRecover(String domain) {
         ArrayList<UpstreamDto> upstreamDtos = new ArrayList<>();
 
-        //获取被覆盖的权威源
+        //  获取被覆盖的权威源
         List<Upstream> upstreams = upstreamDao.findByRecover(domain);
+
         if (!CollectionUtils.isEmpty(upstreams)) {
             List<String> ids = upstreams.stream().map(Upstream::getId).collect(Collectors.toList());
             //获取被覆盖权威源所涉及的权威源类型

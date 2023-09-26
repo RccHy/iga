@@ -226,6 +226,13 @@ public class NodeServiceImpl implements NodeService {
 
     }
 
+    /**
+     *
+     * @param nodeList   本地的
+     * @param superNodeList  超级租户的
+     * @param domain
+     * @return
+     */
     private List<NodeDto> getNodeDtoByNodeList(List<Node> nodeList, List<Node> superNodeList, String domain) {
         List<NodeDto> nodeDos = new ArrayList<>();
         List<String> ignoreUpstreamTypeIds = new ArrayList<>();
@@ -290,7 +297,8 @@ public class NodeServiceImpl implements NodeService {
                 }
                 if (!CollectionUtils.isEmpty(superNodeList)) {
                     for (Node node : superNodeList) {
-                        //当前租户没有对应的超级租户 节点 单独装配
+
+                        // 如果对应的挂载规则 只在超级租户下有,单独追加到规则集合中
                         if (!keyMap.containsValue(node.getId()) && rulesMap.containsKey(node.getId())) {
                             NodeDto nodeDto = new NodeDto(node);
                             nodeDto.setLocal(false);
@@ -367,7 +375,7 @@ public class NodeServiceImpl implements NodeService {
 
     /**
      * /**
-     *
+     * 处理规则,覆盖的丢弃,修改node指向
      * @param nodeDto               节点容器
      * @param nodeRulesVos          需要处理的规则
      * @param isLocal               是否来自本租户
