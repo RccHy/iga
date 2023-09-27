@@ -2100,6 +2100,7 @@ public class PersonServiceImpl implements PersonService {
 
                     } else {
                         log.debug("人员{},对应规则未启用,本次跳过该数据", newPerson);
+                        newPerson.upstreamMarkRuleDisable();
                     }
                 }
 

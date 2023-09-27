@@ -725,10 +725,20 @@ public class OccupyDaoImpl implements OccupyDao {
     }
 
     @Override
-    public Integer saveToTemp(List<OccupyDto> occupyDtos, DomainInfo domain) {
+    public Integer saveToTemp(Map<String, OccupyDto> occupyDtoMap, DomainInfo domain) {
+        List<OccupyDto> occupyDtos = new ArrayList<>();
+        if (null != occupyDtoMap) {
+            occupyDtoMap.forEach((k, v) -> {
+                occupyDtos.add(v);
+            });
+        }
+        String delSql = " delete from  `occupy_temp` where tenant_id =? ";
+        jdbcIGA.update(delSql, domain.getId());
+
         String sql = "INSERT INTO occupy_temp " +
-                "               (id, user_type, card_type,user_code, del_mark, start_time, end_time, create_time, update_time, tenant_id, dept_code, source, data_source, active, active_time,user_index,post_code,account_no,valid_start_time,valid_end_time,orphan,person_card_no,person_card_type) " +
-                "               VALUES (?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                "               (id, user_type, card_type,user_code, del_mark, start_time, end_time, create_time, update_time, tenant_id, dept_code, source, data_source, active, active_time,user_index,post_code," +
+                "account_no,valid_start_time,valid_end_time,orphan,person_card_no,person_card_type,upstreamDataStatus,upstreamDataReason,storage,upstreamRuleId) " +
+                "               VALUES (?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         int[] ints = jdbcIGA.batchUpdate(sql, new BatchPreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
@@ -754,6 +764,10 @@ public class OccupyDaoImpl implements OccupyDao {
                 preparedStatement.setObject(20, occupyDtos.get(i).getOrphan());
                 preparedStatement.setObject(21, occupyDtos.get(i).getPersonCardNo());
                 preparedStatement.setObject(22, occupyDtos.get(i).getPersonCardType());
+                preparedStatement.setObject(23, occupyDtos.get(i).getUpstreamDataStatus());
+                preparedStatement.setObject(24, occupyDtos.get(i).getUpstreamDataReason());
+                preparedStatement.setObject(25, occupyDtos.get(i).getStorage());
+                preparedStatement.setObject(26, occupyDtos.get(i).getUpstreamRuleId());
             }
 
             @Override

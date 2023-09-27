@@ -9,6 +9,7 @@ import com.qtgl.iga.service.*;
 import com.qtgl.iga.utils.DataBusUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
@@ -22,8 +23,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 /**
  * @author 1
  */
-//@Controller
-//@RequestMapping("/test")
+@Controller
+@RequestMapping("/test")
 @Slf4j
 public class HelloController {
 
@@ -68,7 +69,7 @@ public class HelloController {
             arguments.put("status", 1);
             TaskLog taskLog = new TaskLog();
             taskLog.setId(UUID.randomUUID().toString());
-            final DomainInfo domainInfo = domainInfoService.findAll().get(1);
+            final DomainInfo domainInfo = domainInfoService.findAll().get(2);
             try {
                 taskLogService.save(taskLog, domainInfo.getId(), "save");
                 TaskLog lastTaskLog = taskLogService.last(domainInfo.getId());
@@ -96,7 +97,7 @@ public class HelloController {
                 taskLog.setPersonNo(postNo);
                 taskLogService.save(taskLog, domainInfo.getId(), "update");
 
-               */
+
 
 
 
@@ -108,7 +109,7 @@ public class HelloController {
                 log.info(Thread.currentThread().getName() + ": 人员同步完成{}==={}", personNo, System.currentTimeMillis());
                 taskLog.setPersonNo(personNo);
                 taskLogService.save(taskLog, domainInfo.getId(), "update");
-
+                    */
 
                 //人员身份同步至sso
                 final Map<String, List<OccupyDto>> occupyResult = occupyService.buildOccupy(domainInfo, lastTaskLog,null,null);

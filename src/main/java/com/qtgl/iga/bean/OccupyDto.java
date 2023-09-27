@@ -1,6 +1,7 @@
 package com.qtgl.iga.bean;
 
 import com.qtgl.iga.bo.DynamicValue;
+import com.qtgl.iga.utils.enums.DataStatusEnum;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -75,6 +76,37 @@ public class OccupyDto implements Cloneable {
     private Integer syncState;
 
 
+
+
+    /**
+     *
+     */
+    private String _uuid;
+    /**
+     * 权威源数据最终状态。  用于区分是否入库.
+     * 可能存在  0 ：数据不过验证丢弃  1： 数据自动合重、 2: 数据手动合重、 3 数据新增、 4 数据修改 、 5 数据删除
+     */
+    private Integer upstreamDataStatus;
+    /**
+     * 权威源数据不入库的原因
+     */
+    private String upstreamDataReason;
+
+    /**
+     * 权威源是否入库状态
+     *
+     * @return
+     */
+    private Boolean storage;
+
+    /**
+     * 权威源来自具体规则
+     * @return
+     */
+    public String upstreamRuleId;
+
+
+
     @Override
     public Object clone() {
         OccupyDto occupyDto = null;
@@ -84,5 +116,51 @@ public class OccupyDto implements Cloneable {
             e.printStackTrace();
         }
         return occupyDto;
+    }
+
+
+    public void upstreamMarkDel() {
+        this.setUpstreamDataStatus(Integer.valueOf(DataStatusEnum.DELETE.getDesc()));
+        this.setUpstreamDataReason("该数据上游直接标记为删除");
+        this.setStorage(false);
+    }
+
+    public void upstreamMarkRuleDisable() {
+        this.setUpstreamDataStatus(Integer.valueOf(DataStatusEnum.RULE_DISABLE.getDesc()));
+        this.setUpstreamDataReason("该数据对应规则未启用");
+        this.setStorage(false);
+    }
+
+    public void upstreamMarkErrorData(String errorReason) {
+        this.setUpstreamDataStatus(Integer.valueOf(DataStatusEnum.ERROR_DATA.getDesc()));
+        this.setUpstreamDataReason(errorReason);
+        this.setStorage(false);
+    }
+
+    public void upstreamMarkAutoMerge() {
+        this.setUpstreamDataStatus(Integer.valueOf(DataStatusEnum.AUTO_MERGE.getDesc()));
+        this.setUpstreamDataReason("自动合重");
+        this.setStorage(false);
+    }
+
+    public void upstreamMarkManualMerge() {
+        this.setUpstreamDataStatus(Integer.valueOf(DataStatusEnum.MANUAL_MERGE.getDesc()));
+        this.setUpstreamDataReason("手动合重");
+        this.setStorage(false);
+    }
+
+    public void upstreamMarkNew() {
+        this.setUpstreamDataStatus(Integer.valueOf(DataStatusEnum.NEW.getDesc()));
+        this.setStorage(true);
+    }
+
+    public void upstreamMarkUpdate() {
+        this.setUpstreamDataStatus(Integer.valueOf(DataStatusEnum.UPDATE.getDesc()));
+        this.setStorage(true);
+    }
+    public void upstreamMarkNoChange(String reason) {
+        this.setUpstreamDataStatus(Integer.valueOf(DataStatusEnum.NO_CHANGE.getDesc()));
+        this.setUpstreamDataReason(reason);
+        this.setStorage(true);
     }
 }

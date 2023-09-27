@@ -20,7 +20,7 @@ public interface OccupyDao {
 
     void removeData(DomainInfo domain);
 
-    Integer saveToTemp(List<OccupyDto> occupyDtos, DomainInfo domain);
+    Integer saveToTemp(Map<String, OccupyDto> occupyDtoMap, DomainInfo domain);
 
     List<OccupyDto> findOccupyTemp(Map<String, Object> arguments, DomainInfo domain);
 

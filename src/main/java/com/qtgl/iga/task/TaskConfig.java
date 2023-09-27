@@ -67,7 +67,7 @@ public class TaskConfig {
      * 根据租户区分线程池
      * 串行执行 部门、岗位、人员、三元组 同步
      */
-    @Scheduled(cron = "${task.cron}")
+    //@Scheduled(cron = "${task.cron}")
     public void task() {
         try {
             // k8环境多节点部署环境下 仅01节点会执行定时任务
