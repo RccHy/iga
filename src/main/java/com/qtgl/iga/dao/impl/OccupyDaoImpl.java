@@ -742,7 +742,7 @@ public class OccupyDaoImpl implements OccupyDao {
         int[] ints = jdbcIGA.batchUpdate(sql, new BatchPreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
-                preparedStatement.setObject(1, occupyDtos.get(i).getOccupyId());
+                preparedStatement.setObject(1, UUID.randomUUID().toString());
                 preparedStatement.setObject(2, occupyDtos.get(i).getPostCode());
                 preparedStatement.setObject(3, occupyDtos.get(i).getIdentityCardType());
                 preparedStatement.setObject(4, occupyDtos.get(i).getIdentityCardNo());
