@@ -23,8 +23,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 /**
  * @author 1
  */
-@Controller
-@RequestMapping("/test")
+//@Controller
+//@RequestMapping("/test")
 @Slf4j
 public class HelloController {
 
