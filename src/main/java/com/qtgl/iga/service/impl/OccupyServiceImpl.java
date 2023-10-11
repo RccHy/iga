@@ -1354,7 +1354,7 @@ public class OccupyServiceImpl implements OccupyService {
                                 occupyFromSSO.setActive(newOccupy.getActive());
                                 occupyFromSSO.setActiveTime(newOccupy.getUpdateTime());
                                 //上游提供的有效期开始时间为过去时间或不提供start_time 则赋值为当前时刻
-                                if (null == occupyFromSSO.getStartTime() || occupyFromSSO.getStartTime().isBefore(now)) {
+                                if (null == occupyFromSSO.getStartTime() ) {
                                     occupyFromSSO.setValidStartTime(now);
                                 }
                                 occupyFromSSO.setValidEndTime(null == occupyFromSSO.getEndTime() ? DEFAULT_END_TIME : occupyFromSSO.getEndTime());
@@ -1577,14 +1577,15 @@ public class OccupyServiceImpl implements OccupyService {
         if (occupyDto.getActive() == 1 && occupyDto.getDelMark() == 0 && occupyDto.getOrphan() == 0) {
             //标识位有效,当前时刻不在最终有效期内
             // todo  这会将active=1 但是 开始时间 结束时间 已过期的数据 标记为长久有效。 可删除此判断，但是会导致逻辑不兼容修，也会因上游数据没有变动，导致不会进入修改逻辑判断，导致重新计算不生效。
-            if (now.isBefore(occupyDto.getValidStartTime()) || now.isAfter(occupyDto.getValidEndTime())) {
+            // todo 2023-10-11 删除以下判断，影响暂时未知
+            /*if (now.isBefore(occupyDto.getValidStartTime()) || now.isAfter(occupyDto.getValidEndTime())) {
                 //结束时间为过去时间,将结束时间赋值为2100(有效期延长)
                 if (!now.isBefore(occupyDto.getValidEndTime())) {
                     occupyDto.setValidEndTime(DEFAULT_END_TIME);
                 }
             } else {
                 //标识位有效,当前时刻在最终有效期内不需处理
-            }
+            }*/
         } else {
             //当前标识位为无效(active=0 失效 或者 del_mark=1 删除  或者 判断为孤儿)
 
@@ -1592,7 +1593,8 @@ public class OccupyServiceImpl implements OccupyService {
             if (!now.isBefore(occupyDto.getValidStartTime()) && !now.isAfter(occupyDto.getValidEndTime())) {
                 //因标识为导致的身份无效,修改最终有效期结束时间为当前时刻
                 occupyDto.setValidEndTime(now);
-            } else {
+            }
+            /* else {
                 //标识位为无效,当前时刻不在最终有效期内(校验数据时效性)
 
                 if (activeFlag) {
@@ -1603,11 +1605,11 @@ public class OccupyServiceImpl implements OccupyService {
                 }
 
                 //最终有效期开始时间晚于当前时刻,不认上游给出的最终有效期开始时间,赋值为当前时刻(即无效的未来时间)
-                if (!occupyDto.getValidStartTime().isBefore(now)) {
+                if (occupyDto.getValidStartTime().isAfter(now)) {
                     occupyDto.setValidStartTime(now);
                     occupyDto.setValidEndTime(now);
                 }
-            }
+            }*/
 
         }
 

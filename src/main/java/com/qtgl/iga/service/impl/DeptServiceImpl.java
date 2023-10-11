@@ -942,54 +942,54 @@ public class DeptServiceImpl implements DeptService {
         return valueFlag;
     }
 
-    private ArrayList<OccupyDto> occupyProcessing(ArrayList<TreeBean> occupyMonitors, String tenantId) {
-        ArrayList<OccupyDto> resultOccupies = new ArrayList<>();
-        //包含失效,恢复,新增的组织机构数据
-        List<OccupyDto> occupyDtos = occupyService.findAll(tenantId, null, null);
-        Map<String, List<OccupyDto>> collect = occupyDtos.stream().collect(Collectors.groupingBy(OccupyDto::getDeptCode));
-        LocalDateTime now = LocalDateTime.now();
-        for (TreeBean treeBean : occupyMonitors) {
-            if (collect.containsKey(treeBean.getCode())) {
-                List<OccupyDto> dtoList = collect.get(treeBean.getCode());
-                if (!CollectionUtils.isEmpty(dtoList)) {
-                    for (OccupyDto dto : dtoList) {
-                        dto.setUpdateTime(now);
-
-                        if (treeBean.getActive() == 1) {
-                            //新增或恢复的组织机构  将orphan为1(因部门无效导致的无效身份) 的有效期重新计算
-                            if (1 == dto.getOrphan()) {
-                                dto.setValidStartTime(now);
-                                dto.setValidEndTime(null != dto.getEndTime() ? dto.getEndTime() : OccupyServiceImpl.DEFAULT_END_TIME);
-                                dto.setOrphan(0);
-                                OccupyServiceImpl.checkValidTime(dto, now, true);
-                                resultOccupies.add(dto);
-                            } else if (3 == dto.getOrphan()) {
-                                //orphan为3(因组织机构和岗位无效导致的无效身份)的改为 orphan 2
-                                dto.setOrphan(2);
-                                resultOccupies.add(dto);
-                            }
-
-                        } else {
-                            //组织机构置为无效  将orphan为0的置为1 有效期重新计算
-                            if (0 == dto.getOrphan() || null == dto.getOrphan()) {
-                                dto.setValidEndTime(now);
-                                dto.setOrphan(1);
-                                resultOccupies.add(dto);
-                            } else if (2 == dto.getOrphan()) {
-                                dto.setOrphan(3);
-                                resultOccupies.add(dto);
-                            }
-
-                        }
-
-                    }
-                }
-            }
-        }
-        return resultOccupies;
-
-
-    }
+//    private ArrayList<OccupyDto> occupyProcessing(ArrayList<TreeBean> occupyMonitors, String tenantId) {
+//        ArrayList<OccupyDto> resultOccupies = new ArrayList<>();
+//        //包含失效,恢复,新增的组织机构数据
+//        List<OccupyDto> occupyDtos = occupyService.findAll(tenantId, null, null);
+//        Map<String, List<OccupyDto>> collect = occupyDtos.stream().collect(Collectors.groupingBy(OccupyDto::getDeptCode));
+//        LocalDateTime now = LocalDateTime.now();
+//        for (TreeBean treeBean : occupyMonitors) {
+//            if (collect.containsKey(treeBean.getCode())) {
+//                List<OccupyDto> dtoList = collect.get(treeBean.getCode());
+//                if (!CollectionUtils.isEmpty(dtoList)) {
+//                    for (OccupyDto dto : dtoList) {
+//                        dto.setUpdateTime(now);
+//
+//                        if (treeBean.getActive() == 1) {
+//                            //新增或恢复的组织机构  将orphan为1(因部门无效导致的无效身份) 的有效期重新计算
+//                            if (1 == dto.getOrphan()) {
+//                                dto.setValidStartTime(now);
+//                                dto.setValidEndTime(null != dto.getEndTime() ? dto.getEndTime() : OccupyServiceImpl.DEFAULT_END_TIME);
+//                                dto.setOrphan(0);
+//                                OccupyServiceImpl.checkValidTime(dto, now, true);
+//                                resultOccupies.add(dto);
+//                            } else if (3 == dto.getOrphan()) {
+//                                //orphan为3(因组织机构和岗位无效导致的无效身份)的改为 orphan 2
+//                                dto.setOrphan(2);
+//                                resultOccupies.add(dto);
+//                            }
+//
+//                        } else {
+//                            //组织机构置为无效  将orphan为0的置为1 有效期重新计算
+//                            if (0 == dto.getOrphan() || null == dto.getOrphan()) {
+//                                dto.setValidEndTime(now);
+//                                dto.setOrphan(1);
+//                                resultOccupies.add(dto);
+//                            } else if (2 == dto.getOrphan()) {
+//                                dto.setOrphan(3);
+//                                resultOccupies.add(dto);
+//                            }
+//
+//                        }
+//
+//                    }
+//                }
+//            }
+//        }
+//        return resultOccupies;
+//
+//
+//    }
 
 
 }
