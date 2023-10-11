@@ -183,8 +183,9 @@ public class OccupyServiceImpl implements OccupyService {
         // key ->uuid ; val ->  person
         Map<String, OccupyDto> allOccupyFromUpstream = new ConcurrentHashMap<>();
 
+        // *********************
         dataProcessing(rules, domain, tenant, result, deleteFromSSO, occupyDtoFromUpstream, incrementalTasks, currentTask, valueUpdateMap, valueInsertMap, upstreamMap, allOccupyFromUpstream);
-
+        // *********************
         List<OccupyDto> occupiesFromSSO = occupyDao.findAll(tenant.getId(), null, null);
 
         // 验证监控规则
@@ -481,7 +482,7 @@ public class OccupyServiceImpl implements OccupyService {
 
             ArrayList<OccupyDto> resultOccupies = new ArrayList<>();
             if (null != dataByBus) {
-                getOccupy(domain, occupyDtoFromUpstream, userCardTypeMap, finalDynamicCodes, deptFromSSOMap, postFromSSOMap, personFromSSOMap, personFromSSOMapByAccount, personFromSSOMapByCardNo, personFromSSOMapByPhone, personFromSSOMapByEmail, personFromSSOMapByOpenid, mergePersonFromSSOMap, mergePersonFromSSOMapByAccount, mergePersonFromSSOMapByCardNo, mergePersonFromSSOMapByPhone, mergePersonFromSSOMapByEmail, rules, upstreamType, findPersonKey, upstreams, now, dataByBus, occupies, resultOccupies);
+                getOccupy(domain, occupyDtoFromUpstream, userCardTypeMap, finalDynamicCodes, deptFromSSOMap, postFromSSOMap, personFromSSOMap, personFromSSOMapByAccount, personFromSSOMapByCardNo, personFromSSOMapByPhone, personFromSSOMapByEmail, personFromSSOMapByOpenid, mergePersonFromSSOMap, mergePersonFromSSOMapByAccount, mergePersonFromSSOMapByCardNo, mergePersonFromSSOMapByPhone, mergePersonFromSSOMapByEmail, rules, upstreamType, findPersonKey, upstreams, now, dataByBus, occupies, resultOccupies,allOccupyFromUpstream);
                 if (!CollectionUtils.isEmpty(occupyDtoFromUpstream)) {
                     //权威源类型为增量则添加对应的增量同步日志
                     if (null != currentTask && null != upstreamType.getIsIncremental() && upstreamType.getIsIncremental() && !CollectionUtils.isEmpty(resultOccupies)) {
@@ -692,9 +693,10 @@ public class OccupyServiceImpl implements OccupyService {
                            Map<String, List<Person>> mergePersonFromSSOMap, Map<String, List<Person>> mergePersonFromSSOMapByAccount,
                            Map<String, List<Person>> mergePersonFromSSOMapByCardNo, Map<String, List<Person>> mergePersonFromSSOMapByPhone,
                            Map<String, List<Person>> mergePersonFromSSOMapByEmail, NodeRules rules, UpstreamType upstreamType, String findPersonKey,
-                           List<UpstreamDto> upstreams, LocalDateTime now, JSONArray dataByBus, List<OccupyDto> occupies, ArrayList<OccupyDto> resultOccupies) {
+                           List<UpstreamDto> upstreams, LocalDateTime now, JSONArray dataByBus, List<OccupyDto> occupies, ArrayList<OccupyDto> resultOccupies,Map<String,OccupyDto> allOccupyFromUpstream) {
         for (Object data : dataByBus) {
             JSONObject occupyObj = JSON.parseObject(JSON.toJSONString(data));
+            occupyObj.put("upstreamRuleId",rules.getId());
             if (null != occupyObj.getTimestamp(TreeEnum.UPDATE_TIME.getCode())) {
                 occupyObj.put(TreeEnum.UPDATE_TIME.getCode(), occupyObj.getTimestamp(TreeEnum.UPDATE_TIME.getCode()));
             }
@@ -707,23 +709,27 @@ public class OccupyServiceImpl implements OccupyService {
             OccupyDto occupyDto = occupyObj.toJavaObject(OccupyDto.class);
             if (StringUtils.isBlank(occupyDto.getPostCode())) {
                 log.error("人员身份信息岗位代码为空{}", occupyDto);
-                extracted(domain, occupyDto, "人员身份信息岗位代码为空", DataStatusEnum.ERROR_DATA);
+                extracted(domain, occupyDto, "人员身份信息岗位代码为空", DataStatusEnum.ERROR_DATA,allOccupyFromUpstream);
 
                 continue;
             }
             if (StringUtils.isBlank(occupyDto.getDeptCode())) {
                 log.error("人员身份部门代码为空{}", occupyDto);
-                extracted(domain, occupyDto, "人员身份部门代码为空", DataStatusEnum.ERROR_DATA);
+                extracted(domain, occupyDto, "人员身份部门代码为空", DataStatusEnum.ERROR_DATA,allOccupyFromUpstream);
                 continue;
             }
             if (null != occupyDto.getActive() && occupyDto.getActive() != 0 && occupyDto.getActive() != 1) {
                 log.error("人员身份是否有效字段不合法{}", occupyDto.getActive());
-                extracted(domain, occupyDto, "人员身份是否有效字段不合法", DataStatusEnum.ERROR_DATA);
+                extracted(domain, occupyDto, "人员身份是否有效字段不合法", DataStatusEnum.ERROR_DATA,allOccupyFromUpstream);
                 continue;
             }
             if (null != occupyDto.getDelMark() && occupyDto.getDelMark() != 0 && occupyDto.getDelMark() != 1) {
                 log.error("人员身份是否删除字段不合法{}", occupyDto.getDelMark());
-                extracted(domain, occupyDto, "人员身份是否删除字段不合法", DataStatusEnum.ERROR_DATA);
+                extracted(domain, occupyDto, "人员身份是否删除字段不合法", DataStatusEnum.ERROR_DATA,allOccupyFromUpstream);
+                continue;
+            }
+            if (null != occupyDto.getDelMark() && occupyDto.getDelMark() == 1) {
+                extracted(domain, occupyDto, "已被上游标记为删除", DataStatusEnum.ERROR_DATA,allOccupyFromUpstream);
                 continue;
             }
 
@@ -792,26 +798,26 @@ public class OccupyServiceImpl implements OccupyService {
                 case "CARD_TYPE_NO":
                     if (StringUtils.isBlank(occupyDto.getPersonCardNo()) || StringUtils.isBlank(occupyDto.getPersonCardType())) {
                         log.error("【通过证件类型+证件号码匹配人员】证件类型或号码不能为空{}", occupyDto);
-                        extracted(domain, occupyDto, "【通过证件类型+证件号码匹配人员】证件类型或号码不能为空", DataStatusEnum.ERROR_DATA);
+                        extracted(domain, occupyDto, "【通过证件类型+证件号码匹配人员】证件类型或号码不能为空", DataStatusEnum.ERROR_DATA,allOccupyFromUpstream);
                         continue;
                     }
                     if (userCardTypeMap.containsKey(occupyDto.getPersonCardType())) {
                         String cardTypeReg = userCardTypeMap.get(occupyDto.getPersonCardType()).getCardTypeReg();
                         if (StringUtils.isNotBlank(cardTypeReg) && !Pattern.matches(cardTypeReg, occupyDto.getPersonCardNo())) {
                             log.error("【通过证件类型+证件号码匹配人员】人员身份信息中人员证件号码不符合规则{}", occupyDto);
-                            extracted(domain, occupyDto, "【通过证件类型+证件号码匹配人员】人员身份信息中人员证件号码不符合规则", DataStatusEnum.ERROR_DATA);
+                            extracted(domain, occupyDto, "【通过证件类型+证件号码匹配人员】人员身份信息中人员证件号码不符合规则", DataStatusEnum.ERROR_DATA,allOccupyFromUpstream);
                             continue;
                         }
                     } else {
                         log.error("【通过证件类型+证件号码匹配人员】人员身份信息中人员证件类型无效{}", occupyDto);
-                        extracted(domain, occupyDto, "【通过证件类型+证件号码匹配人员】人员身份信息中人员证件类型无效", DataStatusEnum.ERROR_DATA);
+                        extracted(domain, occupyDto, "【通过证件类型+证件号码匹配人员】人员身份信息中人员证件类型无效", DataStatusEnum.ERROR_DATA,allOccupyFromUpstream);
                         continue;
                     }
                     /*  去person Map 中 找人信息*/
                     personKey = occupyDto.getPersonCardType() + ":" + occupyDto.getPersonCardNo();
                     if (!personFromSSOMap.containsKey(personKey) && !mergePersonFromSSOMap.containsKey(personKey)) {
                         log.error("【通过证件类型+证件号码匹配人员】人员身份无法找到对应对人员信息{}", personKey);
-                        extracted(domain, occupyDto, "【通过证件类型+证件号码匹配人员】人员身份无法找到对应对人员信息", DataStatusEnum.ERROR_DATA);
+                        extracted(domain, occupyDto, "【通过证件类型+证件号码匹配人员】人员身份无法找到对应对人员信息", DataStatusEnum.ERROR_DATA,allOccupyFromUpstream);
                         continue;
                     }
 
@@ -826,7 +832,7 @@ public class OccupyServiceImpl implements OccupyService {
 
                     if (persons.size() >= 0) {
                         for (Person person : persons) {
-                            createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
+                            createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person,allOccupyFromUpstream);
                             log.debug("【通过证件类型+证件号码匹配人员】人员身份通过人员类型+证件获取到人员信息{}", personKey);
                         }
                     }
@@ -835,14 +841,14 @@ public class OccupyServiceImpl implements OccupyService {
                 case "CARD_NO":
                     if (StringUtils.isBlank(occupyDto.getPersonCardNo())) {
                         log.error("【通过证件号码匹配人员】号码不能为空{}", occupyDto);
-                        extracted(domain, occupyDto, "【通过证件号码匹配人员】号码不能为空", DataStatusEnum.ERROR_DATA);
+                        extracted(domain, occupyDto, "【通过证件号码匹配人员】号码不能为空", DataStatusEnum.ERROR_DATA,allOccupyFromUpstream);
                         continue;
                     }
                     /*  去person Map 中 找人信息*/
                     personKey = occupyDto.getPersonCardNo();
                     if (!personFromSSOMapByCardNo.containsKey(personKey) && !mergePersonFromSSOMapByCardNo.containsKey(personKey)) {
                         log.error("【通过证件号码匹配人员】人员身份无法找到对应对人员信息{}", personKey);
-                        extracted(domain, occupyDto, "【通过证件号码匹配人员】人员身份无法找到对应对人员信息", DataStatusEnum.ERROR_DATA);
+                        extracted(domain, occupyDto, "【通过证件号码匹配人员】人员身份无法找到对应对人员信息", DataStatusEnum.ERROR_DATA,allOccupyFromUpstream);
                         continue;
                     }
 
@@ -856,7 +862,7 @@ public class OccupyServiceImpl implements OccupyService {
                     }
                     if (persons.size() >= 0) {
                         for (Person person : persons) {
-                            createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
+                            createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person,allOccupyFromUpstream);
                             log.debug("【通过证件号码匹配人员】人员身份找找到人员信息{}", personKey);
                         }
                     }
@@ -865,14 +871,14 @@ public class OccupyServiceImpl implements OccupyService {
                 case "USERNAME":
                     if (StringUtils.isBlank(occupyDto.getAccountNo())) {
                         log.error("【通过用户名码匹配人员】用户名不能为空{}", occupyDto);
-                        extracted(domain, occupyDto, "【通过用户名匹配人员】用户名不能为空", DataStatusEnum.ERROR_DATA);
+                        extracted(domain, occupyDto, "【通过用户名匹配人员】用户名不能为空", DataStatusEnum.ERROR_DATA,allOccupyFromUpstream);
                         continue;
                     }
                     /*  去person Map 中 找人信息*/
                     personKey = occupyDto.getAccountNo();
                     if (!personFromSSOMapByAccount.containsKey(personKey) && !mergePersonFromSSOMapByAccount.containsKey(personKey)) {
                         log.error("【通过用户名码匹配人员】人员身份无法找到对应对人员信息{}", personKey);
-                        extracted(domain, occupyDto, "【通过用户名码匹配人员】人员身份无法找到对应对人员信息", DataStatusEnum.ERROR_DATA);
+                        extracted(domain, occupyDto, "【通过用户名码匹配人员】人员身份无法找到对应对人员信息", DataStatusEnum.ERROR_DATA,allOccupyFromUpstream);
                         continue;
                     }
                     if (personFromSSOMapByAccount.containsKey(personKey)) {
@@ -885,7 +891,7 @@ public class OccupyServiceImpl implements OccupyService {
                     }
                     if (persons.size() >= 0) {
                         for (Person person : persons) {
-                            createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
+                            createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person,allOccupyFromUpstream);
                             log.debug("【通过用户名码匹配人员】人员身份找找到人员信息{}", personKey);
                         }
                     }
@@ -894,14 +900,14 @@ public class OccupyServiceImpl implements OccupyService {
                 case "EMAIL":
                     if (StringUtils.isBlank(occupyDto.getEmail())) {
                         log.error("【通过邮箱匹配人员】邮箱不能为空{}", occupyDto);
-                        extracted(domain, occupyDto, "【通过邮箱匹配人员】邮箱不能为空,", DataStatusEnum.ERROR_DATA);
+                        extracted(domain, occupyDto, "【通过邮箱匹配人员】邮箱不能为空,", DataStatusEnum.ERROR_DATA,allOccupyFromUpstream);
                         continue;
                     }
                     /*  去person Map 中 找人信息*/
                     personKey = occupyDto.getAccountNo();
                     if (!personFromSSOMapByEmail.containsKey(personKey) && !mergePersonFromSSOMapByEmail.containsKey(personKey)) {
                         log.error("【通过邮箱匹配人员】人员身份无法找到对应对人员信息{}", personKey);
-                        extracted(domain, occupyDto, "【通过邮箱匹配人员】人员身份无法找到对应对人员信息", DataStatusEnum.ERROR_DATA);
+                        extracted(domain, occupyDto, "【通过邮箱匹配人员】人员身份无法找到对应对人员信息", DataStatusEnum.ERROR_DATA,allOccupyFromUpstream);
                         continue;
                     }
                     if (personFromSSOMapByEmail.containsKey(personKey)) {
@@ -914,7 +920,7 @@ public class OccupyServiceImpl implements OccupyService {
                     }
                     if (persons.size() >= 0) {
                         for (Person person : persons) {
-                            createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
+                            createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person,allOccupyFromUpstream);
                             log.debug("【通过邮箱匹配人员】人员身份找找到人员信息{}", personKey);
                         }
                     }
@@ -923,14 +929,14 @@ public class OccupyServiceImpl implements OccupyService {
                 case "CELLPHONE":
                     if (StringUtils.isBlank(occupyDto.getCellPhone())) {
                         log.error("【通过电话匹配人员】电话不能为空{}", occupyDto);
-                        extracted(domain, occupyDto, "【通过电话匹配人员】电话不能为空", DataStatusEnum.ERROR_DATA);
+                        extracted(domain, occupyDto, "【通过电话匹配人员】电话不能为空", DataStatusEnum.ERROR_DATA,allOccupyFromUpstream);
                         continue;
                     }
                     /*  去person Map 中 找人信息*/
                     personKey = occupyDto.getAccountNo();
                     if (!personFromSSOMapByPhone.containsKey(personKey) && !mergePersonFromSSOMapByPhone.containsKey(personKey)) {
                         log.error("【通过电话匹配人员】人员身份无法找到对应对人员信息{}", personKey);
-                        extracted(domain, occupyDto, "【通过电话匹配人员】人员身份无法找到对应对人员信息", DataStatusEnum.ERROR_DATA);
+                        extracted(domain, occupyDto, "【通过电话匹配人员】人员身份无法找到对应对人员信息", DataStatusEnum.ERROR_DATA,allOccupyFromUpstream);
                         continue;
                     }
                     if (personFromSSOMapByPhone.containsKey(personKey)) {
@@ -943,7 +949,7 @@ public class OccupyServiceImpl implements OccupyService {
                     }
                     if (persons.size() >= 0) {
                         for (Person person : persons) {
-                            createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
+                            createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person,allOccupyFromUpstream);
                             log.debug("【通过电话匹配人员】人员身份找找到人员信息{}", personKey);
                         }
                     }
@@ -952,20 +958,20 @@ public class OccupyServiceImpl implements OccupyService {
                 case "OPENID":
                     if (StringUtils.isBlank(occupyDto.getOpenId())) {
                         log.error("【通过OPENID匹配人员】电话不能为空{}", occupyDto);
-                        extracted(domain, occupyDto, "【通过电话匹配人员】电话不能为空", DataStatusEnum.ERROR_DATA);
+                        extracted(domain, occupyDto, "【通过电话匹配人员】电话不能为空", DataStatusEnum.ERROR_DATA,allOccupyFromUpstream);
                         continue;
                     }
                     /*  去person Map 中 找人信息*/
                     personKey = occupyDto.getOpenId();
                     if (!personFromSSOMapByOpenid.containsKey(personKey)) {
                         log.error("【通过OPENID匹配人员】人员身份无法找到对应对人员信息{}", personKey);
-                        extracted(domain, occupyDto, "【通过OPENID匹配人员】人员身份无法找到对应对人员信息", DataStatusEnum.ERROR_DATA);
+                        extracted(domain, occupyDto, "【通过OPENID匹配人员】人员身份无法找到对应对人员信息", DataStatusEnum.ERROR_DATA,allOccupyFromUpstream);
                         continue;
                     }
                     persons = personFromSSOMapByOpenid.get(personKey);
                     if (persons.size() >= 0) {
                         for (Person person : persons) {
-                            createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person);
+                            createOccupyDto(domain, occupyDtoFromUpstream, deptFromSSOMap, postFromSSOMap, rules, upstreamType, upstreams, now, occupies, resultOccupies, occupyDto, person,allOccupyFromUpstream);
                             log.debug("【通过OPENID匹配人员】人员身份找找到人员信息{}", personKey);
                         }
                     }
@@ -1036,7 +1042,7 @@ public class OccupyServiceImpl implements OccupyService {
      */
     private void createOccupyDto(DomainInfo domain, Map<String, OccupyDto> occupyDtoFromUpstream, Map<String, TreeBean> deptFromSSOMap,
                                  Map<String, TreeBean> postFromSSOMap, NodeRules rules, UpstreamType upstreamType, List<UpstreamDto> upstreams, LocalDateTime now, List<OccupyDto> occupies,
-                                 ArrayList<OccupyDto> resultOccupies, OccupyDto oldOccupyDto, Person person) {
+                                 ArrayList<OccupyDto> resultOccupies, OccupyDto oldOccupyDto, Person person,Map<String,OccupyDto> allOccupyFromUpstream) {
         OccupyDto occupyDto = new OccupyDto();
         BeanUtils.copyProperties(oldOccupyDto, occupyDto);
         occupyDto.setOpenId(person.getOpenId());
@@ -1082,7 +1088,7 @@ public class OccupyServiceImpl implements OccupyService {
 
         //规则是否启用标识
         occupyDto.setRuleStatus(rules.getActive());
-        occupyDto.setUpstreamRuleId(rules.getId());
+        //occupyDto.setUpstreamRuleId(rules.getId());
         occupies.add(occupyDto);
 
         //以 人员id+岗位+部门+身份类型+身份编码 作为键进行身份去重
@@ -1103,13 +1109,14 @@ public class OccupyServiceImpl implements OccupyService {
                 occupyDtoFromUpstream2.put(key2, List<OccupyDto> occupyDto);
             }*/
 
-            log.info("权威源人员身份数据合重:{}->{}", occupyDtoFromUpstream.get(key).toString(), occupyDto);
             if (occupyDto.getActive() == 1) {
-                extracted(domain, occupyDtoFromUpstream.get(key), "权威源人员身份数据合重", DataStatusEnum.AUTO_MERGE);
+                // todo  由于key 加上了 开始时间：结束时间， 所以该判断会变得没有意义，只会将两个时间一样，active标记不一样的 记为一条数据。
+                log.info("权威源人员身份数据合重:{}->{}", occupyDtoFromUpstream.get(key).toString(), occupyDto);
+                extracted(domain, occupyDtoFromUpstream.get(key), "权威源人员身份数据合重", DataStatusEnum.AUTO_MERGE,allOccupyFromUpstream);
                 occupyDtoFromUpstream.put(key, occupyDto);
                 resultOccupies.add(occupyDto);
             } else {
-                extracted(domain, occupyDto, "忽略无效数据", DataStatusEnum.ERROR_DATA);
+                extracted(domain, occupyDto, "忽略无效数据", DataStatusEnum.ERROR_DATA,allOccupyFromUpstream);
             }
         } else {
             resultOccupies.add(occupyDto);
@@ -1609,7 +1616,7 @@ public class OccupyServiceImpl implements OccupyService {
     }
 
     //    处理异常数据
-    private void extracted(DomainInfo domain, OccupyDto occupyFromUp, String reason, DataStatusEnum status) {
+    private void extracted(DomainInfo domain, OccupyDto occupyFromUp, String reason, DataStatusEnum status,Map<String, OccupyDto> allOccupyFromUpstream) {
         JSONObject jsonObject = JSONObject.parseObject(JSONObject.toJSONString(occupyFromUp));
         // 跟踪权威源数据状态
         if (status == DataStatusEnum.ERROR_DATA) {
@@ -1617,6 +1624,7 @@ public class OccupyServiceImpl implements OccupyService {
         } else {
             occupyFromUp.upstreamMarkAutoMerge();
         }
+        allOccupyFromUpstream.put(occupyFromUp.get_uuid(),occupyFromUp);
         if (occupyErrorData.containsKey(domain.getId())) {
             jsonObject.put("reason", reason);
             jsonObject.put("type", synType);

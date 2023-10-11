@@ -761,7 +761,7 @@ public class OccupyDaoImpl implements OccupyDao {
                 preparedStatement.setObject(17, occupyDtos.get(i).getAccountNo());
                 preparedStatement.setObject(18, occupyDtos.get(i).getValidStartTime());
                 preparedStatement.setObject(19, occupyDtos.get(i).getValidEndTime());
-                preparedStatement.setObject(20, occupyDtos.get(i).getOrphan());
+                preparedStatement.setObject(20, null==occupyDtos.get(i).getOrphan()?0:occupyDtos.get(i).getOrphan());
                 preparedStatement.setObject(21, occupyDtos.get(i).getPersonCardNo());
                 preparedStatement.setObject(22, occupyDtos.get(i).getPersonCardType());
                 preparedStatement.setObject(23, occupyDtos.get(i).getUpstreamDataStatus());
