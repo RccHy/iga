@@ -1933,7 +1933,7 @@ public class PersonDaoImpl implements PersonDao {
     @Override
     public List<PersonEdge> findUpstreamDataState(Map<String, Object> arguments, String domain) {
         String sql = "select id,name,open_id as openId,account_no as accountNo,birthday,del_mark as delMark,create_time as createTime,update_time as uupdateTime,card_type as  cardType,card_no as cardNo,cellphone,email,data_source as dataSource,\n" +
-                "       sex,tags,active,active_time as activeTime,freeze_time as freezeTime,source,upstreamDataStatus,upstreamDataReason,storage,upstreamRuleId where domain=?  ";
+                "       sex,tags,active,active_time as activeTime,freeze_time as freezeTime,source,upstreamDataStatus,upstreamDataReason,storage,upstreamRuleId  from person_temp where tenant_id=?  ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
