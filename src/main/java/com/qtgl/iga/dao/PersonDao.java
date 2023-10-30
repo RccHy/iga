@@ -2,6 +2,7 @@ package com.qtgl.iga.dao;
 
 import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.MergeAttrRule;
+import com.qtgl.iga.bean.PersonEdge;
 import com.qtgl.iga.bo.*;
 
 import java.util.ArrayList;
@@ -38,6 +39,9 @@ public interface PersonDao {
     List<Person> findRepeatPerson(String tenantId, String dataSource);
 
     List<Person> findPersonByDataSource(String tenantId, String dataSource);
+
+    List<PersonEdge> findUpstreamDataState(Map<String, Object> arguments, String tenantId);
+
 
     JSONObject dealWithPeople(ArrayList<Person> resultPeople);
 

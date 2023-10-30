@@ -1,0 +1,13 @@
+extend type Query {
+
+    #查询人员上游数据同步状态
+    personUpstreamDataState(offset:Int,first:Int,filter:personUpstreamDataStateFilter): PersonConnection
+}
+
+input personUpstreamDataStateFilter{
+    upstreamRuleId:stringFilter
+    upstreamDataStatus:stringFilter
+    storage:booleanFilter
+
+}
+

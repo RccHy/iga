@@ -2,6 +2,7 @@ package com.qtgl.iga.dao.impl;
 
 import com.alibaba.fastjson.JSONObject;
 import com.qtgl.iga.bean.MergeAttrRule;
+import com.qtgl.iga.bean.PersonEdge;
 import com.qtgl.iga.bo.*;
 import com.qtgl.iga.dao.DynamicAttrDao;
 import com.qtgl.iga.dao.PersonDao;
@@ -1233,6 +1234,69 @@ public class PersonDaoImpl implements PersonDao {
                         }
                     }
 
+
+                    // 以下条件仅适用于 上游数据入库状态查询
+
+                    if ("upstreamRuleId".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
+                                stb.append("and upstreamRuleId ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and upstreamRuleId ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and upstreamRuleId ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+
+                    if ("upstreamDataStatus".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
+                                stb.append("and upstreamDataStatus ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and upstreamDataStatus ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and upstreamDataStatus ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+                    if ("storage".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                             if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and storage ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and storage ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+
+
                 }
 
             }
@@ -1862,6 +1926,41 @@ public class PersonDaoImpl implements PersonDao {
             stb.append("  and ( NOW() BETWEEN i.valid_start_time and i.valid_end_time) ");
         }
         return stb;
+    }
+
+
+
+    @Override
+    public List<PersonEdge> findUpstreamDataState(Map<String, Object> arguments, String domain) {
+        String sql = "select id,name,open_id as openId,account_no as accountNo,birthday,del_mark as delMark,create_time as createTime,update_time as uupdateTime,card_type as  cardType,card_no as cardNo,cellphone,email,data_source as dataSource,\n" +
+                "       sex,tags,active,active_time as activeTime,freeze_time as freezeTime,source,upstreamDataStatus,upstreamDataReason,storage,upstreamRuleId where domain=?  ";
+        //拼接sql
+        StringBuffer stb = new StringBuffer(sql);
+        //存入参数
+        List<Object> param = new ArrayList<>();
+        param.add(domain);
+        dealData(arguments, stb, param);
+        //查询所有
+        if (null != arguments.get("offset") && null != arguments.get("first")) {
+            stb.append(" limit ?,? ");
+            param.add(null == arguments.get("offset") ? 0 : arguments.get("offset"));
+            param.add(null == arguments.get("first") ? 0 : arguments.get("first"));
+        }
+        stb.append(" order by  create_time desc");
+        List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
+        List<PersonEdge> list = new ArrayList<>();
+        if (null != mapList && mapList.size() > 0) {
+            for (Map<String, Object> map : mapList) {
+                PersonEdge personEdge= new PersonEdge();
+                Person person = new Person();
+                BeanMap beanMap = BeanMap.create(person);
+                beanMap.putAll(map);
+                personEdge.setNode(person);
+                list.add(personEdge);
+            }
+            return list;
+        }
+        return null;
     }
 
 }
