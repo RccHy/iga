@@ -32,7 +32,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 
 @Service
@@ -1043,6 +1042,7 @@ public class OccupyServiceImpl implements OccupyService {
     private void createOccupyDto(DomainInfo domain, Map<String, OccupyDto> occupyDtoFromUpstream, Map<String, TreeBean> deptFromSSOMap,
                                  Map<String, TreeBean> postFromSSOMap, NodeRules rules, UpstreamType upstreamType, List<UpstreamDto> upstreams, LocalDateTime now, List<OccupyDto> occupies,
                                  ArrayList<OccupyDto> resultOccupies, OccupyDto oldOccupyDto, Person person,Map<String,OccupyDto> allOccupyFromUpstream) {
+        oldOccupyDto.setName(person.getName());
         OccupyDto occupyDto = new OccupyDto();
         BeanUtils.copyProperties(oldOccupyDto, occupyDto);
         occupyDto.setOpenId(person.getOpenId());

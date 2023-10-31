@@ -1,12 +1,15 @@
 extend type Query {
 
     #查询人员上游数据同步状态
-    personUpstreamDataState(offset:Int,first:Int,filter:personUpstreamDataStateFilter): PersonConnection
+    personUpstreamDataState(offset:Int,first:Int,filter:upstreamDataStateFilter): PersonConnection
+    #查询人员上游数据同步状态
+    occupyUpstreamDataState(offset:Int,first:Int,filter:upstreamDataStateFilter): OccupyConnection
 }
 
 
 
-input personUpstreamDataStateFilter{
+input upstreamDataStateFilter{
+    name:stringFilter
     upstreamRuleId:stringFilter
     upstreamDataStatus:stringFilter
     storage:booleanFilter

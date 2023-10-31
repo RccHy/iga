@@ -39,4 +39,25 @@ public class UpstreamDataStateFetcher {
             }
         };
     }
+
+
+    public DataFetcher occupyUpstreamDataState() {
+        return dataFetchingEvn -> {
+            //1。更具token信息验证是否合法，并判断其租户
+            DomainInfo domain = CertifiedConnector.getDomain();
+            // 获取传入参数
+            Map<String, Object> arguments = dataFetchingEvn.getArguments();
+            //2。解析查询参数+租户进行  进行查询
+            try {
+                return upstreamDataStatusService.occupyUpstreamDataState(arguments, domain.getId());
+            } catch (CustomException e) {
+                e.printStackTrace();
+                logger.error(domain.getDomainName() + e.getMessage());
+
+                return GraphqlExceptionUtils.getObject("查询上游身份同步数据状态失败", e);
+            }
+        };
+    }
 }
+
+

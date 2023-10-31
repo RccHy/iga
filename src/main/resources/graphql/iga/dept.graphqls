@@ -171,6 +171,8 @@ type Occupy{
     createDataSource:String
     # 人员唯一标识
     openId: String
+    # 人员信息
+    name: String
 
 }
 

@@ -21,16 +21,11 @@ public interface PersonDao {
 
     Integer saveToTemp(Map<String, Person> tempUsers, DomainInfo domainInfo);
 
-    List<Person> findPersonTemp(Map<String, Object> arguments, DomainInfo domain);
-
     void removeData(DomainInfo domain);
-
-    Integer findPersonTempCount(Map<String, Object> arguments, DomainInfo domain);
 
     List<Person> findDistinctPerson(String tenantId);
 
     List<Certificate> getAllCard(String tenantId);
-
 
     List<Person> mergeCharacteristicPerson(String tenantId);
 
@@ -41,7 +36,6 @@ public interface PersonDao {
     List<Person> findPersonByDataSource(String tenantId, String dataSource);
 
     List<PersonEdge> findUpstreamDataState(Map<String, Object> arguments, String tenantId);
-
 
     JSONObject dealWithPeople(ArrayList<Person> resultPeople);
 

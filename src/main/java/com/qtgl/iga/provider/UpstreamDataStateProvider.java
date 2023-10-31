@@ -19,7 +19,8 @@ public class UpstreamDataStateProvider {
 
     public TypeRuntimeWiring.Builder buildQueryRuntimeWiring() {
         return newTypeWiring("Query")
-                .dataFetcher("personUpstreamDataState", upstreamDataStateFetcher.personUpstreamDataState());
+                .dataFetcher("personUpstreamDataState", upstreamDataStateFetcher.personUpstreamDataState())
+                .dataFetcher("occupyUpstreamDataState", upstreamDataStateFetcher.occupyUpstreamDataState());
 
     }
 

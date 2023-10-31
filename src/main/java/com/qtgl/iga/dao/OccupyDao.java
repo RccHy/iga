@@ -1,6 +1,7 @@
 package com.qtgl.iga.dao;
 
 import com.qtgl.iga.bean.OccupyDto;
+import com.qtgl.iga.bean.OccupyEdge;
 import com.qtgl.iga.bo.DomainInfo;
 import com.qtgl.iga.bo.DynamicAttr;
 import com.qtgl.iga.bo.DynamicValue;
@@ -22,11 +23,13 @@ public interface OccupyDao {
 
     Integer saveToTemp(Map<String, OccupyDto> occupyDtoMap, DomainInfo domain);
 
-    List<OccupyDto> findOccupyTemp(Map<String, Object> arguments, DomainInfo domain);
+    List<OccupyEdge> findUpstreamDataState(Map<String, Object> arguments, String domain);
 
-    Integer findOccupyTempCount(Map<String, Object> arguments, DomainInfo domain);
+    Integer findOccupyTempCount(Map<String, Object> arguments, String domain);
 
     Map<String, Object> igaOccupy(Map<String, Object> arguments, Tenant tenant);
 
     List<OccupyDto> findOccupyByIdentityId(Set<String> keySet, Map<String, Object> arguments,Tenant tenant);
+
+
 }

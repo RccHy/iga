@@ -52,6 +52,8 @@ public class OccupyDto implements Cloneable {
     //邮箱
     private String email;
 
+    private String name;
+
 
     /**
      * 身份最终有效时间

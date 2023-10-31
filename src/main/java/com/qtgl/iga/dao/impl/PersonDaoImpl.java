@@ -13,8 +13,8 @@ import com.qtgl.iga.utils.enumerate.ResultCode;
 import com.qtgl.iga.utils.enums.FilterCodeEnum;
 import com.qtgl.iga.utils.exception.CustomException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.cglib.beans.BeanMap;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -23,6 +23,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.*;
@@ -943,39 +944,6 @@ public class PersonDaoImpl implements PersonDao {
         return null;
     }
 
-    @Override
-    public List<Person> findPersonTemp(Map<String, Object> arguments, DomainInfo domain) {
-        String sql = " SELECT id from person_temp i where i.tenant_id=? ";
-        //拼接sql
-        StringBuffer stb = new StringBuffer(sql);
-        //存入参数
-        List<Object> param = new ArrayList<>();
-        param.add(domain.getId());
-        StringBuffer strTemp = new StringBuffer();
-        dealData(arguments, strTemp, param);
-        stb.append(strTemp);
-
-        stb.append(" order by i.create_time desc ");
-        //查询所有
-        if (null != arguments.get("offset") && null != arguments.get("first")) {
-
-            stb.append(" limit ?,? ");
-            param.add(null == arguments.get("offset") ? 0 : arguments.get("offset"));
-            param.add(null == arguments.get("first") ? 0 : arguments.get("first"));
-        }
-        List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
-        ArrayList<Person> list = new ArrayList<>();
-        if (null != mapList && mapList.size() > 0) {
-            for (Map<String, Object> map : mapList) {
-                Person person = new Person();
-                BeanMap beanMap = BeanMap.create(person);
-                beanMap.putAll(map);
-                list.add(person);
-            }
-            return list;
-        }
-        return null;
-    }
 
     @Override
     public void removeData(DomainInfo domain) {
@@ -983,21 +951,7 @@ public class PersonDaoImpl implements PersonDao {
         jdbcIGA.update(sql, domain.getId());
     }
 
-    @Override
-    public Integer findPersonTempCount(Map<String, Object> arguments, DomainInfo domain) {
-        String sql = " SELECT count(*) from person_temp i where i.tenant_id=?  ";
-        //拼接sql
-        StringBuffer stb = new StringBuffer(sql);
-        List<Object> param = new ArrayList<>();
-        param.add(domain.getId());
-        if (null != arguments) {
-            StringBuffer strTemp = new StringBuffer();
-            dealData(arguments, strTemp, param);
-            stb.append(strTemp);
-        }
-        Integer integer = jdbcIGA.queryForObject(stb.toString(), param.toArray(), Integer.class);
-        return integer;
-    }
+
 
     @Override
     public List<Person> findDistinctPerson(String tenantId) {
@@ -1281,7 +1235,7 @@ public class PersonDaoImpl implements PersonDao {
                     if ("storage".equals(str.getKey())) {
                         HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
                         for (Map.Entry<String, Object> soe : value.entrySet()) {
-                             if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                            if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
                                 stb.append("and storage ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
                                 ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
                                 for (String s : value1) {
@@ -1929,7 +1883,6 @@ public class PersonDaoImpl implements PersonDao {
     }
 
 
-
     @Override
     public List<PersonEdge> findUpstreamDataState(Map<String, Object> arguments, String domain) {
         String sql = "select id,name,open_id as openId,account_no as accountNo,birthday,del_mark as delMark,create_time as createTime,update_time as uupdateTime,card_type as  cardType,card_no as cardNo,cellphone,email,data_source as dataSource,\n" +
@@ -1940,21 +1893,28 @@ public class PersonDaoImpl implements PersonDao {
         List<Object> param = new ArrayList<>();
         param.add(domain);
         dealData(arguments, stb, param);
+        stb.append(" order by  create_time desc");
         //查询所有
         if (null != arguments.get("offset") && null != arguments.get("first")) {
             stb.append(" limit ?,? ");
             param.add(null == arguments.get("offset") ? 0 : arguments.get("offset"));
             param.add(null == arguments.get("first") ? 0 : arguments.get("first"));
         }
-        stb.append(" order by  create_time desc");
+
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
         List<PersonEdge> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {
-                PersonEdge personEdge= new PersonEdge();
+                PersonEdge personEdge = new PersonEdge();
                 Person person = new Person();
-                BeanMap beanMap = BeanMap.create(person);
-                beanMap.putAll(map);
+                try {
+                    BeanUtils.populate(person, map);
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                } catch (InvocationTargetException e) {
+                    throw new RuntimeException(e);
+                }
+
                 personEdge.setNode(person);
                 list.add(personEdge);
             }

@@ -1,3 +1,10 @@
+-- XX
+
+alter table occupy_temp add openid varchar(50) null;
+
+
+
+
 -- 20230922 权威源状态标记
 alter table person_temp add upstreamDataStatus int null comment ' 权威源数据对比后的状态标记0 ：数据不过验证丢弃  1： 数据自动合重、 2: 数据手动合重、 3 数据新增、 4 数据修改 、 5 数据删除、 6 无变化';
 alter table person_temp add upstreamDataReason varchar(500) null comment '权威源数据对比后不入库的原因';

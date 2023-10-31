@@ -2,12 +2,16 @@ package com.qtgl.iga.dao.impl;
 
 import com.qtgl.iga.bean.IgaOccupy;
 import com.qtgl.iga.bean.OccupyDto;
-import com.qtgl.iga.bo.*;
+import com.qtgl.iga.bean.OccupyEdge;
+import com.qtgl.iga.bo.DomainInfo;
+import com.qtgl.iga.bo.DynamicAttr;
+import com.qtgl.iga.bo.DynamicValue;
+import com.qtgl.iga.bo.Tenant;
 import com.qtgl.iga.dao.DynamicAttrDao;
 import com.qtgl.iga.dao.OccupyDao;
-import com.qtgl.iga.utils.enums.FilterCodeEnum;
 import com.qtgl.iga.utils.MyBeanUtils;
 import com.qtgl.iga.utils.enumerate.ResultCode;
+import com.qtgl.iga.utils.enums.FilterCodeEnum;
 import com.qtgl.iga.utils.exception.CustomException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -736,38 +740,40 @@ public class OccupyDaoImpl implements OccupyDao {
         jdbcIGA.update(delSql, domain.getId());
 
         String sql = "INSERT INTO occupy_temp " +
-                "               (id, user_type, card_type,user_code, del_mark, start_time, end_time, create_time, update_time, tenant_id, dept_code, source, data_source, active, active_time,user_index,post_code," +
-                "account_no,valid_start_time,valid_end_time,orphan,person_card_no,person_card_type,upstreamDataStatus,upstreamDataReason,storage,upstreamRuleId) " +
-                "               VALUES (?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                "               (id, name,user_type, card_type,user_code, del_mark, start_time, end_time, create_time, update_time, tenant_id, dept_code, source, data_source, active, active_time,user_index,post_code," +
+                "account_no,valid_start_time,valid_end_time,orphan,person_card_no,person_card_type,upstreamDataStatus,upstreamDataReason,storage,upstreamRuleId,openid) " +
+                "               VALUES (?,?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         int[] ints = jdbcIGA.batchUpdate(sql, new BatchPreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
                 preparedStatement.setObject(1, UUID.randomUUID().toString());
-                preparedStatement.setObject(2, occupyDtos.get(i).getPostCode());
-                preparedStatement.setObject(3, occupyDtos.get(i).getIdentityCardType());
-                preparedStatement.setObject(4, occupyDtos.get(i).getIdentityCardNo());
-                preparedStatement.setObject(5, occupyDtos.get(i).getStartTime());
-                preparedStatement.setObject(6, occupyDtos.get(i).getEndTime());
-                preparedStatement.setObject(7, occupyDtos.get(i).getCreateTime());
-                preparedStatement.setObject(8, occupyDtos.get(i).getUpdateTime());
-                preparedStatement.setObject(9, domain.getId());
-                preparedStatement.setObject(10, occupyDtos.get(i).getDeptCode());
-                preparedStatement.setObject(11, occupyDtos.get(i).getSource());
-                preparedStatement.setObject(12, occupyDtos.get(i).getDataSource());
-                preparedStatement.setObject(13, occupyDtos.get(i).getActive());
-                preparedStatement.setObject(14, LocalDateTime.now());
-                preparedStatement.setObject(15, occupyDtos.get(i).getIndex());
-                preparedStatement.setObject(16, occupyDtos.get(i).getPostCode());
-                preparedStatement.setObject(17, occupyDtos.get(i).getAccountNo());
-                preparedStatement.setObject(18, occupyDtos.get(i).getValidStartTime());
-                preparedStatement.setObject(19, occupyDtos.get(i).getValidEndTime());
-                preparedStatement.setObject(20, null==occupyDtos.get(i).getOrphan()?0:occupyDtos.get(i).getOrphan());
-                preparedStatement.setObject(21, occupyDtos.get(i).getPersonCardNo());
-                preparedStatement.setObject(22, occupyDtos.get(i).getPersonCardType());
-                preparedStatement.setObject(23, occupyDtos.get(i).getUpstreamDataStatus());
-                preparedStatement.setObject(24, occupyDtos.get(i).getUpstreamDataReason());
-                preparedStatement.setObject(25, occupyDtos.get(i).getStorage());
-                preparedStatement.setObject(26, occupyDtos.get(i).getUpstreamRuleId());
+                preparedStatement.setObject(2, occupyDtos.get(i).getName());
+                preparedStatement.setObject(3, occupyDtos.get(i).getPostCode());
+                preparedStatement.setObject(4, occupyDtos.get(i).getIdentityCardType());
+                preparedStatement.setObject(5, occupyDtos.get(i).getIdentityCardNo());
+                preparedStatement.setObject(6, occupyDtos.get(i).getStartTime());
+                preparedStatement.setObject(7, occupyDtos.get(i).getEndTime());
+                preparedStatement.setObject(8, occupyDtos.get(i).getCreateTime());
+                preparedStatement.setObject(9, occupyDtos.get(i).getUpdateTime());
+                preparedStatement.setObject(10, domain.getId());
+                preparedStatement.setObject(11, occupyDtos.get(i).getDeptCode());
+                preparedStatement.setObject(12, occupyDtos.get(i).getSource());
+                preparedStatement.setObject(13, occupyDtos.get(i).getDataSource());
+                preparedStatement.setObject(14, occupyDtos.get(i).getActive());
+                preparedStatement.setObject(15, LocalDateTime.now());
+                preparedStatement.setObject(16, occupyDtos.get(i).getIndex());
+                preparedStatement.setObject(17, occupyDtos.get(i).getPostCode());
+                preparedStatement.setObject(18, occupyDtos.get(i).getAccountNo());
+                preparedStatement.setObject(19, occupyDtos.get(i).getValidStartTime());
+                preparedStatement.setObject(20, occupyDtos.get(i).getValidEndTime());
+                preparedStatement.setObject(21, null==occupyDtos.get(i).getOrphan()?0:occupyDtos.get(i).getOrphan());
+                preparedStatement.setObject(22, occupyDtos.get(i).getPersonCardNo());
+                preparedStatement.setObject(23, occupyDtos.get(i).getPersonCardType());
+                preparedStatement.setObject(24, occupyDtos.get(i).getUpstreamDataStatus());
+                preparedStatement.setObject(25, occupyDtos.get(i).getUpstreamDataReason());
+                preparedStatement.setObject(26, occupyDtos.get(i).getStorage());
+                preparedStatement.setObject(27, occupyDtos.get(i).getUpstreamRuleId());
+                preparedStatement.setObject(28, occupyDtos.get(i).getOpenId());
             }
 
             @Override
@@ -779,28 +785,30 @@ public class OccupyDaoImpl implements OccupyDao {
     }
 
     @Override
-    public List<OccupyDto> findOccupyTemp(Map<String, Object> arguments, DomainInfo domain) {
-        String sql = " SELECT id as occupyId,user_type as postCode ,card_type as identityCardType,user_code as identityCardNo, " +
+    public List<OccupyEdge> findUpstreamDataState(Map<String, Object> arguments, String domain) {
+        String sql = " SELECT id as occupyId, name ,openid,user_type as postCode ,card_type as identityCardType,user_code as identityCardNo, " +
                 " del_mark as delMark,start_time as startTime,end_time as endTime,create_time as createTime , update_time as updateTime ," +
-                " dept_code as deptCode ,source  ,data_source as dataSource  ,active  ,account_no as accountNo,person_card_no as personCardNo ,person_card_type as personCardType from occupy_temp where tenant_id=? ";
+                " dept_code as deptCode ,source  ,data_source as dataSource  ,active  ,account_no as accountNo,person_card_no as personCardNo ,person_card_type as personCardType," +
+                " upstreamDataStatus,upstreamDataReason,storage,upstreamRuleId " +
+                " from occupy_temp where tenant_id=? ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         //存入参数
         List<Object> param = new ArrayList<>();
-        param.add(domain.getId());
+        param.add(domain);
         dealData(arguments, stb, param);
         stb.append(" order by create_time desc ");
         //查询所有
         if (null != arguments.get("offset") && null != arguments.get("first")) {
-
             stb.append(" limit ?,? ");
             param.add(null == arguments.get("offset") ? 0 : arguments.get("offset"));
             param.add(null == arguments.get("first") ? 0 : arguments.get("first"));
         }
         List<Map<String, Object>> mapList = jdbcIGA.queryForList(stb.toString(), param.toArray());
-        ArrayList<OccupyDto> list = new ArrayList<>();
+        ArrayList<OccupyEdge> list = new ArrayList<>();
         if (null != mapList && mapList.size() > 0) {
             for (Map<String, Object> map : mapList) {
+                OccupyEdge occupyEdge = new OccupyEdge();
                 OccupyDto occupyDto = new OccupyDto();
                 try {
                     MyBeanUtils.populate(occupyDto, map);
@@ -809,7 +817,8 @@ public class OccupyDaoImpl implements OccupyDao {
                 } catch (InvocationTargetException e) {
                     e.printStackTrace();
                 }
-                list.add(occupyDto);
+                occupyEdge.setNode(occupyDto);
+                list.add(occupyEdge);
             }
             return list;
         }
@@ -817,12 +826,12 @@ public class OccupyDaoImpl implements OccupyDao {
     }
 
     @Override
-    public Integer findOccupyTempCount(Map<String, Object> arguments, DomainInfo domain) {
+    public Integer findOccupyTempCount(Map<String, Object> arguments, String domain) {
         String sql = " SELECT count(*) from occupy_temp where tenant_id=?  ";
         //拼接sql
         StringBuffer stb = new StringBuffer(sql);
         List<Object> param = new ArrayList<>();
-        param.add(domain.getId());
+        param.add(domain);
         if (null != arguments) {
             dealData(arguments, stb, param);
         }
@@ -998,6 +1007,65 @@ public class OccupyDaoImpl implements OccupyDao {
                         }
                     }
 
+                    if ("upstreamRuleId".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
+                                stb.append("and upstreamRuleId ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and upstreamRuleId ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and upstreamRuleId ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+
+                    if ("upstreamDataStatus".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("like")) {
+                                stb.append("and upstreamDataStatus ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add("%" + soe.getValue() + "%");
+                            } else if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and upstreamDataStatus ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and upstreamDataStatus ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+                    if ("storage".equals(str.getKey())) {
+                        HashMap<String, Object> value = (HashMap<String, Object>) str.getValue();
+                        for (Map.Entry<String, Object> soe : value.entrySet()) {
+                            if (FilterCodeEnum.getDescByCode(soe.getKey()).equals("in") || FilterCodeEnum.getDescByCode(soe.getKey()).equals("not in")) {
+                                stb.append("and storage ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ( ");
+                                ArrayList<String> value1 = (ArrayList<String>) soe.getValue();
+                                for (String s : value1) {
+                                    stb.append(" ? ,");
+                                    param.add(s);
+                                }
+                                stb.replace(stb.length() - 1, stb.length(), ")");
+                            } else {
+                                stb.append("and storage ").append(FilterCodeEnum.getDescByCode(soe.getKey())).append(" ? ");
+                                param.add(soe.getValue());
+                            }
+                        }
+                    }
+
                 }
 
             }
@@ -1127,6 +1195,7 @@ public class OccupyDaoImpl implements OccupyDao {
         }
         return list;
     }
+
 
     private StringBuffer dealDataAndAttrOccupy(Map<String, Object> arguments, StringBuffer stb, List<Object> param, String tenantId, Set<String> keySet) {
 
