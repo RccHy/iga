@@ -105,6 +105,15 @@ type Person{
     createDataSource:String
     # 人员唯一标识
     openId:String
+    # 权威源数据最终状态 0 ：数据不过验证丢弃  1： 数据自动合重、 2: 数据手动合重、 3 数据新增、 4 数据修改 、 5 数据删除
+    upstreamDataStatus:Int
+    # 权威源数据不入库的原因
+    upstreamDataReason:String
+    #权威源是否入库状态
+    storage:Boolean
+    #权威源来自具体规则
+    upstreamRuleId:String
+
 }
 
 

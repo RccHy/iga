@@ -4,10 +4,14 @@ extend type Query {
     personUpstreamDataState(offset:Int,first:Int,filter:personUpstreamDataStateFilter): PersonConnection
 }
 
+
+
 input personUpstreamDataStateFilter{
     upstreamRuleId:stringFilter
     upstreamDataStatus:stringFilter
     storage:booleanFilter
 
 }
+
+
 
